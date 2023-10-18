@@ -1,4 +1,5 @@
 /// <reference types="node" />
+/// <reference types="node" />
 import { ChildProcess, SpawnOptions, ForkOptions as SysForkOptions } from 'child_process';
 import { Writable } from 'stream';
 export declare const isWindows: boolean;

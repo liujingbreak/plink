@@ -1,0 +1,1 @@
+{"version":3,"file":"interval-tree.js","sourceRoot":"","sources":["../../ts/utils/interval-tree.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;AAAA,oEAAkD","sourcesContent":["export * from '../share/algorithms/interval-tree';\n\n"]}

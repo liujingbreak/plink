@@ -12,12 +12,12 @@
  * e.g. DOM object, React Component, functions
  */
 import {EpicFactory, createReducers, SliceHelper, RegularReducers} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {createActionStreamByType, ActionStreamControl} from '@wfh/redux-toolkit-observable/es/rx-utils';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import Color from 'color';
-import {PaintableContext, PaintableSlice} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
-import {createPaintables} from './huePalette';
-// import {create} from './colorToolCanvasPainter';
+// import {PaintableContext} from '@wfh/doc-ui-common/client/graphics/reactiveCanvas.state';
+
 export interface ColorToolProps {
   mixColors?: {
     color1: string;
@@ -47,7 +47,7 @@ export interface ColorToolState {
   colorClickCallbacks: {[key: string]: () => any};
   label?: string;
   gradientStyle: {[style: string]: string};
-  createPaintables(p: PaintableContext): Iterable<PaintableSlice<any, any>>;
+  // createPaintables(p: PaintableContext): Iterable<PaintableSlice<any, any>>;
   error?: Error;
 }
 // const reducers = {
@@ -58,7 +58,7 @@ const rawReducers = {
   onColorSelected(s: ColorToolState, payload: Color) {
     void navigator.clipboard.writeText(payload.hex());
   },
-  onRenderCanvas(s: ColorToolState, ref: PaintableContext) {},
+  // onRenderCanvas(s: ColorToolState, ref: PaintableContext) {},
   _syncComponentProps(s: ColorToolState, payload: ColorToolProps) {
     s.componentProps = {...payload};
     if (payload.mixColors) {
@@ -107,8 +107,8 @@ export function sliceOptionFactory() {
   const initialState: ColorToolState = {
     colors: [] as Color[],
     colorClickCallbacks: {},
-    gradientStyle: {},
-    createPaintables
+    gradientStyle: {}
+    // createPaintables
   };
   return {
     name: 'ColorTool',
@@ -122,7 +122,7 @@ export type ColorToolEpicFactory = EpicFactory<ColorToolState, typeof reducers>;
 
 export const epicFactory: ColorToolEpicFactory = function(slice) {
 
-  return (action$, state$) => {
+  return (_action$, state$) => {
     return rx.merge(
       new rx.Observable(sub => {
       }),
@@ -159,3 +159,31 @@ export const epicFactory: ColorToolEpicFactory = function(slice) {
 
 
 export type ColorToolSliceHelper = SliceHelper<ColorToolState, typeof reducers>;
+
+export type ColorToolActions = {
+  onUnmount(): void;
+};
+
+export function createControl() {
+  const control = createActionStreamByType<ColorToolActions>({debug: process.env.NODE_ENV === 'development' ? 'colorTool' : false});
+  const {payloadByType} = control;
+  rx.merge(
+  ).pipe(
+    op.takeUntil(payloadByType.onUnmount),
+    op.catchError((err, src) => {
+      console.error(err);
+      void Promise.resolve().then(() => {
+        if (err instanceof Error)
+          throw err;
+        else
+          throw new Error(err);
+      });
+      return src;
+    })
+  ).subscribe();
+
+  return [control] as const;
+}
+
+export type ColorToolControl = ActionStreamControl<ColorToolActions>;
+

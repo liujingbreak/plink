@@ -1,3 +1,5 @@
+/// <reference types="node" />
+import http from 'node:http';
 import HttpProxy from 'http-proxy';
 import * as rx from 'rxjs';
 declare type Response = Parameters<HttpProxy['web']>[1];
@@ -28,5 +30,13 @@ export declare function httpProxyObservable(proxy: HttpProxy): HttpProxyEventObs
   })
 ```
  */
-export declare function observeProxyResponse(httpProxy$: HttpProxyEventObs, res: Response, skipRedirectRes?: boolean): HttpProxyEventObs['proxyRes'];
+export declare function observeProxyResponse(httpProxy$: HttpProxyEventObs, res: Response, skipRedirectRes?: boolean, maxWaitMsecond?: number): HttpProxyEventObs['proxyRes'];
+export declare function observeProxyResponseAndChange(httpProxy$: HttpProxyEventObs, res: Response, change: (origContent: Buffer) => Buffer | string | PromiseLike<Buffer | string>, skipRedirectRes?: boolean): rx.Observable<void>;
+/**
+ * You can use Http-proxy option `cookieDomainRewrite: {'*': ''}` at most of the time,
+ * but when you want to `selfHandleResponse: true`, you'll need this function to help:
+ *
+ * `rewriteResponseSetCookieHeader(res.header['set-cookie'], res)`
+*/
+export declare function clearSetCookieDomainOfProxyResponse(pRes: http.IncomingMessage): Generator<string, void, unknown>;
 export {};

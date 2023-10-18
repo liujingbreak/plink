@@ -14,11 +14,11 @@ blockDiagramDispatcher.create(['plinkArchDiagram', [
     {title: '<b>Command line</b>', grow: 3, children: [
       {title: 'mono repo 开发环境支持', chrInHorizontal: true,
         children: [
-        {title: 'Repo 连接命令'},
-        {title: '依赖添加<br>安装命令'},
-        {title: '编辑器友好', content: 'tsconfig paths配置自动更新'},
-        {title: '源码包依赖管理', content: '3rd party 依赖版本一致性检查'}
-      ]},
+          {title: 'Repo 连接命令'},
+          {title: '依赖添加<br>安装命令'},
+          {title: '编辑器友好', content: 'tsconfig paths配置自动更新'},
+          {title: '源码包依赖管理', content: '3rd party 依赖版本一致性检查'}
+        ]},
       {title: 'Web framework 构建工具 rewire', chrInHorizontal: true, children: [
         {title: 'create-react-app<br>扩展', content: '支持 monorepo, library 构建、 源文件替换, webpack定制'},
         {title: 'Angular 8 cli 扩展', content: '支持 monorepo, webpack定制'},
@@ -30,7 +30,7 @@ blockDiagramDispatcher.create(['plinkArchDiagram', [
         {title: '源码依赖分析'}
       ]},
       {title: '模块包管理', chrInHorizontal: true,
-        children:['批量发布', '批量本地 targz', '批量版本 bump']},
+        children: ['批量发布', '批量本地 targz', '批量版本 bump']},
       {title: 'Utility', chrInHorizontal: true, children: [
         'Typescript AST 查询',
         'thread_worker /process pool',
@@ -63,12 +63,12 @@ blockDiagramDispatcher.create(['businessAppDiagram', [
   {title: '信贷 monorepo creditappfrontend', type: 'layer', children: [
     {title: 'workspace', chrInHorizontal: true, children: [
       'React 项目构建空间', 'Angular 项目构建空间', 'Node.js 应用运行空间']},
-    {title: '本地源码包(目录)', grow:4, children: [
+    {title: '本地源码包(目录)', grow: 4, children: [
       {title: '各产品的route模块和业务页面', chrInHorizontal: true,
-      children: [
-        {title: '控台业务模块包目录'},
-        {title: 'H5 业务模块包目录'}
-      ]},
+        children: [
+          {title: '控台业务模块包目录'},
+          {title: 'H5 业务模块包目录'}
+        ]},
       {title: 'common UI 包和基础业务功能', chrInHorizontal: true, grow: 3, children: [
         '基础导航栏组件', '基础 index HTML和 H5 布局组件', '基础动效组件',
         'API 响应拦截和异常提示',
@@ -76,7 +76,7 @@ blockDiagramDispatcher.create(['businessAppDiagram', [
       ]}
     ]},
     {title: '各个产品构建和运行配置文件目录', grow: 0.5},
-    {title: 'Server模块', chrInHorizontal:true, children: ['可视化首页微信 API 聚合', '服务端渲染', '可视化，潜客包 API代理']},
+    {title: 'Server模块', chrInHorizontal: true, children: ['可视化首页微信 API 聚合', '服务端渲染', '可视化，潜客包 API代理']},
     {title: '关联其他项目安装包 targz 文件目录', chrInHorizontal: true, children: [
       '寻龙贝分期控台项目安装包', 'Plink 工具模块包'
     ]}

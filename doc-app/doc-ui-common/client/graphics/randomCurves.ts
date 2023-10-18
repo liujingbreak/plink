@@ -45,7 +45,7 @@ export function bend(vertics: Iterable<[number, number]>, opts: BendOptions = {
 }
 
 function randomPointToEdge(start: [number, number], end: [number, number], opts: Required<BendOptions>): [number, number] {
-  const slope = (end[1] - start[1])/ (end[0] - start[0]);
+  const slope = (end[1] - start[1]) / (end[0] - start[0]);
   let slopeAng = Math.atan(slope);
   if (end[0] - start[0] < 0) {
     slopeAng = Math.PI + slopeAng;
@@ -55,7 +55,7 @@ function randomPointToEdge(start: [number, number], end: [number, number], opts:
   const toHorizontal = transform(rotate(-slopeAng), translate(-start[0], -start[1]));
   // const startTransformed = applyToPoint(toHorizontal, start); // should be 0
 
-  let endTransformed = applyToPoint(toHorizontal, end);
+  const endTransformed = applyToPoint(toHorizontal, end);
 
   // console.log(startTransformed, endTransformed);
 

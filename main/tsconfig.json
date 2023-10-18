@@ -1,9 +1,11 @@
 {
-	"extends": "./wfh/tsconfig-base.json",
+  "extends": "./wfh/tsconfig-base.json",
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
     "rootDir": ".",
+    "rootDirs": ["wfh/src", "wfh/share"],
+    "moduleResolution": "node",
     "typeRoots": [
       "node_modules/@types",
       "wfh/types",
@@ -33,14 +35,30 @@
       ],
       "@wfh/reactive-terminal-ui/dist/*": [
         "packages/reactive-terminal-ui/src/*"
+      ],
+      "@wfh/algorithms/*": [
+        "packages/algorithms/src/*"
+      ],
+      "@wfh/algorithms": [
+        "packages/algorithms/src"
+      ],
+      "@wfh/reactivizer/*": [
+        "packages/reactivizer/src/*"
+      ],
+      "@wfh/reactivizer": [
+        "packages/reactivizer/src"
       ]
     }
   },
   "include": [
-    "wfh/ts/**/*.ts",
+    "wfh/src/**/*.ts",
     "packages/redux-toolkit-observable/**/*.ts",
     "packages/thread-promise-pool/ts/**/*.ts",
-    "packages/reactive-terminal-ui/src/**/*.ts"
+    "packages/reactive-terminal-ui/src/**/*.ts",
+    "packages/reactivizer/src/**/*.ts",
+    "packages/reactivizer/__tests__/**/*.ts",
+    "packages/algorithms/src/**/*.ts",
+    "packages/algorithms/__tests__/**/*.ts"
   ],
   "exclude": [
     "packages/**/*.d.ts"

@@ -1,10 +1,10 @@
 import {EpicFactory, ofPayloadAction, createReducers, RegularReducers, sliceRefActionOp} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
-import {ColorToolProps} from './ColorTool';
-import {ColorToolSliceHelper} from './colorTool.state';
 import Color from 'color';
 import {SliderProps} from '@wfh/material-components-react/client/Slider';
+import {ColorToolProps} from './ColorTool';
+import {ColorToolSliceHelper} from './colorTool.state';
 export interface PaletteObservableProps {
   colorMain: string;
   colorMix: string;

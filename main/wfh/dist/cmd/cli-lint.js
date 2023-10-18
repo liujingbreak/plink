@@ -1,14 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 require("source-map-support/register");
-const path_1 = tslib_1.__importDefault(require("path"));
+const path_1 = __importDefault(require("path"));
 // import chalk from 'chalk';
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const log4js_1 = __importDefault(require("log4js"));
 const package_mgr_1 = require("../package-mgr");
 const utils_1 = require("./utils");
 const dist_1 = require("../../../packages/thread-promise-pool/dist");
-const os_1 = tslib_1.__importDefault(require("os"));
+const os_1 = __importDefault(require("os"));
 const log = log4js_1.default.getLogger('plink.cli-lint');
 const cpus = os_1.default.cpus().length;
 async function default_1(packages, opts) {

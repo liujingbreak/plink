@@ -1,0 +1,40 @@
+@use "@wfh/material-components-react/client/theme";
+
+.toc{
+  &Body {
+    flex-grow: 0;
+    flex-shrink: 1;
+    padding-left: 1rem;
+    &.fixed {
+      .tocContent {
+        top: 64px;
+        position: fixed;
+      }
+    }
+    h3 {
+      margin-bottom: 1rem;
+      color: theme.$primary;
+    }
+  }
+  &-item {
+    line-height: 1.5rem;
+    position: relative;
+    padding-left: 1rem;
+  }
+  &-title {
+    white-space: nowrap;
+    color: change-color(theme.$primary, $alpha: 0.7);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    transition: color 0.25s linear;
+    &:hover {
+      color: theme.$primary;
+    }
+  }
+}
+
+:global(.mdc-layout-size-desktop) {
+  .tocBody {
+    max-width: 30vw;
+  }
+}

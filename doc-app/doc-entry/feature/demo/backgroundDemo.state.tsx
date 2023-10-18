@@ -169,7 +169,7 @@ function createPaintable(pctx: PaintableContext, bgDemoSlice: BackgroundDemoSlic
 
   const halfTriaEdgeLen = Math.tan(Math.PI / 6) * 100;
 
-  let triangleVertices: [number, number][] = [
+  const triangleVertices: [number, number][] = [
     randomePointInsideCircle([0, 0], [0, 10]),
     randomePointInsideCircle([halfTriaEdgeLen, 100], [0, 10]),
     randomePointInsideCircle([-halfTriaEdgeLen, 100], [0, 10])

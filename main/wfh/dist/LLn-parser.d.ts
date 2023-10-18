@@ -28,8 +28,8 @@ export declare class Token<T> extends Chunk<string, T> {
  *  T is Token Type, e.g. string or a enum
  *  C could be omit
  */
-export declare type Lexer<V, T, C extends Chunk<V, T> = Chunk<V, T>> = (la: LookAhead<V, T>, emitter: TokenEmitter<V, T, C>) => void;
-export declare type Grammar<C, A> = (tokenLa: LookAhead<C, string>) => A;
+export type Lexer<V, T, C extends Chunk<V, T> = Chunk<V, T>> = (la: LookAhead<V, T>, emitter: TokenEmitter<V, T, C>) => void;
+export type Grammar<C, A> = (tokenLa: LookAhead<C, string>) => A;
 interface TokenEmitter<V, T, C> {
     emit(): void;
     end(): void;

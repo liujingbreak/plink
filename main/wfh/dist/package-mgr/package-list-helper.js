@@ -1,9 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.appendTypeRoots = exports.setTsCompilerOptForNodePath = exports.workspacesOfDependencies = exports.packages4Workspace = exports.packages4WorkspaceKey = exports.allPackages = void 0;
-const tslib_1 = require("tslib");
-const path_1 = tslib_1.__importDefault(require("path"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const path_1 = __importDefault(require("path"));
+const lodash_1 = __importDefault(require("lodash"));
 const log4js_1 = require("log4js");
 const misc_1 = require("../utils/misc");
 const node_path_calc_1 = require("../node-path-calc");
@@ -154,46 +156,32 @@ function setTsCompilerOptForNodePath(tsconfigDir, baseUrl = './', assigneeOption
     return assigneeOptions;
 }
 exports.setTsCompilerOptForNodePath = setTsCompilerOptForNodePath;
-/**
- * For those special scoped package which is like @loadable/component, its type definition package is
- * @types/loadable__component
- */
-// function assignSpecialPaths(dependencies: {[dep: string]: string} | undefined,
-//   nodePaths: Iterable<string>,
-//   assigneeOptions: Partial<CompilerOptions>, absBaseUrlPath: string) {
-//   if (dependencies == null)
-//     return;
-//   // if (assigneeOptions.paths == null)
-//   //   assigneeOptions.paths = {};
-//   for (const item of Object.keys(dependencies)) {
-//     const m = /^@types\/(.*?)__(.*?)$/.exec(item);
-//     if (m) {
-//       const originPkgName = `@${m[1]}/${m[2]}`;
-//       const exactOne: string[] = assigneeOptions.paths![originPkgName] = [];
-//       const wildOne: string[] = assigneeOptions.paths![originPkgName + '/*'] = [];
-//       for (const dir of nodePaths) {
-//         const relativeDir = Path.relative(absBaseUrlPath, dir + '/' + item).replace(/\\/g, '/');
-//         exactOne.push(relativeDir);
-//         wildOne.push(relativeDir + '/*');
-//       }
-//     }
-//   }
-// }
 function pathMappingForLinkedPkgs(baseUrlAbsPath) {
     let drcpDir = ((0, index_1.getState)().linkedDrcp || (0, index_1.getState)().installedDrcp).realPath;
     const pathMapping = {};
     for (const [name, { realPath, json }] of (0, index_1.getState)().srcPackages.entries() || []) {
         const tsDirs = (0, misc_1.getTscConfigOfPkg)(json);
         const realDir = path_1.default.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
-        pathMapping[name] = [realDir];
+        const typeFile = json.types;
+        const realDestDir = path_1.default.posix.join(realDir, tsDirs.destDir);
+        if (typeFile &&
+            path_1.default.posix.join(realDir, typeFile).startsWith(realDestDir + '/')) {
+            // In case types file is inside compilation destination directory
+            const relTypeFile = path_1.default.basename(path_1.default.posix.relative(tsDirs.destDir, typeFile), '.d.ts');
+            const mapped = path_1.default.join(realDir, tsDirs.srcDir, relTypeFile).replace(/\\/g, '/');
+            pathMapping[name] = [mapped + '.ts', mapped + '.mts', mapped + '.cts'];
+        }
+        else if (typeFile) {
+            pathMapping[name] = [typeFile ? path_1.default.join(realDir, typeFile).replace(/\\/g, '/') : realDir];
+        }
         pathMapping[`${name}/${tsDirs.destDir}/*`.replace(/\/\//g, '/')] = [`${realDir}/${tsDirs.srcDir}/*`.replace(/\/\//g, '/')];
         // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
         pathMapping[name + '/*'] = [`${realDir}/*`];
     }
     // if (pkgName !== '@wfh/plink') {
     drcpDir = path_1.default.relative(baseUrlAbsPath, drcpDir).replace(/\\/g, '/');
-    pathMapping['@wfh/plink'] = [drcpDir];
-    pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/ts/*'];
+    pathMapping['@wfh/plink'] = [drcpDir + '/wfh/src/index.ts'];
+    pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/src/*'];
     return pathMapping;
 }
 /**

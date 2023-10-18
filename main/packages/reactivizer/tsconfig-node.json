@@ -1,0 +1,29 @@
+{
+  "extends": "../../wfh/tsconfig-base.json",
+  "references": [
+    {"path": "../algorithms/tsconfig-node.json"}
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "src",
+    "target": "ES2017",
+    "outDir": "dist",
+    "declaration": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "composite": true,
+    "paths": {
+      "@wfh/algorithms/*": [
+        "../algorithms/src/*"
+      ],
+      "@wfh/algorithms": [
+        "../algorithms/src"
+      ]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "es/**/*.ts",
+    "dist/**/*.ts"
+  ]
+}

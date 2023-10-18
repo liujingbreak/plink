@@ -7,5 +7,5 @@ export interface Options {
         [varName: string]: any;
     };
 }
-declare const loader: wp.loader.Loader;
+declare const loader: wp.LoaderDefinitionFunction<Options>;
 export default loader;

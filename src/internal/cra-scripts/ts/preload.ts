@@ -3,20 +3,20 @@
  * Do not actually import entity other than "type" from here
  * Because we have not set node path yet.
  */
+import Path from 'path';
+import {sep} from 'path';
+import fs from 'fs-extra';
+import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
 import {drawPuppy} from './utils';
 import _paths from './cra-scripts-paths';
 import {getCmdOptions} from './utils';
-import Path from 'path';
-import fs from 'fs-extra';
 import {hackWebpack4Compiler} from './hack-webpack-api';
-import {sep} from 'path';
-import {hookCommonJsRequire} from '@wfh/plink/wfh/dist/loaderHooks';
 import {register as registerForkTsChecker} from './hack-fork-ts-checker';
 // Avoid child process require us!
 const deleteExecArgIdx: number[] = [];
 for (let i = 0, l = process.execArgv.length; i < l; i++) {
-  if (i < l - 1 && /^(?:\-r|\-\-require)$/.test(process.execArgv[i]) &&
-  /^@wfh\/cra\-scripts($|\/)/.test(process.execArgv[i + 1])) {
+  if (i < l - 1 && /^(?:-r|--require)$/.test(process.execArgv[i]) &&
+  /^@wfh\/cra-scripts($|\/)/.test(process.execArgv[i + 1])) {
     deleteExecArgIdx.push(i);
   }
 }
@@ -26,7 +26,7 @@ deleteExecArgIdx.reduce((offset, deleteIdx) => {
 }, 0);
 
 export function poo() {
-  let getCraPaths: typeof _paths = require('./cra-scripts-paths').default;
+  const getCraPaths = (require('./cra-scripts-paths') as {default: typeof _paths}).default;
 
   const reactScriptsPath = Path.resolve('node_modules/react-scripts');
   // const reactDevUtilsPath = Path.resolve('node_modules/react-dev-utils');
@@ -41,7 +41,7 @@ export function poo() {
 
   // Disable @pmmmwh/react-refresh-webpack-plugin, since it excludes our node_modules
   // from HMR
-  process.env.FAST_REFRESH = 'false';
+  // process.env.FAST_REFRESH = 'false';
 
   hookCommonJsRequire((filename, target, req, resolve) => {
     if (filename.startsWith(reactScriptsPath + sep)) {
@@ -60,9 +60,9 @@ export function poo() {
       }
       switch (resolve(target)) {
         case reactWebpackCfg:
-          return require('./webpack.config');
+          return require('./webpack.config').default;
         case reactWebpackDevServerCfg:
-          return require('./webpack.devserver.config');
+          return require('./webpack.devserver.config').default;
         case clearConsole:
           return noClearConsole;
         case craPaths:
@@ -70,7 +70,7 @@ export function poo() {
         default:
       }
       if (target === 'react-dev-utils/openBrowser') {
-        return require('./cra-open-browser').default;
+        return require('./cra-open-browser.cjs').default;
       }
     } else if (filename.startsWith(craPackagesPathPrefix)) {
       switch (resolve(target)) {

@@ -1,9 +1,9 @@
-import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
 import { CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft, ActionCreatorWithPayload } from '@reduxjs/toolkit';
 import { Epic } from 'redux-observable';
 import { Observable, OperatorFunction } from 'rxjs';
 import { immerable } from 'immer';
-export declare type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R, Name>) => Epic<PayloadAction<any>, any, {
+import { StateFactory, ExtraSliceReducers } from './redux-toolkit-observable';
+export type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends string = string> = (slice: SliceHelper<S, R, Name>) => Epic<PayloadAction<any>, any, {
     [sliceName in Name]: S;
 }> | void;
 /**
@@ -11,13 +11,13 @@ export declare type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends 
  * Compare to React's useReducer() hook, sliceHelper offers more strong functionality for complicated component,
  * it uses redux-observable to resolve async action needs.
  */
-export declare type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string = string> = Slice<S, R, Name> & {
+export type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string = string> = Slice<S, R, Name> & {
     /** You don't have to create en Epic for subscribing action stream, you subscribe this property
      * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
      */
     action$: Observable<PayloadAction | Action>;
-    action$ByType: ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>>>;
-    actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
+    action$ByType: ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>, Name>>;
+    actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>, Name>;
     destroy$: Observable<any>;
     addEpic(epicFactory: EpicFactory<S, R>): () => void;
     addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): () => void;
@@ -25,11 +25,11 @@ export declare type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends 
     getStore(): Observable<S>;
     getState(): S;
 };
-export declare function createSliceHelper<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, opts: CreateSliceOptions<S, R>): SliceHelper<S, R>;
-declare type SimpleReducers<S> = {
+export declare function createSliceHelper<S extends Record<string, any>, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, opts: CreateSliceOptions<S, R>): SliceHelper<S, R>;
+type SimpleReducers<S> = {
     [K: string]: (draft: S | Draft<S>, payload?: any) => S | void | Draft<S>;
 };
-export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
+export type RegularReducers<S, R extends SimpleReducers<S>> = {
     [K in keyof R]: R[K] extends (s: any) => any ? (s: Draft<S>) => S | void | Draft<S> : R[K] extends (s: any, payload: infer P) => any ? (s: Draft<S>, action: PayloadAction<P>) => void | Draft<S> : (s: Draft<S>, action: PayloadAction<unknown>) => void | Draft<S>;
 };
 /**
@@ -55,7 +55,7 @@ export declare type RegularReducers<S, R extends SimpleReducers<S>> = {
  * @returns SliceCaseReducers which can be part of parameter of createSliceHelper
  */
 export declare function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R): RegularReducers<S, R>;
-declare type ActionByType<R> = {
+type ActionByType<R> = {
     [K in keyof R]: Observable<R[K] extends PayloadActionCreator<infer P> ? PayloadAction<P> : PayloadAction<unknown>>;
 };
 /**
@@ -78,8 +78,8 @@ slice.addEpic(slice => action$ => {
  * @param actionCreators
  * @param action$
  */
-export declare function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R, action$: Observable<PayloadAction | Action>): ActionByType<R>;
-export declare function action$ByType<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, slice: Slice<S, R> | SliceHelper<S, R>): ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>>>;
+export declare function castByActionType<Name extends string, R extends CaseReducerActions<SliceCaseReducers<any>, Name>>(actionCreators: R, action$: Observable<PayloadAction | Action>): ActionByType<R>;
+export declare function action$ByType<S, R extends SliceCaseReducers<S>>(stateFactory: StateFactory, slice: Slice<S, R> | SliceHelper<S, R>): ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>, string>>;
 export declare function isActionOfCreator<P, T extends string>(action: PayloadAction<any, any>, actionCreator: ActionCreatorWithPayload<P, T>): action is PayloadAction<P, T>;
 /**
  * Add an epicFactory to another component's sliceHelper
@@ -95,7 +95,7 @@ export declare function isActionOfCreator<P, T extends string>(action: PayloadAc
  * @param epicFactory
  */
 export declare function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory: EpicFactory<S, R>): OperatorFunction<PayloadAction<SliceHelper<S, R>>, PayloadAction<any>>;
-declare type ActionOfReducer<S, R extends SliceCaseReducers<S>, T extends keyof R> = R[T] extends (s: any, action: infer A) => any ? (A extends {
+type ActionOfReducer<S, R extends SliceCaseReducers<S>, T extends keyof R> = R[T] extends (s: any, action: infer A) => any ? (A extends {
     payload: infer P;
 } ? {
     payload: P;
@@ -127,7 +127,8 @@ export declare function action$OfSlice<S, R extends SliceCaseReducers<S>, T exte
  */
 export declare class Refrigerator<T> {
     private ref;
-    [immerable]: false;
+    [immerable]: boolean;
+    static [immerable]: boolean;
     constructor(originRef: T);
     creatNewIfNoEqual(ref: T): Refrigerator<T>;
     getRef(): T;

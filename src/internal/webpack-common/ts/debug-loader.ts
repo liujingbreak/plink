@@ -3,15 +3,14 @@ import {log4File} from '@wfh/plink';
 
 const log = log4File(__filename);
 
-export type Options = {
-};
+export type Options = Record<string, any>;
 
-const loader: wp.loader.Loader = function(source, sourceMap) {
+const loader: wp.LoaderDefinition = function(source, sourceMap) {
   const file = this.resourcePath;
   // const opts = this.query as Options;
   log.warn('debug loader', file, /\bnode_modules\b/.test(file) ? '' : '\n' + source);
   const cb = this.async();
-  cb!(null, source, sourceMap);
+  cb(null, source, sourceMap);
 };
 
 export default loader;

@@ -1,7 +1,7 @@
-/// <reference types="webpack-dev-server" />
 import { Configuration } from 'webpack';
-import { CommandOption } from './build-options';
 import ts from 'typescript';
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import { CommandOption } from './build-options';
 export interface CraScriptsPaths {
     dotenv: string;
     appPath: string;
@@ -17,12 +17,15 @@ export interface CraScriptsPaths {
     testsSetup: string;
     proxySetup: string;
     appNodeModules: string;
+    appWebpackCache: string;
+    appTsBuildInfoFile: string;
     swSrc: string;
     publicUrlOrPath: string;
     ownPath: string;
     ownNodeModules: string;
     appTypeDeclarations: string;
     ownTypeDeclarations: string;
+    plinkEntryFileSymlink: string;
 }
 export interface ReactScriptsHandler {
     /** Change CRA's paths  */
@@ -42,3 +45,5 @@ export declare const PKG_LIB_ENTRY_PROP = "cra-lib-entry";
 export declare const PKG_LIB_ENTRY_DEFAULT = "public_api.ts";
 export declare const PKG_APP_ENTRY_PROP = "cra-app-entry";
 export declare const PKG_APP_ENTRY_DEFAULT = "start.tsx";
+export type ForkTsCheckerWebpackPluginOptions = NonNullable<ConstructorParameters<typeof ForkTsCheckerWebpackPlugin>[0]>;
+export type ForkTsCheckerWebpackPluginTypescriptOpts = Exclude<NonNullable<ForkTsCheckerWebpackPluginOptions['typescript']>, boolean>;

@@ -3,7 +3,6 @@ import * as Path from 'path';
 import vm from 'vm';
 import * as ts from 'typescript';
 import {SyntaxKind as sk, CompilerOptions} from 'typescript';
-import ImportClauseTranspile from './default-import-ts-transpiler';
 import BrowserPackage from '@wfh/plink/wfh/dist/packageNodeInstance';
 import {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
 import * as textPatcher from '@wfh/plink/wfh/dist/utils/patch-text';
@@ -11,6 +10,7 @@ import { readTsConfig, transpileSingleTs } from '@wfh/plink/wfh/dist/ts-compiler
 import {log4File} from '@wfh/plink';
 import chalk from 'chalk';
 import {has} from 'lodash';
+import ImportClauseTranspile from './default-import-ts-transpiler';
 
 const log = log4File(__filename);
 export {ReplacementInf};
@@ -23,7 +23,7 @@ export default class TsPreCompiler {
 
   constructor(tsConfigFile: string, isServerSide: boolean,
     private findPackageByFile: (file: string) => BrowserPackage | null | undefined) {
-    this.tsCo = readTsConfig(tsConfigFile);
+    this.tsCo = readTsConfig(tsConfigFile, ts as any) as ts.CompilerOptions;
     if (isServerSide) {
       this.importTranspiler = new ImportClauseTranspile({
         modules: [/^lodash(?:\/|$)/]
@@ -65,7 +65,8 @@ export default class TsPreCompiler {
       const origText = repl.text!;
       let res;
       try {
-        res = vm.runInNewContext(transpileSingleTs(origText, this.tsCo), context);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        res = vm.runInNewContext(transpileSingleTs(origText, this.tsCo as any, ts as any), context);
         repl.text = JSON.stringify(res);
         // To bypass TS error "Unreachable code detected" if
         // compiler option "allowUnreachableCode: false"
@@ -102,7 +103,7 @@ export default class TsPreCompiler {
     replacements: ReplacementInf[],
     astPositionConvert?: (pos: number) => number,
     level = 0
-    ) {
+  ) {
     try {
       if (ast.kind === sk.PropertyAccessExpression || ast.kind === sk.ElementAccessExpression) {
         const node = ast as (ts.PropertyAccessExpression | ts.ElementAccessExpression);
@@ -134,7 +135,8 @@ export default class TsPreCompiler {
 	 */
   protected goUpToParentExp(target: ts.Node): ts.Node {
     let currNode = target;
-    while(true) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
       const kind = currNode.parent.kind;
       if (kind === sk.CallExpression && (currNode.parent as ts.CallExpression).expression === currNode ||
         kind === sk.PropertyAccessExpression && (currNode.parent as ts.PropertyAccessExpression).expression === currNode ||

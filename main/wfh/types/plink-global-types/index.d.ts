@@ -1,5 +1,5 @@
 declare module '__api' {
-  import {ExtensionContext} from '@wfh/plink/wfh/globals';
+  import {ExtensionContext} from '@wfh/plink/wfh/dist/globals';
 	const api: ExtensionContext;
 	export {ExtensionContext, ExtensionContext as DrcpApi};
   export default api;

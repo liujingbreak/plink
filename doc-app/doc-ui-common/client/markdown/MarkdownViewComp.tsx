@@ -1,33 +1,34 @@
+/// <reference path="../../ts/mermaid-types.d.mts" />
 import React from 'react';
-// import classnames from 'classnames/bind';
+import * as op from 'rxjs/operators';
+import classnames from 'classnames/bind';
+import cln from 'classnames';
 import 'github-markdown-css/github-markdown.css';
-import styles from './MarkdownViewComp.module.scss';
-import {getState, dispatcher} from './markdownSlice';
 import unescape from 'lodash/unescape';
 // import {MarkdownIndex} from './MarkdownIndex';
-import {InjectedCompPropsType, connect} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {SwitchAnim} from '../animation/SwitchAnim';
 
-// import mermaid from 'mermaid';
-import 'highlight.js/scss/solarized-light.scss';
-// import * as op from 'rxjs/operators';
-// const cx = classnames.bind(styles);
+import {getState, getStore, dispatcher} from './markdownSlice';
+import styles from './MarkdownViewComp.module.scss';
+import {TableOfContents} from './toc/TableOfContents';
 
 let mermaidIdSeed = 0;
+const cls = classnames.bind(styles);
+
 export type MarkdownViewCompProps = {
   /** markdown file relative path, which is compiled by markdown-loader */
   mdKey?: string;
   onContent?: (dom: HTMLElement) => void;
 };
 
-const ConnectHOC = connect(mapToPropsFactory, {}, null, {forwardRef: true});
+const EMPTY_HTML_OBJ = {__html: ''};
 
-const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = function(props) {
+export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props) {
   // const routeParams = useParams<{mdKey: string}>();
- // {__html: props.contents[routeParams.mdKey]}
+  // {__html: props.contents[routeParams.mdKey]}
 
   // const containerRef = React.createRef<HTMLDivElement>();
-  const contentRef = React.useRef<HTMLDivElement>(null);
+  // const contentRef = React.useRef<HTMLDivElement>(null);
   const [, setLoaded] = React.useState<boolean>(false);
   const [containerDom, setContainerDom] = React.useState<HTMLElement>();
 
@@ -38,16 +39,17 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
 
   React.useEffect(() => {
     setLoaded(false);
-    // console.log(props.mdKey);
-    if (props.mdKey) {
+    if (props.mdKey && getState().computed.reactHtml[props.mdKey] == null) {
       dispatcher.getHtml(props.mdKey);
     }
   }, [props.mdKey]);
 
+  const [htmlObj, setHtmlObj] = React.useState<{__html: string}>(EMPTY_HTML_OBJ);
+
   React.useEffect(() => {
-    // console.log(props.contents[props.mdKey!], containerDom, props.mdKey);
-    if (props.mdKey != null && props.contents[props.mdKey] && containerDom) {
-      containerDom.innerHTML = props.contents[props.mdKey].__html;
+    if (props.mdKey != null && getState().computed.reactHtml[props.mdKey] && containerDom) {
+      // containerDom.innerHTML = getState().computed.reactHtml[props.mdKey].__html;
+      setHtmlObj(getState().computed.reactHtml[props.mdKey]);
 
       setTimeout(() => {
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -56,7 +58,7 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
           const container = document.createElement('div');
           container.className = styles.mermaidDiagram;
           el.parentElement!.insertBefore(container, el);
-          // TODO: can been moved to a Worker !!
+          // Can not be moved to a Worker, mermaid relies on DOM
           const svgStr = await drawMermaidDiagram(el.id, unescape(el.innerHTML));
           container.innerHTML = svgStr;
         });
@@ -72,34 +74,39 @@ const MarkdownViewComp: React.FC<InjectedCompPropsType<typeof ConnectHOC>> = fun
   [
     containerDom, props.mdKey,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    props.mdKey != null ? props.contents[props.mdKey] : null,
+    props.mdKey != null ? getState().computed.reactHtml[props.mdKey] : null,
     props.onContent
   ]);
 
+  const [, touchState] = React.useState<unknown>(null); // enable React reconcilation/dirty-check
+  React.useEffect(() => {
+    if (props.mdKey == null)
+      return;
+    const state$ = getStore();
+    const sub = state$.pipe(
+      op.map(s => s.computed.reactHtml[props.mdKey!]?.__html),
+      op.distinctUntilChanged()
+    ).subscribe({next(s) {
+      touchState({});
+    }});
+    return () => sub.unsubscribe();
+  }, [props.mdKey]);
+
   return (
-    <div ref={contentRef}>
-      {/* {loaded ? <MarkdownIndex mdKey={props.mdKey} contentRef={contentRef} /> : <>...</>} */}
-      <SwitchAnim contentHash={props.mdKey}>
-        <div ref={containerRefCb}
-          className='markdown-body'></div>
-      </SwitchAnim>
-    </div>
+    <SwitchAnim className={cls('switchAnim')} innerClassName={styles.container} contentHash={props.mdKey}>
+      <>
+        <div ref={containerRefCb} className={cln(styles.markdownContent, 'markdown-body')} dangerouslySetInnerHTML={htmlObj}></div>
+        {props.mdKey ? <TableOfContents markdownKey={props.mdKey} /> : '...'}
+      </>
+    </SwitchAnim>
   );
-};
+});
 
-function mapToPropsFactory(rootState: unknown, ownProps: MarkdownViewCompProps) {
-  return function(rootState: any, props: MarkdownViewCompProps) {
-    return {
-      contents: getState().computed.reactHtml
-    };
-  };
-}
-const connected = ConnectHOC(MarkdownViewComp);
 
-let mermaidInited = false;
+const mermaidInited = false;
 
 async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promise<string> {
-  const mermaid = (await import('mermaid')).default;
+  const mermaid = (await import('mermaid/dist/mermaid.esm.mjs')).default;
   if (mermaidStr == null)
     return Promise.resolve('');
   if (!mermaidInited) {
@@ -109,16 +116,12 @@ async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promis
     });
   }
 
-  return new Promise<string>(resolve => {
-    mermaid.render(id, mermaidStr, (svgCode, bindFn) => {
-      resolve(svgCode);
-    });
-  })
-  .catch(err => {
+  try {
+    const {svg} = await mermaid.render(id, mermaidStr);
+    return svg;
+  } catch (err) {
     console.error('Failed to draw mermaid diagram', err);
     return '';
-  });
+  }
 }
-
-export {connected as MarkdownViewComp};
 

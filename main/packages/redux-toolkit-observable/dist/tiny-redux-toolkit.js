@@ -38,12 +38,12 @@ const rx = __importStar(require("rxjs"));
 const op = __importStar(require("rxjs/operators"));
 const ofPayloadAction = (...actionCreators) => {
     return function (src) {
-        return src.pipe(op.filter(action => actionCreators.some(ac => action.type === ac.type)));
+        return src.pipe(op.filter(action => actionCreators.some(ac => action.type === ac.type)), op.share());
     };
 };
 exports.ofPayloadAction = ofPayloadAction;
 /**
- * Map action stream to multiple action streams by theire action type.
+ * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
  * Usage:
 ```
@@ -63,13 +63,12 @@ slice.addEpic(slice => action$ => {
  * @param action$
  */
 function castByActionType(actionCreators, action$) {
-    const source = action$.pipe(op.share());
     const splitActions = {};
     for (const reducerName of Object.keys(actionCreators)) {
         Object.defineProperty(splitActions, reducerName, {
             get() {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                return source.pipe((0, exports.ofPayloadAction)(actionCreators[reducerName]));
+                return action$.pipe((0, exports.ofPayloadAction)(actionCreators[reducerName]));
             }
         });
     }
@@ -103,8 +102,10 @@ function createSlice(opt) {
         const creator = ((payload) => {
             const action = {
                 type,
-                payload: payload.length === 0 ? undefined :
-                    payload.length === 1 ? payload[0] :
+                payload: payload.length === 0
+                    ? undefined :
+                    payload.length === 1
+                        ? payload[0] :
                         payload,
                 reducer
             };
@@ -130,7 +131,7 @@ function createSlice(opt) {
     const action$ = new rx.Subject();
     function ofType(...actionTypes) {
         return function (src) {
-            return src.pipe(op.filter(action => actionTypes.some(ac => action.type === name + '/' + ac)));
+            return src.pipe(op.filter(action => actionTypes.some(ac => action.type === name + '/' + ac), op.share()));
         };
     }
     function dispatch(action) {
@@ -187,7 +188,9 @@ function createSlice(opt) {
             // eslint-disable-next-line no-console
             console.log(`%c ${name} internal:state `, 'color: black; background: #e98df5;', state);
         }
-    })), opt.rootStore ? state$.pipe(op.tap(state => { var _a; return opt.rootStore.next(Object.assign(Object.assign({}, (_a = opt.rootStore) === null || _a === void 0 ? void 0 : _a.getValue()), { [opt.name]: state })); })) : rx.EMPTY).subscribe();
+    })), opt.rootStore
+        ? state$.pipe(op.tap(state => { var _a; return opt.rootStore.next(Object.assign(Object.assign({}, (_a = opt.rootStore) === null || _a === void 0 ? void 0 : _a.getValue()), { [opt.name]: state })); }))
+        : rx.EMPTY).subscribe();
     function destroy() {
         dispatch({
             type: '__OnDestroy'
@@ -309,7 +312,7 @@ demoSlice.addEpic((slice, ofType) => {
         // slice.actionDispatcher.abc();
         return rx.merge(actionStreams.hellow.pipe(), actionStreams.multiPayloadReducer.pipe(), action$.pipe(ofType('hellow', 'hellow'), op.map(action => slice.actions.world())), action$.pipe(ofType('world'), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe((0, exports.ofPayloadAction)(slice.actions.hellow), op.tap(action => typeof action.payload.data === 'string')), action$.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        (0, exports.ofPayloadAction)(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe((0, exports.ofPayloadAction)(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload)), action$.pipe((0, exports.ofPayloadAction)(slice.actions.multiPayloadReducer), op.tap(({ payload: [a1, a2] }) => alert(a1)))).pipe(op.ignoreElements());
+        (0, exports.ofPayloadAction)(slice.actions.world), op.tap(action => slice.actionDispatcher.hellow({ data: 'yes' }))), action$.pipe((0, exports.ofPayloadAction)(slice.actionDispatcher.hellow, slice.actionDispatcher.world), op.tap(action => action.payload)), action$.pipe((0, exports.ofPayloadAction)(slice.actions.multiPayloadReducer), op.map(({ payload: [a1] }) => alert(a1)))).pipe(op.ignoreElements());
     };
 });
 action$OfSlice(demoSlice, 'hellow').pipe(op.tap(action => action));

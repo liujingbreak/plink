@@ -29,6 +29,15 @@ npm run build --report
 #### some headline
 ### Subtitle
 
+| A | B |
+|-|-
+| [Nx](https://nx.dev/) |目前为止最贴近需要的第三方工具 (不能关联多个 repo)
+| [Lerna](https://github.com/lerna/lerna) | 不能关联多个 repo, 仅负责包管理
+| [Yarn](https://classic.yarnpkg.com/en/docs) Workspace and PnP | A totally different animal
+| [PNPM](https://pnpm.js.org/) | A totally different animal
+| [Bazel](https://bazel.build/) | (Google) Comprehensive for multple tech stacks
+
+
 ```js
 export const sample = {
   name: 'AAA',
@@ -48,3 +57,6 @@ flowchart TD
 a --> b
 
 ```
+
+![sample image](./plink-cli-screenshot-01-min.png)
+

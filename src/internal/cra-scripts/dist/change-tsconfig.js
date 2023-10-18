@@ -1,21 +1,19 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changeTsConfigFile = void 0;
+const tslib_1 = require("tslib");
+const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = tslib_1.__importDefault(require("fs"));
 const misc_1 = require("@wfh/plink/wfh/dist/utils/misc");
 const package_mgr_1 = require("@wfh/plink/wfh/dist/package-mgr");
 const plink_1 = require("@wfh/plink");
-const typescript_1 = __importDefault(require("typescript"));
+const typescript_1 = tslib_1.__importDefault(require("typescript"));
 const utils_1 = require("./utils");
-const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
 // const log = log4File(__filename);
-function changeTsConfigFile() {
+function changeTsConfigFile(entryFile) {
     // const craOptions = getCmdOptions();
-    const plinkRoot = (0, plink_1.getRootDir)();
-    const rootDir = (0, misc_1.closestCommonParentDir)(Array.from((0, package_mgr_1.getState)().project2Packages.keys()).map(prjDir => path_1.default.resolve(plinkRoot, prjDir))).replace(/\\/g, '/');
+    const rootDir = (0, misc_1.closestCommonParentDir)(Array.from((0, package_mgr_1.getState)().project2Packages.keys()).map(prjDir => path_1.default.resolve(plink_1.plinkEnv.rootDir, prjDir))).replace(/\\/g, '/');
+    // const rootDir = plinkEnv.workDir;
     const tsconfigJson = typescript_1.default.readConfigFile(process.env._plink_cra_scripts_tsConfig, (file) => fs_1.default.readFileSync(file, 'utf-8')).config;
     // JSON.parse(fs.readFileSync(process.env._plink_cra_scripts_tsConfig!, 'utf8'));
     const tsconfigDir = path_1.default.dirname(process.env._plink_cra_scripts_tsConfig);
@@ -26,18 +24,19 @@ function changeTsConfigFile() {
     if (tsconfigJson.compilerOptions.baseUrl == null) {
         tsconfigJson.compilerOptions.baseUrl = './';
     }
-    tsconfigJson.compilerOptions.preserveSymlinks = true;
+    tsconfigJson.compilerOptions.preserveSymlinks = false;
     // tsconfigJson.compilerOptions.paths = pathMapping;
     (0, plink_1.setTsCompilerOptForNodePath)(tsconfigDir, './', tsconfigJson.compilerOptions, {
         workspaceDir: plink_1.plinkEnv.workDir,
         noSymlinks: true
+        // realPackagePaths: true
     });
     (0, utils_1.runTsConfigHandlers)(tsconfigJson.compilerOptions);
-    tsconfigJson.include = [path_1.default.relative(plink_1.plinkEnv.workDir, process.env._plink_cra_scripts_indexJs)];
+    tsconfigJson.files = [path_1.default.relative(plink_1.plinkEnv.workDir, entryFile)];
+    tsconfigJson.include = [];
     tsconfigJson.compilerOptions.rootDir = rootDir;
     const co = typescript_1.default.parseJsonConfigFileContent(tsconfigJson, typescript_1.default.sys, plink_1.plinkEnv.workDir.replace(/\\/g, '/'), undefined, process.env._plink_cra_scripts_tsConfig).options;
-    void fs_1.default.promises.writeFile(path_1.default.resolve((0, utils_1.getReportDir)(), 'tsconfig.json'), JSON.stringify(tsconfigJson, null, '  '));
-    return co;
+    return { tsconfigJson, compilerOptions: co };
 }
 exports.changeTsConfigFile = changeTsConfigFile;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY2hhbmdlLXRzY29uZmlnLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiY2hhbmdlLXRzY29uZmlnLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7OztBQUFBLHlEQUFzRTtBQUN0RSxpRUFBeUQ7QUFDekQsc0NBQTRGO0FBQzVGLDREQUE0QjtBQUM1QixtQ0FBMEQ7QUFDMUQsZ0RBQXdCO0FBQ3hCLDRDQUFvQjtBQUNwQixvQ0FBb0M7QUFFcEMsU0FBZ0Isa0JBQWtCO0lBQ2hDLHNDQUFzQztJQUN0QyxNQUFNLFNBQVMsR0FBRyxJQUFBLGtCQUFVLEdBQUUsQ0FBQztJQUMvQixNQUFNLE9BQU8sR0FBRyxJQUFBLDZCQUFzQixFQUFDLEtBQUssQ0FBQyxJQUFJLENBQy9DLElBQUEsc0JBQVEsR0FBRSxDQUFDLGdCQUFnQixDQUFDLElBQUksRUFBRSxDQUNqQyxDQUFDLEdBQUcsQ0FBQyxNQUFNLENBQUMsRUFBRSxDQUFDLGNBQUksQ0FBQyxPQUFPLENBQUMsU0FBUyxFQUFFLE1BQU0sQ0FBQyxDQUFDLENBQUMsQ0FBQyxPQUFPLENBQUMsS0FBSyxFQUFFLEdBQUcsQ0FBQyxDQUFDO0lBRXhFLE1BQU0sWUFBWSxHQUNoQixvQkFBRSxDQUFDLGNBQWMsQ0FBQyxPQUFPLENBQUMsR0FBRyxDQUFDLDJCQUE0QixFQUN4RCxDQUFDLElBQUksRUFBRSxFQUFFLENBQUMsWUFBRSxDQUFDLFlBQVksQ0FBQyxJQUFJLEVBQUUsT0FBTyxDQUFDLENBQUMsQ0FBQyxNQU16QyxDQUFDO0lBQ0osaUZBQWlGO0lBQ25GLE1BQU0sV0FBVyxHQUFHLGNBQUksQ0FBQyxPQUFPLENBQUMsT0FBTyxDQUFDLEdBQUcsQ0FBQywyQkFBNEIsQ0FBQyxDQUFDO0lBRTNFLHlGQUF5RjtJQUN6Rix1RkFBdUY7SUFDdkYsNENBQTRDO0lBQzVDLDBGQUEwRjtJQUUxRixJQUFJLFlBQVksQ0FBQyxlQUFlLENBQUMsT0FBTyxJQUFJLElBQUksRUFBRTtRQUNoRCxZQUFZLENBQUMsZUFBZSxDQUFDLE9BQU8sR0FBRyxJQUFJLENBQUM7S0FDN0M7SUFDRCxZQUFZLENBQUMsZUFBZSxDQUFDLGdCQUFnQixHQUFHLElBQUksQ0FBQztJQUVyRCxvREFBb0Q7SUFFcEQsSUFBQSxtQ0FBMkIsRUFBQyxXQUFXLEVBQUUsSUFBSSxFQUFFLFlBQVksQ0FBQyxlQUFlLEVBQUU7UUFDM0UsWUFBWSxFQUFFLGdCQUFRLENBQUMsT0FBTztRQUM5QixVQUFVLEVBQUUsSUFBSTtLQUNqQixDQUFDLENBQUM7SUFDSCxJQUFBLDJCQUFtQixFQUFDLFlBQVksQ0FBQyxlQUFlLENBQUMsQ0FBQztJQUVsRCxZQUFZLENBQUMsT0FBTyxHQUFHLENBQUMsY0FBSSxDQUFDLFFBQVEsQ0FBQyxnQkFBUSxDQUFDLE9BQU8sRUFBRSxPQUFPLENBQUMsR0FBRyxDQUFDLDBCQUEyQixDQUFDLENBQUMsQ0FBQztJQUNsRyxZQUFZLENBQUMsZUFBZSxDQUFDLE9BQU8sR0FBRyxPQUFPLENBQUM7SUFDL0MsTUFBTSxFQUFFLEdBQUcsb0JBQUUsQ0FBQywwQkFBMEIsQ0FBQyxZQUFZLEVBQUUsb0JBQUUsQ0FBQyxHQUFHLEVBQUUsZ0JBQVEsQ0FBQyxPQUFPLENBQUMsT0FBTyxDQUFDLEtBQUssRUFBRSxHQUFHLENBQUMsRUFDakcsU0FBUyxFQUFFLE9BQU8sQ0FBQyxHQUFHLENBQUMsMkJBQTJCLENBQUMsQ0FBQyxPQUFPLENBQUM7SUFFOUQsS0FBSyxZQUFFLENBQUMsUUFBUSxDQUFDLFNBQVMsQ0FBQyxjQUFJLENBQUMsT0FBTyxDQUFDLElBQUEsb0JBQVksR0FBRSxFQUFFLGVBQWUsQ0FBQyxFQUFFLElBQUksQ0FBQyxTQUFTLENBQUMsWUFBWSxFQUFFLElBQUksRUFBRSxJQUFJLENBQUMsQ0FBQyxDQUFDO0lBQ3BILE9BQU8sRUFBRSxDQUFDO0FBQ1osQ0FBQztBQTVDRCxnREE0Q0MiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge2Nsb3Nlc3RDb21tb25QYXJlbnREaXJ9IGZyb20gJ0B3ZmgvcGxpbmsvd2ZoL2Rpc3QvdXRpbHMvbWlzYyc7XG5pbXBvcnQge2dldFN0YXRlfSBmcm9tICdAd2ZoL3BsaW5rL3dmaC9kaXN0L3BhY2thZ2UtbWdyJztcbmltcG9ydCB7Z2V0Um9vdERpciwgc2V0VHNDb21waWxlck9wdEZvck5vZGVQYXRoLCBwbGlua0Vudi8qICwgbG9nNEZpbGUqL30gZnJvbSAnQHdmaC9wbGluayc7XG5pbXBvcnQgdHMgZnJvbSAndHlwZXNjcmlwdCc7XG5pbXBvcnQge3J1blRzQ29uZmlnSGFuZGxlcnMsIGdldFJlcG9ydERpcn0gZnJvbSAnLi91dGlscyc7XG5pbXBvcnQgUGF0aCBmcm9tICdwYXRoJztcbmltcG9ydCBmcyBmcm9tICdmcyc7XG4vLyBjb25zdCBsb2cgPSBsb2c0RmlsZShfX2ZpbGVuYW1lKTtcblxuZXhwb3J0IGZ1bmN0aW9uIGNoYW5nZVRzQ29uZmlnRmlsZSgpIHtcbiAgLy8gY29uc3QgY3JhT3B0aW9ucyA9IGdldENtZE9wdGlvbnMoKTtcbiAgY29uc3QgcGxpbmtSb290ID0gZ2V0Um9vdERpcigpO1xuICBjb25zdCByb290RGlyID0gY2xvc2VzdENvbW1vblBhcmVudERpcihBcnJheS5mcm9tKFxuICAgIGdldFN0YXRlKCkucHJvamVjdDJQYWNrYWdlcy5rZXlzKClcbiAgICApLm1hcChwcmpEaXIgPT4gUGF0aC5yZXNvbHZlKHBsaW5rUm9vdCwgcHJqRGlyKSkpLnJlcGxhY2UoL1xcXFwvZywgJy8nKTtcblxuICBjb25zdCB0c2NvbmZpZ0pzb24gPVxuICAgIHRzLnJlYWRDb25maWdGaWxlKHByb2Nlc3MuZW52Ll9wbGlua19jcmFfc2NyaXB0c190c0NvbmZpZyEsXG4gICAgICAoZmlsZSkgPT4gZnMucmVhZEZpbGVTeW5jKGZpbGUsICd1dGYtOCcpKS5jb25maWcgYXMge1xuICAgICAgICBjb21waWxlck9wdGlvbnM6IHtcbiAgICAgICAgICByb290RGlyPzogc3RyaW5nOyBiYXNlVXJsPzogc3RyaW5nOyBwYXRoczoge1trOiBzdHJpbmddOiBzdHJpbmdbXX07XG4gICAgICAgICAgcHJlc2VydmVTeW1saW5rcz86IGJvb2xlYW47XG4gICAgICAgIH07XG4gICAgICAgIGluY2x1ZGU/OiBzdHJpbmdbXTtcbiAgICAgIH07XG4gICAgLy8gSlNPTi5wYXJzZShmcy5yZWFkRmlsZVN5bmMocHJvY2Vzcy5lbnYuX3BsaW5rX2NyYV9zY3JpcHRzX3RzQ29uZmlnISwgJ3V0ZjgnKSk7XG4gIGNvbnN0IHRzY29uZmlnRGlyID0gUGF0aC5kaXJuYW1lKHByb2Nlc3MuZW52Ll9wbGlua19jcmFfc2NyaXB0c190c0NvbmZpZyEpO1xuXG4gIC8vIENSQSBkb2VzIG5vdCBhbGxvdyB3ZSBjb25maWd1cmUgXCJjb21waWxlck9wdGlvbnMucGF0aHNcIiBpbiBfcGxpbmtfY3JhX3NjcmlwdHNfdHNDb25maWdcbiAgLy8gKHNlZSBjcmVhdGUtcmVhY3QtYXBwL3BhY2thZ2VzL3JlYWN0LXNjcmlwdHMvc2NyaXB0cy91dGlscy92ZXJpZnlUeXBlU2NyaXB0U2V0dXAuanMpXG4gIC8vIHRoZXJlZm9yZSwgaW5pdGlhbCBwYXRocyBpcyBhbHdheXMgZW1wdHkuXG4gIC8vIGNvbnN0IHBhdGhNYXBwaW5nOiB7W2tleTogc3RyaW5nXTogc3RyaW5nW119ID0gdHNjb25maWdKc29uLmNvbXBpbGVyT3B0aW9ucy5wYXRocyA9IHt9O1xuXG4gIGlmICh0c2NvbmZpZ0pzb24uY29tcGlsZXJPcHRpb25zLmJhc2VVcmwgPT0gbnVsbCkge1xuICAgIHRzY29uZmlnSnNvbi5jb21waWxlck9wdGlvbnMuYmFzZVVybCA9ICcuLyc7XG4gIH1cbiAgdHNjb25maWdKc29uLmNvbXBpbGVyT3B0aW9ucy5wcmVzZXJ2ZVN5bWxpbmtzID0gdHJ1ZTtcblxuICAvLyB0c2NvbmZpZ0pzb24uY29tcGlsZXJPcHRpb25zLnBhdGhzID0gcGF0aE1hcHBpbmc7XG5cbiAgc2V0VHNDb21waWxlck9wdEZvck5vZGVQYXRoKHRzY29uZmlnRGlyLCAnLi8nLCB0c2NvbmZpZ0pzb24uY29tcGlsZXJPcHRpb25zLCB7XG4gICAgd29ya3NwYWNlRGlyOiBwbGlua0Vudi53b3JrRGlyLFxuICAgIG5vU3ltbGlua3M6IHRydWVcbiAgfSk7XG4gIHJ1blRzQ29uZmlnSGFuZGxlcnModHNjb25maWdKc29uLmNvbXBpbGVyT3B0aW9ucyk7XG5cbiAgdHNjb25maWdKc29uLmluY2x1ZGUgPSBbUGF0aC5yZWxhdGl2ZShwbGlua0Vudi53b3JrRGlyLCBwcm9jZXNzLmVudi5fcGxpbmtfY3JhX3NjcmlwdHNfaW5kZXhKcyEpXTtcbiAgdHNjb25maWdKc29uLmNvbXBpbGVyT3B0aW9ucy5yb290RGlyID0gcm9vdERpcjtcbiAgY29uc3QgY28gPSB0cy5wYXJzZUpzb25Db25maWdGaWxlQ29udGVudCh0c2NvbmZpZ0pzb24sIHRzLnN5cywgcGxpbmtFbnYud29ya0Rpci5yZXBsYWNlKC9cXFxcL2csICcvJyksXG4gICAgdW5kZWZpbmVkLCBwcm9jZXNzLmVudi5fcGxpbmtfY3JhX3NjcmlwdHNfdHNDb25maWcpLm9wdGlvbnM7XG5cbiAgdm9pZCBmcy5wcm9taXNlcy53cml0ZUZpbGUoUGF0aC5yZXNvbHZlKGdldFJlcG9ydERpcigpLCAndHNjb25maWcuanNvbicpLCBKU09OLnN0cmluZ2lmeSh0c2NvbmZpZ0pzb24sIG51bGwsICcgICcpKTtcbiAgcmV0dXJuIGNvO1xufVxuIl19
+//# sourceMappingURL=change-tsconfig.js.map

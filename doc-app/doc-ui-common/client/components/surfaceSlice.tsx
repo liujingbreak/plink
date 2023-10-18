@@ -4,7 +4,7 @@ import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
 import bezierEasing from 'bezier-easing';
-import {animate} from '@wfh/doc-ui-common/client/animation/ease-functions';
+import {globalAnimMgrInstance} from '@wfh/doc-ui-common/client/animation/ease-functions';
 import Color from 'color';
 
 const gradientCurveFn = bezierEasing(0.35, 0, 0.6, 1);
@@ -99,9 +99,9 @@ export const epicFactory: EpicFactory4Comp<SurfaceProps, SurfaceState, typeof re
         op.concatMap(([, , delay]) => rx.timer(delay)),
         op.switchMap(actions => {
           return rx.concat(
-            animate(35, 110, 1000),
+            globalAnimMgrInstance.animate(35, 110, 1000),
             rx.timer(50).pipe(op.ignoreElements()),
-            animate(110, 35, 1000)
+            globalAnimMgrInstance.animate(110, 35, 1000)
           );
         }),
         op.map(value => {

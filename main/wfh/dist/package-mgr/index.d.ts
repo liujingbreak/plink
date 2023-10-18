@@ -19,7 +19,7 @@ export interface PackageInfo {
     realPath: string;
     isInstalled: boolean;
 }
-export declare type PlinkJsonType = {
+export type PlinkJsonType = {
     typeRoot?: string;
     type?: 'server' | string[] | string;
     serverPriority?: string | number;
@@ -241,11 +241,11 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         type: string;
     }): void;
     _clearProjAndSrcDirPkgs(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
-} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>>;
+} & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
     file: string;
     lines: string[];
-}, string>, onLinkedPackageAdded: import("@reduxjs/toolkit").ActionCreatorWithPayload<string[], string>;
+}, "packages/updateGitIgnores">, onLinkedPackageAdded: import("@reduxjs/toolkit").ActionCreatorWithPayload<string[], "packages/onLinkedPackageAdded">;
 export declare function getState(): PackagesState;
 export declare function getStore(): Observable<PackagesState>;
 export declare function pathToProjKey(path: string): string;

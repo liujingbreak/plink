@@ -1,18 +1,20 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findPackageByType = exports.findPackageJsonPath = exports.findAllPackages = exports.lookForPackages = exports.createLazyPackageFileFinder = exports.packages4Workspace = exports.packages4WorkspaceKey = exports.allPackages = void 0;
-const tslib_1 = require("tslib");
-const lru_cache_1 = tslib_1.__importDefault(require("lru-cache"));
-const lazy_package_factory_1 = tslib_1.__importDefault(require("./package-mgr/lazy-package-factory"));
+const lru_cache_1 = __importDefault(require("lru-cache"));
+const lazy_package_factory_1 = __importDefault(require("./package-mgr/lazy-package-factory"));
 const package_mgr_1 = require("./package-mgr");
 // import * as Path from 'path';
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const lodash_1 = __importDefault(require("lodash"));
 // import log4js from 'log4js';
 // import * as fs from 'fs';
 const utils_1 = require("./cmd/utils");
 Object.defineProperty(exports, "findPackageJsonPath", { enumerable: true, get: function () { return utils_1.lookupPackageJson; } });
 const misc_1 = require("./utils/misc");
-const path_1 = tslib_1.__importDefault(require("path"));
+const path_1 = __importDefault(require("path"));
 const package_list_helper_1 = require("./package-mgr/package-list-helper");
 Object.defineProperty(exports, "allPackages", { enumerable: true, get: function () { return package_list_helper_1.allPackages; } });
 Object.defineProperty(exports, "packages4WorkspaceKey", { enumerable: true, get: function () { return package_list_helper_1.packages4WorkspaceKey; } });

@@ -1,4 +1,11 @@
 declare module '*.md' {
+  import {LoaderRecivedData} from '@wfh/doc-ui-common/isom/md-types';
   const html: string;
-  export default html;
+  const toc: LoaderRecivedData['toc'];
+  export {html, toc};
+  global {
+    interface ImportMeta {
+      webpackHot: any;
+    }
+  }
 }

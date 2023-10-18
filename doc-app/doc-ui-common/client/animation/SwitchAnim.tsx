@@ -3,11 +3,11 @@ import React from 'react';
 import classnames from 'classnames/bind';
 import clsddp from 'classnames/dedupe';
 import cls from 'classnames';
-import styles from './SwitchAnim.module.scss';
 // import {useLightReduxObs} from '../lightReduxHooks';
 import {useTinyReduxTookit, EpicFactory, ofPayloadAction} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
+import styles from './SwitchAnim.module.scss';
 // import get from 'lodash/get';
 const cx = classnames.bind(styles);
 
@@ -19,6 +19,7 @@ interface BaseOptions {
   animFirstContent?: boolean;
   type?: 'opacity' | 'translateY';
   className?: string;
+  innerClassName?: string;
   debug?: boolean;
 }
 
@@ -129,7 +130,6 @@ const reducers = {
 
 const epicFactory: EpicFactory<SwitchState, typeof reducers> = function(slice, ofType) {
   return (action$, state$) => {
-
     return rx.merge(
       action$.pipe(ofType('switchContent'),
         // switch to replace current one, if user frequently trigger animation
@@ -215,12 +215,16 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
 
   const content = state.contentKeys.map((key, idx) => {
     const item = state.contentByKey[key];
-    return <div key={key} className={cls(styles.movingBox, item.clsName)} ref={item.onContainerReady}>{item.renderable}</div>;
+    return <div key={key} className={cls(props.innerClassName ?? '', styles.movingBox, item.clsName)} ref={item.onContainerReady}>{item.renderable}</div>;
   });
-  const rootCls = cls(props.className || '', (cx(props.size == null ? 'fit' : props.size, 'scope',
-    props.type === 'opacity' ? 'animate-opacity' : '')));
+  const rootCls = cls( props.className || '', cx(
+    props.size == null ? 'fit' : props.size,
+    'scope',
+    props.type === 'opacity' ? 'animate-opacity' : ''
+  ));
   // Your Component rendering goes here
-  return props.parentDom != null ? <>{content}</> :
+  return props.parentDom != null ?
+    <>{content}</> :
     <div className={rootCls}>{ content }</div>;
 };
 

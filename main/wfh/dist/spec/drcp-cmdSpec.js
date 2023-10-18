@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const globals_1 = require("@jest/globals");
 const cli_pack_1 = require("../cmd/cli-pack");
-describe('drcp-cmd', () => {
-    it('parseNpmPackOutput', () => {
+(0, globals_1.describe)('drcp-cmd', () => {
+    (0, globals_1.it)('parseNpmPackOutput', () => {
         const map = cli_pack_1.testable.parseNpmPackOutput(`
 npm notice === Tarball Details === 
 npm notice name:          require-injector                        
@@ -16,7 +17,7 @@ npm notice total files:   47
 npm notice`);
         // eslint-disable-next-line no-console
         console.log(map);
-        expect(map.get('filename')).toBe('require-injector-5.1.5.tgz');
+        (0, globals_1.expect)(map.get('filename')).toBe('require-injector-5.1.5.tgz');
     });
 });
 //# sourceMappingURL=drcp-cmdSpec.js.map

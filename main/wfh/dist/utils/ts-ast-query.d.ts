@@ -5,11 +5,11 @@ export declare let astSchemaCache: {
 };
 export declare function saveAstPropertyCache(file: string): void;
 export declare function setAstPropertyCache(cache: typeof astSchemaCache): void;
-export declare type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => T;
+export type AstHandler<T> = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean) => T;
 /**
  * @returns true - make iteration stops, `SKIP` - to skip interating child nodes (move on to next sibling node)
  */
-export declare type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | boolean | void;
+export type traverseCbType = (ast: ts.Node, path: string[], parents: ts.Node[], isLeaf: boolean, comment?: string) => 'SKIP' | boolean | void;
 export declare function printFile(file: string, query?: string | null, withType?: boolean): void;
 export interface WalkCallback {
     query: string;

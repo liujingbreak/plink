@@ -3,12 +3,11 @@
  * @deprecated
  */
 import 'source-map-support/register';
-import AdmZip from 'adm-zip';
 import os from 'os';
 import util from 'util';
 import fs from 'fs';
 import Path from 'path';
-const pify = require('pify');
+import AdmZip from 'adm-zip';
 
 process.on('uncaughtException', (err) => {
   // eslint-disable-next-line
@@ -32,7 +31,6 @@ const zipDir = argv[2];
 const zipExtractDir = argv[3];
 const deleteOption = argv[4];
 
-const readFileAsync: (file: string, code?: string) => Promise<Buffer> = pify(fs.readFile);
 async function start() {
   const fileNames = fs.readdirSync(zipDir);
   const proms = fileNames.filter(name => Path.extname(name).toLowerCase() === '.zip')
@@ -66,7 +64,7 @@ async function start() {
 
 
 async function tryExtract(file: string) {
-  const data: Buffer = await readFileAsync(file);
+  const data: Buffer = await fs.promises.readFile(file);
   await new Promise<void>((resolve, reject) => {
     const zip = new AdmZip(data);
     zip.extractAllToAsync(zipExtractDir, true, (err) => {

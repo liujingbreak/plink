@@ -2,15 +2,40 @@
 /**
  * Unfortunately, this file is very long, you need to fold by indention for better view of source code in Editor
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPackageInfo = exports.installInDir = exports.switchCurrentWorkspace = exports.isCwdWorkspace = exports.getProjectList = exports.getPackagesOfProjects = exports.workspaceDir = exports.workspaceKey = exports.projKeyToPath = exports.pathToProjKey = exports.getStore = exports.getState = exports.onLinkedPackageAdded = exports.updateGitIgnores = exports.actionDispatcher = exports.slice = void 0;
-const tslib_1 = require("tslib");
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const os_1 = require("os");
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const chalk_1 = __importDefault(require("chalk"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const lodash_1 = __importDefault(require("lodash"));
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const log4js_1 = require("log4js");
@@ -20,7 +45,7 @@ const recipe_manager_1 = require("../recipe-manager");
 const store_1 = require("../store");
 const helper_1 = require("../../../packages/redux-toolkit-observable/dist/helper");
 // import { getRootDir } from '../utils/misc';
-const symlinks_1 = tslib_1.__importStar(require("../utils/symlinks"));
+const symlinks_1 = __importStar(require("../utils/symlinks"));
 const rwPackageJson_1 = require("../rwPackageJson");
 const misc_1 = require("../utils/misc");
 const log = (0, log4js_1.getLogger)('plink.package-mgr');
@@ -727,7 +752,7 @@ async function scanAndSyncPackages(includePackageJsonFiles) {
         exports.actionDispatcher._syncLinkedPackages([pkgList, 'update']);
     }
     else {
-        const rm = (await Promise.resolve().then(() => tslib_1.__importStar(require('../recipe-manager'))));
+        const rm = (await Promise.resolve().then(() => __importStar(require('../recipe-manager'))));
         pkgList = [];
         exports.actionDispatcher._clearProjAndSrcDirPkgs();
         await rm.scanPackages().pipe((0, operators_1.tap)(([proj, jsonFile, srcDir]) => {
@@ -781,7 +806,7 @@ function _createSymlinksForWorkspace(wsKey) {
             lines: [path_1.default.relative(rootDir, symlinkDir).replace(/\\/g, '/')]
         });
     }
-    let symlinksToCreate = (0, rxjs_1.from)(Array.from(pkgNameSet.values())) // Important, do not use pkgNameSet iterable, it will be changed before subscription
+    const symlinksToCreate = (0, rxjs_1.from)(Array.from(pkgNameSet.values())) // Important, do not use pkgNameSet iterable, it will be changed before subscription
         .pipe((0, operators_1.map)(name => {
         const pkg = getState().srcPackages.get(name) || ws.installedComponents.get(name);
         if (pkg == null) {
@@ -869,7 +894,9 @@ function createPackageInfoWithJson(pkJsonFile, json, isInstalled = false) {
 }
 function cp(from, to) {
     if (from.startsWith('-')) {
+        // eslint-disable-next-line prefer-rest-params,@typescript-eslint/no-unsafe-assignment
         from = arguments[1];
+        // eslint-disable-next-line prefer-rest-params,@typescript-eslint/no-unsafe-assignment
         to = arguments[2];
     }
     fs_extra_1.default.copySync(from, to);

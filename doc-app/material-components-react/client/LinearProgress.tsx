@@ -32,7 +32,7 @@ const LinearProgress: React.ForwardRefRenderFunction<Promise<MDCLinearProgress>,
   }, []);
 
   React.useImperativeHandle(ref, () => {
-    return api$.pipe(op.take(1)).toPromise();
+    return rx.firstValueFrom(api$);
   });
 
   React.useEffect(() => {
@@ -41,7 +41,7 @@ const LinearProgress: React.ForwardRefRenderFunction<Promise<MDCLinearProgress>,
         api.determinate = !!props.determinate;
       }
     });
-  }, [props.determinate]);
+  }, [api$, props.determinate]);
   React.useEffect(() => {
     api$.subscribe({
       next(api) {
@@ -52,7 +52,7 @@ const LinearProgress: React.ForwardRefRenderFunction<Promise<MDCLinearProgress>,
         }
       }
     });
-  }, [props.open]);
+  }, [api$, props.open]);
   // Your Component rendering goes here
   return <div ref={onRef} className={cls(props.className, 'LinearProgress', 'mdc-linear-progress')}
     role='progressbar'

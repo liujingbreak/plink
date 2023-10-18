@@ -3,10 +3,13 @@ import { PayloadAction } from '@reduxjs/toolkit';
 interface EditorHelperState {
     /** tsconfig files should be changed according to linked packages state */
     tsconfigByRelPath: Map<string, HookedTsconfig>;
-    /** problematic symlinks which must be removed before running
-     * node_modules symlink is under source package directory, it will not work with "--preserve-symlinks",
+    /** Problematic symlinks which must be removed before running:
+     *
+     * When node_modules symlink is under source package directory (if there is only one source package in this project, and its parent directory
+     * is root directory directly, then Plink must create a symlink "node_modules" to linked to node_modules which is under current worktree space,
+     * and the symlink have to be inside source package), it will not work with "--preserve-symlinks",
      * in which case, Node.js will regard a workspace node_module and its symlink inside source package as
-     * twe different directory, and causes problem
+     * two different directory, and causes problem like same 3rd party module is loaded twice for the dependent source package
      */
     nodeModuleSymlinks?: Set<string>;
 }
@@ -31,7 +34,7 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     unHookTsconfig(s: import("immer/dist/internal").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookAll(): void;
     clearSymlinksDone(S: import("immer/dist/internal").WritableDraft<EditorHelperState>): void;
-} & import("../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>>;
+} & import("../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>, "editor-helper">;
 export declare function getAction$(type: keyof (typeof slice)['caseReducers']): rx.Observable<{
     type: any;
 } | {

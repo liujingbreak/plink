@@ -1,10 +1,10 @@
-import {StateFactory, ExtraSliceReducers, ofPayloadAction} from './redux-toolkit-observable';
 import {CreateSliceOptions, SliceCaseReducers, Slice, PayloadAction, CaseReducerActions, PayloadActionCreator, Action, Draft,
   ActionCreatorWithPayload} from '@reduxjs/toolkit';
-import { Epic } from 'redux-observable';
+import {Epic} from 'redux-observable';
 import {Observable, EMPTY, of, Subject, OperatorFunction} from 'rxjs';
-import * as op from 'rxjs/operators';
-import { immerable, Immutable } from 'immer';
+import * as op from 'rxjs';
+import {immerable, Immutable} from 'immer';
+import {StateFactory, ExtraSliceReducers, ofPayloadAction} from './redux-toolkit-observable';
 
 export type EpicFactory<S, R extends SliceCaseReducers<S>, Name extends string = string> =
   (slice: SliceHelper<S, R, Name>) => Epic<PayloadAction<any>, any, {[sliceName in Name]: S}> | void;
@@ -19,8 +19,8 @@ export type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string =
    * to react on 'done' reducer action, and you may call actionDispatcher to emit a new action
    */
   action$: Observable<PayloadAction | Action>;
-  action$ByType: ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>>>;
-  actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>>;
+  action$ByType: ActionByType<CaseReducerActions<R & ExtraSliceReducers<S>, Name>>;
+  actionDispatcher: CaseReducerActions<R & ExtraSliceReducers<S>, Name>;
   destroy$: Observable<any>;
   addEpic(epicFactory: EpicFactory<S, R>): () => void;
   addEpic$(epicFactory: Observable<EpicFactory<S, R> | null | undefined>): () => void;
@@ -29,19 +29,19 @@ export type SliceHelper<S, R extends SliceCaseReducers<S>, Name extends string =
   getState(): S;
 };
 
-export function createSliceHelper<S, R extends SliceCaseReducers<S>>(
+export function createSliceHelper<S extends Record<string, any>, R extends SliceCaseReducers<S>>(
   stateFactory: StateFactory, opts: CreateSliceOptions<S, R>): SliceHelper<S, R> {
 
   const slice = stateFactory.newSlice(opts);
   const actionDispatcher = stateFactory.bindActionCreators(slice);
-  const destory$ = new Subject();
+  const destory$ = new Subject<void>();
   const action$ = new Subject<PayloadAction | Action>();
 
   new Observable(() => {
     // Release epic
     return stateFactory.addEpic(_action$ => {
       return _action$.pipe(
-        op.tap(action => action$.next(action)),
+        op.tap(action => action$.next(action as any)),
         op.ignoreElements()
       );
     }, opts.name);
@@ -142,10 +142,10 @@ export function createReducers<S, R extends SimpleReducers<S>>(simpleReducers: R
 
 type ActionByType<R> = {
   [K in keyof R]:
-    Observable<
-      R[K] extends PayloadActionCreator<infer P> ?
-        PayloadAction<P> : PayloadAction<unknown>
-    >
+  Observable<
+  R[K] extends PayloadActionCreator<infer P> ?
+    PayloadAction<P> : PayloadAction<unknown>
+  >
 };
 
 /**
@@ -168,7 +168,7 @@ slice.addEpic(slice => action$ => {
  * @param actionCreators 
  * @param action$ 
  */
-export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<any>>>(actionCreators: R,
+export function castByActionType<Name extends string, R extends CaseReducerActions<SliceCaseReducers<any>, Name>>(actionCreators: R,
   action$: Observable<PayloadAction | Action>): ActionByType<R> {
   const source = action$.pipe(op.share());
   const splitActions = {} as ActionByType<R>;
@@ -176,7 +176,10 @@ export function castByActionType<R extends CaseReducerActions<SliceCaseReducers<
   for (const reducerName of Object.keys(actionCreators)) {
     Object.defineProperty(splitActions, reducerName, {
       get() {
-        return source.pipe(ofPayloadAction(actionCreators[reducerName]));
+        return source.pipe(
+          ofPayloadAction(actionCreators[reducerName]),
+          op.share()
+        );
       }
     });
   }
@@ -190,7 +193,7 @@ export function action$ByType<S, R extends SliceCaseReducers<S>>(stateFactory: S
     const action$ = new Subject<PayloadAction | Action>();
     stateFactory.addEpic(_action$ => {
       return _action$.pipe(
-        op.tap(action => action$.next(action)),
+        op.tap(action => action$.next(action as any)),
         op.ignoreElements()
       );
     }, slice.name);
@@ -217,7 +220,7 @@ export function isActionOfCreator<P, T extends string>(action: PayloadAction<any
  * @param epicFactory 
  */
 export function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory: EpicFactory<S, R>):
-  OperatorFunction<PayloadAction<SliceHelper<S, R>>, PayloadAction<any>> {
+OperatorFunction<PayloadAction<SliceHelper<S, R>>, PayloadAction<any>> {
   return function(in$: Observable<PayloadAction<SliceHelper<S, R>>>) {
     return in$.pipe(
       op.switchMap(({payload}) => {
@@ -229,7 +232,7 @@ export function sliceRefActionOp<S, R extends SliceCaseReducers<S>>(epicFactory:
 }
 
 type ActionOfReducer<S, R extends SliceCaseReducers<S>, T extends keyof R> = R[T] extends (s: any, action: infer A) => any ?
-(A extends {payload: infer P} ? {payload: P; type: T} : {type: T}) : never;
+  (A extends {payload: infer P} ? {payload: P; type: T} : {type: T}) : never;
 
 export function action$Of<P, T extends string>(
   stateFactory: StateFactory,
@@ -280,7 +283,8 @@ export function action$OfSlice<S, R extends SliceCaseReducers<S>,
  */
 export class Refrigerator<T> {
   private ref: Immutable<T>;
-  [immerable]: false;
+  [immerable] = false;
+  static [immerable] = false;
 
   constructor(originRef: T) {
     this.ref = originRef as Immutable<T>;
@@ -298,4 +302,3 @@ export class Refrigerator<T> {
     return this.ref as T;
   }
 }
-Refrigerator[immerable] = false;

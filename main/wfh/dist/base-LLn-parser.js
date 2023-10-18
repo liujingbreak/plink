@@ -1,14 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseParser = exports.TokenFilter = exports.BaseLexer = exports.LookAhead = exports.Token = void 0;
-const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
  * @deprecated use LLn-parser instead
  */
-const sortedIndex_1 = tslib_1.__importDefault(require("lodash/sortedIndex"));
+const sortedIndex_1 = __importDefault(require("lodash/sortedIndex"));
 class Token {
     constructor(type, lexer, start) {
         this.type = type;

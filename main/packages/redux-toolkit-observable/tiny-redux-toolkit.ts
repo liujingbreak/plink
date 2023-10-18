@@ -30,29 +30,29 @@ export type Reducers<S, R = any> = {
 
 export type Actions<S, R> = {
   [K in keyof R]:
-    R[K] extends (s: S) => any ? {
-      (): ActionTypes<S, R>[K];
-      type: string;
-    } :
+  R[K] extends (s: S) => any ? {
+    (): ActionTypes<S, R>[K];
+    type: string;
+  } :
     R[K] extends (s: S, payload: infer P) => any ? {
       (payload: P): ActionTypes<S, R>[K];
       type: string;
     } :
-    R[K] extends (s: S, ...payload: infer M) => any ? {
-      (...payload: M): ActionTypes<S, R>[K];
-      type: string;
-    } : {
-      (): ActionTypes<S, R>[K];
-      type: string;
-    };
+      R[K] extends (s: S, ...payload: infer M) => any ? {
+        (...payload: M): ActionTypes<S, R>[K];
+        type: string;
+      } : {
+        (): ActionTypes<S, R>[K];
+        type: string;
+      };
 };
 
 type ActionTypes<S, R> = {
   [K in keyof R]:
-    R[K] extends (s: S) => any ? Action<S>:
+  R[K] extends (s: S) => any ? Action<S>:
     R[K] extends (s: S, payload: infer P) => any ? PayloadAction<S, P> :
-    R[K] extends (s: S, ...payload: infer M) => any ? PayloadAction<S, M> :
-    PayloadAction<S, unknown>;
+      R[K] extends (s: S, ...payload: infer M) => any ? PayloadAction<S, M> :
+        PayloadAction<S, unknown>;
 };
 
 type OutputActionObs<S, R extends Reducers<any>, K extends keyof R> =
@@ -119,17 +119,17 @@ type ActionOfCreator<C> = C extends {
     (payload: infer P): any;
     type: string;
   } ? {type: string; payload: P} :
-  C extends {
-    (...args: infer M): any;
-    type: string;
-  } ? {type: string; payload: M} : unknown;
+    C extends {
+      (...args: infer M): any;
+      type: string;
+    } ? {type: string; payload: M} : unknown;
 
 export interface OfPayloadActionFn {
   <C>(actionCreators: C): rx.OperatorFunction<any, ActionOfCreator<C>>;
   <C1, C2>(actionCreators: C1, actionCreators1: C2):
-    rx.OperatorFunction<any , ActionOfCreator<C1> | ActionOfCreator<C2>>;
+  rx.OperatorFunction<any , ActionOfCreator<C1> | ActionOfCreator<C2>>;
   <C1, C2, C3>(actionCreators: C1, actionCreators1: C2, actionCreators2: C3):
-    rx.OperatorFunction<any, ActionOfCreator<C1> | ActionOfCreator<C2> | ActionOfCreator<C3>>;
+  rx.OperatorFunction<any, ActionOfCreator<C1> | ActionOfCreator<C2> | ActionOfCreator<C3>>;
   (...actionCreators: {type: string}[]): rx.OperatorFunction<any, {type: string; payload?: unknown}>;
 }
 
@@ -137,14 +137,15 @@ export const ofPayloadAction: OfPayloadActionFn = (
   ...actionCreators: {type: string}[]) => {
   return function(src: rx.Observable<{type: string}>) {
     return src.pipe(
-      op.filter(action => actionCreators.some(ac => action.type === ac.type))
+      op.filter(action => actionCreators.some(ac => action.type === ac.type)),
+      op.share()
     );
   };
 };
 
 type ActionByType<S, R> = {[K in keyof R]: rx.Observable<ActionTypes<S, R>[K]>};
 /**
- * Map action stream to multiple action streams by theire action type.
+ * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
  * Usage:
 ```
@@ -166,14 +167,13 @@ slice.addEpic(slice => action$ => {
 export function castByActionType<S, R extends Reducers<S>>(actionCreators: Actions<S, R>,
   action$: rx.Observable<PayloadAction<any> | Action<S>>): ActionByType<S, R> {
 
-  const source = action$.pipe(op.share());
   const splitActions = {} as ActionByType<S, R>;
 
   for (const reducerName of Object.keys(actionCreators) as (keyof R)[]) {
     Object.defineProperty(splitActions, reducerName, {
       get() {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        return source.pipe(ofPayloadAction(actionCreators[reducerName]));
+        return action$.pipe(ofPayloadAction(actionCreators[reducerName]));
       }
     });
   }
@@ -222,8 +222,10 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     const creator = ((payload: unknown[]) => {
       const action = {
         type,
-        payload: payload.length === 0 ? undefined :
-          payload.length === 1 ? payload[0] :
+        payload: payload.length === 0
+          ? undefined :
+          payload.length === 1
+            ? payload[0] :
             payload,
         reducer
       };
@@ -255,7 +257,10 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
     ...actionTypes: T[]) {
     return function(src: rx.Observable<PayloadAction<any>>) {
       return src.pipe(
-        op.filter(action => actionTypes.some(ac => action.type === name + '/' + ac))
+        op.filter(
+          action => actionTypes.some(ac => action.type === name + '/' + (ac as string)),
+          op.share()
+        )
       );
     };
   }
@@ -329,9 +334,11 @@ export function createSlice<S extends {error?: Error}, R extends Reducers<S>>(op
         }
       })
     ),
-    opt.rootStore ? state$.pipe(
-      op.tap(state => opt.rootStore!.next({...opt.rootStore?.getValue(), [opt.name]: state}))
-    ) : rx.EMPTY
+    opt.rootStore
+      ? state$.pipe(
+        op.tap(state => opt.rootStore!.next({...opt.rootStore?.getValue(), [opt.name]: state}))
+      )
+      : rx.EMPTY
   ).subscribe();
 
   function destroy() {
@@ -450,7 +457,7 @@ export function action$ByType<S, R extends Reducers<S>>(slice: Slice<S, R>) {
  * @param epicFactory 
  */
 export function sliceRefActionOp<S, R extends Reducers<S>>(epicFactory: EpicFactory<S, R>):
-  rx.OperatorFunction<PayloadAction<any, Slice<S, R>>, PayloadAction<any, any>> {
+rx.OperatorFunction<PayloadAction<any, Slice<S, R>>, PayloadAction<any, any>> {
   return function(in$: rx.Observable<PayloadAction<any, Slice<S, R>>>) {
     return in$.pipe(
       op.switchMap(({payload}) => {
@@ -500,7 +507,7 @@ demoSlice.addEpic((slice, ofType) => {
       ),
       action$.pipe(
         ofPayloadAction(slice.actions.multiPayloadReducer),
-        op.tap(({payload: [a1, a2]}) => alert(a1))
+        op.map(({payload: [a1]}) => alert(a1))
       )
     ).pipe(op.ignoreElements());
   };

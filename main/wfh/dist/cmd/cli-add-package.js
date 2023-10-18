@@ -1,17 +1,19 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addDependencyTo = void 0;
-const tslib_1 = require("tslib");
-const json_sync_parser_1 = tslib_1.__importDefault(require("../utils/json-sync-parser"));
+const json_sync_parser_1 = __importDefault(require("../utils/json-sync-parser"));
 const utils_1 = require("./utils");
-const patch_text_1 = tslib_1.__importDefault(require("../utils/patch-text"));
+const patch_text_1 = __importDefault(require("../utils/patch-text"));
 const process_utils_1 = require("../process-utils");
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const log4js_1 = require("log4js");
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const strip_ansi_1 = tslib_1.__importDefault(require("strip-ansi"));
+const lodash_1 = __importDefault(require("lodash"));
+const chalk_1 = __importDefault(require("chalk"));
+const strip_ansi_1 = __importDefault(require("strip-ansi"));
 const misc_1 = require("../utils/misc");
 const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const index_1 = require("../package-mgr/index");

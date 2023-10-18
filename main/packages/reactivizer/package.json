@@ -1,0 +1,39 @@
+{
+  "name": "@wfh/reactivizer",
+  "version": "0.1.0",
+  "description": "Another RxJS auxiliary tool, which \"reactive-ize\" plain Javascript (Typescript) object",
+  "main": "dist/index.js",
+  "module": "es/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "import": "./es/index.js",
+    "require": "./dist/index.js"
+  },
+  "files": [
+    "dist", "es", "__tests__"
+  ],
+  "plink": {
+    "tsc": {
+      "src": "src",
+      "dest": "dist"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "peerDependencies": {
+    "rxjs": "^7.8.1",
+    "@wfh/algorithms": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liujingbreak/plink.git",
+    "directory": "main/packages/reactivizer"
+  },
+  "keywords": [
+    "rxjs", "reactive", "rx", "forkjoin", "thread", "web worker"
+  ],
+  "author": "Liu Jing <liujing.break@gmail.com>",
+  "license": "MIT"
+}

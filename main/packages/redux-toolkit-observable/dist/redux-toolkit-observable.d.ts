@@ -13,7 +13,7 @@ export interface ExtraSliceReducers<SS> {
     }>>;
     _change: CaseReducer<SS, PayloadAction<(draftState: Draft<SS>) => void>>;
 }
-export declare type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
+export type ReducerWithDefaultActions<SS, ACR extends SliceCaseReducers<SS>> = ValidateSliceCaseReducers<SS, ACR> & ExtraSliceReducers<SS>;
 export declare function ofPayloadAction<P1, T1 extends string>(actionCreators1: ActionCreatorWithPayload<P1, T1>): OperatorFunction<any, P1 extends undefined ? {
     type: T1;
 } : PayloadAction<P1, T1>>;
@@ -22,11 +22,11 @@ export declare function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extend
 export interface ErrorState {
     actionError?: Error;
 }
-declare type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends CreateSliceOptions<infer S, any, string> ? S : unknown;
+type InferStateType<MyCreateSliceOptionsType> = MyCreateSliceOptionsType extends CreateSliceOptions<infer S, any, string> ? S : unknown;
 /** A Helper infer type */
-export declare type InferSliceType<MyCreateSliceOptionsType> = Slice<InferStateType<MyCreateSliceOptionsType>, (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) & ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>, string>;
+export type InferSliceType<MyCreateSliceOptionsType> = Slice<InferStateType<MyCreateSliceOptionsType>, (MyCreateSliceOptionsType extends CreateSliceOptions<any, infer _CaseReducer, string> ? _CaseReducer : SliceCaseReducers<InferStateType<MyCreateSliceOptionsType>>) & ExtraSliceReducers<InferStateType<MyCreateSliceOptionsType>>, string>;
 /** A Helper infer type */
-export declare type InferActionsType<MyCreateSliceOptionsType> = InferSliceType<MyCreateSliceOptionsType>['actions'];
+export type InferActionsType<MyCreateSliceOptionsType> = InferSliceType<MyCreateSliceOptionsType>['actions'];
 export declare class StateFactory {
     private preloadedState;
     /**
@@ -35,7 +35,7 @@ export declare class StateFactory {
      * Redux-observable's state$ does not notify state change event when a lazy loaded (replaced) slice initialize state
      */
     realtimeState$: BehaviorSubject<unknown>;
-    store$: BehaviorSubject<EnhancedStore<any, {
+    store$: BehaviorSubject<import("@reduxjs/toolkit/dist/configureStore").ToolkitStore<any, {
         payload: any;
         type: string;
     }, readonly Middleware<{}, any, import("redux").Dispatch<import("redux").AnyAction>>[]> | undefined>;
@@ -54,7 +54,7 @@ export declare class StateFactory {
     private reducerMap;
     private epicWithUnsub$;
     private errorSlice;
-    private sharedSliceStore$;
+    sliceStoreMap: Map<string, Observable<unknown>>;
     constructor(preloadedState: ConfigureStoreOptions['preloadedState']);
     /**
      *
@@ -68,7 +68,7 @@ export declare class StateFactory {
      * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
      * - initialState is loaded from StateFactory's partial preloadedState
      */
-    newSlice<S, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(opt: CreateSliceOptions<S, _CaseReducer, Name>): Slice<S, _CaseReducer & ExtraSliceReducers<S>, Name>;
+    newSlice<S extends Record<string, any>, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(opt: CreateSliceOptions<S, _CaseReducer, Name>): Slice<S, _CaseReducer & ExtraSliceReducers<S>, Name>;
     removeSlice(slice: {
         name: string;
     }): void;
@@ -86,14 +86,14 @@ export declare class StateFactory {
     getErrorStore(): Observable<ErrorState>;
     dispatch<T>(action: PayloadAction<T>): void;
     /**
-     * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
+     * Unlike Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
      * Parameter is a Slice instead of action map
      */
-    bindActionCreators<A>(slice: {
+    bindActionCreators<A extends Record<string, any>>(slice: {
         actions: A;
     }): A;
     stopAllEpics(): void;
-    getRootStore(): EnhancedStore<any, {
+    getRootStore(): import("@reduxjs/toolkit/dist/configureStore").ToolkitStore<any, {
         payload: any;
         type: string;
     }, readonly Middleware<{}, any, import("redux").Dispatch<import("redux").AnyAction>>[]> | undefined;
@@ -101,7 +101,7 @@ export declare class StateFactory {
     private addSliceMaybeReplaceReducer;
     private createRootReducer;
 }
-export declare type PayloadCaseReducers<S, R extends SliceCaseReducers<S>> = {
+export type PayloadCaseReducers<S, R extends SliceCaseReducers<S>> = {
     [T in keyof R]: R[T] extends (s: any) => any ? (state: Draft<S>) => S | void | Draft<S> : R[T] extends (s: any, action: PayloadAction<infer P>) => any ? (state: Draft<S>, payload: P) => S | void | Draft<S> : (state: Draft<S>, payload: unknown) => S | void | Draft<S>;
 };
 /**

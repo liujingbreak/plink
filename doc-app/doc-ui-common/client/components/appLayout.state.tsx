@@ -12,12 +12,11 @@
  * e.g. DOM object, React Component, functions
  */
 import {EpicFactory, Slice, castByActionType} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import { MDCTopAppBar } from '@wfh/material-components-react/client/TopAppBar';
+import {MDCTopAppBar, TopAppBarProps} from '@wfh/material-components-react/client/TopAppBar';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import React from 'react';
 import {Size} from './layout/MediaMatch';
-import {TopAppBarProps} from '@wfh/material-components-react/client/TopAppBar';
 
 export const Ctx = React.createContext<Slice<AppLayoutState, typeof reducers> | null | undefined>(null);
 export function useAppLayout() {
@@ -118,10 +117,10 @@ export const epicFactory: EpicFactory<AppLayoutState, typeof reducers> = functio
           slice.actionDispatcher._setTopbarType(size === 'desktop' ? 'standard' : 'dense');
         })),
       actionStreams.scrollTo.pipe(
-        op.switchMap(({payload}) => {
+        op.map(({payload}) => {
           slice.getState().frontLayer?.scrollTo(payload[0], payload[1]);
-          return rx.timer(0);
         }),
+        op.observeOn(rx.asyncScheduler),
         // eslint-disable-next-line array-callback-return
         op.map(() => {
           slice.actionDispatcher._onScroll(null);

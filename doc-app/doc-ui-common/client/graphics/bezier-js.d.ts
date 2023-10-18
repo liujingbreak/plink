@@ -2,8 +2,8 @@
  * http://pomax.github.io/bezierjs
  */
 
-declare module 'bezier-js/dist/bezier' {
-  export type PointsCoords = number[] | {x: number; y: number; z?: number;}[];
+declare module 'bezier-js' {
+  export type PointsCoords = readonly number[] | number[] | {x: number; y: number; z?: number;}[];
 
   export interface CoordBounds {
     min: number;
@@ -13,7 +13,7 @@ declare module 'bezier-js/dist/bezier' {
   }
 
   export class Bezier {
-    points: {x: number;y: number}[];
+    points: Point[];
     constructor(...coords: PointsCoords);
 
     length(): number;
@@ -27,5 +27,8 @@ declare module 'bezier-js/dist/bezier' {
     split(t1: number, t2: number): Bezier;
     split(t: number): {left: Bezier; right: Bezier; span: {x: number;y: number}[]};
 
+    lineIntersects(line: {p1: Point; p2: Point}): number[];
   }
+
+  export type Point = {x: number; y: number; z?: number};
 }

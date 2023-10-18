@@ -18,7 +18,7 @@ const MediaMatch: React.FC<MediaMatchProps> = function(props) {
   const detectorRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    const resizeEvent$ = new rx.Subject();
+    const resizeEvent$ = new rx.Subject<void>();
     const sub = resizeEvent$.pipe(
       op.throttleTime(500),
       op.concatMap(() => rx.timer(20).pipe(op.take(1))),

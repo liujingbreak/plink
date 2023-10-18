@@ -4,11 +4,11 @@ export interface BaseComponentState<Props> {
     componentProps?: Props;
     error?: Error;
 }
-declare type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
+type CompPropsSyncReducer<Props, S extends BaseComponentState<Props>> = {
     _syncComponentProps(s: S, payload: Props): void;
     _willUnmount(s: S): void;
 };
-export declare type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends Reducers<S>> = (slice: Slice<S, R & CompPropsSyncReducer<Props, S>>, ofType: OfTypeFn<S, R & CompPropsSyncReducer<Props, S>>) => Epic<S> | void;
+export type EpicFactory4Comp<Props, S extends BaseComponentState<Props>, R extends Reducers<S>> = (slice: Slice<S, R & CompPropsSyncReducer<Props, S>>, ofType: OfTypeFn<S, R & CompPropsSyncReducer<Props, S>>) => Epic<S> | void;
 /**
  * Unlike useTinyReduxTookit, useTinyRtk() accepts a State which extends BaseComponentState,
  *  useTinyRtk() will automatically create an extra reducer "_syncComponentProps" for shallow coping
@@ -18,7 +18,7 @@ export declare type EpicFactory4Comp<Props, S extends BaseComponentState<Props>,
  * @param epicFactories
  * @returns
  */
-export declare function useTinyRtk<Props, S extends BaseComponentState<Props>, R extends Reducers<S>>(optsFactory: () => SliceOptions<S, R>, props: Props, ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>): [state: S, slice: Slice<S, R & CompPropsSyncReducer<Props, S>>];
+export declare function useTinyRtk<Props extends Record<string, any>, S extends BaseComponentState<Props>, R extends Reducers<S>>(optsFactory: () => SliceOptions<S, R>, props: Props, ...epicFactories: Array<EpicFactory4Comp<Props, S, R> | null | undefined>): [state: S, slice: Slice<S, R & CompPropsSyncReducer<Props, S>>];
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
  * @param opts

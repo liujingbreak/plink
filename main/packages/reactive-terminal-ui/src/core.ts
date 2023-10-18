@@ -5,8 +5,8 @@ import {canvasSlice} from './canvas';
 
 type Canvas = typeof canvasSlice;
 export type PaintableSlice<S = undefined, R = undefined> = Slice<
-  S extends undefined ? BasePaintableState : BasePaintableState & S,
-  R extends undefined ? typeof basePaintableReducers : typeof basePaintableReducers & R
+S extends undefined ? BasePaintableState : BasePaintableState & S,
+R extends undefined ? typeof basePaintableReducers : typeof basePaintableReducers & R
 >;
 
 export type BasePaintableState = {
@@ -64,21 +64,21 @@ const basePaintableEpic: EpicFactory<BasePaintableState, typeof basePaintableRed
           for (const chr of slice.getState().children![0].values()) {
             chr.actionDispatcher.renderAll(payload);
           }
-      })),
+        })),
       // actionsByType.setAnimating.pipe(
-        // op.switchMap(({payload: animating}) => {
-          // if (animating) {
-            // return slice.getStore().pipe(op.map(s => s.attached),
-              // op.distinctUntilChanged(), op.filter(attached => attached), op.take(1),
-              // op.map(() => {
-                // this.canvasSlice.actionDispatcher.startAnimating();
-              // })
-            // );
-          // } else {
-            // this.canvasSlice.actionDispatcher.stopAnimating();
-            // return rx.EMPTY;
-          // }
-        // })
+      //   op.switchMap(({payload: animating}) => {
+      //     if (animating) {
+      //       return slice.getStore().pipe(op.map(s => s.attached),
+      //         op.distinctUntilChanged(), op.filter(attached => attached), op.take(1),
+      //         op.map(() => {
+      //           this.canvasSlice.actionDispatcher.startAnimating();
+      //         })
+      //       );
+      //     } else {
+      //       this.canvasSlice.actionDispatcher.stopAnimating();
+      //       return rx.EMPTY;
+      //     }
+      //   })
       // ),
       actionsByType.addChildren.pipe(
         op.map(({payload: children}) => {
@@ -235,7 +235,7 @@ export function createRoot(_x: number, _y: number, _width: number, _height: numb
 }
 
 export const positionalEpicFactory: EpicFactory<
-  PositionalState & BasePaintableState,
+PositionalState & BasePaintableState,
   typeof positionalReducers & typeof basePaintableReducers
 > = slice => {
   return _action$ => {
@@ -265,14 +265,14 @@ export const positionalEpicFactory: EpicFactory<
 // export function createSliceWith<BS, BR extends Reducers<any>, ES, ER extends Reducers<any>>(
   // sliceOpt: SliceOptions<BS, BR> & {extendInitialState?: ES; extendReducers?: ER}) {
 
-  // const initState = sliceOpt.extendInitialState ? {...sliceOpt.initialState, ...sliceOpt.extendInitialState} : {...sliceOpt.initialState};
-  // const reducers = sliceOpt.extendReducers ? {...sliceOpt.reducers, ...sliceOpt.extendReducers} : sliceOpt.reducers;
-  // // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  // const slice = createSlice<ES extends undefined ? BS : BS & ES, ER extends undefined ? BR : BR & ER>({
-    // ...(sliceOpt as any),
-    // initialState: initState,
-    // reducers
-  // });
+// const initState = sliceOpt.extendInitialState ? {...sliceOpt.initialState, ...sliceOpt.extendInitialState} : {...sliceOpt.initialState};
+// const reducers = sliceOpt.extendReducers ? {...sliceOpt.reducers, ...sliceOpt.extendReducers} : sliceOpt.reducers;
+// // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+// const slice = createSlice<ES extends undefined ? BS : BS & ES, ER extends undefined ? BR : BR & ER>({
+// ...(sliceOpt as any),
+// initialState: initState,
+// reducers
+// });
 
-  // return slice;
+// return slice;
 // }

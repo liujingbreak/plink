@@ -10,8 +10,13 @@
       "src": "src"
     }
   },
+  "devDependencies": {
+    "@types/resolve": "^1.20.2"
+  },
+  "dependencies": {
+    "resolve": "^1.22.1"
+  },
   "peerDependencies": {
-    "jest": "^28.1.0",
-    "@types/jest": "^27.5.0"
+    "jest": "^29.1.2"
   }
 }

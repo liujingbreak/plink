@@ -1,23 +1,23 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
 import Inject from 'require-injector';
-import * as assetsUrl from '../../dist/assets-url';
-import { PackageInfo } from './package-info-gathering';
-import PackageInstance from '../packageNodeInstance';
 import { Logger } from 'log4js';
+import PackageInstance from '../packageNodeInstance';
+import * as assetsUrl from '../share/assets-url';
+import { PackageInfo } from './package-info-gathering';
 declare class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
     packageName: string;
     packageInstance: PackageInstance;
+    eventBus: EventEmitter | undefined;
     packageShortName: string;
-    eventBus: EventEmitter;
     config: import("..").DrcpConfig;
     argv: any;
-    packageInfo: PackageInfo;
-    default: NodeApi;
+    packageInfo: PackageInfo | undefined;
+    default: NodeApi | undefined;
     logger: Logger;
-    browserInjector: Inject;
+    browserInjector: Inject | undefined;
     findPackageByFile: (file: string) => PackageInstance | undefined;
-    getNodeApiForPackage: (pkInstance: PackageInstance) => NodeApi;
+    getNodeApiForPackage: ((pkInstance: PackageInstance) => NodeApi) | undefined;
     assetsUrl: typeof assetsUrl.assetsUrl;
     serverUrl: typeof assetsUrl.serverUrl;
     /** @deprecated */

@@ -12,7 +12,8 @@ const redux_observable_1 = require("redux-observable");
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 function ofPayloadAction(...actionCreators) {
-    return (0, redux_observable_1.ofType)(...actionCreators.map(c => c.type));
+    const types = actionCreators.map(c => c.type);
+    return (0, redux_observable_1.ofType)(...types);
 }
 exports.ofPayloadAction = ofPayloadAction;
 const defaultSliceReducers = {
@@ -31,7 +32,7 @@ class StateFactory {
         this.epicSeq = 0;
         // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
         this.debugLog = new rxjs_1.ReplaySubject(15);
-        this.sharedSliceStore$ = new Map();
+        this.sliceStoreMap = new Map();
         this.errorHandleMiddleware = (api) => {
             return (next) => {
                 return (action) => {
@@ -137,7 +138,9 @@ class StateFactory {
      * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
      * - initialState is loaded from StateFactory's partial preloadedState
      */
+    // eslint-disable-next-line @typescript-eslint/ban-types
     newSlice(opt) {
+        var _a;
         const _opt = opt;
         const reducers = _opt.reducers;
         if (reducers._change == null)
@@ -147,15 +150,15 @@ class StateFactory {
                 this.debugLog.next(['[redux-toolkit-obs]', `slice "${opt.name}" is created ${action.payload.isLazy ? 'lazily' : ''}`]);
             };
         }
-        if (this.preloadedState && this.preloadedState[opt.name]) {
+        if ((_a = this.preloadedState) === null || _a === void 0 ? void 0 : _a[opt.name]) {
             Object.assign(opt.initialState, this.preloadedState[opt.name]);
         }
         const slice = (0, toolkit_1.createSlice)(opt);
         this.addSliceMaybeReplaceReducer(slice);
         const slicedStore = this.realtimeState$.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        (0, operators_1.map)(s => s[opt.name]), (0, operators_1.filter)(ss => ss != null), (0, operators_1.distinctUntilChanged)(), (0, operators_1.share)());
-        this.sharedSliceStore$.set(opt.name, slicedStore);
+        (0, operators_1.map)(s => s[opt.name]), (0, operators_1.filter)(ss => ss != null), (0, operators_1.distinctUntilChanged)());
+        this.sliceStoreMap.set(opt.name, slicedStore);
         return slice;
     }
     removeSlice(slice) {
@@ -164,7 +167,7 @@ class StateFactory {
             this.debugLog.next(['[redux-toolkit-obs]', 'remove slice ' + slice.name]);
             const newRootReducer = this.createRootReducer();
             this.getRootStore().replaceReducer(newRootReducer);
-            this.sharedSliceStore$.delete(slice.name);
+            this.sliceStoreMap.delete(slice.name);
         }
     }
     /**
@@ -187,7 +190,7 @@ class StateFactory {
         return store ? store.getState()[slice.name] : {};
     }
     sliceStore(slice) {
-        return this.sharedSliceStore$.get(slice.name);
+        return this.sliceStoreMap.get(slice.name);
     }
     getErrorState() {
         return this.sliceState(this.errorSlice);
@@ -200,7 +203,7 @@ class StateFactory {
         this.actionsToDispatch.next(action);
     }
     /**
-     * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
+     * Unlike Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
      * Parameter is a Slice instead of action map
      */
     bindActionCreators(slice) {

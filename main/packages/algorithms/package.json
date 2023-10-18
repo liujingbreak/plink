@@ -1,0 +1,35 @@
+{
+  "name": "@wfh/algorithms",
+  "version": "1.0.0",
+  "description": "Basic algorithms and data structures that is used by Plink internally, including Red-black tree, interval-tree, BFS, DFS graph algorithms",
+  "main": "dist/index.js",
+  "module": "es/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "import": "./es/index.js",
+    "require": "./dist/index.js"
+  },
+  "plink": {
+    "tsc": {
+      "src": "src",
+      "dest": "es"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "test": "echo \"Error: test is performed in project @wfh/plink \" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liujingbreak/plink.git",
+    "directory": "main/packages/algorithms"
+  },
+  "devDependencies": {
+    "chalk": "^4.1.0"
+  },
+  "keywords": [
+    "red-black tree", "DFS", "BFS", "interval search tree"
+  ],
+  "author": "Liu Jing <liujing.break@gmail.com>",
+  "license": "MIT"
+}

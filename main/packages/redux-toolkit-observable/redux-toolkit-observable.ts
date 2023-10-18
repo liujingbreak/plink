@@ -13,7 +13,7 @@ import {
 } from '@reduxjs/toolkit';
 import { createEpicMiddleware, Epic, ofType } from 'redux-observable';
 import { BehaviorSubject, Observable, ReplaySubject, Subject, OperatorFunction } from 'rxjs';
-import { distinctUntilChanged, filter, map, mergeMap, share, take, takeUntil, tap, catchError} from 'rxjs/operators';
+import { distinctUntilChanged, filter, map, mergeMap, take, takeUntil, tap, catchError} from 'rxjs/operators';
 
 export {PayloadAction, SliceCaseReducers, Slice};
 
@@ -34,7 +34,8 @@ export function ofPayloadAction<P1, P2, P3, T1 extends string, T2 extends string
 OperatorFunction<any, PayloadAction<P1 | P2 | P3, T1 | T2 | T3>>;
 export function ofPayloadAction<P, T extends string>(...actionCreators: ActionCreatorWithPayload<P, T>[]):
 OperatorFunction<any, PayloadAction<P, T>> {
-  return ofType(...actionCreators.map(c => c.type)) as OperatorFunction<any, PayloadAction<P, T>>;
+  const types = actionCreators.map(c => c.type) as [T, ...T[]];
+  return ofType(...types);
 }
 
 export interface ErrorState {
@@ -84,7 +85,7 @@ export class StateFactory {
   private epicWithUnsub$: Subject<[Epic<PayloadAction<unknown>>, string, Subject<string>]>;
   private errorSlice: InferSliceType<typeof errorSliceOpt>;
 
-  private sharedSliceStore$ = new Map<string, Observable<unknown>>();
+  sliceStoreMap = new Map<string, Observable<unknown>>();
 
   constructor(private preloadedState: ConfigureStoreOptions['preloadedState']) {
     this.realtimeState$ = new BehaviorSubject<unknown>(preloadedState);
@@ -199,7 +200,8 @@ export class StateFactory {
    * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
    * - initialState is loaded from StateFactory's partial preloadedState
    */
-  newSlice<S, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  newSlice<S extends Record<string, any>, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(
     opt: CreateSliceOptions<S, _CaseReducer, Name>):
     Slice<S, _CaseReducer & ExtraSliceReducers<S>, Name> {
 
@@ -215,7 +217,7 @@ export class StateFactory {
       };
     }
 
-    if (this.preloadedState && this.preloadedState[opt.name]) {
+    if (this.preloadedState?.[opt.name]) {
       Object.assign(opt.initialState, this.preloadedState[opt.name]);
     }
     const slice = reduxCreateSlice(
@@ -227,9 +229,9 @@ export class StateFactory {
       map(s => s[opt.name]),
       filter(ss => ss != null),
       distinctUntilChanged(),
-      share()
+      // share() do not use share() for a BehaviorSubject
     );
-    this.sharedSliceStore$.set(opt.name, slicedStore);
+    this.sliceStoreMap.set(opt.name, slicedStore);
     return slice;
   }
 
@@ -239,7 +241,7 @@ export class StateFactory {
       this.debugLog.next(['[redux-toolkit-obs]', 'remove slice '+ slice.name]);
       const newRootReducer = this.createRootReducer();
       this.getRootStore()!.replaceReducer(newRootReducer);
-      this.sharedSliceStore$.delete(slice.name);
+      this.sliceStoreMap.delete(slice.name);
     }
   }
 
@@ -274,7 +276,7 @@ export class StateFactory {
   }
 
   sliceStore<SS>(slice: Slice<SS>): Observable<SS> {
-    return this.sharedSliceStore$.get(slice.name) as Observable<SS>;
+    return this.sliceStoreMap.get(slice.name) as Observable<SS>;
   }
 
   getErrorState() {
@@ -291,10 +293,10 @@ export class StateFactory {
   }
 
   /**
-   * Unlink Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
+   * Unlike Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
    * Parameter is a Slice instead of action map
    */
-  bindActionCreators<A>(slice: {actions: A})
+  bindActionCreators<A extends Record<string, any>>(slice: {actions: A})
     : A {
 
     const actionMap = {} as A;
@@ -306,7 +308,7 @@ export class StateFactory {
         return action as unknown;
       };
       (doAction as unknown as {type: string}).type = (actionCreator as PayloadActionCreator).type;
-      actionMap[name] = doAction as unknown;
+      actionMap[name as keyof A] = doAction as any;
     }
     return actionMap;
   }

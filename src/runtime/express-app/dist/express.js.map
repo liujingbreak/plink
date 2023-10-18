@@ -1,0 +1,1 @@
+{"version":3,"file":"express.js","sourceRoot":"","sources":["express.ts"],"names":[],"mappings":";;;;AAAA,yDAAmC;AAIhB,0BAAO","sourcesContent":["import * as express from 'express';\n/**\n * For pkg like assest-processer which depends on express to reference express types from this pkg's dependency\n */\nexport {express as default};\n"]}

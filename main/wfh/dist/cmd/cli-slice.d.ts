@@ -27,7 +27,7 @@ export declare const cliActionDispatcher: import("@reduxjs/toolkit").CaseReducer
         pkg: string;
         metas: OurCommandMetadata[];
     }): void;
-}> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>>;
+}> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<CliState>, "cli">;
 export declare function getState(): CliState;
 export declare function getStore(): import("rxjs").Observable<CliState>;
 export declare function availabeCliExtension(): void;

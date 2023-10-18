@@ -1,20 +1,51 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const Path = tslib_1.__importStar(require("path"));
-const fs = tslib_1.__importStar(require("fs"));
+require("source-map-support/register");
+const Path = __importStar(require("path"));
+const fs = __importStar(require("fs"));
 const worker_threads_1 = require("worker_threads");
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const chalk_1 = __importDefault(require("chalk"));
+const log4js_1 = __importDefault(require("log4js"));
 const loaderHooks_1 = require("./loaderHooks");
 const node_path_calc_1 = require("./node-path-calc");
-let logPrefix = '';
-if (process.send || !worker_threads_1.isMainThread)
-    logPrefix += `[P${process.pid}.T${worker_threads_1.threadId}]`;
-let envSetDone = false;
-if (!envSetDone) {
-    envSetDone = true;
-    require('source-map-support/register');
+// To avoid this file being executed multiple times within single Node.js process/thread,
+// use a state '__plink_node_path' property on global object. Since Plink might run current
+// module with resolve or symlink path, this file could have 2 instances of Node.js module
+// in Node.js VM, so I can not rely on module level variable to track "state", that's why
+// global object is better than module level variable here.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+if (global.__plink_node_path == null) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    global.__plink_node_path = true;
+    let logPrefix = `[MP${process.pid}]`;
+    if (process.send || !worker_threads_1.isMainThread)
+        logPrefix += `[P${process.pid}.T${worker_threads_1.threadId}]`;
     (0, loaderHooks_1.hookCommonJsRequire)((file, target, req, resolve) => {
         if (target === 'log4js') {
             return log4js_1.default;
@@ -45,11 +76,11 @@ if (!envSetDone) {
     }
     const workDir = PLINK_WORK_DIR ? Path.resolve(PLINK_WORK_DIR) : process.cwd();
     const rootDir = exitingEnvVar ? exitingEnvVar.rootDir : findRootDir(process.env.PLINK_DATA_DIR, workDir);
-    checkUpLevelNodeModules(rootDir);
     // We can change this path to another directory like '.links',
     // if we don't want node_modules to be polluted by symlinks;
-    const symlinkDirName = exitingEnvVar && exitingEnvVar.symlinkDirName ?
-        exitingEnvVar.symlinkDirName : 'node_modules';
+    const symlinkDirName = (exitingEnvVar === null || exitingEnvVar === void 0 ? void 0 : exitingEnvVar.symlinkDirName) ?
+        exitingEnvVar.symlinkDirName :
+        'node_modules';
     let plinkDir = Path.resolve(rootDir, 'node_modules/@wfh/plink');
     const isDrcpSymlink = exitingEnvVar ? exitingEnvVar.isDrcpSymlink : fs.lstatSync(plinkDir).isSymbolicLink();
     if (isDrcpSymlink)
@@ -102,30 +133,5 @@ function setupNodePath(currDir, rootDir, symlinksDir, plinkDir) {
     // process.env.NODE_PRESERVE_SYMLINKS = '1';
     // require('module').Module._initPaths();
     return pathArray;
-}
-/**
- * Webpack and TS compiler by default will look up node_modules from up level directries,
- * this breaks Plink's way of adding extra node path for Node.js, TS or Webpack, it leads
- * to problematic module loading issue.
- */
-function checkUpLevelNodeModules(rootDir) {
-    // Go with preserve
-    // const dirs = [] as string[];
-    // let currDir = rootDir;
-    // const {root} = Path.parse(rootDir);
-    // do {
-    //   currDir = Path.dirname(currDir);
-    //   dirs.push(Path.resolve(currDir, 'node_modules'));
-    // } while (currDir !== root);
-    // const nodeModule = dirs.find(dir => fs.existsSync(dir));
-    // if (nodeModule) {
-    //   // eslint-disable-next-line no-console
-    //   console.log(`Please install in another directory, or remove ${chalk.red(nodeModule)}.\n` +
-    //     chalk.yellow('It could be problematic for Plink to manage monorepo dependency (through environmet variable "NODE_PATH" in runtime).\n' +
-    //     '(Alternatively, you may consider install whatever "global" dependency with `npm i -g` instead of having directory like ' +
-    //     chalk.red(nodeModule) + ')' ) );
-    //   throw new Error(chalk.red('Found "node_modules" in upper level directories, ' +
-    //     'Installation is cancelled, sorry for inconvienience.'));
-    // }
 }
 //# sourceMappingURL=node-path.js.map

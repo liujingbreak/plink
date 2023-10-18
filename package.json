@@ -1,6 +1,5 @@
 {
-  "name": "plink-mono",
-  "description": "This is a monorepo package, not for publishing",
+  "name": "plink-mono",  "description": "This is a monorepo package, not for publishing",
   "version": "1.0.0",
   "private": true,
   "packages": [
@@ -20,11 +19,10 @@
     "lint-redux": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",
     "lint-thread": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
     "lint-main-file": "eslint --no-eslintrc -c main/.eslintrc.js",
-    "lint-other": "eslint --no-eslintrc -c .eslintrc.js",
-    "test": "cd server-space && test"
+    "lint-other": "eslint --no-eslintrc -c .eslintrc.js"
   },
   "devDependencies": {
     "@wfh/eslint-config-cra": "./src/tools/eslint-config-cra",
-    "typescript": "^4.6.3"
+    "typescript": "^5.1.6"
   }
 }

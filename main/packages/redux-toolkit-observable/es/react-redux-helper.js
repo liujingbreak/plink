@@ -1,10 +1,10 @@
-import { ofPayloadAction } from './redux-toolkit-observable';
 import React from 'react';
-import { stateFactory } from './state-factory-browser';
-import { createSliceHelper, castByActionType, createReducers, action$OfSlice } from './helper';
 import { useEffect, useState } from 'react';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import { createSliceHelper, castByActionType, createReducers, action$OfSlice } from './helper';
+import { stateFactory } from './state-factory-browser';
+import { ofPayloadAction } from './redux-toolkit-observable';
 export { ofPayloadAction };
 export { connect, Provider as ReduxProvider } from 'react-redux';
 export * from './helper';

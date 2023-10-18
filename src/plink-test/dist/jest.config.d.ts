@@ -1,3 +1,4 @@
-import type { Config } from '@jest/types';
-declare const config: Config.InitialOptions;
+import type { Config } from 'jest';
+import './init-plink';
+declare const config: Config;
 export default config;

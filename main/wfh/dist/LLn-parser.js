@@ -1,8 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTextParser = exports.LookAhead = exports.parser = exports.Token = exports.Chunk = exports.listTokens = exports.createStringParser = void 0;
-const tslib_1 = require("tslib");
-const util_1 = tslib_1.__importDefault(require("util"));
+const util_1 = __importDefault(require("util"));
 /**
  * T - Token Types
  * AST - type of returned AST object

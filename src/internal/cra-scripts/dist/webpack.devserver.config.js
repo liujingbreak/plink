@@ -1,21 +1,22 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-const utils_1 = require("./utils");
-const devServer_1 = __importDefault(require("@wfh/webpack-common/dist/devServer"));
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const devServer_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/devServer"));
 const plink_1 = require("@wfh/plink");
+const utils_1 = require("./utils");
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack.devserver.config');
 const origDevServerConfig = require('react-scripts/config/webpackDevServer.config');
-module.exports = function (proxy, allowedHost) {
-    const devServerCfg = origDevServerConfig.apply(this, arguments);
-    devServerCfg.stats = 'normal';
-    devServerCfg.quiet = false;
+function default_1(...args) {
+    // eslint-disable-next-line prefer-rest-params
+    const devServerCfg = origDevServerConfig.apply(this, args);
+    // devServerCfg.stats = 'normal';
+    // devServerCfg.quiet = false;
     (0, devServer_1.default)({ devServer: devServerCfg });
-    if (devServerCfg.watchOptions && devServerCfg.watchOptions.ignored) {
-        delete devServerCfg.watchOptions.ignored;
-    }
+    // if (devServerCfg.watchOptions?.ignored) {
+    //   delete devServerCfg.watchOptions.ignored;
+    // }
     log.info('Dev server configure:', (0, utils_1.printConfig)(devServerCfg));
     return devServerCfg;
-};
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoid2VicGFjay5kZXZzZXJ2ZXIuY29uZmlnLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsid2VicGFjay5kZXZzZXJ2ZXIuY29uZmlnLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7QUFDQSxtQ0FBb0M7QUFDcEMsbUZBQWlFO0FBQ2pFLHNDQUFrQztBQUNsQyxNQUFNLEdBQUcsR0FBRyxjQUFNLENBQUMsU0FBUyxDQUFDLDJDQUEyQyxDQUFDLENBQUM7QUFFMUUsTUFBTSxtQkFBbUIsR0FBRyxPQUFPLENBQUMsOENBQThDLENBQUMsQ0FBQztBQUVwRixpQkFBUyxVQUFTLEtBQWEsRUFBRSxXQUFtQjtJQUNsRCxNQUFNLFlBQVksR0FBNEMsbUJBQW1CLENBQUMsS0FBSyxDQUFDLElBQUksRUFBRSxTQUFTLENBQUMsQ0FBQztJQUN6RyxZQUFZLENBQUMsS0FBSyxHQUFHLFFBQVEsQ0FBQztJQUM5QixZQUFZLENBQUMsS0FBSyxHQUFHLEtBQUssQ0FBQztJQUMzQixJQUFBLG1CQUFlLEVBQUMsRUFBQyxTQUFTLEVBQUUsWUFBWSxFQUFDLENBQUMsQ0FBQztJQUMzQyxJQUFJLFlBQVksQ0FBQyxZQUFZLElBQUksWUFBWSxDQUFDLFlBQVksQ0FBQyxPQUFPLEVBQUU7UUFDbEUsT0FBTyxZQUFZLENBQUMsWUFBWSxDQUFDLE9BQU8sQ0FBQztLQUMxQztJQUVELEdBQUcsQ0FBQyxJQUFJLENBQUMsdUJBQXVCLEVBQUUsSUFBQSxtQkFBVyxFQUFDLFlBQVksQ0FBQyxDQUFDLENBQUM7SUFDN0QsT0FBTyxZQUFhLENBQUM7QUFDdkIsQ0FBQyxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtDb25maWd1cmF0aW9ufSBmcm9tICd3ZWJwYWNrJztcbmltcG9ydCB7cHJpbnRDb25maWd9IGZyb20gJy4vdXRpbHMnO1xuaW1wb3J0IGNoYW5nZURldlNlcnZlciBmcm9tICdAd2ZoL3dlYnBhY2stY29tbW9uL2Rpc3QvZGV2U2VydmVyJztcbmltcG9ydCB7bG9nZ2VyfSBmcm9tICdAd2ZoL3BsaW5rJztcbmNvbnN0IGxvZyA9IGxvZ2dlci5nZXRMb2dnZXIoJ0B3ZmgvY3JhLXNjcmlwdHMud2VicGFjay5kZXZzZXJ2ZXIuY29uZmlnJyk7XG5cbmNvbnN0IG9yaWdEZXZTZXJ2ZXJDb25maWcgPSByZXF1aXJlKCdyZWFjdC1zY3JpcHRzL2NvbmZpZy93ZWJwYWNrRGV2U2VydmVyLmNvbmZpZycpO1xuXG5leHBvcnQgPSBmdW5jdGlvbihwcm94eTogc3RyaW5nLCBhbGxvd2VkSG9zdDogc3RyaW5nKSB7XG4gIGNvbnN0IGRldlNlcnZlckNmZzogTm9uTnVsbGFibGU8Q29uZmlndXJhdGlvblsnZGV2U2VydmVyJ10+ID0gb3JpZ0RldlNlcnZlckNvbmZpZy5hcHBseSh0aGlzLCBhcmd1bWVudHMpO1xuICBkZXZTZXJ2ZXJDZmcuc3RhdHMgPSAnbm9ybWFsJztcbiAgZGV2U2VydmVyQ2ZnLnF1aWV0ID0gZmFsc2U7XG4gIGNoYW5nZURldlNlcnZlcih7ZGV2U2VydmVyOiBkZXZTZXJ2ZXJDZmd9KTtcbiAgaWYgKGRldlNlcnZlckNmZy53YXRjaE9wdGlvbnMgJiYgZGV2U2VydmVyQ2ZnLndhdGNoT3B0aW9ucy5pZ25vcmVkKSB7XG4gICAgZGVsZXRlIGRldlNlcnZlckNmZy53YXRjaE9wdGlvbnMuaWdub3JlZDtcbiAgfVxuXG4gIGxvZy5pbmZvKCdEZXYgc2VydmVyIGNvbmZpZ3VyZTonLCBwcmludENvbmZpZyhkZXZTZXJ2ZXJDZmcpKTtcbiAgcmV0dXJuIGRldlNlcnZlckNmZyE7XG59O1xuIl19
+}
+exports.default = default_1;
+//# sourceMappingURL=webpack.devserver.config.js.map

@@ -11,10 +11,10 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 
 Happy linting! 💖
 */
-const path = require('path');
+// const path = require('path');
 const reactAppCfg = require('eslint-config-react-app');
 
-module.exports = create(path.resolve(__dirname, '../../tsconfig.json'), '17.0.2');
+// module.exports = create(path.resolve(__dirname, '../../tsconfig.json'), '17.0.2');
 
 module.exports.create = create;
 
@@ -29,7 +29,9 @@ function create(tsconfigFile) {
     ],
     ignorePatterns: [
       '**/dist/**/*',
-      '**/*.d.ts'
+      '**/*.d.ts',
+      '**/*.d.mts',
+      '**/*.d.cts'
     ],
     // settings: {
     //   react: {
@@ -46,9 +48,9 @@ function create(tsconfigFile) {
         ],
         excludedFiles: '*.d.ts',
         plugins: [
-          'eslint-plugin-jsdoc',
-          'eslint-plugin-import',
-          'eslint-plugin-prefer-arrow',
+          'jsdoc',
+          'import',
+          'prefer-arrow',
           '@typescript-eslint',
           '@typescript-eslint/tslint'
         ],
@@ -212,7 +214,8 @@ function create(tsconfigFile) {
     ],
     rules: {
       ...reactAppCfg.rules,
-      'comma-dangle': ['warn', 'never'],
+      'prefer-const': 'error',
+      'comma-dangle': ['error', 'never'],
       'comma-spacing': ['warn', {before: false, after: true}],
       'space-before-blocks': ['warn', 'always'],
       'multiline-ternary': ['warn', 'always-multiline'],
@@ -232,7 +235,6 @@ function create(tsconfigFile) {
         'off',
         'always'
       ],
-      'comma-dangle': 'error',
       complexity: 'off',
       'constructor-super': 'error',
       curly: [
@@ -324,7 +326,6 @@ function create(tsconfigFile) {
         'never'
       ],
       'prefer-arrow/prefer-arrow-functions': 'off',
-      'prefer-const': 'off',
       'quote-props': [
         'error',
         'as-needed'
@@ -358,7 +359,3 @@ function create(tsconfigFile) {
   };
 }
 
-function test(c) {
-  const a = c == null ? 'yes' : ['no', 'yes'];
-  return a;
-}

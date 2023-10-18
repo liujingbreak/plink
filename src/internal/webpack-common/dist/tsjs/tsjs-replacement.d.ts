@@ -1,8 +1,8 @@
 import * as ts from 'typescript';
 import { CompilerOptions } from 'typescript';
-import ImportClauseTranspile from './default-import-ts-transpiler';
 import BrowserPackage from '@wfh/plink/wfh/dist/packageNodeInstance';
 import { ReplacementInf } from '@wfh/plink/wfh/dist/utils/patch-text';
+import ImportClauseTranspile from './default-import-ts-transpiler';
 export { ReplacementInf };
 export declare type TsHandler = (ast: ts.SourceFile) => ReplacementInf[];
 export default class TsPreCompiler {

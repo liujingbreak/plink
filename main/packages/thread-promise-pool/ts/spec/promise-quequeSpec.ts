@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import {describe, it} from '@jest/globals';
 import {queueUp, queue} from '../promise-queque';
 
 describe('promise-queue', () => {

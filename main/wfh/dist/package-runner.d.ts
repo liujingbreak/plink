@@ -36,10 +36,7 @@ export declare function runPackages(target: string, includePackages: Iterable<st
 /**
  * So that we can use `import api from '__plink'` anywhere in our package
  */
-export declare function initInjectorForNodePackages(): [
-    PackageInfo,
-    _NodeApi
-];
+export declare function initInjectorForNodePackages(): [PackageInfo, _NodeApi];
 /**
  * @deprecated
  * Support `import api from '__api';`

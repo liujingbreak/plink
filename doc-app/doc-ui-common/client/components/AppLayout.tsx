@@ -3,15 +3,15 @@ import React from 'react';
 import classnames from 'classnames/bind';
 import cls from 'classnames';
 import clsDdp from 'classnames/dedupe';
-import styles from './AppLayout.module.scss';
-import { TopAppBar } from '@wfh/material-components-react/client/TopAppBar';
+import {TopAppBar} from '@wfh/material-components-react/client/TopAppBar';
 import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import {sliceOptionFactory, epicFactory, Ctx} from './appLayout.state';
 import {LinearProgress} from '@wfh/material-components-react/client/LinearProgress';
-import {MediaMatch} from './layout/MediaMatch';
 import {SwitchAnim} from '@wfh/doc-ui-common/client/animation/SwitchAnim';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import {MediaMatch} from './layout/MediaMatch';
+import {sliceOptionFactory, epicFactory, Ctx} from './appLayout.state';
+import styles from './AppLayout.module.scss';
 import '@material/layout-grid/mdc-layout-grid.scss';
 
 const cx = classnames.bind(styles);
@@ -40,7 +40,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef.current, props.className]);
 
-  const title = React.useMemo(() => <SwitchAnim type='opacity' contentHash={state.barTitle}>{state.barTitle}</SwitchAnim>,
+  const title = React.useMemo(() => <SwitchAnim type="opacity" innerClassName={styles.titleSwitchBox} contentHash={state.barTitle}>{state.barTitle}</SwitchAnim>,
     [state.barTitle]);
 
 
@@ -56,7 +56,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
 
   React.useEffect(() => {
     const sub = scrollEvent$.pipe(
-      op.throttleTime(300, undefined, {trailing: true}),
+      op.throttleTime(150, undefined, {trailing: true}),
       op.tap(event => slice.actionDispatcher._onScroll(event))
     ).subscribe();
     return () => sub.unsubscribe();
@@ -64,19 +64,21 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
 
   function renderMain(mainClasName: string) {
     return <>
-    {/* Backdrop style UI https://material.io/components/backdrop#usage */}
-    <div className={cls(styles.backLayer, 'mdc-layout-size-' + state.deviceSize)}>
-      <div className={styles.progressBarContainer} ref={slice.actionDispatcher._setLoadingBarRef}>
-        <LinearProgress className={styles.routeProgressBar} determinate={false} open={state.showTopLoading}/>
-      </div>
-      <div ref={slice.actionDispatcher._setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
-        onScroll={onScrollRaw}>
-        {props.children}
-        {state.footer ? <footer className={styles.footer}>
-          {state.footer}
-        </footer> : null}
-      </div>
-    </div></>;
+      {/* Backdrop style UI https://material.io/components/backdrop#usage */}
+      <div className={cls(styles.backLayer, 'mdc-layout-size-' + state.deviceSize)}>
+        <div className={styles.progressBarContainer} ref={slice.actionDispatcher._setLoadingBarRef}>
+          <LinearProgress className={styles.routeProgressBar} determinate={false} open={state.showTopLoading}/>
+        </div>
+        <div ref={slice.actionDispatcher._setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
+          onScroll={onScrollRaw}>
+          {props.children}
+          {state.footer
+            ? <footer className={styles.footer}>
+              {state.footer}
+            </footer>
+            : null}
+        </div>
+      </div></>;
   }
 
   const content = (
@@ -90,7 +92,7 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   return <Ctx.Provider value={slice}>
     <MediaMatch onChange={slice.actionDispatcher._setDeviceSize}/>
     {props.parentDom == null ? <div className={props.className || undefined} ref={containerRef}>{content}</div> : content}
-    </Ctx.Provider>;
+  </Ctx.Provider>;
 };
 
 

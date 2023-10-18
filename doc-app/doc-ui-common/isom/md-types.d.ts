@@ -8,5 +8,5 @@ export interface TOC {
 }
 export interface LoaderRecivedData {
     toc: TOC[];
-    content: string;
+    html: string;
 }

@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import Path from 'path';
 import _webpack from 'webpack';
 import chalk from 'chalk';
 import {getCmdOptions} from './utils';
-import Path from 'path';
 // Don't install @types/react-dev-utils, it breaks latest html-webpack-plugin's own type definitions 
 const _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
 
@@ -17,7 +19,8 @@ export function hackWebpack4Compiler() {
   }
   const hacked = function() {
     const formatWebpackMessages: typeof _formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
-    const compiler: ReturnType<typeof webpack> = webpack.apply(global, arguments);
+    // eslint-disable-next-line prefer-rest-params
+    const compiler: ReturnType<typeof webpack> = webpack.apply(global, arguments as any);
     // const origRun = compiler.run;
     compiler.run = (handler) => {
       return compiler.watch({}, (err, stats) => {
@@ -35,9 +38,9 @@ export function hackWebpack4Compiler() {
             errors: [errMessage],
             warnings: []
           } as any);
-        } else {
+        } else if (stats) {
           messages = formatWebpackMessages(
-            stats.toJson({ all: false, warnings: true, errors: true })
+            stats.toJson({all: false, warnings: true, errors: true})
           );
         }
         if (messages.errors.length) {

@@ -1,19 +1,20 @@
 @use "@material/theme" with (
-  $primary: #2e2b10,
-  $secondary: #ce93d8,
-  $on-primary: #e0e0e0,
-  $on-secondary: #2e2b10,
+  $primary: #6750a4,
+  $secondary: #255ea6,
+  $on-primary: #ffffff,
+  $on-secondary: #ffffff,
 
   // All configurable colors, https://github.com/material-components/material-components-web/blob/master/packages/mdc-theme/_theme-color.scss
 
   // $accent: ,
-  $surface: #ffffff,
-  $background: #eaeaea,
-  $on-surface: #2e2b10
+  $surface: #fffbff,
+  $background: #fffbff,
+  // $on-background: #1c1b1e,
+  $on-surface: #1c1b1e,
   // $error: ,
   // $on-error: ,
 );
 
 @forward "@material/theme";
-$raised-btn-ripple-color: white;
+$raised-btn-ripple-color: if(theme.contrast-tone(theme.$primary) == 'dark', black, white);
 

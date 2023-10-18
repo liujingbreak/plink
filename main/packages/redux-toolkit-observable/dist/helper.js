@@ -22,12 +22,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Refrigerator = exports.action$OfSlice = exports.action$Of = exports.sliceRefActionOp = exports.isActionOfCreator = exports.action$ByType = exports.castByActionType = exports.createReducers = exports.createSliceHelper = void 0;
-const redux_toolkit_observable_1 = require("./redux-toolkit-observable");
 const rxjs_1 = require("rxjs");
-const op = __importStar(require("rxjs/operators"));
+const op = __importStar(require("rxjs"));
 const immer_1 = require("immer");
+const redux_toolkit_observable_1 = require("./redux-toolkit-observable");
 function createSliceHelper(stateFactory, opts) {
     const slice = stateFactory.newSlice(opts);
     const actionDispatcher = stateFactory.bindActionCreators(slice);
@@ -136,7 +137,7 @@ function castByActionType(actionCreators, action$) {
     for (const reducerName of Object.keys(actionCreators)) {
         Object.defineProperty(splitActions, reducerName, {
             get() {
-                return source.pipe((0, redux_toolkit_observable_1.ofPayloadAction)(actionCreators[reducerName]));
+                return source.pipe((0, redux_toolkit_observable_1.ofPayloadAction)(actionCreators[reducerName]), op.share());
             }
         });
     }
@@ -215,6 +216,7 @@ exports.action$OfSlice = action$OfSlice;
  */
 class Refrigerator {
     constructor(originRef) {
+        this[_a] = false;
         this.ref = originRef;
         Object.freeze(this);
     }
@@ -231,5 +233,6 @@ class Refrigerator {
     }
 }
 exports.Refrigerator = Refrigerator;
-Refrigerator[immer_1.immerable] = false;
+_a = immer_1.immerable, _b = immer_1.immerable;
+Refrigerator[_b] = false;
 //# sourceMappingURL=helper.js.map

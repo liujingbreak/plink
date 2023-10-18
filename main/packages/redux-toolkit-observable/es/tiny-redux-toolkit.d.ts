@@ -17,10 +17,10 @@ export interface PayloadAction<S, P = any[]> {
     payload: P;
     reducer?(old: S, ...payload: P extends Array<infer I> ? I[] : [P]): S | void;
 }
-export declare type Reducers<S, R = any> = {
+export type Reducers<S, R = any> = {
     [K in keyof R]: (state: S, ...payload: any[]) => S | void;
 };
-export declare type Actions<S, R> = {
+export type Actions<S, R> = {
     [K in keyof R]: R[K] extends (s: S) => any ? {
         (): ActionTypes<S, R>[K];
         type: string;
@@ -35,11 +35,11 @@ export declare type Actions<S, R> = {
         type: string;
     };
 };
-declare type ActionTypes<S, R> = {
+type ActionTypes<S, R> = {
     [K in keyof R]: R[K] extends (s: S) => any ? Action<S> : R[K] extends (s: S, payload: infer P) => any ? PayloadAction<S, P> : R[K] extends (s: S, ...payload: infer M) => any ? PayloadAction<S, M> : PayloadAction<S, unknown>;
 };
-declare type OutputActionObs<S, R extends Reducers<any>, K extends keyof R> = rx.Observable<R[K] extends (s: S) => any ? Action<S> : R[K] extends (s: S, payload: infer P) => any ? PayloadAction<S, P> : PayloadAction<S, unknown>>;
-declare type OfTypePipeOp<S, R extends Reducers<S>, K extends keyof R> = (src: rx.Observable<PayloadAction<S> | Action<S>>) => OutputActionObs<S, R, K>;
+type OutputActionObs<S, R extends Reducers<any>, K extends keyof R> = rx.Observable<R[K] extends (s: S) => any ? Action<S> : R[K] extends (s: S, payload: infer P) => any ? PayloadAction<S, P> : PayloadAction<S, unknown>>;
+type OfTypePipeOp<S, R extends Reducers<S>, K extends keyof R> = (src: rx.Observable<PayloadAction<S> | Action<S>>) => OutputActionObs<S, R, K>;
 /** same as ofPayloadAction() , to filter action stream by type, unlike ofPayloadAction(), parameter is a string instead of actionCreator */
 export interface OfTypeFn<S, R extends Reducers<S>> {
     <K1 extends keyof R>(actionType: K1): OfTypePipeOp<S, R, K1>;
@@ -47,7 +47,7 @@ export interface OfTypeFn<S, R extends Reducers<S>> {
     <K1 extends keyof R, K2 extends keyof R, K3 extends keyof R>(actionType: K1, actionType2: K2, actionType3: K3): OfTypePipeOp<S, R, K1 | K2 | K3>;
     <K extends keyof R>(...actionTypes: K[]): OfTypePipeOp<S, R, K>;
 }
-export declare type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType: OfTypeFn<S, R>) => Epic<S> | void;
+export type EpicFactory<S, R extends Reducers<S>> = (slice: Slice<S, R>, ofType: OfTypeFn<S, R>) => Epic<S> | void;
 export interface Slice<S, R extends Reducers<S>> {
     name: string | number;
     state$: rx.BehaviorSubject<S>;
@@ -85,8 +85,8 @@ export interface Slice<S, R extends Reducers<S>> {
     /** un-processed actions go through this operator */
     setActionInterceptor(intec: rx.OperatorFunction<PayloadAction<S, any> | Action<S>, PayloadAction<S, any> | Action<S>>): void;
 }
-export declare type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
-declare type ActionOfCreator<C> = C extends {
+export type Epic<S, A$ = rx.Observable<PayloadAction<S, any> | Action<S>>> = (actions: A$, states: rx.BehaviorSubject<S>) => A$;
+type ActionOfCreator<C> = C extends {
     (): any;
     type: string;
 } ? {
@@ -117,11 +117,11 @@ export interface OfPayloadActionFn {
     }>;
 }
 export declare const ofPayloadAction: OfPayloadActionFn;
-declare type ActionByType<S, R> = {
+type ActionByType<S, R> = {
     [K in keyof R]: rx.Observable<ActionTypes<S, R>[K]>;
 };
 /**
- * Map action stream to multiple action streams by theire action type.
+ * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
  * Usage:
 ```

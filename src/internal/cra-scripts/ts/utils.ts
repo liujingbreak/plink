@@ -1,11 +1,13 @@
 /* eslint-disable no-console */
-import util, { isRegExp } from 'util';
-import {CommandOption} from './build-options';
+import util, {isRegExp} from 'util';
 import Path from 'path';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {gt} from 'semver';
-import * as _craPaths from './cra-scripts-paths';
 import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
+import * as _craPaths from './cra-scripts-paths';
+import {CommandOption} from './build-options';
 import {ReactScriptsHandler} from './types';
 const log = log4File(__filename);
 
@@ -81,11 +83,15 @@ export type BuildCliOpts = {
   include?: string[];
   publicUrl?: string;
   sourceMap?: boolean;
+  poll: boolean;
+  tsck: CommandOption['tsck'];
 } & NonNullable<PlinkSettings['cliOptions']>;
 
 export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib'): CommandOption {
-
-  const completeName = [...findPackagesByNames([pkgName])][0]!.name;
+  const completeName = [...findPackagesByNames([pkgName])][0]?.name;
+  if (completeName == null) {
+    throw new Error(`Package named "${pkgName}" can not be found`);
+  }
   const cmdOptions: CommandOption = {
     cmd: cmdName,
     buildType,
@@ -95,7 +101,9 @@ export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: Buil
     publicUrl: opts.publicUrl,
     // external: opts.external,
     includes: opts.include,
-    webpackEnv: opts.dev ? 'development' : 'production'
+    webpackEnv: opts.dev ? 'development' : 'production',
+    usePoll: opts.poll,
+    tsck: opts.tsck
   };
   if (opts.publicUrl) {
     (process.env as any).PUBLIC_URL = opts.publicUrl;
@@ -110,14 +118,6 @@ export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: Buil
   // config.initSync(cmd.opts() as GlobalOptions);
   return cmdOptions;
 }
-
-// function withClicOpt(cmd: commander.Command) {
-//   cmd.option('-w, --watch', 'Watch file changes and compile', false)
-//   .option('--dev', 'set NODE_ENV to "development", enable react-scripts in dev mode', false)
-//   .option('--purl, --publicUrl <string>', 'set environment variable PUBLIC_URL for react-scripts', '/');
-//   withGlobalOptions(cmd);
-// }
-
 
 export function craVersionCheck() {
   const craPackage = require(Path.resolve('node_modules/react-scripts/package.json')) as {version: string};
@@ -174,4 +174,105 @@ export function runTsConfigHandlers4LibTsd() {
     }, 'create-react-app ts compiler config');
   }
   return compilerOptions;
+}
+
+export function createCliPrinter(msgPrefix: string) {
+  const flushed$ = new rx.Subject<void>();
+  const progressMsg$ = new rx.Subject<any[]>();
+  const [cols, rows] = process.stdout.getWindowSize();
+  let linesOfLastMsg = 0;
+  rx.combineLatest(import('string-width'), progressMsg$)
+    .pipe(
+      op.concatMap(([{default: strWidth}, msg]) => {
+        const textLines = cliLineWrapByWidth(util.format(msgPrefix, ...msg), cols, strWidth);
+        const clearLinesDone = [] as Promise<any>[];
+        if (linesOfLastMsg > textLines.length) {
+          const numOfRowsToClear = linesOfLastMsg - textLines.length;
+          const rowIdx = rows - linesOfLastMsg;
+          for (let i = 0; i < numOfRowsToClear; i++) {
+            clearLinesDone.push(
+              new Promise<void>(resolve => process.stdout.cursorTo(0, i + rowIdx, resolve)),
+              new Promise<void>(resolve => process.stdout.clearLine(0, resolve))
+            );
+          }
+        }
+        linesOfLastMsg = textLines.length;
+        return rx.merge(...clearLinesDone, ...textLines.map((text, lineIdx) => Promise.all([
+          new Promise<void>(resolve => process.stdout.cursorTo(0, rows - textLines.length + lineIdx, resolve)),
+          new Promise<void>(resolve => process.stdout.write(text, (_err) => resolve())),
+          new Promise<void>(resolve => process.stdout.clearLine(1, resolve))
+        ])));
+      }),
+      op.map(() => flushed$.next())
+    ).subscribe();
+
+  return (...s: (string | number)[]) => {
+    const flushed = flushed$.pipe(
+      op.take(1)
+    ).toPromise();
+
+    progressMsg$.next(s);
+    return flushed;
+  };
+}
+
+export function cliLineWrapByWidth(str: string, columns: number, calStrWidth: (str: string) => number) {
+  return str.split(/\n\r?/).reduce((lines, line) => {
+    lines.push(...cliLineWrap(line, columns, calStrWidth));
+    return lines;
+  }, [] as string[]);
+}
+
+function cliLineWrap(str: string, columns: number, calStrWidth: (str: string) => number) {
+  const lines = [] as string[];
+  let offset = 0;
+  let lastWidthData: [string, number, number] | undefined;
+
+  while (offset < str.length) {
+    // look for closest end position
+    const end = findClosestEnd(str.slice(offset), columns) + 1;
+    const lineEnd = offset + end;
+    lines.push(str.slice(offset, lineEnd));
+    offset = lineEnd;
+  }
+
+  function findClosestEnd(str: string, target: number) {
+    let low = 0, high = str.length;
+    while (high > low) {
+      const mid = low + ((high - low) >> 1);
+      const len = quickWidth(str, mid + 1);
+      // console.log('binary range', str, 'low', low, 'high', high, 'mid', mid, 'len', len);
+      if (target < len) {
+        high = mid;
+      } else if (len < target) {
+        low = mid + 1;
+      } else {
+        return mid;
+      }
+    }
+    // console.log('binary result', high);
+    // Normal binary search should return "hight", because it returns the non-existing index for insertion,
+    // but we are looking for an existing index number of whose value (ranking) is smaller than or equal to "target",
+    // so "minus 1" is needed here
+    return high - 1;
+  }
+
+  /**
+   * @param end - excluded, same as parameter "end" in string.prototype.slice(start, end)
+   */
+  function quickWidth(str: string, end: number) {
+    if (lastWidthData && lastWidthData[0] === str) {
+      const lastEnd = lastWidthData[1];
+      if (end > lastEnd) {
+        lastWidthData[2] = lastWidthData[2] + calStrWidth(str.slice(lastEnd, end));
+        lastWidthData[1] = end;
+      } else if (end < lastEnd) {
+        lastWidthData[2] = lastWidthData[2] - calStrWidth(str.slice(end, lastEnd));
+        lastWidthData[1] = end;
+      }
+      return lastWidthData[2];
+    }
+    return calStrWidth(str.slice(0, end));
+  }
+  return lines;
 }

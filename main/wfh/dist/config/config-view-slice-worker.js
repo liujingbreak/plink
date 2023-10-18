@@ -1,8 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const ts_ast_query_1 = tslib_1.__importDefault(require("../utils/ts-ast-query"));
-const fs_1 = tslib_1.__importDefault(require("fs"));
+const ts_ast_query_1 = __importDefault(require("../utils/ts-ast-query"));
+const fs_1 = __importDefault(require("fs"));
 // import {jsonToCompilerOptions} from '../ts-compiler';
 // let co: ts.CompilerOptions | undefined;
 async function default_1(dtsFileBase, typeExport, _compilerOptions) {

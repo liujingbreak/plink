@@ -1,18 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startLogging = exports.storeSavedAction$ = exports.processExitAction$ = exports.dispatcher = exports.stateFactory = exports.lastSavedState = exports.BEFORE_SAVE_STATE = exports.isStateSyncMsg = exports.castByActionType = exports.action$Of = exports.createReducers = exports.ofPayloadAction = void 0;
-const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs_1 = tslib_1.__importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const worker_threads_1 = require("worker_threads");
-const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
 const operators_1 = require("rxjs/operators");
-const rx = tslib_1.__importStar(require("rxjs"));
-const op = tslib_1.__importStar(require("rxjs/operators"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
-const serialize_javascript_1 = tslib_1.__importDefault(require("serialize-javascript"));
+const rx = __importStar(require("rxjs"));
+const op = __importStar(require("rxjs/operators"));
+const chalk_1 = __importDefault(require("chalk"));
+const log4js_1 = __importDefault(require("log4js"));
+const serialize_javascript_1 = __importDefault(require("serialize-javascript"));
 const immer_1 = require("immer");
 const redux_toolkit_observable_1 = require("../../packages/redux-toolkit-observable/dist/redux-toolkit-observable");
 Object.defineProperty(exports, "ofPayloadAction", { enumerable: true, get: function () { return redux_toolkit_observable_1.ofPayloadAction; } });
@@ -21,48 +46,11 @@ Object.defineProperty(exports, "createReducers", { enumerable: true, get: functi
 Object.defineProperty(exports, "action$Of", { enumerable: true, get: function () { return helper_1.action$Of; } });
 Object.defineProperty(exports, "castByActionType", { enumerable: true, get: function () { return helper_1.castByActionType; } });
 (0, immer_1.enableMapSet)();
-configDefaultLog();
 const PROCESS_MSG_TYPE = 'rtk-observable:state';
 function isStateSyncMsg(msg) {
     return msg.type === PROCESS_MSG_TYPE;
 }
 exports.isStateSyncMsg = isStateSyncMsg;
-function configDefaultLog() {
-    let logPatternPrefix = '';
-    if (process.send || !worker_threads_1.isMainThread)
-        logPatternPrefix = `[P${process.pid}.T${worker_threads_1.threadId}] `;
-    log4js_1.default.configure({
-        appenders: {
-            out: {
-                type: 'stdout',
-                layout: { type: 'pattern', pattern: logPatternPrefix + '%[%c%] - %m' }
-            }
-        },
-        categories: {
-            default: { appenders: ['out'], level: 'info' }
-        }
-    });
-    /**
-     - %r time in toLocaleTimeString format
-     - %p log level
-     - %c log category
-     - %h hostname
-     - %m log data
-     - %d date, formatted - default is ISO8601, format options are: ISO8601, ISO8601_WITH_TZ_OFFSET, ABSOLUTE, DATE, or any string compatible with the date-format library. e.g. %d{DATE}, %d{yyyy/MM/dd-hh.mm.ss}
-     - %% % - for when you want a literal % in your output
-     - %n newline
-     - %z process id (from process.pid)
-     - %f full path of filename (requires enableCallStack: true on the category, see configuration object)
-     - %f{depth} path’s depth let you chose to have only filename (%f{1}) or a chosen number of directories
-     - %l line number (requires enableCallStack: true on the category, see configuration object)
-     - %o column postion (requires enableCallStack: true on the category, see configuration object)
-     - %s call stack (requires enableCallStack: true on the category, see configuration object)
-     - %x{<tokenname>} add dynamic tokens to your log. Tokens are specified in the tokens parameter.
-     - %X{<tokenname>} add values from the Logger context. Tokens are keys into the context values.
-     - %[ start a coloured block (colour will be taken from the log level, similar to colouredLayout)
-     - %] end a coloured block
-     */
-}
 exports.BEFORE_SAVE_STATE = 'BEFORE_SAVE_STATE';
 const IGNORE_SLICE = ['config', 'configView', 'cli', 'analyze', 'storeSetting'];
 const IGNORE_ACTION = new Set(['packages/setInChina', 'packages/updatePlinkPackageInfo']);

@@ -1,1 +1,1 @@
-{"version":3,"file":"start-proxy.js","sourceRoot":"","sources":["../ts/start-proxy.ts"],"names":[],"mappings":";;AAAA,uDAAuD;AAEvD,KAAK,IAAA,gCAAiB,GAAE,CAAC","sourcesContent":["import {createTunnelProxy} from './utils/network-util';\n\nvoid createTunnelProxy();\n"]}
+{"version":3,"file":"start-proxy.js","sourceRoot":"","sources":["../src/start-proxy.ts"],"names":[],"mappings":";;AAAA,uDAAuD;AAEvD,KAAK,IAAA,gCAAiB,GAAE,CAAC","sourcesContent":["import {createTunnelProxy} from './utils/network-util';\n\nvoid createTunnelProxy();\n"]}

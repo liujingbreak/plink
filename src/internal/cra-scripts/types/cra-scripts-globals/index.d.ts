@@ -1,4 +1,4 @@
-import {ExtensionContext} from '@wfh/plink/wfh/globals';
+import {ExtensionContext} from '@wfh/plink/wfh/dist/globals';
 
 declare global {
 	var __api: ExtensionContext; // & ExpressAppApi;

@@ -1,13 +1,38 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.doInjectorConfig = exports.doInjectorConfigSync = exports.webInjector = exports.nodeInjector = exports.DrPackageInjector = void 0;
-const tslib_1 = require("tslib");
-const require_injector_1 = tslib_1.__importDefault(require("require-injector"));
+const fs = __importStar(require("fs"));
+const Path = __importStar(require("path"));
+const require_injector_1 = __importDefault(require("require-injector"));
 const factory_map_1 = require("require-injector/dist/factory-map");
-const _ = tslib_1.__importStar(require("lodash"));
-const fs = tslib_1.__importStar(require("fs"));
-const Path = tslib_1.__importStar(require("path"));
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const _ = __importStar(require("lodash"));
+const log4js_1 = __importDefault(require("log4js"));
 const misc_1 = require("./utils/misc");
 const log = log4js_1.default.getLogger('plink.injector-factory');
 const packageNamePathMap = new Map();
@@ -67,10 +92,11 @@ class DrPackageInjector extends require_injector_1.default {
         return this.fromAllComponents();
     }
     notFromPackages(...excludePackages) {
-        const names = _.difference(_.keys(packageNamePathMap), excludePackages);
-        const dirs = names.map(pkName => packageNamePathMap[pkName]);
+        const names = _.difference([...packageNamePathMap.keys()], excludePackages);
+        const dirs = names.map(pkName => packageNamePathMap.get(pkName).realPath);
+        const symdirs = names.map(pkName => packageNamePathMap.get(pkName).symlink);
         log.debug('from ' + dirs);
-        return super.fromDir(dirs);
+        return super.fromDir(dirs.concat(symdirs));
     }
     readInjectFile(fileNameWithoutExt) {
         if (!fileNameWithoutExt)

@@ -12,6 +12,7 @@ export interface InitialOptions {
     };
 }
 export interface Task {
+    type?: string;
     file: string;
     /**
      * A function which can return Promise or non-Promise value

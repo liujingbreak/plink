@@ -1,6 +1,8 @@
+import http from 'node:http';
 import HttpProxy from 'http-proxy';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import {compressedIncomingMsgToBuffer, compressResponse} from '@wfh/http-server/dist/utils';
 
 type Response = Parameters<HttpProxy['web']>[1];
 
@@ -30,7 +32,7 @@ export function httpProxyObservable(proxy: HttpProxy): HttpProxyEventObs {
   for (const event of EVENTS) {
     Object.defineProperty(obsObj, event, {
       get() {
-        let ob = createdSubjs[event];
+        const ob = createdSubjs[event];
         if (ob) {
           return ob;
         }
@@ -64,24 +66,59 @@ const REDIRECT_STATUS = new Map<number, number>([301, 302, 307, 308].map(code =>
 ```
  */
 export function observeProxyResponse(httpProxy$: HttpProxyEventObs, res: Response,
-  skipRedirectRes = true):
+  skipRedirectRes = true, maxWaitMsecond = 30000):
   HttpProxyEventObs['proxyRes'] {
   // Same as "race" which is deprecated in RxJS 7
-  return rx.merge(
-    httpProxy$.proxyRes.pipe(
-      op.filter(event => event.payload[2] === res &&
+  return httpProxy$.proxyRes.pipe(
+    op.filter(event => event.payload[2] === res &&
         !(skipRedirectRes && REDIRECT_STATUS.has(event.payload[0].statusCode || 200))
-      ),
-      op.take(1)
     ),
-    rx.merge(httpProxy$.econnreset, httpProxy$.error).pipe(
+    op.take(1),
+    op.takeUntil(rx.merge(httpProxy$.econnreset, httpProxy$.error).pipe(
       op.filter(event => event.payload[2] === res),
       op.take(1),
       op.mergeMap(({payload: [err]}) => {
         return rx.throwError(err);
       })
-    )
-  ).pipe(
-    op.take(1)
+    )),
+    op.timeout(maxWaitMsecond)
   );
 }
+
+export function observeProxyResponseAndChange(
+  httpProxy$: HttpProxyEventObs, res: Response, change: (origContent: Buffer) => Buffer | string | PromiseLike<Buffer | string>,
+  skipRedirectRes = true) {
+  return observeProxyResponse(httpProxy$, res, skipRedirectRes).pipe(
+    op.mergeMap(async ({payload: [pRes]}) => {
+      const content = await compressedIncomingMsgToBuffer(pRes);
+      const changed = await Promise.resolve(change(content));
+      for (const [header, value] of Object.entries(pRes.headers)) {
+        if (header.toLowerCase() === 'content-length') {
+          continue;
+        }
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            res.setHeader(header, item);
+          }
+        } else if (value)
+          res.setHeader(header, value);
+      }
+      await compressResponse(changed, res, pRes.headers['content-encoding']);
+    })
+  );
+}
+
+/**
+ * You can use Http-proxy option `cookieDomainRewrite: {'*': ''}` at most of the time,
+ * but when you want to `selfHandleResponse: true`, you'll need this function to help:
+ *
+ * `rewriteResponseSetCookieHeader(res.header['set-cookie'], res)`
+*/
+export function *clearSetCookieDomainOfProxyResponse(pRes: http.IncomingMessage) {
+  const setCookieHeader = pRes.headers['set-cookie'];
+  if (setCookieHeader != null)
+    for (const value of setCookieHeader) {
+      yield value.replace(/;\s*domain=[^;]+/ig, '');
+    }
+}
+

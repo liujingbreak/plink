@@ -1,6 +1,6 @@
 {
   "name": "@wfh/redux-toolkit-observable",
-  "version": "1.2.0-1",
+  "version": "1.4.0",
   "description": "A convenient Redux-toolkit + Redux-observable encapsulation",
   "main": "dist/redux-toolkit-observable.js",
   "types": "dist/redux-toolkit-observable.d.ts",
@@ -15,11 +15,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "peerDependencies": {
-    "@reduxjs/toolkit": "~1.5.0",
-    "redux-observable": "~1.2.0",
+    "@reduxjs/toolkit": "~1.9.5",
+    "redux-observable": "~2.0.0",
     "@types/react-redux": "^7.1.16",
     "react-redux": "^7.2.2",
-    "rxjs": "^6.4.0",
+    "rxjs": "^7.8.1",
     "@types/react": "^17.0.5"
   },
   "repository": {

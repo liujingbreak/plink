@@ -16,5 +16,8 @@ export interface CommandOption {
   // external: string[];
   includes?: string[];
   webpackEnv: 'development' | 'production';
+  usePoll: boolean;
+  /** use fork-ts-checker */
+  tsck: boolean;
   // argv: Map<string, string|boolean>;
 }

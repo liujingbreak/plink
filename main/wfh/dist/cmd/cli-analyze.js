@@ -1,17 +1,42 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyseFiles = exports.dispatcher = exports.getStore = exports.printResult = void 0;
-const tslib_1 = require("tslib");
-const os_1 = tslib_1.__importDefault(require("os"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const glob_1 = tslib_1.__importDefault(require("glob"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const os_1 = __importDefault(require("os"));
+const path_1 = __importDefault(require("path"));
+const glob_1 = __importDefault(require("glob"));
+const lodash_1 = __importDefault(require("lodash"));
 // import { PayloadAction } from '@reduxjs/toolkit';
 const operators_1 = require("rxjs/operators");
-const op = tslib_1.__importStar(require("rxjs/operators"));
+const op = __importStar(require("rxjs/operators"));
 const rxjs_1 = require("rxjs");
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const log4js_1 = __importDefault(require("log4js"));
+const chalk_1 = __importDefault(require("chalk"));
 const dist_1 = require("../../../packages/thread-promise-pool/dist");
 const misc_1 = require("../utils/misc");
 const store_1 = require("../store");

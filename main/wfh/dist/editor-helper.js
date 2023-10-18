@@ -1,21 +1,46 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getStore = exports.getState = exports.getAction$ = exports.dispatcher = void 0;
-const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable max-len */
-const path_1 = tslib_1.__importDefault(require("path"));
-const fs = tslib_1.__importStar(require("fs-extra"));
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const rx = tslib_1.__importStar(require("rxjs"));
-const op = tslib_1.__importStar(require("rxjs/operators"));
-const typescript_1 = tslib_1.__importDefault(require("typescript"));
+const path_1 = __importDefault(require("path"));
+const fs = __importStar(require("fs-extra"));
+const lodash_1 = __importDefault(require("lodash"));
+const log4js_1 = __importDefault(require("log4js"));
+const chalk_1 = __importDefault(require("chalk"));
+const rx = __importStar(require("rxjs"));
+const op = __importStar(require("rxjs/operators"));
+const typescript_1 = __importDefault(require("typescript"));
 const package_list_helper_1 = require("./package-mgr/package-list-helper");
 const package_mgr_1 = require("./package-mgr");
 const store_1 = require("./store");
-const _recp = tslib_1.__importStar(require("./recipe-manager"));
+const _recp = __importStar(require("./recipe-manager"));
 const rwPackageJson_1 = require("./rwPackageJson");
 const config_1 = require("./config");
 const misc_1 = require("./utils/misc");
@@ -89,15 +114,17 @@ store_1.stateFactory.addEpic((action$, state$) => {
             }), op.catchError((err, src) => rx.EMPTY));
         }), op.finalize(() => exports.dispatcher.clearSymlinksDone()));
     })), action$.pipe((0, store_1.ofPayloadAction)(package_mgr_1.slice.actions.workspaceChanged), op.concatMap(async ({ payload: wsKeys }) => {
-        const wsDir = (0, package_mgr_1.isCwdWorkspace)() ? workDir :
-            (0, package_mgr_1.getState)().currWorkspace ? path_1.default.resolve(rootPath, (0, package_mgr_1.getState)().currWorkspace)
-                : undefined;
+        const wsDir = (0, package_mgr_1.isCwdWorkspace)() ?
+            workDir :
+            (0, package_mgr_1.getState)().currWorkspace ?
+                path_1.default.resolve(rootPath, (0, package_mgr_1.getState)().currWorkspace) :
+                undefined;
         await writePackageSettingType();
         const lastWsKey = wsKeys[wsKeys.length - 1];
         updateTsconfigFileForProjects(lastWsKey);
         await Promise.all(Array.from(getState().tsconfigByRelPath.values())
             .map(data => updateHookedTsconfig(data, wsDir)));
-        await updateNodeModuleSymlinks(lastWsKey).toPromise();
+        return updateNodeModuleSymlinks(lastWsKey);
     })), action$.pipe((0, store_1.ofPayloadAction)(slice.actions.hookTsconfig), op.mergeMap(action => {
         return action.payload;
     }), op.mergeMap((file) => {
@@ -257,7 +284,7 @@ function createTsConfig(proj, srcRootDir, workspace, extraPathMapping, include =
         skipLibCheck: false,
         jsx: 'preserve',
         target: 'es2015',
-        module: 'commonjs',
+        module: 'nodenext',
         strict: true,
         declaration: false,
         paths: extraPathMapping
@@ -278,12 +305,14 @@ function backupTsConfigOf(file) {
     return backupFile;
 }
 async function updateHookedTsconfig(data, workspaceDir) {
-    const file = path_1.default.isAbsolute(data.relPath) ? data.relPath :
+    const file = path_1.default.isAbsolute(data.relPath)
+        ? data.relPath :
         path_1.default.resolve(rootPath, data.relPath);
     const tsconfigDir = path_1.default.dirname(file);
     const backup = backupTsConfigOf(file);
     const json = (fs.existsSync(backup) ?
-        JSON.parse(await fs.promises.readFile(backup, 'utf8')) : lodash_1.default.cloneDeep(data.originJson));
+        JSON.parse(await fs.promises.readFile(backup, 'utf8'))
+        : lodash_1.default.cloneDeep(data.originJson));
     // if (json.compilerOptions?.paths && json.compilerOptions.paths['_package-settings'] != null) {
     //   delete json.compilerOptions.paths['_package-settings'];
     // }
@@ -330,27 +359,4 @@ function writeTsConfigFile(tsconfigFile, tsconfigOverrideSrc) {
         fs.writeFileSync(tsconfigFile, JSON.stringify(tsconfigOverrideSrc, null, '  '));
     }
 }
-// async function writeTsconfigForEachPackage(workspaceDir: string, pks: PackageInfo[],
-//   onGitIgnoreFileUpdate: (file: string, content: string) => void) {
-//   const drcpDir = getState().linkedDrcp ? getState().linkedDrcp!.realPath :
-//     Path.dirname(require.resolve('@wfh/plink/package.json'));
-//   const igConfigFiles = pks.map(pk => {
-//     // commonPaths[0] = Path.resolve(pk.realPath, 'node_modules');
-//     return createTsConfig(pk.name, pk.realPath, workspaceDir, drcpDir);
-//   });
-//   appendGitignore(igConfigFiles, onGitIgnoreFileUpdate);
-// }
-// function findGitIngoreFile(startDir: string): string | null {
-//   let dir = startDir;
-//   while (true) {
-//     const test = Path.resolve(startDir, '.gitignore');
-//     if (fs.existsSync(test)) {
-//       return test;
-//     }
-//     const parent = Path.dirname(dir);
-//     if (parent === dir)
-//       return null;
-//     dir = parent;
-//   }
-// }
 //# sourceMappingURL=editor-helper.js.map

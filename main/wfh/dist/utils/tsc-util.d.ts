@@ -1,12 +1,13 @@
 import _ts from 'typescript';
 import * as rx from 'rxjs';
 import chokidar from 'chokidar';
-declare type TscOptions = {
+type TscOptions = {
     jsx?: boolean;
     inlineSourceMap?: boolean;
     emitDeclarationOnly?: boolean;
     changeCompilerOptions?: (co: Record<string, any>) => void;
     traceResolution?: boolean;
+    tsBuildInfoFile?: string;
 };
 declare function plinkNodeJsCompilerOption(ts: typeof _ts, opts?: TscOptions & {
     basePath?: string;
@@ -26,7 +27,7 @@ export declare enum LogLevel {
     log = 1,
     error = 2
 }
-declare type LangServiceActionCreator = {
+type LangServiceActionCreator = {
     watch(dirs: string[]): void;
     addSourceFile(file: string, sync: boolean, content?: string): void;
     changeSourceFile(file: string, content: string | undefined | null): void;
@@ -44,33 +45,34 @@ export declare function languageServices(ts?: any, opts?: {
     watcher?: chokidar.WatchOptions;
     tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]>;
 }): {
+    dispatcher: LangServiceActionCreator;
     dispatchFactory: <K extends keyof LangServiceActionCreator>(type: K) => LangServiceActionCreator[K];
     action$: rx.Observable<{
-        type: "watch";
+        type: string;
         payload: string[];
     } | {
-        type: "addSourceFile";
+        type: string;
         payload: [file: string, sync: boolean, content?: string | undefined];
     } | {
-        type: "changeSourceFile";
+        type: string;
         payload: [file: string, content: string | null | undefined];
     } | {
-        type: "onCompilerOptions";
+        type: string;
         payload: _ts.CompilerOptions;
     } | {
-        type: "onEmitFailure";
+        type: string;
         payload: [file: string, diagnostics: string, type: "compilerOptions" | "syntactic" | "semantic"];
     } | {
-        type: "onSuggest";
+        type: string;
         payload: [file: string, msg: string];
     } | {
-        type: "emitFile";
+        type: string;
         payload: [file: string, content: string];
     } | {
-        type: "log";
+        type: string;
         payload: [level: LogLevel, msg: string];
     } | {
-        type: "stop";
+        type: string;
         payload: unknown;
     }>;
     ofType: import("../../../packages/redux-toolkit-observable/dist/rx-utils").OfTypeFn<LangServiceActionCreator>;

@@ -19,8 +19,8 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
   const actions = {
     proxyToProxy(_remoteHost: string, _remotePort: number, _socket: Socket, _firstPacket: Buffer) {},
     proxyToRemote(_remoteHost: string, _remotePort: number,
-      _socket: Socket, _firstPacket: Buffer, _isTsl: boolean, httpProtocal: string) {},
-    socketCreated(_socket: Socket, msg: string) {}
+      _socket: Socket, _firstPacket: Buffer, _isTsl: boolean, _httpProtocal: string) {},
+    socketCreated(_socket: Socket, _msg: string) {}
   };
 
   type ActionType<K extends keyof typeof actions> = {
@@ -58,6 +58,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
   rx.merge(
     rx.fromEvent<Socket>(server, 'connection').pipe(
       op.mergeMap((clientToProxySocket) => {
+        clientToProxySocket.on('error', err => log.warn('connection error', err));
         log.debug('Client Connected To Proxy', clientToProxySocket.remoteAddress +
           ':' + clientToProxySocket.remotePort);
         return rx.fromEvent<Buffer>(clientToProxySocket, 'data').pipe(
@@ -68,7 +69,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
       op.map(({clientToProxySocket, data}) => {
         const greeting = data.toString();
         log.info(greeting);
-        let isTLSConnection = greeting.indexOf('CONNECT') !== -1;
+        const isTLSConnection = greeting.indexOf('CONNECT') !== -1;
 
         // Considering Port as 80 by default 
         let serverPort = 80;
@@ -91,7 +92,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
         }
         // log.info('proxy to:', serverAddress + ':' + serverPort);
         if (serverAddress && hostMap.has(serverAddress)) {
-          let splitted = hostMap.get(serverAddress)!.split(':');
+          const splitted = hostMap.get(serverAddress)!.split(':');
           serverAddress = splitted[0];
           if (splitted[1])
             serverPort = parseInt(splitted[1], 10);
@@ -110,7 +111,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     action$.pipe(
       ofType('proxyToProxy'),
       op.map(({payload: [host, port, clientToProxySocket, data]}) => {
-        let proxyToServerSocket = net.connect({
+        const proxyToServerSocket = net.connect({
           host, port
         }, () => {
           log.info('PROXY TO FORBACK proxy connection created', host, ':', port);
@@ -126,7 +127,7 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
     action$.pipe(
       ofType('proxyToRemote'),
       op.map(({payload: [host, port, clientToProxySocket, data, isTLSConnection, protocal]}) => {
-        let proxyToServerSocket = net.connect({ host, port }, () => {
+        const proxyToServerSocket = net.connect({ host, port }, () => {
           log.info('PROXY TO SERVER connection created', host, ':', port);
 
           const socket = proxyToServerSocket.pipe(clientToProxySocket);
@@ -147,9 +148,12 @@ export function start(port: number, hostMap: Map<string, string> = new Map(),
       ofType('socketCreated'),
       op.map(({payload: [proxyToServerSocket, msg]}) => {
         proxyToServerSocket.on('error', (err) => {
-          log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
+          if ((err as NodeJS.ErrnoException).code === 'ECONNRESET')
+            log.warn('PROXY TO SERVER ECONNRESET', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
+          else
+            log.error('PROXY TO SERVER ERROR', msg, proxyToServerSocket.remoteAddress, ':', proxyToServerSocket.remotePort, err);
         });
-        proxyToServerSocket.on('lookup', (err, addr, _fam, host) => {
+        proxyToServerSocket.on('lookup', (err, _addr, _fam, _host) => {
           if (err)
             log.warn('lookup error', err);
         });

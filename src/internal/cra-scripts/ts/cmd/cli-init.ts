@@ -1,8 +1,8 @@
 // import parseJson, {Ast} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
 // import replaceCode, {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
-import parse, { ObjectAst } from '@wfh/plink/wfh/dist/utils/json-sync-parser';
-import replacePatches, { ReplacementInf } from '@wfh/plink/wfh/dist/utils/patch-text';
 import fs from 'fs';
+import parse, {ObjectAst} from '@wfh/plink/wfh/dist/utils/json-sync-parser';
+import replacePatches, {ReplacementInf} from '@wfh/plink/wfh/dist/utils/patch-text';
 import {logger as log4js} from '@wfh/plink';
 import _ from 'lodash';
 // import {pathToProjKey} from '@wfh/plink/wfh/dist/package-mgr';
@@ -22,16 +22,18 @@ function overrideTsConfig() {
 
   let fileContent = fs.readFileSync('tsconfig.json', 'utf8');
   const ast = parse(fileContent);
-  let pMap = new Map(ast.properties.map(el => [/^"(.*)"$/.exec(el.name.text)![1], el]));
+  const pMap = new Map(ast.properties.map(el => [/^"(.*)"$/.exec(el.name.text)![1], el]));
 
   // Due to react-scripts does not recoganize "extends" in tsconfig.json: react-scripts/config/modules.js
   const currCoPropsAst = (pMap.get('compilerOptions')!.value as ObjectAst).properties;
   const lastPropEndPos = currCoPropsAst[currCoPropsAst.length - 1].value.end;
   const currCoMap = new Map(currCoPropsAst.map(el => [/^"(.*)"$/.exec(el.name.text)![1], el]));
-  const replacements: ReplacementInf[] = [{
-    start: lastPropEndPos, end: lastPropEndPos,
-    replacement: '\n'
-  }];
+  const replacements: ReplacementInf[] = [
+    {
+      start: lastPropEndPos, end: lastPropEndPos,
+      replacement: '\n'
+    }
+  ];
 
   for (const [key, value] of Object.entries(baseCompileOptions)) {
     if (!currCoMap.has(key)) {

@@ -1,13 +1,15 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.printWorkspaceHoistedDeps = exports.printWorkspaces = void 0;
-const tslib_1 = require("tslib");
 /* eslint-disable no-console, max-len */
-const path_1 = tslib_1.__importDefault(require("path"));
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const path_1 = __importDefault(require("path"));
+const chalk_1 = __importDefault(require("chalk"));
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const lodash_1 = __importDefault(require("lodash"));
 const package_mgr_1 = require("../package-mgr");
 const store_1 = require("../store");
 const misc_1 = require("../utils/misc");
@@ -43,7 +45,7 @@ function default_1(opt, workspace) {
     else {
         package_mgr_1.actionDispatcher.initRootDir({ isForce: opt.force,
             useYarn: opt.useYarn, cache: opt.cache, useNpmCi: opt.useCi });
-        setImmediate(() => (0, cli_project_1.listProject)());
+        setImmediate(() => void (0, cli_project_1.listProject)());
     }
     // setImmediate(() => printWorkspaces());
 }

@@ -14,13 +14,10 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<i
     analyzeFile(d: AnalyzeState, payload: {
         files: string[];
         tsconfig?: string;
-        alias: [
-            pattern: string,
-            replace: string
-        ][];
+        alias: [pattern: string, replace: string][];
         ignore?: string;
     }): void;
-}> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<AnalyzeState>>;
+}> & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<AnalyzeState>, "analyze">;
 export declare function analyseFiles(files: string[], tsconfigFile: string | undefined, alias: [pattern: string, replace: string][], ignore?: string): Promise<{
     commonDir: string;
     relativeDepsOutSideDir: string[];

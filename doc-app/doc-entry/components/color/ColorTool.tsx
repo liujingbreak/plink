@@ -2,19 +2,22 @@ import React from 'react';
 
 import cls from 'classnames';
 // import clsddp from 'classnames/dedupe';
+import {ReactiveCanvas} from '@wfh/doc-ui-common/client/graphics/canvas';
+import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import styles from './ColorTool.module.scss';
 // import {useTinyReduxTookit} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
-import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
-import {sliceOptionFactory, epicFactory, ColorToolProps as Props, ColorToolEpicFactory} from './colorTool.state';
+import {createControl, sliceOptionFactory, epicFactory, ColorToolProps as Props, ColorToolEpicFactory} from './colorTool.state';
 import {ColorInfo} from './ColorInfo';
-import {ReactiveCanvas} from '@wfh/doc-ui-common/client/graphics/ReactiveCanvas';
 
 // export type ColorToolProps = ColorToolObservableProps;
 export interface ColorToolProps extends Props {
   epicFactory?: ColorToolEpicFactory;
 }
 
-const ColorTool: React.FC<ColorToolProps> = function(props) {
+// eslint-disable-next-line @typescript-eslint/tslint/config
+const worker = new Worker(new URL('./colorToolCanvas.worker', import.meta.url));
+
+const ColorTool = React.memo<ColorToolProps>(props => {
 
   const [state, slice] = useReduxTookit(sliceOptionFactory, epicFactory, props.epicFactory);
 
@@ -23,6 +26,11 @@ const ColorTool: React.FC<ColorToolProps> = function(props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, Object.values(props));
 
+  const [{dispatcher}] = React.useMemo(() => {
+    return createControl();
+  }, []);
+
+  React.useEffect(() => () => dispatcher.onUnmount(), [dispatcher]);
   // dispatch action: slice.actionDispatcher.onClick(evt)
   return <div className={cls(styles.scope, {[styles.mix]: state.componentProps?.mixColors != null})}>
     <div className={styles.label}>{state.label || ''}</div>
@@ -33,12 +41,10 @@ const ColorTool: React.FC<ColorToolProps> = function(props) {
       })}
     </div>
     <div style={state.gradientStyle} className={styles.gradient}></div>
-    <ReactiveCanvas className={styles.canvas} onReady={state.createPaintables} />
+    <ReactiveCanvas className={styles.canvas} canvasMainWorker={worker}/>
   </div>
   ;
-};
+});
 
 export {ColorTool};
-
-
 

@@ -8,14 +8,6 @@ export interface PackageInfo {
     };
 }
 export { PackageInstance };
-/**
- * walkPackages
- * @param {*} config
- * @param {*} argv
- * @param {*} packageUtils
- * @param {*} ignoreCache
- * @return {PackageInfo}
- */
 export declare function packageOfFileFactory(): {
     packageInfo: PackageInfo;
     getPkgOfFile(file: string): PackageInstance | undefined;

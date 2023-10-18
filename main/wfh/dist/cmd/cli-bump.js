@@ -1,10 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 const package_mgr_1 = require("../package-mgr");
 const process_utils_1 = require("../process-utils");
 const utils_1 = require("./utils");
-const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const log4js_1 = __importDefault(require("log4js"));
 // import Path from 'path';
 require("../editor-helper");
 const log = log4js_1.default.getLogger('plin.cli-bump');

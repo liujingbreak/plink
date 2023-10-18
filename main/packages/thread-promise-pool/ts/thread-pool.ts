@@ -10,6 +10,7 @@ import {Task as ProcessTask, InitialOptions as InitialOptions4Proc} from './work
 export {Task};
 
 class PromisedTask<T> {
+  thread: Worker | undefined;
   promise: Promise<T>;
 
   resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0] | undefined;
@@ -23,7 +24,7 @@ class PromisedTask<T> {
   }
 
   runByWorker(worker: Worker) {
-
+    this.thread = worker;
     const onMessage = (msg: {type: 'error' | 'wait'; data: T}) => {
       if (msg.type === 'wait') {
         unsubscribeWorker();
@@ -61,7 +62,7 @@ class PromisedTask<T> {
     worker.on('messageerror', onError); // TODO: not sure if work will exit
     worker.on('error', onError);
     worker.on('exit', onExit);
-    const msg = {...this.task};
+    const msg = {type: 'plink:threadPool:task', ...this.task};
     delete msg.transferList;
     worker.postMessage(msg, msg.transferList);
   }
@@ -140,7 +141,11 @@ export class Pool {
   constructor(private maxParalle = os.cpus().length - 1, private idleTimeMs = 0, public workerOptions?: WorkerOptions & InitialOptions) {
   }
 
-  submit<T>(task: Task): Promise<T> {
+  /**
+   * The difference from `submit(task)` is that this function returns not only `promise` but also
+   * `Task` which contains a property "thread" of type Worker
+   */
+  submitAndReturnTask<T>(task: Task) {
     // 1. Bind a task with a promise
     const promisedTask = new PromisedTask<T>(task, this.workerOptions?.verbose);
 
@@ -157,7 +162,11 @@ export class Pool {
       // 3. Create new worker if number of them is less than maxParalle
       this.createWorker(promisedTask);
     }
-    return promisedTask.promise;
+    return promisedTask;
+  }
+
+  submit<T>(task: Task): Promise<T> {
+    return this.submitAndReturnTask<T>(task).promise;
   }
 
   submitProcess<T>(task: ProcessTask): Promise<T> {
