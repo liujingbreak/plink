@@ -142,9 +142,10 @@ function default_1(webpackEnv) {
                 rules.push(...rule.use); // In factor rule.use is RuleSetUseItem not RuleSetRule
             }
             else if (rule.loader) {
+                const appSrc = path_1.default.join(plink_1.plinkEnv.workDir, 'src');
                 if (/\bbabel-loader\b/.test(rule.loader) && rule.include) {
                     delete rule.include;
-                    rule.test = createRuleTestFunc4Src(rule.test);
+                    rule.test = createRuleTestFunc4Src(rule.test, appSrc);
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                     rule.options.plugins.push([
                         'formatjs',
@@ -169,7 +170,7 @@ function default_1(webpackEnv) {
                     };
                 }
                 else if (/\bsource-map-loader\b/.test(rule.loader)) {
-                    rule.test = createRuleTestFunc4Src(rule.test);
+                    rule.test = createRuleTestFunc4Src(rule.test, appSrc);
                 }
             }
         }
@@ -204,13 +205,15 @@ function addProgressPlugin(config, send) {
 }
 function createRuleTestFunc4Src(origTest, appSrc) {
     const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
+    const appSrcDir = appSrc + path_1.default.sep;
     return function testOurSourceFile(file) {
         const pk = getPkgOfFile(file);
-        const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
+        const yes = ((pk && (pk.json.dr || pk.json.plink)) || file.startsWith(appSrcDir)) &&
             (origTest instanceof RegExp)
             ? origTest.test(file) :
             (origTest instanceof Function ? origTest(file) : origTest === file);
-        // log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
+        // if (file.indexOf('service-worker') >= 0)
+        //   log.warn(`[webpack.config] testOurSourceFile: ${file} ${yes}, appSrc: ${appSrc}\n\n\n\n`);
         return yes;
     };
 }

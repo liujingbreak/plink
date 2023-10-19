@@ -157,9 +157,10 @@ export default function(webpackEnv: 'production' | 'development') {
       } else if (Array.isArray(rule.use)) {
         rules.push(...rule.use as any); // In factor rule.use is RuleSetUseItem not RuleSetRule
       } else if (rule.loader) {
+        const appSrc = Path.join(plinkEnv.workDir, 'src');
         if (/\bbabel-loader\b/.test(rule.loader) && rule.include) {
           delete rule.include;
-          rule.test = createRuleTestFunc4Src(rule.test);
+          rule.test = createRuleTestFunc4Src(rule.test, appSrc);
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
           (rule.options as Exclude<RuleSetRule['options'], string | undefined>).plugins.push([
             'formatjs',
@@ -182,7 +183,7 @@ export default function(webpackEnv: 'production' | 'development') {
             }
           };
         } else if (/\bsource-map-loader\b/.test(rule.loader)) {
-          rule.test = createRuleTestFunc4Src(rule.test);
+          rule.test = createRuleTestFunc4Src(rule.test, appSrc);
         }
       }
     }
@@ -219,16 +220,20 @@ function addProgressPlugin(config: Configuration, send: (...msg: any[]) => void)
   }
 }
 
-function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc?: string) {
+function createRuleTestFunc4Src(origTest: RuleSetRule['test'], appSrc: string) {
   const {getPkgOfFile} = packageOfFileFactory();
+  const appSrcDir = appSrc + Path.sep;
+
   return function testOurSourceFile(file: string)  {
     const pk = getPkgOfFile(file);
 
-    const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
+    const yes = ((pk && (pk.json.dr || pk.json.plink)) || file.startsWith(appSrcDir)) &&
       (origTest instanceof RegExp)
       ? origTest.test(file) :
       (origTest instanceof Function ? origTest(file) : origTest === file);
-    // log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
+
+    // if (file.indexOf('service-worker') >= 0)
+    //   log.warn(`[webpack.config] testOurSourceFile: ${file} ${yes}, appSrc: ${appSrc}\n\n\n\n`);
     return yes;
   };
 }

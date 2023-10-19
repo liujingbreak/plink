@@ -4,7 +4,7 @@
   "description": "Doc site for Plink, extensible React-router based web application",
   "main": "build/lib-bundle.js",
   "plink": {
-    "cra-app-entry": "federation-start.tsx",
+    "cra-app-entry": "start.tsx",
     "cra-lib-entry": "main/MainComponent.tsx",
     "config-overrides-path": "config-overrides.ts",
     "setting": {
