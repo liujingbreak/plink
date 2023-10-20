@@ -6,7 +6,7 @@ export interface BuildOptions {
 export interface CommandOption {
   cmd: string;
   /** "lib" stands for library build mode, "app" stands for application build mode  */
-  buildType: 'lib' | 'app';
+  buildType: 'lib' | 'app' | 'dll';
   /** package name */
   buildTarget: string;
   watch: boolean;

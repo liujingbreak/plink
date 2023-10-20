@@ -1,5 +1,6 @@
 {
-  "name": "plink-mono",  "description": "This is a monorepo package, not for publishing",
+  "name": "plink-mono",
+  "description": "This is a monorepo package, not for publishing",
   "version": "1.0.0",
   "private": true,
   "packages": [

@@ -87,7 +87,7 @@ export type BuildCliOpts = {
   tsck: CommandOption['tsck'];
 } & NonNullable<PlinkSettings['cliOptions']>;
 
-export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib'): CommandOption {
+export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib' | 'dll'): CommandOption {
   const completeName = [...findPackagesByNames([pkgName])][0]?.name;
   if (completeName == null) {
     throw new Error(`Package named "${pkgName}" can not be found`);

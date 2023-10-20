@@ -48,7 +48,7 @@ export declare class RxController<I extends ActionFunctions> {
     at: {
         [K in keyof I]: rx.Observable<Action<I, K>>;
     };
-    replaceActionInterceptor: ControllerCore<I>['replaceActionInterceptor'];
+    updateInterceptor: ControllerCore<I>['updateInterceptor'];
     constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
     /** create state of actions, you can consider it like a map of BehaviorSubject of actions */
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;

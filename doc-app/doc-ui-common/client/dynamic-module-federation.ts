@@ -13,7 +13,7 @@ type Container = {
   get<M>(moduleName: string): Promise<() => M>;
 };
 
-export async function loadModule<M>(remoteUrl: string, containerName: string, module: string) {
+export default async function loadModule<M>(remoteUrl: string, containerName: string, module: string) {
   const key = `${remoteUrl}-${containerName}-${module}`;
   if (moduleCache.has(key))
     return await moduleCache.get(key) as M;

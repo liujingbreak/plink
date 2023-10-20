@@ -19,9 +19,9 @@ const handler: ReactScriptsHandler = {
         name: '_wfh_docEntry_readmes'
       },
       filename: 'readmesRemoteEntry.js',
-      remotes: {
-        '@wfh/doc-entry/remote-entries/shell': 'shell@http://localhost:14334/plink/shellRemoteEntry.js',
-      },
+      // remotes: {
+      //   '@wfh/doc-entry/remote-entries/shell': 'shell@http://localhost:14334/shell/shellRemoteEntry.js',
+      // },
       // exposes: {
       //   './shell-entry': Path.join(pkg?.realPath!, 'remote-entries/shell/shell-entry'),
       // },
@@ -46,6 +46,12 @@ const handler: ReactScriptsHandler = {
         'web-vitals': '^2.1.0'
       }
     }));
+
+    if (cfg.optimization?.splitChunks) {
+      delete cfg.optimization.splitChunks;
+    }
+    if (cfg.optimization?.runtimeChunk)
+      cfg.optimization.runtimeChunk = false;
   }
 };
 

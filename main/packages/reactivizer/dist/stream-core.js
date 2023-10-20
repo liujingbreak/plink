@@ -100,7 +100,7 @@ class ControllerCore {
         this.dispatcherFor[type] = dispatch;
         return dispatch;
     }
-    replaceActionInterceptor(factory) {
+    updateInterceptor(factory) {
         const newInterceptor = factory(this.interceptor$.getValue());
         this.interceptor$.next(newInterceptor);
     }

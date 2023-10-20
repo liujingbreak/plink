@@ -1,6 +1,6 @@
 import Path from 'path';
 import {container} from 'webpack';
-import {findPackagesByNames} from '@wfh/plink';
+import {findPackagesByNames, config} from '@wfh/plink';
 import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
 
 const {ModuleFederationPlugin} = container;
@@ -9,6 +9,8 @@ const handler: ReactScriptsHandler = {
   changeCraPaths(paths, _env) {
     const [pkg] = findPackagesByNames(['doc-entry']);
     paths.appIndexJs = Path.join(pkg!.realPath, 'federation-start.ts');
+    paths.publicUrlOrPath = '/shell';
+    paths.appBuild = config.resolve('staticDir', 'shell');
   },
   webpack(cfg, _env, _cmdOpt) {
     const [pkg] = findPackagesByNames(['doc-entry']);
@@ -45,6 +47,12 @@ const handler: ReactScriptsHandler = {
         'web-vitals': '^2.1.0'
       }
     }));
+
+    if (cfg.optimization?.splitChunks) {
+      delete cfg.optimization.splitChunks;
+    }
+    if (cfg.optimization?.runtimeChunk)
+      cfg.optimization.runtimeChunk = false;
   }
 };
 

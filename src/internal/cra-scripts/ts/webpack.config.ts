@@ -119,7 +119,7 @@ export default function(webpackEnv: 'production' | 'development') {
   addProgressPlugin(config, (...s) => void printMsg(...s));
 
   if (cmdOption.buildType === 'lib') {
-    change4lib(cmdOption.buildTarget, config, nodePath);
+    change4lib(cmdOption.buildTarget, config);
   } else {
     config.plugins!.push(new (class {
       apply(compiler: Compiler) {
@@ -188,14 +188,6 @@ export default function(webpackEnv: 'production' | 'development') {
       }
     }
   }
-  // config.module?.rules!.push({
-  //   test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
-  //   loader: '@wfh/webpack-common/dist/ts-loader',
-  //   options: {
-  //     injector: webInjector,
-  //     tsConfigFile: Path.join(plinkEnv.workDir, 'tsconfig.json')
-  //   }
-  // });
   changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
 
   runConfigHandlers(config, webpackEnv);

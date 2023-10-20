@@ -91,7 +91,7 @@ class RxController {
                 return p$;
             }
         });
-        this.replaceActionInterceptor = core.replaceActionInterceptor;
+        this.updateInterceptor = core.updateInterceptor;
     }
     /** create state of actions, you can consider it like a map of BehaviorSubject of actions */
     // withTableFor<MS extends Array<keyof I>>(...actionNames: MS) {

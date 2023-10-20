@@ -11,7 +11,7 @@ const log = log4File(__filename);
 const cli: CliExtension = (program) => {
   const buildCmd = program.command('cra-build')
     .description('Compile react application or library (work with create-react-app v5.0.1)')
-    .argument('<app|lib>', '"app" stands for building a complete application like create-react-app,\n' +
+    .argument('<app|lib|dll>', '"app" stands for building a complete application like create-react-app,\n' +
     '"lib" stands for building a library')
     .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
     .option('-w, --watch', 'when argument is "lib", watch file changes and compile', false)
@@ -33,9 +33,8 @@ const cli: CliExtension = (program) => {
 
   program.command('cra-build-tsd <package-name>')
     .description('Compile packages for only generating Typescript definition files. If you are creating a library, ' +
-      'command "cra-build" will also generate tsd file along with client bundle', {
-      'package-name': 'target package name, the "scope" name part can be omitted'
-    })
+      'command "cra-build" will also generate tsd file along with client bundle')
+    .argument('package-name', 'target package name, the "scope" name part can be omitted')
     .action(async (pkgName): Promise<void> => {
       runReactScripts(StartCmd.name(), StartCmd.opts(), 'lib', pkgName);
       await (await import('../tsd-generate.js')).buildTsd([pkgName]);
@@ -96,14 +95,14 @@ function arrayOptionFn(curr: string, prev: string[] | undefined) {
   return prev;
 }
 
-function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib', pkgName: string) {
+function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib' | 'dll', pkgName: string) {
   const cfg = config;
   saveCmdOptionsToEnv(pkgName, cmdName, opts, type);
   if (process.env.PORT == null && cfg().port)
     process.env.PORT = cfg().port + '';
 
-  if (!['app', 'lib'].includes(type)) {
-    log.error('type argument must be one of \'app\', \'lib\'');
+  if (!['app', 'lib', 'dll'].includes(type)) {
+    log.error('type argument must be one of \'app\', \'lib\', \'dll\'');
     return;
   }
   const preload = require('../preload') as typeof _preload;
