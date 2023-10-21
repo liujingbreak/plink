@@ -1,6 +1,6 @@
 import Path from 'path';
 import {Worker} from 'worker_threads';
-import {logger as log4js, findPackagesByNames, plinkEnv} from '@wfh/plink';
+import {logger as log4js, plinkEnv, PackageInfo} from '@wfh/plink';
 import chalk from 'chalk';
 import {Configuration, Compiler, RuleSetRule, RuleSetUseItem, EntryObject} from 'webpack';
 import _ from 'lodash';
@@ -9,12 +9,8 @@ const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 const MODULE_NAME_PAT = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
-export default function change(buildPackage: string, config: Configuration) {
-  const foundPkg = [...findPackagesByNames([buildPackage])][0];
-  if (foundPkg == null) {
-    throw new Error(`Can not find package for name like ${buildPackage}`);
-  }
-  const {realPath: pkDir} = foundPkg;
+export default function change(packageTarget: PackageInfo, config: Configuration) {
+  const {realPath: pkDir} = packageTarget;
 
   if (Array.isArray(config.entry)) {
     config.entry = config.entry.filter(item => !/[\\/]react-dev-utils[\\/]webpackHotDevClient/.test(item));
@@ -39,7 +35,7 @@ export default function change(buildPackage: string, config: Configuration) {
     ];
 
   config.plugins = config.plugins!.filter(plugin => {
-    pluginsToRemove.every(cls => !(plugin instanceof cls));
+    return pluginsToRemove.every(cls => !(plugin instanceof cls));
   });
 
   findAndChangeRule(config.module!.rules!);
@@ -48,7 +44,7 @@ export default function change(buildPackage: string, config: Configuration) {
   const externalRequestSet = new Set<string>();
   const includeModuleRe = (cmdOpts.includes || [])
     .map(mod => new RegExp(mod));
-  includeModuleRe.push(new RegExp(_.escapeRegExp(cmdOpts.buildTarget)));
+  includeModuleRe.push(new RegExp(_.escapeRegExp(packageTarget.name)));
 
   if (config.externals == null) {
     config.externals = [];

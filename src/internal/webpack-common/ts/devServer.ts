@@ -1,5 +1,8 @@
 import {Configuration} from 'webpack-dev-server';
-import {log4File} from '@wfh/plink';
+import {log4File, config as plinkConfig} from '@wfh/plink';
+import {getSetting as getAssetsSetting} from '@wfh/assets-processer/isom/assets-processer-setting';
+import {createStaticRoute} from '@wfh/assets-processer/dist/static-middleware';
+
 const log = log4File(__filename);
 
 /**
@@ -41,15 +44,25 @@ export default function(webpackConfig: {devServer: Configuration}) {
       };
       next();
     });
+
     if (origin)
       origin.call(this, devServer);
+    const staticHandler = createStaticRoute(plinkConfig.resolve('staticDir'), getAssetsSetting().cacheControlMaxAge);
+    devServer.app!.use((req, res, next) => {
+      if (req.url.indexOf('/dll/') >= 0) {
+        log.debug('DLL resource request:', req.url);
+        staticHandler(req, res, next);
+      } else {
+        next();
+      }
+    });
   };
   devServer.compress = true;
   if (devServer.headers == null)
     devServer.headers = {};
   // CORS enablement
-  devServer.headers['Access-Control-Allow-Origin'] = '*';
-  devServer.headers['Access-Control-Allow-Headers'] = '*';
+  (devServer.headers as Record<string, any>)['Access-Control-Allow-Origin'] = '*';
+  (devServer.headers as Record<string, any>)['Access-Control-Allow-Headers'] = '*';
   (devServer.static as any).watch = false;
 
 }

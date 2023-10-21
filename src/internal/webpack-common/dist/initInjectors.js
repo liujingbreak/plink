@@ -1,3 +1,4 @@
+"use strict";
 /**
  * This file has same function of src/internal/ng-app-builder/ts/ng/injector-setup.ts,
  * so probably we should remove this file.
@@ -9,6 +10,7 @@
 // // import {createNgRouterPath} from '../../isom/api-share';
 // import {walkPackages } from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
 // import {initInjectorForNodePackages} from '@wfh/plink/wfh/dist/package-runner';
+Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * @deprecated
  * @param deployUrl

@@ -71,7 +71,6 @@ function printConfigValue(value, level) {
     }
     return out;
 }
-// TODO: move to a Redux store
 function getCmdOptions() {
     const cmdOption = JSON.parse(process.env.REACT_APP_cra_build);
     if (cmdOption.devMode || cmdOption.watch) {
@@ -80,17 +79,13 @@ function getCmdOptions() {
     return cmdOption;
 }
 exports.getCmdOptions = getCmdOptions;
-function saveCmdOptionsToEnv(pkgName, cmdName, opts, buildType) {
-    var _a;
-    const completeName = (_a = [...(0, plink_1.findPackagesByNames)([pkgName])][0]) === null || _a === void 0 ? void 0 : _a.name;
-    if (completeName == null) {
-        throw new Error(`Package named "${pkgName}" can not be found`);
-    }
+function saveCmdOptionsToEnv(cmdName, opts, buildType, entries) {
     const cmdOptions = {
         cmd: cmdName,
         buildType,
-        buildTarget: completeName,
+        buildTargets: entries,
         watch: opts.watch,
+        refDllManifest: opts.refDll ? opts.refDll.map(item => path_1.default.isAbsolute(item) ? item : plink_1.config.resolve('destDir', item)) : undefined,
         devMode: !!opts.dev,
         publicUrl: opts.publicUrl,
         // external: opts.external,

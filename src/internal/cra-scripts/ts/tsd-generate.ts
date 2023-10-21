@@ -11,7 +11,7 @@ export async function buildTsd(packages?: string[], overridePackgeDirs: TscCmdPa
 
   if (packages == null) {
     const opts = getCmdOptions();
-    packages = [opts.buildTarget];
+    packages = opts.buildTargets.map(entry => entry.pkg?.name).filter(n => n != null) as string[];
   }
 
   const pkgs = [...findPackagesByNames(packages)].map((pkg, i) => {

@@ -10,9 +10,10 @@ export type BuildCliOpts = {
     publicUrl?: string;
     sourceMap?: boolean;
     poll: boolean;
+    refDll?: string[];
     tsck: CommandOption['tsck'];
 } & NonNullable<PlinkSettings['cliOptions']>;
-export declare function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib'): CommandOption;
+export declare function saveCmdOptionsToEnv(cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib' | 'dll', entries: CommandOption['buildTargets']): CommandOption;
 export declare function craVersionCheck(): void;
 export declare function runTsConfigHandlers(compilerOptions: any): void;
 export declare function runTsConfigHandlers4LibTsd(): {

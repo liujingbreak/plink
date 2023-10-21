@@ -8,7 +8,7 @@ const {ModuleFederationPlugin} = container;
 const handler: ReactScriptsHandler = {
   changeCraPaths(paths, _env) {
     const [pkg] = findPackagesByNames(['doc-entry']);
-    paths.appIndexJs = Path.join(pkg!.realPath, 'feature/reactivizer-doc/fedrateion-start-reactivizer-doc.ts');
+    paths.appIndexJs = Path.join(pkg!.realPath, 'feature/reactivizer-doc/test-use-dll.ts');
   },
   webpack(cfg, _env, _cmdOpt) {
     // const [pkg] = findPackagesByNames(['doc-entry']);

@@ -11,7 +11,7 @@ const utils_2 = require("./utils");
 async function buildTsd(packages, overridePackgeDirs = {}) {
     if (packages == null) {
         const opts = (0, utils_2.getCmdOptions)();
-        packages = [opts.buildTarget];
+        packages = opts.buildTargets.map(entry => { var _a; return (_a = entry.pkg) === null || _a === void 0 ? void 0 : _a.name; }).filter(n => n != null);
     }
     const pkgs = [...(0, plink_1.findPackagesByNames)(packages)].map((pkg, i) => {
         if (pkg == null) {

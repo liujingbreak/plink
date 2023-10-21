@@ -13,6 +13,7 @@ export default class Package implements NodePackageAttr {
         dr?: import("./package-mgr/index").PlinkJsonType | undefined;
     } & import("./transitive-dep-hoister").PackageJsonInterf;
     realPath: string;
+    orig?: PackageInfo;
     constructor(attrs: Partial<NodePackageAttr>);
 }
 export interface NodePackageAttr {
@@ -24,4 +25,5 @@ export interface NodePackageAttr {
     path: string;
     json: PackageInfo['json'];
     realPath: string;
+    orig?: PackageInfo;
 }

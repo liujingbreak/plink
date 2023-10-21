@@ -51,10 +51,12 @@ Object.defineProperty(exports, "lookupPackageJson", { enumerable: true, get: fun
 var cli_1 = require("./cmd/cli");
 Object.defineProperty(exports, "cliPackageArgDesc", { enumerable: true, get: function () { return cli_1.cliPackageArgDesc; } });
 __exportStar(require("./store"), exports);
+/** Plink's child process management: start/stop, log message handling ... */
 __exportStar(require("./utils/bootstrap-process"), exports);
 var fork_for_preserve_symlink_1 = require("./fork-for-preserve-symlink");
 Object.defineProperty(exports, "forkAsPreserveSymlink", { enumerable: true, get: function () { return __importDefault(fork_for_preserve_symlink_1).default; } });
 Object.defineProperty(exports, "forceForkAsPreserveSymlink", { enumerable: true, get: function () { return fork_for_preserve_symlink_1.forkFile; } });
+/** Express HTTP server */
 var package_runner_1 = require("./package-runner");
 Object.defineProperty(exports, "initInjectorForNodePackages", { enumerable: true, get: function () { return package_runner_1.initInjectorForNodePackages; } });
 Object.defineProperty(exports, "prepareLazyNodeInjector", { enumerable: true, get: function () { return package_runner_1.prepareLazyNodeInjector; } });
@@ -70,6 +72,7 @@ var log_config_1 = require("./log-config");
 Object.defineProperty(exports, "logConfig", { enumerable: true, get: function () { return __importDefault(log_config_1).default; } });
 var logger_1 = require("./logger");
 Object.defineProperty(exports, "log4File", { enumerable: true, get: function () { return logger_1.log4File; } });
+/** Given a file path, find out which package it belongs to */
 var package_info_gathering_1 = require("./package-mgr/package-info-gathering");
 Object.defineProperty(exports, "packageOfFileFactory", { enumerable: true, get: function () { return package_info_gathering_1.packageOfFileFactory; } });
 //# sourceMappingURL=index.js.map

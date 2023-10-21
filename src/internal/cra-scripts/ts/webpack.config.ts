@@ -14,6 +14,7 @@ import {Options as HtmlWebpackPluginOptions} from 'html-webpack-plugin';
 import {ReactScriptsHandler, ForkTsCheckerWebpackPluginOptions, ForkTsCheckerWebpackPluginTypescriptOpts} from './types';
 import {drawPuppy, getCmdOptions, printConfig, getReportDir, createCliPrinter} from './utils';
 import change4lib from './webpack-lib';
+import {setupDllPlugin, setupDllReferencePlugin} from './webpack-dll';
 import * as _craPaths from './cra-scripts-paths';
 import {changeTsConfigFile} from './change-tsconfig';
 import * as webpackResolveCfg from './webpack-resolve';
@@ -44,7 +45,6 @@ export default function(webpackEnv: 'production' | 'development') {
   }
   log.info('webpackEnv :', webpackEnv);
   process.env.INLINE_RUNTIME_CHUNK = 'true';
-  debugger;
   const origWebpackConfig = require('react-scripts/config/webpack.config');
   reviseNodePathEnv();
 
@@ -117,10 +117,17 @@ export default function(webpackEnv: 'production' | 'development') {
     config.plugins!.push(new StatsPlugin());
 
   addProgressPlugin(config, (...s) => void printMsg(...s));
+  if (config.infrastructureLogging)
+    config.infrastructureLogging.level = 'log';
 
   if (cmdOption.buildType === 'lib') {
-    change4lib(cmdOption.buildTarget, config);
+    change4lib(cmdOption.buildTargets[0].pkg!, config);
+  } else if (cmdOption.buildType === 'dll') {
+    setupDllPlugin(cmdOption.buildTargets, config, getPluginConstructor);
   } else {
+    if (cmdOption.refDllManifest) {
+      setupDllReferencePlugin(cmdOption.refDllManifest, config);
+    }
     config.plugins!.push(new (class {
       apply(compiler: Compiler) {
         compiler.hooks.done.tap('cra-scripts', _stats => {
@@ -133,7 +140,7 @@ export default function(webpackEnv: 'production' | 'development') {
       }
     })());
 
-    const htmlWebpackPluginConstrutor = require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
+    const htmlWebpackPluginConstrutor = getPluginConstructor('html-webpack-plugin'); // require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
     const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as {userOptions: HtmlWebpackPluginOptions};
     htmlWebpackPluginInstance.userOptions.templateParameters = {
       _config: plinkConfig()
@@ -148,6 +155,9 @@ export default function(webpackEnv: 'production' | 'development') {
   }
   config.plugins?.push(new TermuxWebpackPlugin());
 
+  function getPluginConstructor(pluginPkgName: string) {
+    return require(nodeResolve.sync(pluginPkgName, {basedir: reactScriptsInstalledDir}));
+  }
   const rules = [...config.module?.rules ?? []]; // BFS array contains both RuleSetRule and RuleSetUseItem
 
   for (const rule of rules) {
@@ -188,7 +198,7 @@ export default function(webpackEnv: 'production' | 'development') {
       }
     }
   }
-  changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
+  changeForkTsCheckerOptions(config, craPaths().appIndexJs, getPluginConstructor, cmdOption);
 
   runConfigHandlers(config, webpackEnv);
   log.info(`output.publicPath: ${config.output!.publicPath as string}`);
@@ -288,17 +298,15 @@ function runConfigHandlers(config: Configuration, webpackEnv: string) {
 
 function changeForkTsCheckerOptions(
   config: Configuration, appIndexFile: string,
-  moduleResolveBase: string,
+  pluginConstFinder: (moduleName: string) => any,
   cmdOptions: ReturnType<typeof getCmdOptions>
 ) {
   const plugins = config.plugins!;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const cnst = require(nodeResolve.sync('react-dev-utils/ForkTsCheckerWebpackPlugin',
-    {basedir: moduleResolveBase}));
+  const cnst = pluginConstFinder('react-dev-utils/ForkTsCheckerWebpackPlugin');
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const cnst2 = require(nodeResolve.sync('react-dev-utils/ForkTsCheckerWarningWebpackPlugin',
-    {basedir: moduleResolveBase}));
+  const cnst2 = pluginConstFinder('react-dev-utils/ForkTsCheckerWarningWebpackPlugin');
 
   const plugin = plugins.find(p => p instanceof cnst || p instanceof cnst2);
   if (plugin == null) {

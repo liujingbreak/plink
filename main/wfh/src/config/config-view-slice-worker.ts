@@ -1,6 +1,6 @@
-import Selector from '../utils/ts-ast-query';
 import fs from 'fs';
 import ts from 'typescript';
+import Selector from '../utils/ts-ast-query';
 import {PropertyMeta} from './config.types';
 // import {jsonToCompilerOptions} from '../ts-compiler';
 

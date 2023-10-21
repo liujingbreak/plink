@@ -27,7 +27,6 @@ export interface AssetsProcesserSetting {
    */
   fallbackIndexHtml: {[key: string]: string};
   httpProxy: {[proxyPath: string]: string};
-  httpProxyWithCache: {[proxyPath: string]: string};
   /**
    * Start with a NPM registry cache server
    */

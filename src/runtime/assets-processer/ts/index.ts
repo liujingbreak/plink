@@ -52,16 +52,6 @@ export function activate(api: ExtensionContext) {
     }
   }
 
-  const httpProxyWithCacheSet = getSetting().httpProxyWithCache;
-  if (httpProxyWithCacheSet) {
-    for (const proxyPath of Object.keys(httpProxyWithCacheSet)) {
-      const dir = Path.join(config().destDir, 'http-proxy-cache', _.trimStart(proxyPath, '/'));
-      const endPoint = httpProxyWithCacheSet[proxyPath];
-      log.info(`Enable HTTP proxy ${proxyPath} --> ${endPoint}, cache directory: ${dir}`);
-      // createProxyWithCache(proxyPath, {target: endPoint}, dir);
-    }
-  }
-
   // const saveNpmRegistry = createNpmRegistryServer(api);
   // if (saveNpmRegistry)
   //   deactivateSubj.next(saveNpmRegistry);

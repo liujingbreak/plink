@@ -3,9 +3,7 @@ import PackageInstance from '../packageNodeInstance';
 export interface PackageInfo {
     allModules: PackageInstance[];
     dirTree: DirTree<PackageInstance>;
-    moduleMap: {
-        [name: string]: PackageInstance;
-    };
+    moduleMap: Map<string, PackageInstance>;
 }
 export { PackageInstance };
 export declare function packageOfFileFactory(): {

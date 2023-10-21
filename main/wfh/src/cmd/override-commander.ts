@@ -356,12 +356,12 @@ export function withGlobalOptions(cmd: commander.Command | PlinkCommand): comman
     '--prop arraylike.prop[0]=foobar ' +
     '--prop ["@wfh/foo.bar","prop",0]=true',
     arrayOptionFn, [] as string[])
-  .option('--verbose', 'Specify log level as "debug"', false)
-  .option('--dev', 'By turning on this option,' +
+    .option('--verbose', 'Specify log level as "debug"', false)
+    .option('--dev', 'By turning on this option,' +
     ' Plink setting property "devMode" will automatcially set to `true`,' +
     ' and process.env.NODE_ENV will also being updated to \'developement\' or \'production correspondingly. ',
     false)
-  .option('--env <setting environment>', 'A string denotes runtime environment name, package setting file may return different values based on its value (cliOptions.env)');
+    .option('--env <setting environment>', 'A string denotes runtime environment name, package setting file may return different values based on its value (cliOptions.env)');
   if (cmd instanceof PlinkCommand)
     cmd.optionStyler = undefined;
   return cmd;

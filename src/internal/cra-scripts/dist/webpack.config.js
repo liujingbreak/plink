@@ -13,6 +13,7 @@ const webpack_1 = require("webpack");
 const resolve_1 = tslib_1.__importDefault(require("resolve"));
 const utils_1 = require("./utils");
 const webpack_lib_1 = tslib_1.__importDefault(require("./webpack-lib"));
+const webpack_dll_1 = require("./webpack-dll");
 const change_tsconfig_1 = require("./change-tsconfig");
 const termux_issue_webpack_plugin_1 = require("./termux-issue-webpack-plugin");
 // import inspector from 'node:inspector';
@@ -39,7 +40,6 @@ function default_1(webpackEnv) {
     }
     log.info('webpackEnv :', webpackEnv);
     process.env.INLINE_RUNTIME_CHUNK = 'true';
-    debugger;
     const origWebpackConfig = require('react-scripts/config/webpack.config');
     reviseNodePathEnv();
     const { default: craPaths } = require('./cra-scripts-paths');
@@ -102,10 +102,18 @@ function default_1(webpackEnv) {
     if (cmdOption.cmd === 'cra-build')
         config.plugins.push(new webpack_stats_plugin_1.default());
     addProgressPlugin(config, (...s) => void printMsg(...s));
+    if (config.infrastructureLogging)
+        config.infrastructureLogging.level = 'log';
     if (cmdOption.buildType === 'lib') {
-        (0, webpack_lib_1.default)(cmdOption.buildTarget, config, nodePath);
+        (0, webpack_lib_1.default)(cmdOption.buildTargets[0].pkg, config);
+    }
+    else if (cmdOption.buildType === 'dll') {
+        (0, webpack_dll_1.setupDllPlugin)(cmdOption.buildTargets, config, getPluginConstructor);
     }
     else {
+        if (cmdOption.refDllManifest) {
+            (0, webpack_dll_1.setupDllReferencePlugin)(cmdOption.refDllManifest, config);
+        }
         config.plugins.push(new (class {
             apply(compiler) {
                 compiler.hooks.done.tap('cra-scripts', _stats => {
@@ -117,7 +125,7 @@ function default_1(webpackEnv) {
                 });
             }
         })());
-        const htmlWebpackPluginConstrutor = require(resolve_1.default.sync('html-webpack-plugin', { basedir: reactScriptsInstalledDir }));
+        const htmlWebpackPluginConstrutor = getPluginConstructor('html-webpack-plugin'); // require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
         const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
         htmlWebpackPluginInstance.userOptions.templateParameters = {
             _config: (0, plink_1.config)()
@@ -132,6 +140,9 @@ function default_1(webpackEnv) {
         });
     }
     (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin());
+    function getPluginConstructor(pluginPkgName) {
+        return require(resolve_1.default.sync(pluginPkgName, { basedir: reactScriptsInstalledDir }));
+    }
     const rules = [...(_f = (_e = config.module) === null || _e === void 0 ? void 0 : _e.rules) !== null && _f !== void 0 ? _f : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
     for (const rule of rules) {
         if (typeof rule !== 'string') {
@@ -175,15 +186,7 @@ function default_1(webpackEnv) {
             }
         }
     }
-    // config.module?.rules!.push({
-    //   test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
-    //   loader: '@wfh/webpack-common/dist/ts-loader',
-    //   options: {
-    //     injector: webInjector,
-    //     tsConfigFile: Path.join(plinkEnv.workDir, 'tsconfig.json')
-    //   }
-    // });
-    changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
+    changeForkTsCheckerOptions(config, craPaths().appIndexJs, getPluginConstructor, cmdOption);
     runConfigHandlers(config, webpackEnv);
     log.info(`output.publicPath: ${config.output.publicPath}`);
     fs_extra_1.default.writeFileSync(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), (0, utils_1.printConfig)(config));
@@ -270,13 +273,13 @@ function runConfigHandlers(config, webpackEnv) {
         }
     }, 'create-react-app Webpack config'));
 }
-function changeForkTsCheckerOptions(config, appIndexFile, moduleResolveBase, cmdOptions) {
+function changeForkTsCheckerOptions(config, appIndexFile, pluginConstFinder, cmdOptions) {
     var _a;
     const plugins = config.plugins;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const cnst = require(resolve_1.default.sync('react-dev-utils/ForkTsCheckerWebpackPlugin', { basedir: moduleResolveBase }));
+    const cnst = pluginConstFinder('react-dev-utils/ForkTsCheckerWebpackPlugin');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const cnst2 = require(resolve_1.default.sync('react-dev-utils/ForkTsCheckerWarningWebpackPlugin', { basedir: moduleResolveBase }));
+    const cnst2 = pluginConstFinder('react-dev-utils/ForkTsCheckerWarningWebpackPlugin');
     const plugin = plugins.find(p => p instanceof cnst || p instanceof cnst2);
     if (plugin == null) {
         throw new Error('Can not find fork-ts-checker-webpack-plugin in existing Webpack configuation');

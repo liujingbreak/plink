@@ -16,7 +16,7 @@
   "scripts": {
     "plink": "plink",
     "link-plink": "node main/bin/link.js",
-    "lint-wfh": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/wfh/ts",
+    "lint-wfh": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/wfh/src",
     "lint-redux": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",
     "lint-thread": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
     "lint-main-file": "eslint --no-eslintrc -c main/.eslintrc.js",

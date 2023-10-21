@@ -5,7 +5,8 @@ import log4js from 'log4js';
 import _ from 'lodash';
 import * as packageUtils from '../package-utils';
 import config from '../config';
-const jsYaml = require('js-yaml');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const jsYaml = require('js-yaml') as {safeDump(config: any): string; safeLoad(str: string, opts: any): any};
 const log = log4js.getLogger('plink.cliAdvanced');
 
 export function addupConfigs(onEachYaml: (file: string, configContent: string) => void) {
@@ -52,9 +53,11 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
     componentConfigs.outputPathMap[name] = outputPath;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const superConfig = require('../../config.yaml');
   deeplyMergeJson(superConfig, componentConfigs);
   if (onEachYaml) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     onEachYaml('config.yaml', jsYaml.safeDump(superConfig));
   }
   // var res = {'config.yaml': jsYaml.safeDump(superConfig)};

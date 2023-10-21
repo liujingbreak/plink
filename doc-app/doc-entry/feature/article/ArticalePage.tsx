@@ -18,7 +18,8 @@ const EMPTY_ARR: any[] = [];
 export type ArticalePageProps = React.PropsWithChildren<Record<string, never>>;
 
 const ArticalePage: React.FC<ArticalePageProps> = function(props) {
-  const matchedParams = useRouter()?.matchedRoute?.matchedParams;
+  const matchedRoute = useRouter();
+  const matchedParams = matchedRoute?.matchedRoute?.matchedParams;
   const [portals, setPortals] = useState(EMPTY_ARR);
 
   const onContentLoaded = useCallback<NonNullable<MarkdownViewCompProps['onContent']>>((div) => {
@@ -62,6 +63,9 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
       return () => sub.unsubscribe();
     }
   }, [layout, matchedParams?.mdKey]);
+
+  console.log('matched route', matchedRoute);
+  console.log('matchedParams?.mdKey', matchedParams?.mdKey);
   // mdc-layout-grid provides proper margin or padding space for page element
   return (
     <div className={cls('articale-page', 'mdc-layout-grid')}> {/* CSS class mdc-layout-grid provides proper margin or padding space for page element */}

@@ -4,4 +4,4 @@ import _webpack from 'webpack';
  * support "watch" function, so hack Webpack's compiler.run() function by replacing it with
  * compiler.watch() function
  */
-export declare function hackWebpack4Compiler(): typeof _webpack;
+export declare function hackWebpack4Compiler(): ((args_0: any, ...args_1: any[]) => _webpack.Compiler) & typeof _webpack;

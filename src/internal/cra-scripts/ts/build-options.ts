@@ -1,3 +1,5 @@
+import {PackageInfo} from '@wfh/plink';
+
 export interface BuildOptions {
   statsJson: boolean;
   progress: boolean;
@@ -8,7 +10,9 @@ export interface CommandOption {
   /** "lib" stands for library build mode, "app" stands for application build mode  */
   buildType: 'lib' | 'app' | 'dll';
   /** package name */
-  buildTarget: string;
+  /** For buld command like cra-start, cra-build, it means for build entries */
+  buildTargets: {pkg?: PackageInfo; file?: string}[];
+  refDllManifest?: string[];
   watch: boolean;
   devMode: boolean;
   /** Be aware that process.env.PUBLIC_URL could be the actual setting approach, do not rely on this property */

@@ -28,7 +28,7 @@ export interface CraScriptsPaths {
   ownTypeDeclarations: string;
 
   // A simlink path to appIndexJs which is under node_modules
-  plinkEntryFileSymlink: string;
+  // plinkEntryFileSymlink: string;
 }
 export interface ReactScriptsHandler {
   /** Change CRA's paths  */

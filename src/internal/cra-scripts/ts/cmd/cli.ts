@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// import fs from 'fs';
 import Path from 'path';
 import {fork} from 'child_process';
-import {CliExtension} from '@wfh/plink';
+import {CliExtension, findPackagesByNames, packageOfFileFactory} from '@wfh/plink';
 import {config, log4File, plinkEnv, commander} from '@wfh/plink';
+import {getSetting} from '../../isom/cra-scripts-setting';
 import {saveCmdOptionsToEnv, BuildCliOpts} from '../utils';
 import * as _preload from '../preload';
+// import inspector from 'inspector';
+// inspector.open(9222, '0.0.0.0', true);
 const log = log4File(__filename);
 
 const cli: CliExtension = (program) => {
@@ -13,19 +15,20 @@ const cli: CliExtension = (program) => {
     .description('Compile react application or library (work with create-react-app v5.0.1)')
     .argument('<app|lib|dll>', '"app" stands for building a complete application like create-react-app,\n' +
     '"lib" stands for building a library')
-    .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
+    .argument('[packages_or_entries...]', '(multiple) target packages, the "scope" name part can be omitted, or entry file path (for DLL), or module name (for DLL)')
     .option('-w, --watch', 'when argument is "lib", watch file changes and compile', false)
+    .option('--ref-dll,--rd <manifest-file>', 'Reference to DLL manifest file, file can be absolute or relative path to "dist" directory', arrayOptionFn, [])
     .option('-i, --include <module-path-regex>',
       '(multiple value), when argument is "lib", we will set "external" property of Webpack configuration for all request not begin with "." (not relative path), ' +
     'meaning all non-relative modules will not be included in the output bundle file, you need to explicitly provide a list in' +
     ' Regular expression (e.g. -i \'^someLib(/|$)\' -i \'^someLib2(/|$)\' -i ...) ' +
     ' to make them be included in bundle file. To make specific module (React) external: -i \'^(?!react(-dom)?($|/))\'', arrayOptionFn, [])
     .option('--source-map', 'set environment variable GENERATE_SOURCEMAP to "true" (see https://create-react-app.dev/docs/advanced-configuration', false)
-    .action((type, pkgName) => {
+    .action((type, entries: string[]) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
       }
-      runReactScripts(buildCmd.name(), buildCmd.opts(), type, pkgName);
+      runReactScripts(buildCmd.name(), buildCmd.opts(), type, entries);
 
       require('react-scripts/scripts/build');
     });
@@ -42,15 +45,15 @@ const cli: CliExtension = (program) => {
 
 
   const StartCmd = program.command('cra-start')
-    .argument('<package-name>', 'target package name, the "scope" name part can be omitted')
-    .description('Run CRA start script for react application or library (work with create-react-app v5.0.1)')
+    .argument('<packages_or_entries...>', '(multiple) target packages, the "scope" name part can be omitted, or entry file path') .description('Run CRA start script for react application or library (work with create-react-app v5.0.1)')
+    .option('--rd, --ref-dll <manifest-file>', 'Reference to DLL manifest file, file can be absolute or relative path to "dist" directory', (v, p) => {p.push(v); return p;}, [] as string[])
     .option('--use-poll, --poll', 'use Webpack watch option "poll"', false)
     .option('--no-ts-checker, --no-tsck', 'disable forked-ts-checker-webpack-plugin for Typescript', false)
-    .action((pkgName) => {
+    .action((entries) => {
       if (process.cwd() !== Path.resolve(plinkEnv.workDir)) {
         process.chdir(Path.resolve(plinkEnv.workDir));
       }
-      runReactScripts(StartCmd.name(), StartCmd.opts(), 'app', pkgName);
+      runReactScripts(StartCmd.name(), StartCmd.opts(), 'app', entries);
       require('react-scripts/scripts/start');
     });
   withClicOpt(StartCmd);
@@ -95,9 +98,36 @@ function arrayOptionFn(curr: string, prev: string[] | undefined) {
   return prev;
 }
 
-function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib' | 'dll', pkgName: string) {
+function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib' | 'dll', entries: string[]) {
+  if (entries.length === 0 && getSetting().entries?.length != null) {
+    entries = getSetting().entries ?? [];
+  }
+  if (entries.length == 0) {
+    throw new Error('Specifiy at least one "[packages_or_entries]" argument in command line or respective property in "-c" setting file');
+  }
+  const packageLocator = packageOfFileFactory();
   const cfg = config;
-  saveCmdOptionsToEnv(pkgName, cmdName, opts, type);
+  const targetEntries = entries.map(entry => {
+    const pkg = [...findPackagesByNames([entry])][0];
+    if (pkg) {
+      if (pkg.json.plink || pkg.json.dr) {
+        // It is a Plink package
+        return {pkg};
+      } else {
+        // It is a 3rd-party package
+        return {file: entry};
+      }
+    } else {
+      const file = Path.resolve(entry);
+      const pkg = packageLocator.getPkgOfFile(file)?.orig;
+      if (pkg && (pkg.json.plink || pkg.json.dr)) {
+          return {pkg, file};
+      } else {
+        return {file};
+      }
+    }
+  });
+  saveCmdOptionsToEnv(cmdName, opts, type, targetEntries);
   if (process.env.PORT == null && cfg().port)
     process.env.PORT = cfg().port + '';
 

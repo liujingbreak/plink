@@ -9,10 +9,15 @@ type RouteActions = {
   navigateTo(relativePath: string): void;
   /** Redirect another path */
   replaceUrl(relativePath: string): void;
+  setBasenameOrParent(value: string): void;
 };
+
+const routeInputTableFor = ['setBasenameOrParent'] as const;
+const routeOutputTableFor = ['routeCompiled'] as const;
 
 type RouteEvents = {
   onBrowserHistoryPopstate(): void;
+  routeCompiled(routeObjs: CompiledRouteObject[]): void;
 };
 
 export type RouteObject = {
@@ -36,23 +41,23 @@ export type MatchedRouteObject = CompiledRouteObject & {
 };
 
 export type RouterState = {
-  baseHref?: string;
   routes?: RouteObject[];
-  basenameOrParent?: string;
-  compiledRoutes?: CompiledRouteObject[];
+  // compiledRoutes?: CompiledRouteObject[];
   matchedRoute?: RouteObject;
 };
 
 export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) {
   const state$ = React.useMemo(() => new rx.BehaviorSubject<RouterState>({}), []);
-  const composite = React.useMemo(() => new ReactorComposite<RouteActions, RouteEvents>(
-    {name: 'router', debug: process.env.NODE_ENV === 'development'}), []);
+
+  const composite = React.useMemo(() => new ReactorComposite<RouteActions, RouteEvents, typeof routeInputTableFor, typeof routeOutputTableFor>(
+    {name: 'router', debug: process.env.NODE_ENV === 'development', inputTableFor: routeInputTableFor, outputTableFor: routeOutputTableFor}), []);
   const [router, setRouter] = React.useState<Router>({matchedRoute: null, control: composite.i});
-  const {i, o, r} = composite;
+  const {i, o, r, inputTable, outputTable} = composite;
 
   React.useMemo(() => {
-    state$.next({...state$.getValue(), basenameOrParent});
-  }, [basenameOrParent, state$]);
+    i.dp.setBasenameOrParent(basenameOrParent);
+    // state$.next({...state$.getValue(), basenameOrParent});
+  }, [basenameOrParent, i.dp]);
 
   React.useMemo(() => {
     state$.next({...state$.getValue(), routes});
@@ -62,19 +67,6 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
     function onPopstate(evt: PopStateEvent) {
       o.dp.onBrowserHistoryPopstate();
     }
-
-    const basenameOrParent$ = state$.pipe(
-      op.map(s => s.basenameOrParent),
-      op.distinctUntilChanged(),
-      op.filter((v): v is string => v != null)
-      // op.share()
-    );
-
-    const compiledRoutes$ = state$.pipe(
-      op.map(s => s.compiledRoutes),
-      op.distinctUntilChanged(),
-      op.filter((v): v is NonNullable<RouterState['compiledRoutes']> => v != null)
-    );
 
     r('Listen to popstate event', new rx.Observable<void>(sub => {
       if (typeof window !== 'undefined') {
@@ -88,24 +80,21 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       op.distinctUntilChanged(),
       op.map(routes => {
         if (routes)
-          state$.next({
-            ...state$.getValue(),
-            compiledRoutes: compileRoutes(routes)
-          });
+          o.dp.routeCompiled(compileRoutes(routes));
       })
     ));
 
-    r(rx.merge(
+    r('Handle navigations', rx.merge(
       o.at.onBrowserHistoryPopstate.pipe(
-        op.withLatestFrom(basenameOrParent$),
-        op.concatMap(([, basenameOrParent]) => rx.timer(16).pipe(op.mapTo(basenameOrParent))),
+        op.withLatestFrom(inputTable.l.setBasenameOrParent),
+        op.concatMap(([, [, basenameOrParent]]) => rx.timer(16).pipe(op.map(() => basenameOrParent))),
         op.map(basenameOrParent => {
           return subPathOf(basenameOrParent, window.location.pathname) ?? window.location.pathname;
         })
       ),
       i.pt.navigateTo.pipe(
-        op.withLatestFrom(basenameOrParent$),
-        op.map(([[, toPath], basenameOrParent]) => {
+        op.withLatestFrom(inputTable.l.setBasenameOrParent),
+        op.map(([[, toPath], [, basenameOrParent]]) => {
           if (typeof window !== 'undefined') {
             window.history.pushState({}, '', resolvePath(basenameOrParent, toPath));
           }
@@ -113,8 +102,8 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
         })
       ),
       i.pt.replaceUrl.pipe(
-        op.withLatestFrom(basenameOrParent$),
-        op.map(([[, toPath], basenameOrParent]) => {
+        op.withLatestFrom(inputTable.l.setBasenameOrParent),
+        op.map(([[, toPath], [, basenameOrParent]]) => {
           if (typeof window !== 'undefined') {
             window.history.replaceState({}, '', resolvePath(basenameOrParent, toPath));
           }
@@ -123,16 +112,13 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       ),
       rx.of(typeof window !== 'undefined' ? window.location.pathname : '').pipe(
         op.filter(url => !!url),
-        op.switchMap(url => basenameOrParent$.pipe(
-          op.take(1),
-          op.map(basenameOrParent => [url, basenameOrParent] as const)
-        )),
-        op.map(([toPath, basenameOrParent]) => subPathOf(basenameOrParent, toPath) ?? toPath)
+        op.withLatestFrom(inputTable.l.setBasenameOrParent),
+        op.map(([toPath, [, basenameOrParent]]) => subPathOf(basenameOrParent, toPath) ?? toPath)
       )
     ).pipe(
-      op.switchMap(toPath => compiledRoutes$.pipe(
+      op.switchMap(toPath => outputTable.l.routeCompiled.pipe(
         op.take(1),
-        op.map(compiled => [toPath, compiled] as const)
+        op.map(([, compiled]) => [toPath, compiled] as const)
       )),
       op.map(([toPath, compiledRoutes]) => {
         // eslint-disable-next-line no-console
@@ -147,7 +133,7 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       op.observeOn(rx.asyncScheduler),
       op.map(redirect => i.dp.replaceUrl(redirect))
     ));
-  }, [r, i, o, state$]);
+  }, [i.dp, i.pt.navigateTo, i.pt.replaceUrl, inputTable.l.setBasenameOrParent, o.at.onBrowserHistoryPopstate, o.dp, outputTable.l.routeCompiled, r, state$]);
 
   React.useEffect(() => {
     return () => {composite.destory(); };
@@ -158,10 +144,10 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
 
 export const RouterContext = React.createContext<Router | null>(null);
 
-export const RouterProvider: React.FC<React.PropsWithChildren<{basenameOrParent?: string; routes: RouteObject[]}>> = (props) => {
-  const router = useRouterProvider(props.basenameOrParent, props.routes);
-  return <RouterContext.Provider value={router}>{props.children}</RouterContext.Provider>;
-};
+// export const RouterProvider: React.FC<React.PropsWithChildren<{basenameOrParent?: string; routes: RouteObject[]}>> = (props) => {
+//   const router = useRouterProvider(props.basenameOrParent, props.routes);
+//   return <RouterContext.Provider value={router}>{props.children}</RouterContext.Provider>;
+// };
 
 export function useRouter() {
   return React.useContext(RouterContext);

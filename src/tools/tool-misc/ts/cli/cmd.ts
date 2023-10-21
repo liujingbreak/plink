@@ -28,7 +28,7 @@ const cliExt: CliExtension = (program) => {
       'package-name': cliPackageArgDesc
     })
     .action(async (packageNames: string[]) => {
-      await (await import('./cli-gsetting')).generateSetting(packageNames, settingCmd.opts() );
+      await (await import('./cli-gsetting.js')).generateSetting(packageNames, settingCmd.opts() );
     });
 
   const cfgCmd = program.command('gcfg <file>').alias('gen-config')

@@ -118,7 +118,7 @@ export async function runSinglePackage({target, args}: {target: string; args: st
   const [file, func] = target.split('#');
   const pkgNameMatch = /((?:@[^/]+\/)?[a-zA-Z0-9_-]+)\/$/.exec(file);
   let moduleName = Path.resolve(file);
-  if (pkgNameMatch?.[1] && _.has(pkgInfo.moduleMap, pkgNameMatch[1])) {
+  if (pkgNameMatch?.[1] && pkgInfo.moduleMap.has(pkgNameMatch[1])) {
     moduleName = file;
   }
   const _exports = require(Path.resolve(getWorkDir(), 'node_modules', moduleName));
@@ -182,7 +182,7 @@ async function _runPackages(includePackages: Iterable<string>,
     pkgExportsInDescendOrder.unshift({name: pkInstance.name, exp: fileExports});
     if (_.isFunction(fileExports[funcToRun])) {
       log.info(funcToRun + ` ${chalk.cyan(mod)}`);
-      return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap[pkInstance.name], NodeApi));
+      return fileExports[funcToRun](getApiForPackage(packageInfo.moduleMap.get(pkInstance.name)!, NodeApi));
     }
   });
   (proto.eventBus!).emit('done', {});

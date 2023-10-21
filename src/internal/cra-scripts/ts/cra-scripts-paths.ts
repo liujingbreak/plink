@@ -6,7 +6,7 @@ import _ from 'lodash';
 import pCfg from '@wfh/plink/wfh/dist/config';
 import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
 import fsext from 'fs-extra';
-import {log4File, config, plinkEnv, findPackagesByNames} from '@wfh/plink';
+import {log4File, config, plinkEnv} from '@wfh/plink';
 import {ReactScriptsHandler, CraScriptsPaths, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT, PKG_APP_ENTRY_PROP,
   PKG_APP_ENTRY_DEFAULT} from './types';
 import {getCmdOptions} from './utils';
@@ -29,38 +29,47 @@ export default function paths() {
     return craScriptsPaths;
   }
   const cmdOption = getCmdOptions();
-  const foundPkg = [...findPackagesByNames([cmdOption.buildTarget])][0];
-  if (foundPkg == null) {
-    throw new Error(`Can not find package for name like ${cmdOption.buildTarget}`);
-  }
-  const {json: packageJson, realPath: pkgDir, path: pkgSymlinkDir} = foundPkg;
 
   const paths = require(Path.resolve('node_modules/react-scripts/config/paths')) as CraScriptsPaths;
   const changedPaths = paths;
 
-  const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
+  const {pkg: firstEntryPkg, file: firstEntryFile} = cmdOption.buildTargets[0];
   if (cmdOption.buildType === 'lib') {
+    if (firstEntryPkg == null)
+      throw new Error(`First entry file must be inside a Plink package, ${cmdOption.buildTargets[0].file}`);
+    const packageJson = firstEntryPkg.json;
+    const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
+    const {realPath: pkgDir} = firstEntryPkg!;
     changedPaths.appBuild = Path.resolve(pkgDir, 'build');
-    changedPaths.appIndexJs = Path.resolve(pkgDir, _.get(plinkProps, [PKG_LIB_ENTRY_PROP], PKG_LIB_ENTRY_DEFAULT));
-    changedPaths.plinkEntryFileSymlink = Path.resolve(pkgSymlinkDir, _.get(plinkProps, [PKG_LIB_ENTRY_PROP], PKG_LIB_ENTRY_DEFAULT));
+    changedPaths.appIndexJs = firstEntryFile ?? Path.resolve(pkgDir, _.get(plinkProps, [PKG_LIB_ENTRY_PROP], PKG_LIB_ENTRY_DEFAULT));
   } else if (cmdOption.buildType === 'app') {
-    changedPaths.appIndexJs = Path.resolve(pkgDir, _.get(plinkProps, [PKG_APP_ENTRY_PROP], PKG_APP_ENTRY_DEFAULT));
-    changedPaths.plinkEntryFileSymlink = Path.resolve(pkgSymlinkDir, _.get(plinkProps, [PKG_APP_ENTRY_PROP], PKG_APP_ENTRY_DEFAULT));
+    if (firstEntryPkg == null)
+      throw new Error(`First entry file must be inside a Plink package, ${cmdOption.buildTargets[0].file}`);
+    const packageJson = firstEntryPkg.json;
+    const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
+    const {realPath: pkgDir} = firstEntryPkg!;
+    changedPaths.appIndexJs = firstEntryFile ?? Path.resolve(pkgDir, _.get(plinkProps, [PKG_APP_ENTRY_PROP], PKG_APP_ENTRY_DEFAULT));
     changedPaths.appBuild = pCfg.resolve('staticDir');
+  } else if (cmdOption.buildType === 'dll') {
+    changedPaths.appBuild = pCfg.resolve('staticDir');
+    changedPaths.appIndexJs = cmdOption.buildTargets[0].file!; // Webpack configuration property entry will be changed in webpack-dll
   }
+
   changedPaths.appWebpackCache = Path.join(plinkEnv.distDir, 'webpack-cache');
   changedPaths.appTsBuildInfoFile = Path.resolve(plinkEnv.distDir, 'cra-scripts.forked-ts-checker.tsbuildinfo.json');
 
-  configFileInPackage = Path.resolve(pkgDir, _.get(plinkProps, ['config-overrides-path'], 'config-overrides.ts'));
+  if (firstEntryPkg) {
+    configFileInPackage = Path.resolve(firstEntryPkg.realPath, _.get(firstEntryPkg.json, ['config-overrides-path'], 'config-overrides.ts'));
 
-  if (fs.existsSync(configFileInPackage)) {
-    const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
-    cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
-      if (handler.changeCraPaths != null) {
-        log.info('Execute CRA scripts paths configuration overrides from ', cfgFile);
-        handler.changeCraPaths(changedPaths, config().cliOptions!.env!, cmdOption);
-      }
-    });
+    if (fs.existsSync(configFileInPackage)) {
+      const cfgMgr = new ConfigHandlerMgr([configFileInPackage]);
+      cfgMgr.runEachSync<ReactScriptsHandler>((cfgFile, result, handler) => {
+        if (handler.changeCraPaths != null) {
+          log.info('Execute CRA scripts paths configuration overrides from ', cfgFile);
+          handler.changeCraPaths(changedPaths, config().cliOptions!.env!, cmdOption);
+        }
+      });
+    }
   } else {
     configFileInPackage = null;
   }

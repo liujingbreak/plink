@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const plink_1 = require("@wfh/plink");
+const assets_processer_setting_1 = require("@wfh/assets-processer/isom/assets-processer-setting");
+const static_middleware_1 = require("@wfh/assets-processer/dist/static-middleware");
 const log = (0, plink_1.log4File)(__filename);
 /**
  * Avoid process exit when encountering Error like ERR_HTTP_HEADERS_SENT
@@ -43,6 +45,16 @@ function default_1(webpackConfig) {
         });
         if (origin)
             origin.call(this, devServer);
+        const staticHandler = (0, static_middleware_1.createStaticRoute)(plink_1.config.resolve('staticDir'), (0, assets_processer_setting_1.getSetting)().cacheControlMaxAge);
+        devServer.app.use((req, res, next) => {
+            if (req.url.indexOf('/dll/') >= 0) {
+                log.debug('DLL resource request:', req.url);
+                staticHandler(req, res, next);
+            }
+            else {
+                next();
+            }
+        });
     };
     devServer.compress = true;
     if (devServer.headers == null)
