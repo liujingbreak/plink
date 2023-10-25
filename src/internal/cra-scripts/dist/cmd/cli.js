@@ -92,6 +92,7 @@ function arrayOptionFn(curr, prev) {
 }
 function runReactScripts(cmdName, opts, type, entries) {
     var _a, _b;
+    plink_2.dispatcher.changeActionOnExit('none');
     if (entries.length === 0 && ((_a = (0, cra_scripts_setting_1.getSetting)().entries) === null || _a === void 0 ? void 0 : _a.length) != null) {
         entries = (_b = (0, cra_scripts_setting_1.getSetting)().entries) !== null && _b !== void 0 ? _b : [];
     }

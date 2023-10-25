@@ -2,7 +2,7 @@
 import Path from 'path';
 import {fork} from 'child_process';
 import {CliExtension, findPackagesByNames, packageOfFileFactory} from '@wfh/plink';
-import {config, log4File, plinkEnv, commander} from '@wfh/plink';
+import {config, log4File, plinkEnv, commander, dispatcher as plinkStoreDispatcher} from '@wfh/plink';
 import {getSetting} from '../../isom/cra-scripts-setting';
 import {saveCmdOptionsToEnv, BuildCliOpts} from '../utils';
 import * as _preload from '../preload';
@@ -99,6 +99,7 @@ function arrayOptionFn(curr: string, prev: string[] | undefined) {
 }
 
 function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib' | 'dll', entries: string[]) {
+  plinkStoreDispatcher.changeActionOnExit('none');
   if (entries.length === 0 && getSetting().entries?.length != null) {
     entries = getSetting().entries ?? [];
   }
