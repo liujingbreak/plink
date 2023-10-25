@@ -7,6 +7,7 @@ const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const splitChunks_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/splitChunks"));
 const webpack_stats_plugin_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/webpack-stats-plugin"));
 const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const plink_1 = require("@wfh/plink");
 const mem_stats_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
 const webpack_1 = require("webpack");
@@ -82,9 +83,9 @@ function default_1(webpackEnv) {
     // config.resolve!.symlinks = false;
     const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
     config.cache.buildDependencies.plink = [getPkgOfFile(__filename).path.replace(/\\/g, '/') + '/'];
-    const resolveModules = ['node_modules', ...nodePath];
+    const resolveModules = lodash_1.default.uniq(['node_modules', ...nodePath]);
     // config.resolve!.symlinks = false;
-    config.resolve.modules = [...(_c = (_b = config.resolve) === null || _b === void 0 ? void 0 : _b.modules) !== null && _c !== void 0 ? _c : [], ...nodePath];
+    config.resolve.modules = lodash_1.default.uniq([...(_c = (_b = config.resolve) === null || _b === void 0 ? void 0 : _b.modules) !== null && _c !== void 0 ? _c : [], ...nodePath]);
     if (config.resolveLoader == null)
         config.resolveLoader = {};
     config.resolveLoader.modules = resolveModules;

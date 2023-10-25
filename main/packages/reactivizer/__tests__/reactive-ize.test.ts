@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-console */
 import * as rx from 'rxjs';
-import {describe, it, expect}  from '@jest/globals';
+import {describe, it, expect, jest}  from '@jest/globals';
 import {RxController, ReactorComposite, actionRelatedToPayload, nameOfAction,
   ActionTable} from '../src';
 
@@ -25,7 +26,7 @@ class TestObject {
 }
 
 describe('reactivizer', () => {
-  it('RxController should work with Typescript\'s type inference', () => {
+  it('RxController should work with Typescript\'s type inference, and action table should work', () => {
     const ctl = new RxController<TestMessages>();
     const {dp, pt} = ctl;
     dp.msg3('msg3-a', 9);
@@ -37,35 +38,69 @@ describe('reactivizer', () => {
     );
 
 
-    const ctl2 = new RxController<TestMessages & TestObject>();
+    const ctl2 = new RxController<TestMessages & TestObject>({debug: true});
     const table = new ActionTable(ctl2, ['msg5', 'msg6', 'msg3Reply']);
     const {l} = table;
     const {dp: dp2} = ctl2;
+
+    const combinedLatestCb = jest.fn();
+    table.latestPayloadsByName$.pipe(
+      rx.tap(map => {
+        combinedLatestCb(map);
+      })
+    ).subscribe();
+
+    // rx.merge(table.l.msg5, table.l.msg6).pipe(
+    //   rx.map((a) => {
+    //     console.log('zaa', a);
+    //     combinedLatestCb(a);
+    //   })
+    // ).subscribe();
+
     dp2.msg1();
     dp2.msg5('x');
     dp2.msg6('aaa', 2);
 
-    let countExpect = 0;
+    const latestPayloadCbMock = jest.fn();
     rx.merge(
       l.msg5.pipe(
         rx.map(([, a]) => {
-          expect(a).toBe('x');
-          countExpect++;
+          latestPayloadCbMock('msg5', a);
         })
       ),
       l.msg6.pipe(
         rx.map(([, a, b]) => {
-          expect(a).toBe('aaa');
+          latestPayloadCbMock('msg6', a, b);
           expect(b).toBe(2);
-          countExpect += 2;
         })
       )
     ).subscribe();
+
     expect(table.getLatestActionOf('msg5')!.slice(1)).toEqual(['x']);
     expect(table.getLatestActionOf('msg6')!.slice(1)).toEqual(['aaa', 2]);
     expect(table.getLatestActionOf('msg3Reply')).toBe(undefined);
+    expect(latestPayloadCbMock.mock.calls.length).toBe(2);
+    expect(latestPayloadCbMock.mock.calls[0]).toEqual(['msg5', 'x']);
+    expect(latestPayloadCbMock.mock.calls[1]).toEqual(['msg6', 'aaa', 2]);
 
-    expect(countExpect).toBe(3);
+    dp2.msg5('y');
+    expect(latestPayloadCbMock.mock.calls.length).toBe(3);
+    expect(latestPayloadCbMock.mock.calls[2]).toEqual(['msg5', 'y']);
+
+    console.log('combinedLatestCb.mock.calls', combinedLatestCb.mock.calls);
+    expect(combinedLatestCb.mock.calls.length).toBe(3);
+
+    let testTarget = combinedLatestCb.mock.calls[0][0] as Record<string, any>;
+    console.log('calls:', testTarget);
+    expect(testTarget.msg5.slice(1)).toEqual(['x']);
+    expect(testTarget.msg6).toEqual(undefined);
+
+    testTarget = combinedLatestCb.mock.calls[1][0] as Record<string, any>;
+    expect(testTarget.msg5.slice(1)).toEqual(['x']);
+    expect(testTarget.msg6.slice(1)).toEqual(['aaa', 2]);
+    testTarget = combinedLatestCb.mock.calls[2][0] as Record<string, any>;
+    expect(testTarget.msg5.slice(1)).toEqual(['y']);
+    expect(testTarget.msg6.slice(1)).toEqual(['aaa', 2]);
   });
 
   it('RxController createLatestPayloadsFor should work', async () => {

@@ -54,16 +54,24 @@ export declare class RxController<I extends ActionFunctions> {
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;
 }
 export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
+    #private;
     private streamCtl;
+    actionNames: KS;
+    private actionNamesAdded$;
     latestPayloads: { [K in KS[number]]: PayloadStream<I, K>; };
-    /** Abbrevation of latestPayloads, pointing to exactly same instance of latestPayloads */
+    /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
     l: {
         [K in KS[number]]: PayloadStream<I, K>;
     };
+    get latestPayloadsByName$(): rx.Observable<{
+        [P in KS[number]]: InferMapParam<I, P>;
+    }>;
+    get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>>;
     actionSnapshot: Map<keyof I, [ActionMeta, ...InferPayload<I[keyof I]>]>;
     constructor(streamCtl: RxController<I>, actionNames: KS);
     addActions<M extends Array<keyof I>>(...actionNames: M): ActionTable<I, (KS[number] | M[number])[]>;
-    getLatestActionOf<K extends KS[number]>(actionName: K): [ActionMeta, ...InferPayload<I[K]>] | undefined;
+    private onAddActions;
+    getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I, K> | undefined;
     protected debugLogLatestActionOperator<K extends string & keyof I, P extends InferMapParam<I, K>>(type: K): rx.OperatorFunction<P, P>;
 }
 /** Rx operator function */

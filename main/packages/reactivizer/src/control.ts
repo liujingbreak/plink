@@ -138,18 +138,67 @@ export class RxController<I extends ActionFunctions> {
 }
 
 export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
+  actionNames: KS;
+  private actionNamesAdded$ = new rx.ReplaySubject<ReadonlyArray<keyof I>>(1);
+
   latestPayloads = {} as {[K in KS[number]]: PayloadStream<I, K>};
-  /** Abbrevation of latestPayloads, pointing to exactly same instance of latestPayloads */
+  /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
   l: {[K in KS[number]]: PayloadStream<I, K>};
+
+  #latestPayloadsByName$: rx.Observable<{[P in KS[number]]: InferMapParam<I, P>}> | undefined;
+
+  get latestPayloadsByName$(): rx.Observable<{[P in KS[number]]: InferMapParam<I, P>}> {
+    if (this.#latestPayloadsByName$)
+      return this.#latestPayloadsByName$;
+
+    this.#latestPayloadsByName$ = this.actionNamesAdded$.pipe(
+      rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+      rx.map(() => {
+        const paramByName = {} as {[P in KS[number]]: InferMapParam<I, P>};
+        for (const [k, v] of this.actionSnapshot.entries()) {
+          paramByName[k] = v;
+        }
+        return paramByName;
+      }),
+      rx.share()
+    );
+    return this.#latestPayloadsByName$;
+  }
+
+  #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
+
+  get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
+    if (this.#latestPayloadsSnapshot$)
+      return this.#latestPayloadsSnapshot$;
+
+    this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
+      rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+      rx.map(() => this.actionSnapshot)
+    );
+    return this.#latestPayloadsSnapshot$;
+  }
 
   actionSnapshot = new Map<keyof I, InferMapParam<I, keyof I>>();
 
   constructor(private streamCtl: RxController<I>, actionNames: KS) {
+    this.actionNames = [] as unknown as KS;
     this.l = this.latestPayloads;
     this.addActions(...actionNames);
+    this.actionNamesAdded$.pipe(
+      rx.map(actionNames => {
+        this.onAddActions(actionNames);
+      })
+    ).subscribe();
+
   }
 
   addActions<M extends Array<keyof I>>(...actionNames: M) {
+    this.actionNames = this.actionNames.concat(actionNames) as unknown as KS;
+    this.actionNamesAdded$.next(actionNames);
+    return this as unknown as ActionTable<I, Array<KS[number] | M[number]>>;
+  }
+
+  private onAddActions<M extends ReadonlyArray<keyof I>>(actionNames: M) {
     for (const type of actionNames) {
       if (has.call(this.latestPayloads, type))
         continue;
@@ -168,12 +217,10 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
           this.debugLogLatestActionOperator(type as string)
         ) :
         a$.asObservable();
-
     }
-    return this as ActionTable<I, Array<KS[number] | M[number]>>;
   }
 
-  getLatestActionOf<K extends KS[number]>(actionName: K) {
+  getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I, K> | undefined {
     return this.actionSnapshot.get(actionName) as InferMapParam<I, K> | undefined;
   }
 

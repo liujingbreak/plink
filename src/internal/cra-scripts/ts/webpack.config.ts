@@ -93,9 +93,9 @@ export default function(webpackEnv: 'production' | 'development') {
   const {getPkgOfFile} = packageOfFileFactory();
   (config.cache as FileCacheOptions).buildDependencies!.plink = [getPkgOfFile(__filename)!.path.replace(/\\/g, '/') + '/'];
 
-  const resolveModules = ['node_modules', ...nodePath];
+  const resolveModules = _.uniq(['node_modules', ...nodePath]);
   // config.resolve!.symlinks = false;
-  config.resolve!.modules = [...config.resolve?.modules ?? [], ...nodePath];
+  config.resolve!.modules = _.uniq([...config.resolve?.modules ?? [], ...nodePath]);
   if (config.resolveLoader == null)
     config.resolveLoader = {};
   config.resolveLoader.modules = resolveModules;

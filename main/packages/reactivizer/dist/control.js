@@ -25,6 +25,18 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var _ActionTable_latestPayloadsByName$, _ActionTable_latestPayloadsSnapshot$;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deserializeAction = exports.serializeAction = exports.actionRelatedToPayload = exports.actionRelatedToAction = exports.ActionTable = exports.RxController = void 0;
 const rx = __importStar(require("rxjs"));
@@ -107,14 +119,44 @@ class RxController {
 }
 exports.RxController = RxController;
 class ActionTable {
+    get latestPayloadsByName$() {
+        if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f"))
+            return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
+        __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => {
+            const paramByName = {};
+            for (const [k, v] of this.actionSnapshot.entries()) {
+                paramByName[k] = v;
+            }
+            return paramByName;
+        }), rx.share()), "f");
+        return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
+    }
+    get latestPayloadsSnapshot$() {
+        if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f"))
+            return __classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f");
+        __classPrivateFieldSet(this, _ActionTable_latestPayloadsSnapshot$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => this.actionSnapshot)), "f");
+        return __classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f");
+    }
     constructor(streamCtl, actionNames) {
         this.streamCtl = streamCtl;
+        this.actionNamesAdded$ = new rx.ReplaySubject(1);
         this.latestPayloads = {};
+        _ActionTable_latestPayloadsByName$.set(this, void 0);
+        _ActionTable_latestPayloadsSnapshot$.set(this, void 0);
         this.actionSnapshot = new Map();
+        this.actionNames = [];
         this.l = this.latestPayloads;
         this.addActions(...actionNames);
+        this.actionNamesAdded$.pipe(rx.map(actionNames => {
+            this.onAddActions(actionNames);
+        })).subscribe();
     }
     addActions(...actionNames) {
+        this.actionNames = this.actionNames.concat(actionNames);
+        this.actionNamesAdded$.next(actionNames);
+        return this;
+    }
+    onAddActions(actionNames) {
         var _a;
         for (const type of actionNames) {
             if (stream_core_1.has.call(this.latestPayloads, type))
@@ -129,7 +171,6 @@ class ActionTable {
                 a$.pipe(this.debugLogLatestActionOperator(type)) :
                 a$.asObservable();
         }
-        return this;
     }
     getLatestActionOf(actionName) {
         return this.actionSnapshot.get(actionName);
@@ -162,6 +203,7 @@ class ActionTable {
     }
 }
 exports.ActionTable = ActionTable;
+_ActionTable_latestPayloadsByName$ = new WeakMap(), _ActionTable_latestPayloadsSnapshot$ = new WeakMap();
 /** Rx operator function */
 function actionRelatedToAction(id) {
     return function (up) {

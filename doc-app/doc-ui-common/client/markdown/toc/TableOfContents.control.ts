@@ -1,5 +1,6 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
+import {ReactorComposite} from '@wfh/reactivizer';
 import {createActionStreamWithEpic} from '../../reactive-base';
 import {useAppLayout} from '../../components/appLayout.state';
 import {getStore as getMarkdownStore} from '../markdownSlice';
@@ -21,7 +22,6 @@ export type TocUIState = {
 
 type TocUIActions = {
   setLayoutControl(slice: NonNullable<ReturnType<typeof useAppLayout>>): void;
-  changeFixPosition(fixed: boolean): void;
   setDataKey(key: string): void;
   expand(isExpand: boolean): void;
   clicked(titleHasg: string): void;
@@ -31,6 +31,12 @@ type TocUIActions = {
   unmount(): void;
 };
 
+type TocUIEvents = {
+  changeFixPosition(fixed: boolean): void;
+};
+
+const tocInputTableFor = ['expand'] as const;
+
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   const state$ = new rx.BehaviorSubject<TocUIState>({
     expanded: false,
@@ -38,6 +44,13 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     positionFixed: false,
     itemByHash: new Map()
   });
+
+  const composite = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor>({
+    name: 'markdown-toc',
+    debug: true,
+    inputTableFor: tocInputTableFor
+  });
+  const {i, o} = composite;
 
   const ctl = createActionStreamWithEpic<TocUIActions>({debug: 'tocUiControl'});
   ctl.dispatcher.addEpic<TocUIActions>(tocUiControl => {
@@ -101,7 +114,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
           uiDirtyCheck({});
         })
       ),
-      pt.changeFixPosition.pipe(
+      o.pt.changeFixPosition.pipe(
         op.withLatestFrom(
           pt.onPlaceHolderRef.pipe(
             op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
@@ -110,7 +123,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
             op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
           )
         ),
-        op.map(([fixed, placeHolderRef, contentRef]) => {
+        op.map(([[, fixed], placeHolderRef, contentRef]) => {
           if (fixed) {
             const w = placeHolderRef.clientWidth + 'px';
             placeHolderRef.style.width = w;
@@ -132,7 +145,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
               return ref!.getBoundingClientRect().top <= desktopAppTitleBarHeight;
             }),
             op.distinctUntilChanged(),
-            op.map(fixed => dispatcher.changeFixPosition(fixed)),
+            op.map(fixed => o.dp.changeFixPosition(fixed)),
             op.ignoreElements()
           );
         }))
