@@ -25,6 +25,11 @@ class TestObject {
   }
 }
 
+type TestGroupBy = {
+  foobar1(key: string, v: number): void;
+  foobar2(key: string, v: string): void;
+};
+
 describe('reactivizer', () => {
   it('RxController should work with Typescript\'s type inference, and action table should work', () => {
     const ctl = new RxController<TestMessages>();
@@ -103,27 +108,27 @@ describe('reactivizer', () => {
     expect(testTarget.msg6.slice(1)).toEqual(['aaa', 2]);
   });
 
-  it('RxController createLatestPayloadsFor should work', async () => {
-    const tableForActions = ['msg2', 'msg1'] as const;
-    const ctl = new ReactorComposite<TestMessages, Record<string, never>, typeof tableForActions>({
-      name: 'tableSample',
-      inputTableFor: tableForActions
-    });
-    const l = ctl.inputTable.l;
-    ctl.i.dp.msg2('replay?');
+  it('RxController dispatchAndObserveRes', async () => {
+    const c = new RxController<TestMessages>();
 
-    let actual = await rx.firstValueFrom(l.msg2.pipe(
-      rx.map(([, v]) => v)
-    ));
-    expect(actual).toBe('replay?');
+    c.at.msg3.pipe(
+      rx.map(action => expect(action.p[0]).toEqual('hello'))
+    ).subscribe();
 
-    ctl.r(l.msg2.pipe(
-      rx.map(([, v]) => actual = v)
-    ));
+    c.pt.msg3.pipe(
+      rx.map(([m, a, b]) => {
+        expect(a).toEqual('hello');
+        expect(b).toEqual(778);
+        expect(typeof m.i).toEqual('number');
+        c.dispatcher.msg2('Not for you');
+        c.dispatcherFor.msg2(m, 'world');
+      }),
+      rx.take(1)
+    ).subscribe();
 
-    ctl.i.dp.msg2('changed');
-    ctl.startAll();
-    expect(actual).toBe('changed');
+    const [, res] = await rx.firstValueFrom(c.do.msg3(c.at.msg2, 'hello', 778));
+    expect(res).toEqual('world');
+    console.log('perfect');
   });
 
   it('ReactorComposite reactivize should work', async () => {
@@ -210,30 +215,68 @@ describe('reactivizer', () => {
     ));
     await done;
     await replied;
-
   });
 
-  it('RxController dispatchAndObserveRes', async () => {
-    const c = new RxController<TestMessages>();
+  describe('RxController advanced features', () => {
+    it('RxController createLatestPayloadsFor should work', async () => {
+      const tableForActions = ['msg2', 'msg1'] as const;
+      const ctl = new ReactorComposite<TestMessages, Record<string, never>, typeof tableForActions>({
+        name: 'tableSample',
+        inputTableFor: tableForActions
+      });
+      const l = ctl.inputTable.l;
+      ctl.i.dp.msg2('replay?');
 
-    c.at.msg3.pipe(
-      rx.map(action => expect(action.p[0]).toEqual('hello'))
-    ).subscribe();
+      let actual = await rx.firstValueFrom(l.msg2.pipe(
+        rx.map(([, v]) => v)
+      ));
+      expect(actual).toBe('replay?');
 
-    c.pt.msg3.pipe(
-      rx.map(([m, a, b]) => {
-        expect(a).toEqual('hello');
-        expect(b).toEqual(778);
-        expect(typeof m.i).toEqual('number');
-        c.dispatcher.msg2('Not for you');
-        c.dispatcherFor.msg2(m, 'world');
-      }),
-      rx.take(1)
-    ).subscribe();
+      ctl.r(l.msg2.pipe(
+        rx.map(([, v]) => actual = v)
+      ));
 
-    const [, res] = await rx.firstValueFrom(c.do.msg3(c.at.msg2, 'hello', 778));
-    expect(res).toEqual('world');
-    console.log('perfect');
+      ctl.i.dp.msg2('changed');
+      ctl.startAll();
+      expect(actual).toBe('changed');
+    });
+    it('groupControllerBy', () => {
+      const comp = new RxController<TestGroupBy>();
+      const {dp} = comp;
+
+      const jestFn1 = jest.fn();
+      const jestFn2 = jest.fn();
+      const jestFn3 = jest.fn();
+      comp.groupControllerBy(act => act.p[0]).pipe(
+        rx.mergeMap(ctl => {
+          jestFn3(ctl);
+          return rx.merge(
+            ctl.pt.foobar1.pipe(
+              rx.tap(([, k, v]) => jestFn1(ctl.key, k, v))
+            ),
+            ctl.pt.foobar2.pipe(
+              rx.tap(([, k, v]) => jestFn2(ctl.key, k, v))
+            )
+          );
+        })
+      ).subscribe();
+      dp.foobar1('aaa', 1);
+      dp.foobar2('aaa', 'x');
+      dp.foobar1('bbb', 2);
+      dp.foobar1('aaa', 3);
+      dp.foobar2('bbb', 'y');
+      expect(jestFn3.mock.calls.length).toBe(2);
+      expect((jestFn3.mock.calls[0][0] as any).key).toBe('aaa');
+      expect((jestFn3.mock.calls[1][0] as any).key).toBe('bbb');
+
+      expect(jestFn1.mock.calls.length).toBe(3);
+      expect(jestFn2.mock.calls.length).toBe(2);
+      expect(jestFn1.mock.calls[0]).toEqual(['aaa', 'aaa', 1]);
+      expect(jestFn2.mock.calls[0]).toEqual(['aaa', 'aaa', 'x']);
+      expect(jestFn1.mock.calls[1]).toEqual(['bbb', 'bbb', 2]);
+      expect(jestFn1.mock.calls[2]).toEqual(['aaa', 'aaa', 3]);
+      expect(jestFn2.mock.calls[1]).toEqual(['bbb', 'bbb', 'y']);
+    });
   });
 });
 

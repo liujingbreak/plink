@@ -30,6 +30,12 @@ export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMe
 
 export type CoreOptions<K extends string[]> = {
   name?: string | boolean;
+  /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not 
+  * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
+  * otherwise, any actions that is dispatched to `actionUpstream` will not be observed and emitted by `action$`,
+  * Refer to [https://rxjs.dev/api/index/function/connectable](https://rxjs.dev/api/index/function/connectable)
+  * */
+  autoConnect?: boolean;
   debug?: boolean;
   debugExcludeTypes?: K;
   logStyle?: 'full' | 'noParam';
@@ -46,10 +52,17 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>>(a => a);
   typePrefix = '#' + SEQ++ + ' ';
   logPrefix: string;
-  action$: rx.Observable<Action<I, keyof I>>;
+  action$: rx.Connectable<Action<I, keyof I>>;
   debugExcludeSet: Set<string>;
+
+  /** Event when `action$` is first time subscribed */
+  actionSubscribed$: rx.Observable<void>;
+  /** Event when `action$` is entirely unsubscribed by all observers */
+  actionUnsubscribed$: rx.Observable<void>;
   protected dispatcher = {} as {[K in keyof I]: Dispatch<I[keyof I]>};
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[keyof I]>};
+  protected actionSubDispatcher = new rx.Subject<void>();
+  protected actionUnsubDispatcher = new rx.Subject<void>();
 
   constructor(public opts?: CoreOptions<(string & keyof I)[]>) {
     this.logPrefix = opts?.name ? `[${this.typePrefix}${opts.name}] ` : this.typePrefix;
@@ -79,16 +92,26 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
                 // eslint-disable-next-line no-console
                 console.log( this.logPrefix + 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
               }
-            }),
-        rx.share()
+            })
       )
       : this.actionUpstream;
 
-    this.action$ = this.interceptor$.pipe(
+    this.action$ = rx.connectable(rx.defer(() => {
+      this.actionSubDispatcher.next();
+      return this.interceptor$;
+    }).pipe(
       rx.switchMap(interceptor => interceptor ?
-        debuggableAction$.pipe(interceptor, rx.share()) :
-        debuggableAction$)
-    );
+        debuggableAction$.pipe(interceptor) :
+        debuggableAction$),
+      rx.finalize(() => {
+        this.actionUnsubDispatcher.next();
+      })
+    ));
+    if (opts?.autoConnect == null || opts?.autoConnect) {
+      this.action$.connect();
+    }
+    this.actionSubscribed$ = this.actionSubDispatcher.asObservable();
+    this.actionUnsubscribed$ = this.actionUnsubDispatcher.asObservable();
   }
 
   createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>) {

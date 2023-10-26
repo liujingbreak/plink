@@ -32,6 +32,9 @@ type TocUIActions = {
 
 type TocUIEvents = {
   changeFixPosition(fixed: boolean): void;
+  loadItem(toc: ItemState): void;
+  loadRawItem(toc: TOC): void;
+  tableByHash(): void;
 };
 
 const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef'] as const;
@@ -50,9 +53,35 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     inputTableFor: tocInputTableFor,
     outputTableFor: tocOutputTableFor
   });
-  const {i, o} = composite;
-  i.dp.expand(false);
+  const {i, o, r} = composite;
   o.dp.changeFixPosition(false);
+
+  r('when load dataByKey, loadRowItem', i.pt.setDataKey.pipe(
+    rx.switchMap(([m, key]) => getMarkdownStore().pipe(
+      op.map(s => s.contents[key]),
+      op.distinctUntilChanged(),
+      op.filter(data => data != null),
+      op.take(1),
+      op.map(data => {
+        for (const toc of data.toc) {
+          const multipleTopLevelTitles = data.toc.length > 1;
+          // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
+          if (multipleTopLevelTitles)
+            o.dpf.loadRawItem(m, toc);
+        }
+      })
+    ))
+  ));
+
+  r('Recursively loadRowItem, loadItem', o.pt.loadRawItem.pipe(
+    rx.tap(([m, toc]) => {
+      o.dpf.loadItem(m, {...toc, children: toc.children?.map(c => c.id)});
+      if (toc.children) {
+        for (const chr of toc.children)
+          o.dpf.loadRawItem(m, chr);
+      }
+    })
+  ));
 
   const ctl = createActionStreamWithEpic<TocUIActions>({debug: 'tocUiControl'});
   ctl.dispatcher.addEpic<TocUIActions>(tocUiControl => {
