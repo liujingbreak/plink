@@ -14,7 +14,6 @@ export type ItemState = {
 } & Omit<TOC, 'children'>;
 
 export type TocUIState = {
-  expanded: boolean;
   topLevelItems: string[];
   positionFixed: boolean;
   itemByHash?: Map<string, ItemState>;
@@ -23,7 +22,7 @@ export type TocUIState = {
 type TocUIActions = {
   setLayoutControl(slice: NonNullable<ReturnType<typeof useAppLayout>>): void;
   setDataKey(key: string): void;
-  expand(isExpand: boolean): void;
+  expand(itemKey: string, isExpand: boolean): void;
   clicked(titleHasg: string): void;
   onPlaceHolderRef(ref: HTMLDivElement | null): void;
   onContentDomRef(ref: HTMLDivElement | null): void;
@@ -35,22 +34,25 @@ type TocUIEvents = {
   changeFixPosition(fixed: boolean): void;
 };
 
-const tocInputTableFor = ['expand'] as const;
+const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef'] as const;
+const tocOutputTableFor = ['changeFixPosition'] as const;
 
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   const state$ = new rx.BehaviorSubject<TocUIState>({
-    expanded: false,
     topLevelItems: [],
     positionFixed: false,
     itemByHash: new Map()
   });
 
-  const composite = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor>({
+  const composite = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
     name: 'markdown-toc',
     debug: true,
-    inputTableFor: tocInputTableFor
+    inputTableFor: tocInputTableFor,
+    outputTableFor: tocOutputTableFor
   });
   const {i, o} = composite;
+  i.dp.expand(false);
+  o.dp.changeFixPosition(false);
 
   const ctl = createActionStreamWithEpic<TocUIActions>({debug: 'tocUiControl'});
   ctl.dispatcher.addEpic<TocUIActions>(tocUiControl => {
