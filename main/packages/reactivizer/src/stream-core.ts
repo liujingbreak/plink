@@ -48,11 +48,11 @@ let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 export const has = Object.prototype.hasOwnProperty;
 
 export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
-  actionUpstream = new rx.Subject<Action<I, keyof I>>();
-  interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>>(a => a);
+  actionUpstream = new rx.Subject<Action<I>>();
+  interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>>(a => a);
   typePrefix = '#' + SEQ++ + ' ';
   logPrefix: string;
-  action$: rx.Connectable<Action<I, keyof I>>;
+  action$: rx.Observable<Action<I>>;
   debugExcludeSet: Set<string>;
 
   /** Event when `action$` is first time subscribed */
@@ -63,6 +63,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[keyof I]>};
   protected actionSubDispatcher = new rx.Subject<void>();
   protected actionUnsubDispatcher = new rx.Subject<void>();
+  private connectableAction$: rx.Connectable<Action<I>>;
 
   constructor(public opts?: CoreOptions<(string & keyof I)[]>) {
     this.logPrefix = opts?.name ? `[${this.typePrefix}${opts.name}] ` : this.typePrefix;
@@ -96,19 +97,30 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
       )
       : this.actionUpstream;
 
-    this.action$ = rx.connectable(rx.defer(() => {
-      this.actionSubDispatcher.next();
-      return this.interceptor$;
-    }).pipe(
+    this.connectableAction$ = rx.connectable(this.interceptor$.pipe(
       rx.switchMap(interceptor => interceptor ?
         debuggableAction$.pipe(interceptor) :
-        debuggableAction$),
+        debuggableAction$)
+    ));
+
+    this.action$ = rx.merge(
+      // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
+      // subscribed, since it will be subscribed along together with "connectableAction$"
+      this.connectableAction$,
+      new rx.Observable<never>(sub => {
+        // Notify that action$ is subscribed
+        this.actionSubDispatcher.next();
+        sub.complete();
+      })
+    ).pipe(
       rx.finalize(() => {
         this.actionUnsubDispatcher.next();
-      })
-    ));
+      }),
+      rx.share()
+    );
+
     if (opts?.autoConnect == null || opts?.autoConnect) {
-      this.action$.connect();
+      this.connectableAction$.connect();
     }
     this.actionSubscribed$ = this.actionSubDispatcher.asObservable();
     this.actionUnsubscribed$ = this.actionUnsubDispatcher.asObservable();
@@ -152,8 +164,8 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
 
   updateInterceptor(
     factory: (
-      previous: (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>
-    ) => (up: rx.Observable<Action<I, keyof I>>) => rx.Observable<Action<I, keyof I>>
+      previous: (up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>
+    ) => (up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>
   ) {
     const newInterceptor = factory(this.interceptor$.getValue());
     this.interceptor$.next(newInterceptor);
@@ -178,6 +190,9 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
       );
     };
   }
+  connect() {
+    this.connectableAction$.connect();
+  }
 }
 
 /**
@@ -188,7 +203,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
  */
 // eslint-disable-next-line space-before-function-paren
 export function nameOfAction<I extends ActionFunctions>(
-  action: Pick<Action<I, keyof I>, 't'>
+  action: Pick<Action<I>, 't'>
 ) {
   const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
   return (match ? match[1] : action.t) as keyof I & string;

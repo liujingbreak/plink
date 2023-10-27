@@ -32,13 +32,16 @@ type TocUIActions = {
 
 type TocUIEvents = {
   changeFixPosition(fixed: boolean): void;
-  loadItem(toc: ItemState): void;
+
+  topLevelItemIdsUpdated(ids: string[]): void;
+  itemUpdated(toc: ItemState): void;
+
   loadRawItem(toc: TOC): void;
   tableByHash(): void;
 };
 
 const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef'] as const;
-const tocOutputTableFor = ['changeFixPosition'] as const;
+const tocOutputTableFor = ['changeFixPosition', 'itemUpdated', 'topLevelItemIdsUpdated'] as const;
 
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   const state$ = new rx.BehaviorSubject<TocUIState>({
@@ -69,13 +72,14 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
           if (multipleTopLevelTitles)
             o.dpf.loadRawItem(m, toc);
         }
+        o.dpf.topLevelItemIdsUpdated(m, data.toc.map(t => t.id));
       })
     ))
   ));
 
-  r('Recursively loadRowItem, loadItem', o.pt.loadRawItem.pipe(
+  r('Recursively loadRowItem, itemUpdated', o.pt.loadRawItem.pipe(
     rx.tap(([m, toc]) => {
-      o.dpf.loadItem(m, {...toc, children: toc.children?.map(c => c.id)});
+      o.dpf.itemUpdated(m, {...toc, children: toc.children?.map(c => c.id)});
       if (toc.children) {
         for (const chr of toc.children)
           o.dpf.loadRawItem(m, chr);

@@ -128,21 +128,41 @@ export class RxController<I extends ActionFunctions> {
   }
 
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-  groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<(string & keyof I)[]>) {
+  groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<(string & keyof I)[]>):
+  rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]> {
     return this.core.action$.pipe(
       rx.groupBy(keySelector),
       rx.map(grouped => {
         const groupedRxCtl = new GroupedRxController<I, K>(grouped.key, {...(groupedCtlOptionsFn ? groupedCtlOptionsFn(grouped.key) : {}), autoConnect: false});
 
-        groupedRxCtl.core.actionSubscribed$.pipe(
-          rx.mergeMap(() => {
-            return grouped.pipe(rx.tap(groupedRxCtl.core.actionUpstream));
-          }),
+        // connect to source actionUpstream only when it is subscribed
+        rx.concat(
+          groupedRxCtl.core.actionSubscribed$.pipe(
+            rx.tap(() => {
+              groupedRxCtl.connect();
+            }),
+            rx.take(1)
+          ),
+          // Then dispatch source action to grouped controller
+          grouped.pipe(
+            rx.tap(action => deserializeAction(action, groupedRxCtl))
+          )
+        ).pipe(
           rx.takeUntil(groupedRxCtl.core.actionUnsubscribed$)
         ).subscribe();
 
         return groupedRxCtl;
-      })
+      }),
+      rx.scan<
+      GroupedRxController<I, K>,
+      [newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>],
+      readonly [null, Map<K, GroupedRxController<I, K>>]
+      >((acc, el) => {
+        const ret = acc as unknown as [GroupedRxController<I, K>, Map<K, GroupedRxController<I, K>>];
+        ret[0] = el;
+        ret[1].set(el.key, el);
+        return ret;
+      }, [null, new Map<K, GroupedRxController<I, K>>()] as const)
     );
   }
 
@@ -156,7 +176,7 @@ export class RxController<I extends ActionFunctions> {
    * Refer to [connectable](https://rxjs.dev/api/index/function/connectable)
    */
   connect() {
-    this.core.action$.connect();
+    this.core.connect();
   }
 }
 
@@ -166,6 +186,19 @@ export class GroupedRxController<I extends ActionFunctions, K> extends RxControl
   }
 }
 
+/**
+ * If we consider ActionTable a 2-dimentional data structure, this is the infer type of it.
+ * Each row is latest action payload of an action type (or name),
+ * each column is a element of payload content array.
+ *
+ * If you use ActionTable as a frontend UI state (like for a UI template), this infer type
+ * defines exactly data structure of it.
+ * 
+ */
+export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
+  [P in KS[number]]: InferMapParam<I, P>
+};
+
 export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
   actionNames: KS;
 
@@ -173,7 +206,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
   /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
   l: {[K in KS[number]]: PayloadStream<I, K>};
 
-  get latestPayloadsByName$(): rx.Observable<{[P in KS[number]]: InferMapParam<I, P>}> {
+  get latestPayloadsByName$(): rx.Observable<ActionTableDataType<I, KS>> {
     if (this.#latestPayloadsByName$)
       return this.#latestPayloadsByName$;
 
@@ -315,7 +348,8 @@ export function serializeAction<I extends ActionFunctions = any, K extends keyof
 }
 
 /**
- * Create a new Action with same "i" and "r" properties and dispatched to RxController
+ * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,
+ * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
 export function deserializeAction<I extends ActionFunctions>(actionObj: any, toController: RxController<I>) {
