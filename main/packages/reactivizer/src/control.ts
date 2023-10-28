@@ -196,7 +196,7 @@ export class GroupedRxController<I extends ActionFunctions, K> extends RxControl
  * 
  */
 export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
-  [P in KS[number]]: InferMapParam<I, P>
+  [P in KS[number]]: InferPayload<I[P]>
 };
 
 export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
@@ -206,18 +206,18 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
   /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
   l: {[K in KS[number]]: PayloadStream<I, K>};
 
-  get latestPayloadsByName$(): rx.Observable<ActionTableDataType<I, KS>> {
+  get dataChange$(): rx.Observable<ActionTableDataType<I, KS>> {
     if (this.#latestPayloadsByName$)
       return this.#latestPayloadsByName$;
 
     this.#latestPayloadsByName$ = this.actionNamesAdded$.pipe(
       rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
       rx.map(() => {
-        const paramByName = {} as {[P in KS[number]]: InferMapParam<I, P>};
-        for (const [k, v] of this.actionSnapshot.entries()) {
-          paramByName[k] = v;
+        const payloadByName = {} as {[P in KS[number]]: InferPayload<I[P]>};
+        for (const [k, [, ...v]] of this.actionSnapshot.entries()) {
+          payloadByName[k] = v;
         }
-        return paramByName;
+        return payloadByName;
       }),
       rx.share()
     );
@@ -238,7 +238,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
   actionSnapshot = new Map<keyof I, InferMapParam<I, keyof I>>();
 
   // private
-  #latestPayloadsByName$: rx.Observable<{[P in KS[number]]: InferMapParam<I, P>}> | undefined;
+  #latestPayloadsByName$: rx.Observable<{[P in KS[number]]: InferPayload<I[P]>}> | undefined;
   #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
   private actionNamesAdded$ = new rx.ReplaySubject<ReadonlyArray<keyof I>>(1);
 

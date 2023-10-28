@@ -76,28 +76,56 @@ export class RxController {
         });
         this.updateInterceptor = core.updateInterceptor;
     }
-    /** create state of actions, you can consider it like a map of BehaviorSubject of actions */
-    // withTableFor<MS extends Array<keyof I>>(...actionNames: MS) {
-    //   if (this.table == null)
-    //     this.table = new ActionTable(this, actionNames) as TB;
-    //   else
-    //     this.table.addActions(...actionNames);
-    //   return this as RxController<I, (KS[number] | MS[number])[], ActionTable<I, (KS[number] | MS[number])[]>>;
-    // }
     createAction(type, ...params) {
         return this.core.createAction(type, params);
     }
+    /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
+    groupControllerBy(keySelector, groupedCtlOptionsFn) {
+        return this.core.action$.pipe(rx.groupBy(keySelector), rx.map(grouped => {
+            const groupedRxCtl = new GroupedRxController(grouped.key, Object.assign(Object.assign({}, (groupedCtlOptionsFn ? groupedCtlOptionsFn(grouped.key) : {})), { autoConnect: false }));
+            // connect to source actionUpstream only when it is subscribed
+            rx.concat(groupedRxCtl.core.actionSubscribed$.pipe(rx.tap(() => {
+                groupedRxCtl.connect();
+            }), rx.take(1)), 
+            // Then dispatch source action to grouped controller
+            grouped.pipe(rx.tap(action => deserializeAction(action, groupedRxCtl)))).pipe(rx.takeUntil(groupedRxCtl.core.actionUnsubscribed$)).subscribe();
+            return groupedRxCtl;
+        }), rx.scan((acc, el) => {
+            const ret = acc;
+            ret[0] = el;
+            ret[1].set(el.key, el);
+            return ret;
+        }, [null, new Map()]));
+    }
+    /**
+     * Delegate to `this.core.action$.connect()`
+     * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+     *
+     * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
+     * `undefined` or `true`, in that case you don't need to call this method manually.
+     *
+     * Refer to [connectable](https://rxjs.dev/api/index/function/connectable)
+     */
+    connect() {
+        this.core.connect();
+    }
+}
+export class GroupedRxController extends RxController {
+    constructor(key, opts) {
+        super(opts);
+        this.key = key;
+    }
 }
 export class ActionTable {
-    get latestPayloadsByName$() {
+    get dataChange$() {
         if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f"))
             return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
         __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => {
-            const paramByName = {};
-            for (const [k, v] of this.actionSnapshot.entries()) {
-                paramByName[k] = v;
+            const payloadByName = {};
+            for (const [k, [, ...v]] of this.actionSnapshot.entries()) {
+                payloadByName[k] = v;
             }
-            return paramByName;
+            return payloadByName;
         }), rx.share()), "f");
         return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
     }
@@ -109,11 +137,12 @@ export class ActionTable {
     }
     constructor(streamCtl, actionNames) {
         this.streamCtl = streamCtl;
-        this.actionNamesAdded$ = new rx.ReplaySubject(1);
         this.latestPayloads = {};
+        this.actionSnapshot = new Map();
+        // private
         _ActionTable_latestPayloadsByName$.set(this, void 0);
         _ActionTable_latestPayloadsSnapshot$.set(this, void 0);
-        this.actionSnapshot = new Map();
+        this.actionNamesAdded$ = new rx.ReplaySubject(1);
         this.actionNames = [];
         this.l = this.latestPayloads;
         this.addActions(...actionNames);
@@ -193,7 +222,8 @@ export function serializeAction(action) {
     return a;
 }
 /**
- * Create a new Action with same "i" and "r" properties and dispatched to RxController
+ * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,
+ * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
 export function deserializeAction(actionObj, toController) {

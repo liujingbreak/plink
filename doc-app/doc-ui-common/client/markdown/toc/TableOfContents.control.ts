@@ -1,7 +1,6 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {ReactorComposite} from '@wfh/reactivizer';
-import {createActionStreamWithEpic} from '../../reactive-base';
+import {ReactorComposite, ActionTableDataType} from '@wfh/reactivizer';
 import {useAppLayout} from '../../components/appLayout.state';
 import {getStore as getMarkdownStore} from '../markdownSlice';
 import {TOC} from '../../../isom/md-types';
@@ -22,8 +21,8 @@ export type TocUIState = {
 type TocUIActions = {
   setLayoutControl(slice: NonNullable<ReturnType<typeof useAppLayout>>): void;
   setDataKey(key: string): void;
-  expand(itemKey: string, isExpand: boolean): void;
-  clicked(titleHasg: string): void;
+  expand(id: string, isExpand: boolean): void;
+  clicked(id: string): void;
   onPlaceHolderRef(ref: HTMLDivElement | null): void;
   onContentDomRef(ref: HTMLDivElement | null): void;
   onContentScroll(): void;
@@ -37,45 +36,22 @@ type TocUIEvents = {
   itemUpdated(toc: ItemState): void;
 
   loadRawItem(toc: TOC): void;
-  tableByHash(): void;
+  itemById(map: Map<string, ItemState>): void;
 };
 
 const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef'] as const;
-const tocOutputTableFor = ['changeFixPosition', 'itemUpdated', 'topLevelItemIdsUpdated'] as const;
+const tocOutputTableFor = ['changeFixPosition', 'topLevelItemIdsUpdated', 'itemById'] as const;
 
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
-  const state$ = new rx.BehaviorSubject<TocUIState>({
-    topLevelItems: [],
-    positionFixed: false,
-    itemByHash: new Map()
-  });
-
   const composite = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
     name: 'markdown-toc',
-    debug: true,
+    debug: process.env.NODE_ENV === 'development',
     inputTableFor: tocInputTableFor,
     outputTableFor: tocOutputTableFor
   });
-  const {i, o, r} = composite;
+  const {i, o, r, outputTable} = composite;
   o.dp.changeFixPosition(false);
-
-  r('when load dataByKey, loadRowItem', i.pt.setDataKey.pipe(
-    rx.switchMap(([m, key]) => getMarkdownStore().pipe(
-      op.map(s => s.contents[key]),
-      op.distinctUntilChanged(),
-      op.filter(data => data != null),
-      op.take(1),
-      op.map(data => {
-        for (const toc of data.toc) {
-          const multipleTopLevelTitles = data.toc.length > 1;
-          // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
-          if (multipleTopLevelTitles)
-            o.dpf.loadRawItem(m, toc);
-        }
-        o.dpf.topLevelItemIdsUpdated(m, data.toc.map(t => t.id));
-      })
-    ))
-  ));
+  o.dp.itemById(new Map());
 
   r('Recursively loadRowItem, itemUpdated', o.pt.loadRawItem.pipe(
     rx.tap(([m, toc]) => {
@@ -87,106 +63,78 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  const ctl = createActionStreamWithEpic<TocUIActions>({debug: 'tocUiControl'});
-  ctl.dispatcher.addEpic<TocUIActions>(tocUiControl => {
-    // const rPayloads = tocUiControl.createLatestPayloads('onPlaceHolderRef', 'onContentDomRef');
-    const {payloadByType: pt, dispatcher} = tocUiControl;
+  r('when load dataByKey, loadRowItem', i.pt.setDataKey.pipe(
+    rx.switchMap(([m, key]) => getMarkdownStore().pipe(
+      op.map(s => s.contents[key]),
+      op.distinctUntilChanged(),
+      op.filter(data => data != null),
+      op.take(1),
+      op.map(data => {
+        if (data.toc.length === 0) {
+          o.dpf.topLevelItemIdsUpdated(m, []);
+          return;
+        }
+        // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
+        const items = data.toc.length > 1 ? data.toc : data.toc[0]?.children ?? [];
+        for (const toc of items) {
+          o.dpf.loadRawItem(m, toc);
+        }
+        o.dpf.topLevelItemIdsUpdated(m, items.map(t => t.id));
+      })
+    ))
+  ));
 
-    return rx.merge(
-      pt.setDataKey.pipe(
-        op.switchMap(key => {
-          const toc$ = new rx.Subject<[toc: TOC, isTop: boolean]>();
-          const itemByHash = new Map<string, ItemState>();
+  r('set map for itemState', o.pt.itemUpdated.pipe(
+    rx.withLatestFrom(outputTable.l.itemById),
+    rx.tap(([[, it], [, map]]) => {
+      map.set(it.id, it);
+    })
+  ));
 
-          return rx.merge(
-            toc$.pipe(
-              op.observeOn(rx.queueScheduler),
-              op.map(([toc, isTop]) => {
-                if (toc.children) {
-                // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
-                  toc.children.forEach(chr => toc$.next([chr, !isTop && toc.level === 0]));
-                }
-                const tocState = {...toc} as ItemState;
-                const childToc = (tocState as TOC).children;
-                if (childToc) {
-                  delete tocState.children;
-                  tocState.children = childToc.map(toc => toc.id);
-                }
-                itemByHash.set(toc.id, tocState);
-                if (isTop) {
-                  state$.getValue().topLevelItems.push(toc.id);
-                }
-              })
-            ),
-            getMarkdownStore().pipe(
-              op.map(s => s.contents[key]),
-              op.distinctUntilChanged(),
-              op.filter(data => data != null),
-              op.take(1),
-              op.map(data => {
-                const topLevelItems = [] as string[];
-                state$.getValue().topLevelItems = topLevelItems;
-                for (const toc of data.toc) {
-                  const multipleTopLevelTitles = data.toc.length > 1;
-                  // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
-                  toc$.next([toc, multipleTopLevelTitles]);
-                }
-                toc$.complete();
-                state$.next({...state$.getValue(), itemByHash});
-              })
-            )
-          );
-        })
+  r('When scrolling…dispatch changeFixPosition', i.pt.setLayoutControl.pipe(
+    rx.combineLatestWith(composite.inputTable.l.onPlaceHolderRef.pipe(
+      rx.filter(([, ref]) => ref != null)
+    )),
+    rx.switchMap(([[, slice], [, ref]]) => slice.action$ByType._onScroll.pipe(
+      rx.map(() => ref!)
+    )),
+    rx.map(ref => {
+      return ref.getBoundingClientRect().top <= desktopAppTitleBarHeight;
+    }),
+    op.distinctUntilChanged(),
+    op.map(fixed => o.dp.changeFixPosition(fixed))
+  ));
+
+  r('When position changed', o.pt.changeFixPosition.pipe(
+    op.withLatestFrom(
+      i.pt.onPlaceHolderRef.pipe(
+        rx.map(([, ref]) => ref),
+        op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
       ),
-      pt.expand.pipe(
-        op.map(payload => {
-          const s = state$.getValue();
-          state$.next({...s, expanded: payload});
-        })
-      ),
-      state$.pipe(
-        op.map(s => {
-          uiDirtyCheck({});
-        })
-      ),
-      o.pt.changeFixPosition.pipe(
-        op.withLatestFrom(
-          pt.onPlaceHolderRef.pipe(
-            op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
-          ),
-          pt.onContentDomRef.pipe(
-            op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
-          )
-        ),
-        op.map(([[, fixed], placeHolderRef, contentRef]) => {
-          if (fixed) {
-            const w = placeHolderRef.clientWidth + 'px';
-            placeHolderRef.style.width = w;
-            contentRef.style.width = w;
-          } else {
-            placeHolderRef.style.width = '';
-            contentRef.style.width = '';
-          }
-          state$.next({...state$.getValue(), positionFixed: fixed});
-          uiDirtyCheck({});
-        })
-      ),
-      pt.setLayoutControl.pipe(
-        op.map(slice => slice.addEpic(slice => {
-          return () => slice.action$ByType._onScroll.pipe(
-            op.withLatestFrom(pt.onPlaceHolderRef),
-            op.filter(([, ref]) => ref != null),
-            op.map(([, ref]) => {
-              return ref!.getBoundingClientRect().top <= desktopAppTitleBarHeight;
-            }),
-            op.distinctUntilChanged(),
-            op.map(fixed => o.dp.changeFixPosition(fixed)),
-            op.ignoreElements()
-          );
-        }))
+      i.pt.onContentDomRef.pipe(
+        rx.map(([, ref]) => ref),
+        op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
       )
-    );
-  });
+    ),
+    op.map(([[, fixed], placeHolderRef, contentRef]) => {
+      if (fixed) {
+        const w = placeHolderRef.clientWidth + 'px';
+        placeHolderRef.style.width = w;
+        contentRef.style.width = w;
+      } else {
+        placeHolderRef.style.width = '';
+        contentRef.style.width = '';
+      }
+    })
+  ));
 
-  return [ctl, state$] as const;
+  let state: ActionTableDataType<TocUIEvents, typeof tocOutputTableFor> | undefined;
+  r('update state', composite.outputTable.dataChange$.pipe(
+    rx.tap(obj => {
+      state = obj;
+      uiDirtyCheck(state);
+    })
+  ));
+
+  return [i, () => state] as const;
 }

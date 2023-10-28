@@ -50,24 +50,49 @@ export declare class RxController<I extends ActionFunctions> {
     };
     updateInterceptor: ControllerCore<I>['updateInterceptor'];
     constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
-    /** create state of actions, you can consider it like a map of BehaviorSubject of actions */
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;
+    /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
+    groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<(string & keyof I)[]>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
+    /**
+     * Delegate to `this.core.action$.connect()`
+     * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+     *
+     * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
+     * `undefined` or `true`, in that case you don't need to call this method manually.
+     *
+     * Refer to [connectable](https://rxjs.dev/api/index/function/connectable)
+     */
+    connect(): void;
 }
+export declare class GroupedRxController<I extends ActionFunctions, K> extends RxController<I> {
+    key: K;
+    constructor(key: K, opts?: CoreOptions<(string & keyof I)[]>);
+}
+/**
+ * If we consider ActionTable a 2-dimentional data structure, this is the infer type of it.
+ * Each row is latest action payload of an action type (or name),
+ * each column is a element of payload content array.
+ *
+ * If you use ActionTable as a frontend UI state (like for a UI template), this infer type
+ * defines exactly data structure of it.
+ *
+ */
+export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
+    [P in KS[number]]: InferPayload<I[P]>;
+};
 export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
     #private;
     private streamCtl;
     actionNames: KS;
-    private actionNamesAdded$;
     latestPayloads: { [K in KS[number]]: PayloadStream<I, K>; };
     /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
     l: {
         [K in KS[number]]: PayloadStream<I, K>;
     };
-    get latestPayloadsByName$(): rx.Observable<{
-        [P in KS[number]]: InferMapParam<I, P>;
-    }>;
+    get dataChange$(): rx.Observable<ActionTableDataType<I, KS>>;
     get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>>;
     actionSnapshot: Map<keyof I, [ActionMeta, ...InferPayload<I[keyof I]>]>;
+    private actionNamesAdded$;
     constructor(streamCtl: RxController<I>, actionNames: KS);
     addActions<M extends Array<keyof I>>(...actionNames: M): ActionTable<I, (KS[number] | M[number])[]>;
     private onAddActions;
@@ -85,7 +110,8 @@ export declare function serializeAction<I extends ActionFunctions = any, K exten
     r?: number | number[] | undefined;
 };
 /**
- * Create a new Action with same "i" and "r" properties and dispatched to RxController
+ * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,
+ * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
 export declare function deserializeAction<I extends ActionFunctions>(actionObj: any, toController: RxController<I>): Action<I, keyof I>;

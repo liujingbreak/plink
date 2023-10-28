@@ -50,7 +50,7 @@ describe('reactivizer', () => {
       const {dp: dp2} = ctl2;
 
       const combinedLatestCb = jest.fn();
-      table.latestPayloadsByName$.pipe(
+      table.dataChange$.pipe(
         rx.tap(map => {
           combinedLatestCb(map);
         })
@@ -98,15 +98,15 @@ describe('reactivizer', () => {
 
       let testTarget = combinedLatestCb.mock.calls[0][0] as Record<string, any>;
       console.log('calls:', testTarget);
-      expect(testTarget.msg5.slice(1)).toEqual(['x']);
+      expect(testTarget.msg5).toEqual(['x']);
       expect(testTarget.msg6).toEqual(undefined);
 
       testTarget = combinedLatestCb.mock.calls[1][0] as Record<string, any>;
-      expect(testTarget.msg5.slice(1)).toEqual(['x']);
-      expect(testTarget.msg6.slice(1)).toEqual(['aaa', 2]);
+      expect(testTarget.msg5).toEqual(['x']);
+      expect(testTarget.msg6).toEqual(['aaa', 2]);
       testTarget = combinedLatestCb.mock.calls[2][0] as Record<string, any>;
-      expect(testTarget.msg5.slice(1)).toEqual(['y']);
-      expect(testTarget.msg6.slice(1)).toEqual(['aaa', 2]);
+      expect(testTarget.msg5).toEqual(['y']);
+      expect(testTarget.msg6).toEqual(['aaa', 2]);
     });
 
     it('RxController dispatchAndObserveRes', async () => {

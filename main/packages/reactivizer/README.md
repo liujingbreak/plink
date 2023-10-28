@@ -79,8 +79,8 @@ export function createSample() {
   ));
 
   addReactor('answer questions', input.payloadByType.askQuestion.pipe(
-    // retrieve latest value of stateful message
-    rx.withLatestFrom(inputTable.l.setLanguage),
+    // retrieve latest value of stateful message "setLanguage"
+    rx.combineLatestWith(inputTable.l.setLanguage.pipe(rx.take(1)),
     // Choose to ignore last question
     rx.switchMap(async ([[meta1, topic, detail], [meta2, lang]]) => {
       const answer = await someAsyncQuery(lang, detail);
