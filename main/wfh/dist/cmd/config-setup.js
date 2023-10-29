@@ -34,6 +34,7 @@ const log4js_1 = __importDefault(require("log4js"));
 const lodash_1 = __importDefault(require("lodash"));
 const packageUtils = __importStar(require("../package-utils"));
 const config_1 = __importDefault(require("../config"));
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const jsYaml = require('js-yaml');
 const log = log4js_1.default.getLogger('plink.cliAdvanced');
 function addupConfigs(onEachYaml) {
@@ -71,9 +72,11 @@ function addupConfigs(onEachYaml) {
         trackOutputPath[outputPath] = name;
         componentConfigs.outputPathMap[name] = outputPath;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const superConfig = require('../../config.yaml');
     deeplyMergeJson(superConfig, componentConfigs);
     if (onEachYaml) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         onEachYaml('config.yaml', jsYaml.safeDump(superConfig));
     }
     // var res = {'config.yaml': jsYaml.safeDump(superConfig)};

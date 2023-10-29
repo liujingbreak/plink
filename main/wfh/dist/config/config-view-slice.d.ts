@@ -1,7 +1,7 @@
-import * as rx from 'rxjs';
 import { PayloadAction } from '@reduxjs/toolkit';
-import { PropertyMeta } from './config.types';
+import * as rx from 'rxjs';
 import { PackageInfo } from '../package-mgr';
+import { PropertyMeta } from './config.types';
 export interface ConfigViewState {
     /** key is packageName + ',' + propertyName */
     propertyByName: Map<string, PropertyMeta>;

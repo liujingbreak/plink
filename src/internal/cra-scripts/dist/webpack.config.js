@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
+///<reference path="./module-declare.d.ts" />
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 const path_1 = tslib_1.__importDefault(require("path"));
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const splitChunks_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/splitChunks"));
 const webpack_stats_plugin_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/webpack-stats-plugin"));
+const webpack_bundle_analyzer_1 = require("webpack-bundle-analyzer");
 const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const plink_1 = require("@wfh/plink");
@@ -104,7 +106,7 @@ function default_1(webpackEnv) {
         config.plugins.push(new webpack_stats_plugin_1.default());
     addProgressPlugin(config, (...s) => void printMsg(...s));
     if (config.infrastructureLogging)
-        config.infrastructureLogging.level = 'log';
+        config.infrastructureLogging.level = 'warn';
     if (cmdOption.buildType === 'lib') {
         (0, webpack_lib_1.default)(cmdOption.buildTargets[0].pkg, config);
     }
@@ -129,7 +131,11 @@ function default_1(webpackEnv) {
         const htmlWebpackPluginConstrutor = getPluginConstructor('html-webpack-plugin'); // require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
         const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
         htmlWebpackPluginInstance.userOptions.templateParameters = {
-            _config: (0, plink_1.config)()
+            _config: (0, plink_1.config)(),
+            _dllJsFiles: cmdOption.refDllManifest ? cmdOption.refDllManifest.map(file => {
+                const m = /([^/\\.]+)[^/\\]*?$/.exec(file);
+                return m ? `dll/${m[1]}/js/${m[1]}.js` : false;
+            }).filter(v => v) : []
         };
         (0, splitChunks_1.default)(config, (mod) => {
             var _a;
@@ -140,7 +146,13 @@ function default_1(webpackEnv) {
             return pkg == null || (pkg.json.dr == null && pkg.json.plink == null);
         });
     }
-    (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin());
+    const now = new Date();
+    const timeStr = now.getDate() + '_' + now.getHours() + '-' + now.getMinutes() + '-' + now.getSeconds() + '-' + now.getMilliseconds();
+    (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin(), new webpack_bundle_analyzer_1.BundleAnalyzerPlugin({
+        analyzerMode: 'disabled',
+        generateStatsFile: true,
+        statsFilename: path_1.default.join(plink_1.plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
+    }));
     function getPluginConstructor(pluginPkgName) {
         return require(resolve_1.default.sync(pluginPkgName, { basedir: reactScriptsInstalledDir }));
     }

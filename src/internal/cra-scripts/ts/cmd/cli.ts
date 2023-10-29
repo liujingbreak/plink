@@ -62,6 +62,7 @@ const cli: CliExtension = (program) => {
     .argument('<url>', 'The URL')
     .description('Run react-dev-utils/openBrowser')
     .action(async url => {
+      plinkStoreDispatcher.changeActionOnExit('none');
       (await import('../cra-open-browser.cjs')).default.default(url);
     });
 
@@ -70,6 +71,8 @@ const cli: CliExtension = (program) => {
     .argument('[js-dir]', 'Normally this path should be <root-dir>dist/static/<output-path-basename>/static/js')
     .description('Run source-map-explorer')
     .action(async (outputPath: string) => {
+      plinkStoreDispatcher.changeActionOnExit('none');
+
       const smePkgDir = Path.dirname(require.resolve('source-map-explorer/package.json'));
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const smeBin = require(Path.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'] as string;
@@ -109,24 +112,27 @@ function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib
   const packageLocator = packageOfFileFactory();
   const cfg = config;
   const targetEntries = entries.map(entry => {
-    const pkg = [...findPackagesByNames([entry])][0];
-    if (pkg) {
-      if (pkg.json.plink || pkg.json.dr) {
-        // It is a Plink package
-        return {pkg};
-      } else {
-        // It is a 3rd-party package
-        return {file: entry};
-      }
-    } else {
-      const file = Path.resolve(entry);
-      const pkg = packageLocator.getPkgOfFile(file)?.orig;
-      if (pkg && (pkg.json.plink || pkg.json.dr)) {
-          return {pkg, file};
-      } else {
-        return {file};
+    const matchPkgName = /^((?:@[^./\\]+\/)?[^./\\]+)(?:[\\/](.*?))?$/.exec(entry);
+    if (matchPkgName) {
+      const pkg = [...findPackagesByNames([matchPkgName[1]])][0];
+      if (pkg) {
+        if (pkg.json.plink || pkg.json.dr) {
+          // It is a Plink package
+          return {pkg, file: matchPkgName[2] ? Path.resolve(pkg.realPath, matchPkgName[2]) : undefined};
+        } else {
+          // It is a 3rd-party package
+          return {file: entry};
+        }
       }
     }
+    const file = Path.resolve(entry);
+    const pkg = packageLocator.getPkgOfFile(file)?.orig;
+    if (pkg && (pkg.json.plink || pkg.json.dr)) {
+        return {pkg, file};
+    } else {
+      return {file};
+    }
+
   });
   saveCmdOptionsToEnv(cmdName, opts, type, targetEntries);
   if (process.env.PORT == null && cfg().port)

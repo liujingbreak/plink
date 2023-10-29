@@ -1,7 +1,7 @@
 // import type {ShowTopLoading as ShowTopLoadingType} from '@wfh/doc-ui-common/client/components/ShowTopLoading';
+import {bootstrapRoutesWith} from '@wfh/doc-entry/dll/shell-entry';
 import loadable from '@loadable/component';
 import {dispatcher as mdDispatcher} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
-import {bootstrapRoutesWith} from '../../dll/shell-entry';
 
 bootstrapRoutesWith((ShowTopLoading) => {
   const LazyDocComponent = loadable(async () => {

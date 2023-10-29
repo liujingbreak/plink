@@ -5,7 +5,7 @@ import {CommandOption} from './build-options';
 
 const log = log4File(__filename);
 
-export function setupDllPlugin(entries: CommandOption['buildTargets'], config: Configuration, pluginConstFinder: (moduleName: string) => any) {
+export function extractDllName(entries: CommandOption['buildTargets']) {
   const firstEntryPkg = entries[0].pkg;
   if (firstEntryPkg == null)
     throw new Error(`For DLL build, the first entry must be inside a Plink package of current workspace, ${entries[0].file}`);
@@ -19,6 +19,11 @@ export function setupDllPlugin(entries: CommandOption['buildTargets'], config: C
     requirePath = requirePath.replace(/\\/g, '/');
 
   const dllName = /[^/\\]+$/.exec(requirePath)![0];
+  return [dllName, requirePath] as const;
+}
+
+export function setupDllPlugin(entries: CommandOption['buildTargets'], config: Configuration, pluginConstFinder: (moduleName: string) => any) {
+  const [dllName, requirePath] = extractDllName(entries);
   config.entry = {
     [dllName]: entries.map(en => {
       if (en.file == null)
@@ -29,11 +34,11 @@ export function setupDllPlugin(entries: CommandOption['buildTargets'], config: C
 
   log.info('DLL library name:', requirePath);
 
-  config.output!.filename = 'dll/js/[name].js';
-  config.output!.chunkFilename = 'dll/js/[name].chunk.js';
+  config.output!.filename = '[name].js';
+  config.output!.chunkFilename = '[name].chunk.js';
   config.output!.library = {
     type: 'global',
-    name: requirePath
+    name: '_dll_' + dllName
   };
 
   config.optimization!.runtimeChunk = false;
@@ -76,14 +81,18 @@ export function setupDllReferencePlugin(manifestFiles: string[], config: Configu
     config.optimization = {};
   config.optimization.moduleIds = 'named';
 
-  for (const manifestFile of manifestFiles) {
+  return manifestFiles.map(manifestFile => {
+    const m = /([^/\\.]+)[^/\\]*?$/.exec(manifestFile);
+    if (m == null)
+      return false;
+    const name = '_dll_' + m![1];
+
     config.plugins!.push(new DllReferencePlugin({
       manifest: manifestFile,
-      name: '@wfh/doc-entry/dll/shell-entry', // TODO: The name where the dll is exposed (external name, defaults to manifest.name), In example, it is: dll js file path
-      // context: '', // TODO: Context of requests in the manifest (or content property) as absolute path. In example, it is: (dll js directory)
+      name, // (It must be same as Dll library.name) offical description: The name where the dll is exposed (external name, defaults to manifest.name), In example, it is: dll js file path
       sourceType: 'global'
     }));
     log.info('Dll Reference:', manifestFile);
-  }
-
+    return m[1];
+  }).filter(v => v) as string[];
 }

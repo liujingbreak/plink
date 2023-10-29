@@ -27,16 +27,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getStore = exports.getState = exports.dispatcher = exports.configViewSlice = void 0;
-const store_1 = require("../store");
-const op = __importStar(require("rxjs/operators"));
-const rx = __importStar(require("rxjs"));
-const index_1 = require("./index");
 const path_1 = __importDefault(require("path"));
 // import Selector from '../utils/ts-ast-query';
-const dist_1 = require("../../../packages/thread-promise-pool/dist");
-const package_mgr_1 = require("../package-mgr");
 const os_1 = __importDefault(require("os"));
+const rx = __importStar(require("rxjs"));
+const op = __importStar(require("rxjs/operators"));
 const log4js_1 = require("log4js");
+const package_mgr_1 = require("../package-mgr");
+const dist_1 = require("../../../packages/thread-promise-pool/dist");
+const store_1 = require("../store");
+const index_1 = require("./index");
 // import {ConfigHandlerMgr} from '../config-handler';
 const log = (0, log4js_1.getLogger)('plink.config-view-slice');
 const initialState = {

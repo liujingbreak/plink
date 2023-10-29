@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setupDllReferencePlugin = exports.setupDllPlugin = void 0;
+exports.setupDllReferencePlugin = exports.setupDllPlugin = exports.extractDllName = void 0;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const plink_1 = require("@wfh/plink");
 const webpack_1 = require("webpack");
 const log = (0, plink_1.log4File)(__filename);
-function setupDllPlugin(entries, config, pluginConstFinder) {
+function extractDllName(entries) {
     const firstEntryPkg = entries[0].pkg;
     if (firstEntryPkg == null)
         throw new Error(`For DLL build, the first entry must be inside a Plink package of current workspace, ${entries[0].file}`);
@@ -17,6 +17,11 @@ function setupDllPlugin(entries, config, pluginConstFinder) {
     if (path_1.default.sep === '\\')
         requirePath = requirePath.replace(/\\/g, '/');
     const dllName = /[^/\\]+$/.exec(requirePath)[0];
+    return [dllName, requirePath];
+}
+exports.extractDllName = extractDllName;
+function setupDllPlugin(entries, config, pluginConstFinder) {
+    const [dllName, requirePath] = extractDllName(entries);
     config.entry = {
         [dllName]: entries.map(en => {
             if (en.file == null)
@@ -25,11 +30,11 @@ function setupDllPlugin(entries, config, pluginConstFinder) {
         }).filter(file => file != null)
     };
     log.info('DLL library name:', requirePath);
-    config.output.filename = 'dll/js/[name].js';
-    config.output.chunkFilename = 'dll/js/[name].chunk.js';
+    config.output.filename = '[name].js';
+    config.output.chunkFilename = '[name].chunk.js';
     config.output.library = {
         type: 'global',
-        name: requirePath
+        name: '_dll_' + dllName
     };
     config.optimization.runtimeChunk = false;
     if (config.optimization && config.optimization.splitChunks) {
@@ -65,15 +70,19 @@ function setupDllReferencePlugin(manifestFiles, config) {
     if (config.optimization == null)
         config.optimization = {};
     config.optimization.moduleIds = 'named';
-    for (const manifestFile of manifestFiles) {
+    return manifestFiles.map(manifestFile => {
+        const m = /([^/\\.]+)[^/\\]*?$/.exec(manifestFile);
+        if (m == null)
+            return false;
+        const name = '_dll_' + m[1];
         config.plugins.push(new webpack_1.DllReferencePlugin({
             manifest: manifestFile,
-            name: '@wfh/doc-entry/dll/shell-entry',
-            // context: '', // TODO: Context of requests in the manifest (or content property) as absolute path. In example, it is: (dll js directory)
+            name,
             sourceType: 'global'
         }));
         log.info('Dll Reference:', manifestFile);
-    }
+        return m[1];
+    }).filter(v => v);
 }
 exports.setupDllReferencePlugin = setupDllReferencePlugin;
 //# sourceMappingURL=webpack-dll.js.map

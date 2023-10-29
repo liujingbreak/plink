@@ -1,9 +1,11 @@
+///<reference path="./module-declare.d.ts" />
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 import Path from 'path';
 import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
 import type {PlinkEnv} from '@wfh/plink/wfh/dist/node-path';
 import setupSplitChunks from '@wfh/webpack-common/dist/splitChunks';
 import StatsPlugin from '@wfh/webpack-common/dist/webpack-stats-plugin';
+import {BundleAnalyzerPlugin} from 'webpack-bundle-analyzer';
 import fs from 'fs-extra';
 import _ from 'lodash';
 import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig/* , webInjector*/} from '@wfh/plink';
@@ -118,7 +120,7 @@ export default function(webpackEnv: 'production' | 'development') {
 
   addProgressPlugin(config, (...s) => void printMsg(...s));
   if (config.infrastructureLogging)
-    config.infrastructureLogging.level = 'log';
+    config.infrastructureLogging.level = 'warn';
 
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTargets[0].pkg!, config);
@@ -143,7 +145,11 @@ export default function(webpackEnv: 'production' | 'development') {
     const htmlWebpackPluginConstrutor = getPluginConstructor('html-webpack-plugin'); // require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
     const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as {userOptions: HtmlWebpackPluginOptions};
     htmlWebpackPluginInstance.userOptions.templateParameters = {
-      _config: plinkConfig()
+      _config: plinkConfig(),
+      _dllJsFiles: cmdOption.refDllManifest ? cmdOption.refDllManifest.map(file => {
+        const m = /([^/\\.]+)[^/\\]*?$/.exec(file);
+        return m ? `dll/${m[1]}/js/${m[1]}.js` : false;
+      }).filter(v => v) : []
     };
     setupSplitChunks(config, (mod) => {
       const file = mod.resource ?? null;
@@ -153,7 +159,17 @@ export default function(webpackEnv: 'production' | 'development') {
       return pkg == null || (pkg.json.dr == null && pkg.json.plink == null);
     });
   }
-  config.plugins?.push(new TermuxWebpackPlugin());
+
+  const now = new Date();
+  const timeStr = now.getDate() + '_' + now.getHours() + '-' + now.getMinutes() + '-' + now.getSeconds() + '-' + now.getMilliseconds();
+  config.plugins?.push(
+    new TermuxWebpackPlugin(),
+    new BundleAnalyzerPlugin({
+      analyzerMode: 'disabled',
+      generateStatsFile: true,
+      statsFilename: Path.join(plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
+    })
+  );
 
   function getPluginConstructor(pluginPkgName: string) {
     return require(nodeResolve.sync(pluginPkgName, {basedir: reactScriptsInstalledDir}));

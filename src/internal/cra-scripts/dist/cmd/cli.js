@@ -58,6 +58,7 @@ const cli = (program) => {
         .argument('<url>', 'The URL')
         .description('Run react-dev-utils/openBrowser')
         .action(async (url) => {
+        plink_2.dispatcher.changeActionOnExit('none');
         (await import('../cra-open-browser.cjs')).default.default(url);
     });
     program.command('cra-analyze')
@@ -65,6 +66,7 @@ const cli = (program) => {
         .argument('[js-dir]', 'Normally this path should be <root-dir>dist/static/<output-path-basename>/static/js')
         .description('Run source-map-explorer')
         .action(async (outputPath) => {
+        plink_2.dispatcher.changeActionOnExit('none');
         const smePkgDir = path_1.default.dirname(require.resolve('source-map-explorer/package.json'));
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const smeBin = require(path_1.default.resolve(smePkgDir, 'package.json')).bin['source-map-explorer'];
@@ -103,26 +105,27 @@ function runReactScripts(cmdName, opts, type, entries) {
     const cfg = plink_2.config;
     const targetEntries = entries.map(entry => {
         var _a;
-        const pkg = [...(0, plink_1.findPackagesByNames)([entry])][0];
-        if (pkg) {
-            if (pkg.json.plink || pkg.json.dr) {
-                // It is a Plink package
-                return { pkg };
-            }
-            else {
-                // It is a 3rd-party package
-                return { file: entry };
+        const matchPkgName = /^((?:@[^./\\]+\/)?[^./\\]+)(?:[\\/](.*?))?$/.exec(entry);
+        if (matchPkgName) {
+            const pkg = [...(0, plink_1.findPackagesByNames)([matchPkgName[1]])][0];
+            if (pkg) {
+                if (pkg.json.plink || pkg.json.dr) {
+                    // It is a Plink package
+                    return { pkg, file: matchPkgName[2] ? path_1.default.resolve(pkg.realPath, matchPkgName[2]) : undefined };
+                }
+                else {
+                    // It is a 3rd-party package
+                    return { file: entry };
+                }
             }
         }
+        const file = path_1.default.resolve(entry);
+        const pkg = (_a = packageLocator.getPkgOfFile(file)) === null || _a === void 0 ? void 0 : _a.orig;
+        if (pkg && (pkg.json.plink || pkg.json.dr)) {
+            return { pkg, file };
+        }
         else {
-            const file = path_1.default.resolve(entry);
-            const pkg = (_a = packageLocator.getPkgOfFile(file)) === null || _a === void 0 ? void 0 : _a.orig;
-            if (pkg && (pkg.json.plink || pkg.json.dr)) {
-                return { pkg, file };
-            }
-            else {
-                return { file };
-            }
+            return { file };
         }
     });
     (0, utils_1.saveCmdOptionsToEnv)(cmdName, opts, type, targetEntries);

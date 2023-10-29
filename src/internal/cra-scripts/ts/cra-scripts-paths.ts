@@ -7,6 +7,7 @@ import pCfg from '@wfh/plink/wfh/dist/config';
 import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
 import fsext from 'fs-extra';
 import {log4File, config, plinkEnv} from '@wfh/plink';
+import {extractDllName} from './webpack-dll';
 import {ReactScriptsHandler, CraScriptsPaths, PKG_LIB_ENTRY_PROP, PKG_LIB_ENTRY_DEFAULT, PKG_APP_ENTRY_PROP,
   PKG_APP_ENTRY_DEFAULT} from './types';
 import {getCmdOptions} from './utils';
@@ -49,9 +50,11 @@ export default function paths() {
     const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
     const {realPath: pkgDir} = firstEntryPkg!;
     changedPaths.appIndexJs = firstEntryFile ?? Path.resolve(pkgDir, _.get(plinkProps, [PKG_APP_ENTRY_PROP], PKG_APP_ENTRY_DEFAULT));
+    // CRA also accepts process.env.BUILD_PATH as appBuild value
     changedPaths.appBuild = pCfg.resolve('staticDir');
   } else if (cmdOption.buildType === 'dll') {
-    changedPaths.appBuild = pCfg.resolve('staticDir');
+    const [dllName] = extractDllName(cmdOption.buildTargets);
+    changedPaths.appBuild = pCfg.resolve('staticDir', 'dll', dllName);
     changedPaths.appIndexJs = cmdOption.buildTargets[0].file!; // Webpack configuration property entry will be changed in webpack-dll
   }
 

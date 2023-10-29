@@ -11,6 +11,7 @@ const config_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/config"));
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
 const plink_1 = require("@wfh/plink");
+const webpack_dll_1 = require("./webpack-dll");
 const types_1 = require("./types");
 const utils_1 = require("./utils");
 const log = (0, plink_1.log4File)(__filename);
@@ -50,10 +51,12 @@ function paths() {
         const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
         const { realPath: pkgDir } = firstEntryPkg;
         changedPaths.appIndexJs = firstEntryFile !== null && firstEntryFile !== void 0 ? firstEntryFile : node_path_1.default.resolve(pkgDir, lodash_1.default.get(plinkProps, [types_1.PKG_APP_ENTRY_PROP], types_1.PKG_APP_ENTRY_DEFAULT));
+        // CRA also accepts process.env.BUILD_PATH as appBuild value
         changedPaths.appBuild = config_1.default.resolve('staticDir');
     }
     else if (cmdOption.buildType === 'dll') {
-        changedPaths.appBuild = config_1.default.resolve('staticDir');
+        const [dllName] = (0, webpack_dll_1.extractDllName)(cmdOption.buildTargets);
+        changedPaths.appBuild = config_1.default.resolve('staticDir', 'dll', dllName);
         changedPaths.appIndexJs = cmdOption.buildTargets[0].file; // Webpack configuration property entry will be changed in webpack-dll
     }
     changedPaths.appWebpackCache = node_path_1.default.join(plink_1.plinkEnv.distDir, 'webpack-cache');

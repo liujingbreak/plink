@@ -1,4 +1,3 @@
-/// <reference path="../../ts/mermaid-types.d.mts" />
 import React from 'react';
 import * as op from 'rxjs/operators';
 import classnames from 'classnames/bind';
@@ -106,7 +105,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
 const mermaidInited = false;
 
 async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promise<string> {
-  const mermaid = (await import('mermaid/dist/mermaid.esm.mjs')).default;
+  const mermaid = (await import('mermaid')).default;
   if (mermaidStr == null)
     return Promise.resolve('');
   if (!mermaidInited) {
