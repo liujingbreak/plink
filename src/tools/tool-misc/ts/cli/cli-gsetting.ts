@@ -70,7 +70,7 @@ export async function generateSetting(pkgs: string[], opt: {dryRun: boolean}) {
       package: meta.map(item => item![0].name)
     });
     await new Promise(resolve => setImmediate(resolve));
-    await import('@wfh/plink/wfh/dist/editor-helper');
+    await import('@wfh/plink/wfh/dist/editor-helper.js');
     actionDispatcher.scanAndSyncPackages({packageJsonFiles:
       meta.map(item => item![1])
     });

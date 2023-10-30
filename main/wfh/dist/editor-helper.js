@@ -103,6 +103,10 @@ store_1.stateFactory.addEpic((action$, state$) => {
                 }
             });
             return dirs;
+        }), rx.catchError(err => {
+            console.error(err);
+            log.error('failed to create symlinks for srcSet directories', err);
+            return rx.throwError(() => err);
         }));
     }
     return rx.merge(action$.pipe((0, store_1.ofPayloadAction)(slice.actions.clearSymlinks), op.concatMap(() => {
@@ -124,7 +128,8 @@ store_1.stateFactory.addEpic((action$, state$) => {
         updateTsconfigFileForProjects(lastWsKey);
         await Promise.all(Array.from(getState().tsconfigByRelPath.values())
             .map(data => updateHookedTsconfig(data, wsDir)));
-        return updateNodeModuleSymlinks(lastWsKey);
+        // updateNodeModuleSymlinks might be empty, to ensure lastValueFrom() work, concat an abitrary observable at the end
+        return rx.lastValueFrom(rx.concat(updateNodeModuleSymlinks(lastWsKey), rx.of(1)));
     })), action$.pipe((0, store_1.ofPayloadAction)(slice.actions.hookTsconfig), op.mergeMap(action => {
         return action.payload;
     }), op.mergeMap((file) => {

@@ -12,7 +12,7 @@ import ts from 'typescript';
 import {setTsCompilerOptForNodePath, CompilerOptions, packages4WorkspaceKey} from './package-mgr/package-list-helper';
 import {getProjectList, pathToProjKey, getState as getPkgState, updateGitIgnores, slice as pkgSlice,
   isCwdWorkspace, workspaceDir} from './package-mgr';
-import {stateFactory, ofPayloadAction, action$Of} from './store';
+import {stateFactory, ofPayloadAction as ofp, action$Of} from './store';
 import * as _recp from './recipe-manager';
 import {symbolicLinkPackages} from './rwPackageJson';
 import {getPackageSettingFiles} from './config';
@@ -114,12 +114,17 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
           }
         });
         return dirs;
+      }),
+      rx.catchError(err => {
+        console.error(err);
+        log.error('failed to create symlinks for srcSet directories', err);
+        return rx.throwError(() => err as Error);
       })
     );
   }
 
   return rx.merge(
-    action$.pipe(ofPayloadAction(slice.actions.clearSymlinks),
+    action$.pipe(ofp(slice.actions.clearSymlinks),
       op.concatMap(() => {
         return rx.from(_recp.allSrcDirs()).pipe(
           op.map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir, 'node_modules') :
@@ -138,7 +143,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
         );
       })
     ),
-    action$.pipe(ofPayloadAction(pkgSlice.actions.workspaceChanged),
+    action$.pipe(ofp(pkgSlice.actions.workspaceChanged),
       op.concatMap(async ({payload: wsKeys}) => {
         const wsDir = isCwdWorkspace() ?
           workDir :
@@ -150,10 +155,11 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
         updateTsconfigFileForProjects(lastWsKey);
         await Promise.all(Array.from(getState().tsconfigByRelPath.values())
           .map(data => updateHookedTsconfig(data, wsDir)));
-        return updateNodeModuleSymlinks(lastWsKey);
+        // updateNodeModuleSymlinks might be empty, to ensure lastValueFrom() work, concat an abitrary observable at the end
+        return rx.lastValueFrom(rx.concat(updateNodeModuleSymlinks(lastWsKey), rx.of(1)));
       })
     ),
-    action$.pipe(ofPayloadAction(slice.actions.hookTsconfig),
+    action$.pipe(ofp(slice.actions.hookTsconfig),
       op.mergeMap(action => {
         return action.payload;
       }),
@@ -181,7 +187,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
         return updateHookedTsconfig(data, wsDir);
       })
     ),
-    action$.pipe(ofPayloadAction(slice.actions.unHookTsconfig),
+    action$.pipe(ofp(slice.actions.unHookTsconfig),
       op.mergeMap(({payload}) => payload),
       op.mergeMap(file => {
         const absFile = Path.resolve(rootPath, file);
@@ -193,7 +199,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
         return Promise.resolve();
       })
     ),
-    action$.pipe(ofPayloadAction(slice.actions.unHookAll),
+    action$.pipe(ofp(slice.actions.unHookAll),
       op.tap(() => {
         dispatcher.unHookTsconfig(Array.from(getState().tsconfigByRelPath.keys()));
       })

@@ -2,6 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.transformHtml = void 0;
 const tslib_1 = require("tslib");
+/**
+ * @Deprecated not working with Html-webpack-plugin 5.5.x due to it natually supports lodash template
+ */
 /* eslint-disable  max-classes-per-file */
 /**
  * For create-react-app, allow lodash template to be used in any "index.html" file before it goes to html-webpack-plugin.

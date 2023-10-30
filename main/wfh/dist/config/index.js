@@ -122,13 +122,15 @@ function mergeFromYamlJsonFile(localConfigPath) {
     }
     // eslint-disable-next-line no-console
     log.info(` Read ${localConfigPath}`);
-    var configObj;
+    let configObj;
     const matched = /\.([^.]+)$/.exec(localConfigPath);
     let suffix = matched ? matched[1] : null;
     if (suffix === 'yaml' || suffix === 'yml') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         configObj = yamljs_1.default.parse(fs_1.default.readFileSync(localConfigPath, 'utf8'));
     }
     else if (suffix === 'json') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         configObj = require(path_1.default.resolve(localConfigPath));
     }
     else {

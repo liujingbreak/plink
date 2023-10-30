@@ -1,14 +1,14 @@
+import Path from 'path';
 import chalk from 'chalk';
 import fs from 'fs-extra';
-import Path from 'path';
 import _config from '../config';
-import { createPackageInfo, PackageInfo, PackagesState, getState } from '../package-mgr';
+import {createPackageInfo, PackageInfo, PackagesState, getState} from '../package-mgr';
 import {plinkEnv} from '../utils/misc';
 
 export function completePackageName(guessingNames: Iterable<string>):
-  Generator<string | null, void, unknown>;
+Generator<string | null, void, unknown>;
 export function completePackageName(state: PackagesState, guessingNames: Iterable<string>):
-  Generator<string | null, void, unknown>;
+Generator<string | null, void, unknown>;
 export function* completePackageName(state: PackagesState | Iterable<string>, guessingNames?: Iterable<string>) {
   for (const pkg of findPackagesByNames(state as PackagesState, guessingNames as Iterable<string>)) {
     if (pkg) {
@@ -21,16 +21,16 @@ export function* completePackageName(state: PackagesState | Iterable<string>, gu
 
 /** Use package-utils.ts#lookForPackages() */
 export function findPackagesByNames(guessingNames: Iterable<string>):
-  Generator<PackageInfo | null | undefined>;
+Generator<PackageInfo | null | undefined>;
 export function findPackagesByNames(state: PackagesState, guessingNames: Iterable<string>):
-  Generator<PackageInfo | null | undefined>;
+Generator<PackageInfo | null | undefined>;
 export function* findPackagesByNames(state: PackagesState | Iterable<string>, guessingNames?: Iterable<string>):
-  Generator<PackageInfo | null | undefined> {
+Generator<PackageInfo | null | undefined> {
   if (guessingNames === undefined) {
     guessingNames = state as string[];
     state = getState();
   }
-  const config: typeof _config = require('../config').default;
+  const config = (require('../config') as {default: typeof _config}).default;
 
   const prefixes = ['', ...config().packageScopes.map(scope => `@${scope}/`)];
   const available = (state as PackagesState).srcPackages;

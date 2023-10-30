@@ -215,7 +215,7 @@ export async function analyseFiles(files: string[],
     });
   }));
   files = _.flatten((await Promise.all(matchDones)))
-  .filter(f => /\.[jt]sx?$/.test(f));
+    .filter(f => /\.[mc]?[jt]sx?$/.test(f));
 
   if (files.length === 0) {
     log.warn('No source files are found');

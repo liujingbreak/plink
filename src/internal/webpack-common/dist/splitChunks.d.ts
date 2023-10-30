@@ -1,6 +1,6 @@
 import * as wp from 'webpack';
 import { OptimizationSplitChunksOptions } from './webpack-infer-types';
-export declare type ModuleTestFn = (module: wp.NormalModule, graphs: {
+export type ModuleTestFn = (module: wp.NormalModule, graphs: {
     chunkGraph: unknown;
     moduleGraph: unknown;
 }) => boolean;

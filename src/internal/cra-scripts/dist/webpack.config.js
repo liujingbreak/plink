@@ -1,18 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
+///<reference path="./module-declare.d.ts" />
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 const path_1 = tslib_1.__importDefault(require("path"));
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const splitChunks_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/splitChunks"));
 const webpack_stats_plugin_1 = tslib_1.__importDefault(require("@wfh/webpack-common/dist/webpack-stats-plugin"));
+const webpack_bundle_analyzer_1 = require("webpack-bundle-analyzer");
 const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const plink_1 = require("@wfh/plink");
 const mem_stats_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/utils/mem-stats"));
 const webpack_1 = require("webpack");
 const resolve_1 = tslib_1.__importDefault(require("resolve"));
 const utils_1 = require("./utils");
 const webpack_lib_1 = tslib_1.__importDefault(require("./webpack-lib"));
+const webpack_dll_1 = require("./webpack-dll");
 const change_tsconfig_1 = require("./change-tsconfig");
 const termux_issue_webpack_plugin_1 = require("./termux-issue-webpack-plugin");
 // import inspector from 'node:inspector';
@@ -26,6 +30,9 @@ function default_1(webpackEnv) {
     (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${plink_1.config.resolve('destDir', 'cra-scripts.report')}`);
     const printMsg = (0, utils_1.createCliPrinter)('[Build Progress]');
     const cmdOption = (0, utils_1.getCmdOptions)();
+    if (cmdOption.cmd !== 'cra-start') {
+        process.env.FAST_REFRESH = 'false';
+    }
     // `npm run build` by default is in production mode, below hacks the way react-scripts does
     if (cmdOption.devMode || cmdOption.watch) {
         webpackEnv = 'development';
@@ -78,9 +85,9 @@ function default_1(webpackEnv) {
     // config.resolve!.symlinks = false;
     const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
     config.cache.buildDependencies.plink = [getPkgOfFile(__filename).path.replace(/\\/g, '/') + '/'];
-    const resolveModules = ['node_modules', ...nodePath];
+    const resolveModules = lodash_1.default.uniq(['node_modules', ...nodePath]);
     // config.resolve!.symlinks = false;
-    config.resolve.modules = [...(_c = (_b = config.resolve) === null || _b === void 0 ? void 0 : _b.modules) !== null && _c !== void 0 ? _c : [], ...nodePath];
+    config.resolve.modules = lodash_1.default.uniq([...(_c = (_b = config.resolve) === null || _b === void 0 ? void 0 : _b.modules) !== null && _c !== void 0 ? _c : [], ...nodePath]);
     if (config.resolveLoader == null)
         config.resolveLoader = {};
     config.resolveLoader.modules = resolveModules;
@@ -97,12 +104,19 @@ function default_1(webpackEnv) {
     // Object.assign(config.resolve!.alias, require('rxjs/_esm2015/path-mapping')());
     if (cmdOption.cmd === 'cra-build')
         config.plugins.push(new webpack_stats_plugin_1.default());
-    else
-        addProgressPlugin(config, (...s) => void printMsg(...s));
+    addProgressPlugin(config, (...s) => void printMsg(...s));
+    if (config.infrastructureLogging)
+        config.infrastructureLogging.level = 'warn';
     if (cmdOption.buildType === 'lib') {
-        (0, webpack_lib_1.default)(cmdOption.buildTarget, config, nodePath);
+        (0, webpack_lib_1.default)(cmdOption.buildTargets[0].pkg, config);
+    }
+    else if (cmdOption.buildType === 'dll') {
+        (0, webpack_dll_1.setupDllPlugin)(cmdOption.buildTargets, config, getPluginConstructor);
     }
     else {
+        if (cmdOption.refDllManifest) {
+            (0, webpack_dll_1.setupDllReferencePlugin)(cmdOption.refDllManifest, config);
+        }
         config.plugins.push(new (class {
             apply(compiler) {
                 compiler.hooks.done.tap('cra-scripts', _stats => {
@@ -114,10 +128,14 @@ function default_1(webpackEnv) {
                 });
             }
         })());
-        const htmlWebpackPluginConstrutor = require(resolve_1.default.sync('html-webpack-plugin', { basedir: reactScriptsInstalledDir }));
+        const htmlWebpackPluginConstrutor = getPluginConstructor('html-webpack-plugin'); // require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
         const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
         htmlWebpackPluginInstance.userOptions.templateParameters = {
-            _config: (0, plink_1.config)()
+            _config: (0, plink_1.config)(),
+            _dllJsFiles: cmdOption.refDllManifest ? cmdOption.refDllManifest.map(file => {
+                const m = /([^/\\.]+)[^/\\]*?$/.exec(file);
+                return m ? `dll/${m[1]}/js/${m[1]}.js` : false;
+            }).filter(v => v) : []
         };
         (0, splitChunks_1.default)(config, (mod) => {
             var _a;
@@ -128,7 +146,16 @@ function default_1(webpackEnv) {
             return pkg == null || (pkg.json.dr == null && pkg.json.plink == null);
         });
     }
-    (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin());
+    const now = new Date();
+    const timeStr = now.getDate() + '_' + now.getHours() + '-' + now.getMinutes() + '-' + now.getSeconds() + '-' + now.getMilliseconds();
+    (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin(), new webpack_bundle_analyzer_1.BundleAnalyzerPlugin({
+        analyzerMode: 'disabled',
+        generateStatsFile: true,
+        statsFilename: path_1.default.join(plink_1.plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
+    }));
+    function getPluginConstructor(pluginPkgName) {
+        return require(resolve_1.default.sync(pluginPkgName, { basedir: reactScriptsInstalledDir }));
+    }
     const rules = [...(_f = (_e = config.module) === null || _e === void 0 ? void 0 : _e.rules) !== null && _f !== void 0 ? _f : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
     for (const rule of rules) {
         if (typeof rule !== 'string') {
@@ -139,9 +166,10 @@ function default_1(webpackEnv) {
                 rules.push(...rule.use); // In factor rule.use is RuleSetUseItem not RuleSetRule
             }
             else if (rule.loader) {
+                const appSrc = path_1.default.join(plink_1.plinkEnv.workDir, 'src');
                 if (/\bbabel-loader\b/.test(rule.loader) && rule.include) {
                     delete rule.include;
-                    rule.test = createRuleTestFunc4Src(rule.test);
+                    rule.test = createRuleTestFunc4Src(rule.test, appSrc);
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                     rule.options.plugins.push([
                         'formatjs',
@@ -166,20 +194,12 @@ function default_1(webpackEnv) {
                     };
                 }
                 else if (/\bsource-map-loader\b/.test(rule.loader)) {
-                    rule.test = createRuleTestFunc4Src(rule.test);
+                    rule.test = createRuleTestFunc4Src(rule.test, appSrc);
                 }
             }
         }
     }
-    // config.module?.rules!.push({
-    //   test: createRuleTestFunc4Src(/\.[mc]?[jt]sx?$/),
-    //   loader: '@wfh/webpack-common/dist/ts-loader',
-    //   options: {
-    //     injector: webInjector,
-    //     tsConfigFile: Path.join(plinkEnv.workDir, 'tsconfig.json')
-    //   }
-    // });
-    changeForkTsCheckerOptions(config, craPaths().appIndexJs, reactScriptsInstalledDir, cmdOption);
+    changeForkTsCheckerOptions(config, craPaths().appIndexJs, getPluginConstructor, cmdOption);
     runConfigHandlers(config, webpackEnv);
     log.info(`output.publicPath: ${config.output.publicPath}`);
     fs_extra_1.default.writeFileSync(path_1.default.resolve(reportDir, 'webpack.config.plink.js'), (0, utils_1.printConfig)(config));
@@ -201,14 +221,15 @@ function addProgressPlugin(config, send) {
 }
 function createRuleTestFunc4Src(origTest, appSrc) {
     const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
+    const appSrcDir = appSrc + path_1.default.sep;
     return function testOurSourceFile(file) {
         const pk = getPkgOfFile(file);
-        const yes = ((pk && (pk.json.dr || pk.json.plink)) || (appSrc && file.startsWith(appSrc))) &&
+        const yes = ((pk && (pk.json.dr || pk.json.plink)) || file.startsWith(appSrcDir)) &&
             (origTest instanceof RegExp)
             ? origTest.test(file) :
             (origTest instanceof Function ? origTest(file) : origTest === file);
-        // if (yes)
-        //   log.warn(`[webpack.config] testOurSourceFile: ${file}`, yes);
+        // if (file.indexOf('service-worker') >= 0)
+        //   log.warn(`[webpack.config] testOurSourceFile: ${file} ${yes}, appSrc: ${appSrc}\n\n\n\n`);
         return yes;
     };
 }
@@ -265,13 +286,13 @@ function runConfigHandlers(config, webpackEnv) {
         }
     }, 'create-react-app Webpack config'));
 }
-function changeForkTsCheckerOptions(config, appIndexFile, moduleResolveBase, cmdOptions) {
+function changeForkTsCheckerOptions(config, appIndexFile, pluginConstFinder, cmdOptions) {
     var _a;
     const plugins = config.plugins;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const cnst = require(resolve_1.default.sync('react-dev-utils/ForkTsCheckerWebpackPlugin', { basedir: moduleResolveBase }));
+    const cnst = pluginConstFinder('react-dev-utils/ForkTsCheckerWebpackPlugin');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const cnst2 = require(resolve_1.default.sync('react-dev-utils/ForkTsCheckerWarningWebpackPlugin', { basedir: moduleResolveBase }));
+    const cnst2 = pluginConstFinder('react-dev-utils/ForkTsCheckerWarningWebpackPlugin');
     const plugin = plugins.find(p => p instanceof cnst || p instanceof cnst2);
     if (plugin == null) {
         throw new Error('Can not find fork-ts-checker-webpack-plugin in existing Webpack configuation');

@@ -1,15 +1,15 @@
-import {stateFactory, ofPayloadAction, processExitAction$} from '../store';
-import * as op from 'rxjs/operators';
-import * as rx from 'rxjs';
-import {getPackageSettingFiles} from './index';
-import { PayloadAction } from '@reduxjs/toolkit';
 import Path from 'path';
-import {PropertyMeta} from './config.types';
 // import Selector from '../utils/ts-ast-query';
-import {Pool} from '../../../packages/thread-promise-pool/dist';
-import {getState as getPkgMgrState, PackageInfo} from '../package-mgr';
 import os from 'os';
+import {PayloadAction} from '@reduxjs/toolkit';
+import * as rx from 'rxjs';
+import * as op from 'rxjs/operators';
 import {getLogger} from 'log4js';
+import {getState as getPkgMgrState, PackageInfo} from '../package-mgr';
+import {Pool} from '../../../packages/thread-promise-pool/dist';
+import {stateFactory, ofPayloadAction, processExitAction$} from '../store';
+import {PropertyMeta} from './config.types';
+import {getPackageSettingFiles} from './index';
 // import {ConfigHandlerMgr} from '../config-handler';
 const log = getLogger('plink.config-view-slice');
 
@@ -71,8 +71,8 @@ stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
         const plinkPkg = pkgState.linkedDrcp ? pkgState.linkedDrcp : pkgState.installedDrcp!;
 
         return Promise.all(Array.from(getPackageSettingFiles(
-            payload.workspaceKey, payload.packageName ? new Set([payload.packageName]) : undefined)
-          ).concat([ ['wfh/dist/config/config-slice', 'PlinkSettings', '', '', plinkPkg] ])
+          payload.workspaceKey, payload.packageName ? new Set([payload.packageName]) : undefined)
+        ).concat([ ['wfh/dist/config/config-slice', 'PlinkSettings', '', '', plinkPkg] ])
           .map(([typeFile, typeExport, , , pkg]) => {
 
             const dtsFileBase = Path.resolve(pkg.realPath, typeFile);
@@ -81,10 +81,10 @@ stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
               exportFn: 'default',
               args: [dtsFileBase, typeExport/* , ConfigHandlerMgr.compilerOptions*/]
             })
-            .then(([propMetas, dtsFile]) => {
-              log.debug(propMetas);
-              dispatcher._packageSettingMetaLoaded([propMetas, Path.relative(pkg.realPath, dtsFile), pkg]);
-            });
+              .then(([propMetas, dtsFile]) => {
+                log.debug(propMetas);
+                dispatcher._packageSettingMetaLoaded([propMetas, Path.relative(pkg.realPath, dtsFile), pkg]);
+              });
           }));
       }),
       op.tap(() => {

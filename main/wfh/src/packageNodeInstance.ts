@@ -10,6 +10,7 @@ export default class Package implements NodePackageAttr {
   path = '';
   json = {version: '', name: ''} as PackageInfo['json'];
   realPath = '';
+  orig?: PackageInfo;
 
   constructor(attrs: Partial<NodePackageAttr>) {
     Object.assign(this, attrs);
@@ -25,4 +26,5 @@ export interface NodePackageAttr {
   path: string;
   json: PackageInfo['json'];
   realPath: string;
+  orig?: PackageInfo;
 }

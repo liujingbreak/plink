@@ -123,33 +123,144 @@ export class RxController<I extends ActionFunctions> {
     this.updateInterceptor = core.updateInterceptor;
   }
 
-  /** create state of actions, you can consider it like a map of BehaviorSubject of actions */
-  // withTableFor<MS extends Array<keyof I>>(...actionNames: MS) {
-  //   if (this.table == null)
-  //     this.table = new ActionTable(this, actionNames) as TB;
-  //   else
-  //     this.table.addActions(...actionNames);
-  //   return this as RxController<I, (KS[number] | MS[number])[], ActionTable<I, (KS[number] | MS[number])[]>>;
-  // }
-
   createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>) {
     return this.core.createAction(type, params);
   }
+
+  /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
+  groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<(string & keyof I)[]>):
+  rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]> {
+    return this.core.action$.pipe(
+      rx.groupBy(keySelector),
+      rx.map(grouped => {
+        const groupedRxCtl = new GroupedRxController<I, K>(grouped.key, {...(groupedCtlOptionsFn ? groupedCtlOptionsFn(grouped.key) : {}), autoConnect: false});
+
+        // connect to source actionUpstream only when it is subscribed
+        rx.concat(
+          groupedRxCtl.core.actionSubscribed$.pipe(
+            rx.tap(() => {
+              groupedRxCtl.connect();
+            }),
+            rx.take(1)
+          ),
+          // Then dispatch source action to grouped controller
+          grouped.pipe(
+            rx.tap(action => deserializeAction(action, groupedRxCtl))
+          )
+        ).pipe(
+          rx.takeUntil(groupedRxCtl.core.actionUnsubscribed$)
+        ).subscribe();
+
+        return groupedRxCtl;
+      }),
+      rx.scan<
+      GroupedRxController<I, K>,
+      [newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>],
+      readonly [null, Map<K, GroupedRxController<I, K>>]
+      >((acc, el) => {
+        const ret = acc as unknown as [GroupedRxController<I, K>, Map<K, GroupedRxController<I, K>>];
+        ret[0] = el;
+        ret[1].set(el.key, el);
+        return ret;
+      }, [null, new Map<K, GroupedRxController<I, K>>()] as const)
+    );
+  }
+
+  /**
+   * Delegate to `this.core.action$.connect()`
+   * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+   *
+   * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
+   * `undefined` or `true`, in that case you don't need to call this method manually.
+   *
+   * Refer to [connectable](https://rxjs.dev/api/index/function/connectable)
+   */
+  connect() {
+    this.core.connect();
+  }
 }
 
+export class GroupedRxController<I extends ActionFunctions, K> extends RxController<I> {
+  constructor(public key: K, opts?: CoreOptions<(string & keyof I)[]>) {
+    super(opts);
+  }
+}
+
+/**
+ * If we consider ActionTable a 2-dimentional data structure, this is the infer type of it.
+ * Each row is latest action payload of an action type (or name),
+ * each column is a element of payload content array.
+ *
+ * If you use ActionTable as a frontend UI state (like for a UI template), this infer type
+ * defines exactly data structure of it.
+ * 
+ */
+export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
+  [P in KS[number]]: InferPayload<I[P]>
+};
+
 export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
+  actionNames: KS;
+
   latestPayloads = {} as {[K in KS[number]]: PayloadStream<I, K>};
-  /** Abbrevation of latestPayloads, pointing to exactly same instance of latestPayloads */
+  /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
   l: {[K in KS[number]]: PayloadStream<I, K>};
+
+  get dataChange$(): rx.Observable<ActionTableDataType<I, KS>> {
+    if (this.#latestPayloadsByName$)
+      return this.#latestPayloadsByName$;
+
+    this.#latestPayloadsByName$ = this.actionNamesAdded$.pipe(
+      rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+      rx.map(() => {
+        const payloadByName = {} as {[P in KS[number]]: InferPayload<I[P]>};
+        for (const [k, [, ...v]] of this.actionSnapshot.entries()) {
+          payloadByName[k] = v;
+        }
+        return payloadByName;
+      }),
+      rx.share()
+    );
+    return this.#latestPayloadsByName$;
+  }
+
+  get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
+    if (this.#latestPayloadsSnapshot$)
+      return this.#latestPayloadsSnapshot$;
+
+    this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
+      rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+      rx.map(() => this.actionSnapshot)
+    );
+    return this.#latestPayloadsSnapshot$;
+  }
 
   actionSnapshot = new Map<keyof I, InferMapParam<I, keyof I>>();
 
+  // private
+  #latestPayloadsByName$: rx.Observable<{[P in KS[number]]: InferPayload<I[P]>}> | undefined;
+  #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
+  private actionNamesAdded$ = new rx.ReplaySubject<ReadonlyArray<keyof I>>(1);
+
   constructor(private streamCtl: RxController<I>, actionNames: KS) {
+    this.actionNames = [] as unknown as KS;
     this.l = this.latestPayloads;
     this.addActions(...actionNames);
+    this.actionNamesAdded$.pipe(
+      rx.map(actionNames => {
+        this.onAddActions(actionNames);
+      })
+    ).subscribe();
+
   }
 
   addActions<M extends Array<keyof I>>(...actionNames: M) {
+    this.actionNames = this.actionNames.concat(actionNames) as unknown as KS;
+    this.actionNamesAdded$.next(actionNames);
+    return this as unknown as ActionTable<I, Array<KS[number] | M[number]>>;
+  }
+
+  private onAddActions<M extends ReadonlyArray<keyof I>>(actionNames: M) {
     for (const type of actionNames) {
       if (has.call(this.latestPayloads, type))
         continue;
@@ -168,12 +279,10 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
           this.debugLogLatestActionOperator(type as string)
         ) :
         a$.asObservable();
-
     }
-    return this as ActionTable<I, Array<KS[number] | M[number]>>;
   }
 
-  getLatestActionOf<K extends KS[number]>(actionName: K) {
+  getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I, K> | undefined {
     return this.actionSnapshot.get(actionName) as InferMapParam<I, K> | undefined;
   }
 
@@ -239,7 +348,8 @@ export function serializeAction<I extends ActionFunctions = any, K extends keyof
 }
 
 /**
- * Create a new Action with same "i" and "r" properties and dispatched to RxController
+ * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,
+ * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
 export function deserializeAction<I extends ActionFunctions>(actionObj: any, toController: RxController<I>) {

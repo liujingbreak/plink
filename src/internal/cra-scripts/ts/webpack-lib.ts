@@ -1,28 +1,20 @@
-// import {findPackage} from './build-target-helper';
-// import childProc from 'child_process';
 import Path from 'path';
 import {Worker} from 'worker_threads';
-import {logger as log4js, findPackagesByNames, plinkEnv} from '@wfh/plink';
+import {logger as log4js, plinkEnv, PackageInfo} from '@wfh/plink';
 import chalk from 'chalk';
 import {Configuration, Compiler, RuleSetRule, RuleSetUseItem, EntryObject} from 'webpack';
 import _ from 'lodash';
 import {getCmdOptions} from './utils';
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
-
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const MODULE_NAME_PAT = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
-const MODULE_NAME_PAT = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
+export default function change(packageTarget: PackageInfo, config: Configuration) {
+  const {realPath: pkDir} = packageTarget;
 
-export default function change(buildPackage: string, config: Configuration, nodePath: string[]) {
-  const foundPkg = [...findPackagesByNames([buildPackage])][0];
-  if (foundPkg == null) {
-    throw new Error(`Can not find package for name like ${buildPackage}`);
-  }
-  const {realPath: pkDir} = foundPkg;
-
-  if (Array.isArray(config.entry))
+  if (Array.isArray(config.entry)) {
     config.entry = config.entry.filter(item => !/[\\/]react-dev-utils[\\/]webpackHotDevClient/.test(item));
+  }
 
   config.output!.path = Path.resolve(pkDir, 'build'); // Have to override it cuz' react-scripts assign `undefined` in non-production env
   config.output!.filename = 'lib-bundle.js';
@@ -35,23 +27,15 @@ export default function change(buildPackage: string, config: Configuration, node
   }
 
   // ---- Plugins filter ----
-
-  const InlineChunkHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InlineChunkHtmlPlugin'));
-  // const InterpolateHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InterpolateHtmlPlugin'));
-  const ForkTsCheckerWebpackPlugin = require(Path.resolve('node_modules/react-dev-utils/ForkTsCheckerWebpackPlugin'));
-  // const HtmlWebpackPlugin = require(Path.resolve('node_modules/html-webpack-plugin'));
-  const {HotModuleReplacementPlugin} = require(Path.resolve('node_modules/webpack'));
+  const pluginsToRemove = [
+      MiniCssExtractPlugin,
+      require(Path.resolve('node_modules/react-dev-utils/ForkTsCheckerWebpackPlugin')),
+      require(Path.resolve('node_modules/react-dev-utils/InlineChunkHtmlPlugin')),
+      require(Path.resolve('node_modules/webpack')).HotModuleReplacementPlugin
+    ];
 
   config.plugins = config.plugins!.filter(plugin => {
-
-    return [
-      MiniCssExtractPlugin,
-      ForkTsCheckerWebpackPlugin,
-      InlineChunkHtmlPlugin,
-      HotModuleReplacementPlugin
-      // HtmlWebpackPlugin,
-      // InterpolateHtmlPlugin
-    ].every(cls => !(plugin instanceof cls));
+    return pluginsToRemove.every(cls => !(plugin instanceof cls));
   });
 
   findAndChangeRule(config.module!.rules!);
@@ -60,7 +44,7 @@ export default function change(buildPackage: string, config: Configuration, node
   const externalRequestSet = new Set<string>();
   const includeModuleRe = (cmdOpts.includes || [])
     .map(mod => new RegExp(mod));
-  includeModuleRe.push(new RegExp(_.escapeRegExp(cmdOpts.buildTarget)));
+  includeModuleRe.push(new RegExp(_.escapeRegExp(packageTarget.name)));
 
   if (config.externals == null) {
     config.externals = [];
@@ -68,33 +52,31 @@ export default function change(buildPackage: string, config: Configuration, node
 
   let entrySet: Set<string>;
 
-  (config.externals as Extract<Configuration['externals'], Array<any>>)
-    .push(
-      async ({context, request}, callback: (error?: any, result?: any) => void ) => {
-        if (request && includeModuleRe.some(rg => rg.test(request))) {
-          return callback();
-        }
-        if (entrySet == null && config.entry)
-          entrySet = await createEntrySet(config.entry);
-
-        if (request && (!request.startsWith('.') && !entrySet.has(request) &&
-          !/[?!]/.test(request)) // && (!/(?:^|[\\/])@babel[\\/]runtime[\\/]/.test(request))
-        ) {
-          if (Path.isAbsolute(request)) {
-            log.info('request absolute path:', request);
-            return callback();
-          } else {
-            log.debug('external request:', request, `(${context ?? ''})`);
-            externalRequestSet.add(request);
-            return callback(null, request);
-          }
-        }
-        callback();
+  (config.externals as Extract<Configuration['externals'], Array<any>>).push(
+    async ({context, request}, callback: (error?: any, result?: any) => void ) => {
+      if (request && includeModuleRe.some(rg => rg.test(request))) {
+        return callback();
       }
-    );
+      if (entrySet == null && config.entry)
+        entrySet = await createEntrySet(config.entry);
+
+      if (request && (!request.startsWith('.') && !entrySet.has(request) &&
+        !/[?!]/.test(request)) // && (!/(?:^|[\\/])@babel[\\/]runtime[\\/]/.test(request))
+      ) {
+        if (Path.isAbsolute(request)) {
+          log.info('request absolute path:', request);
+          return callback();
+        } else {
+          log.debug('external request:', request, `(${context ?? ''})`);
+          externalRequestSet.add(request);
+          return callback(null, request);
+        }
+      }
+      callback();
+    }
+  );
 
   config.plugins.push(
-    // new EsmWebpackPlugin(),
     new (class {
       forkDone: Promise<any> = Promise.resolve();
 

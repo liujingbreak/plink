@@ -5,7 +5,7 @@ import type {AnimatableRoutesProps} from '@wfh/doc-ui-common/client/animation/An
 import reportWebVitals from '../reportWebVitals';
 import {renderDom} from './MainComponent';
 
-export function bootstrap(providers: {routes: AnimatableRoutesProps['routes']} & Record<string, any>) {
+export function bootstrapRoutes(providers: {routes: AnimatableRoutesProps['routes']} & Record<string, any>) {
   const container = document.getElementById('root')!;
   renderDom(container, providers);
   reportWebVitals();

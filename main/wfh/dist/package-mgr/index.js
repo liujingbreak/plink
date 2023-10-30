@@ -438,8 +438,8 @@ store_1.stateFactory.addEpic((action$, state$) => {
             return newWs;
         }));
     }), 
-    // _workspaceBatchChanged will trigger creating symlinks, but meanwhile _installWorkspace will delete symlinks
-    // I don't want to seem them running simultaneously.
+    // _workspaceBatchChanged will trigger creating symlinks, but meanwhile _installWorkspace will delete symlinks.
+    // To avoid them from running simultaneously.
     (0, rxjs_1.merge)(actionByTypes._workspaceBatchChanged, actionByTypes._installWorkspace).pipe((0, operators_1.concatMap)(action => {
         if ((0, helper_1.isActionOfCreator)(action, exports.slice.actions._installWorkspace)) {
             const wsKey = action.payload.workspaceKey;

@@ -25,8 +25,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var _ActionTable_latestPayloadsByName$, _ActionTable_latestPayloadsSnapshot$;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deserializeAction = exports.serializeAction = exports.actionRelatedToPayload = exports.actionRelatedToAction = exports.ActionTable = exports.RxController = void 0;
+exports.deserializeAction = exports.serializeAction = exports.actionRelatedToPayload = exports.actionRelatedToAction = exports.ActionTable = exports.GroupedRxController = exports.RxController = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 __exportStar(require("./stream-core"), exports);
@@ -91,30 +103,90 @@ class RxController {
                 return p$;
             }
         });
-        this.replaceActionInterceptor = core.replaceActionInterceptor;
+        this.updateInterceptor = core.updateInterceptor;
     }
-    /** create state of actions, you can consider it like a map of BehaviorSubject of actions */
-    // withTableFor<MS extends Array<keyof I>>(...actionNames: MS) {
-    //   if (this.table == null)
-    //     this.table = new ActionTable(this, actionNames) as TB;
-    //   else
-    //     this.table.addActions(...actionNames);
-    //   return this as RxController<I, (KS[number] | MS[number])[], ActionTable<I, (KS[number] | MS[number])[]>>;
-    // }
     createAction(type, ...params) {
         return this.core.createAction(type, params);
     }
+    /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
+    groupControllerBy(keySelector, groupedCtlOptionsFn) {
+        return this.core.action$.pipe(rx.groupBy(keySelector), rx.map(grouped => {
+            const groupedRxCtl = new GroupedRxController(grouped.key, Object.assign(Object.assign({}, (groupedCtlOptionsFn ? groupedCtlOptionsFn(grouped.key) : {})), { autoConnect: false }));
+            // connect to source actionUpstream only when it is subscribed
+            rx.concat(groupedRxCtl.core.actionSubscribed$.pipe(rx.tap(() => {
+                groupedRxCtl.connect();
+            }), rx.take(1)), 
+            // Then dispatch source action to grouped controller
+            grouped.pipe(rx.tap(action => deserializeAction(action, groupedRxCtl)))).pipe(rx.takeUntil(groupedRxCtl.core.actionUnsubscribed$)).subscribe();
+            return groupedRxCtl;
+        }), rx.scan((acc, el) => {
+            const ret = acc;
+            ret[0] = el;
+            ret[1].set(el.key, el);
+            return ret;
+        }, [null, new Map()]));
+    }
+    /**
+     * Delegate to `this.core.action$.connect()`
+     * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+     *
+     * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
+     * `undefined` or `true`, in that case you don't need to call this method manually.
+     *
+     * Refer to [connectable](https://rxjs.dev/api/index/function/connectable)
+     */
+    connect() {
+        this.core.connect();
+    }
 }
 exports.RxController = RxController;
+class GroupedRxController extends RxController {
+    constructor(key, opts) {
+        super(opts);
+        this.key = key;
+    }
+}
+exports.GroupedRxController = GroupedRxController;
 class ActionTable {
+    get dataChange$() {
+        if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f"))
+            return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
+        __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => {
+            const payloadByName = {};
+            for (const [k, [, ...v]] of this.actionSnapshot.entries()) {
+                payloadByName[k] = v;
+            }
+            return payloadByName;
+        }), rx.share()), "f");
+        return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
+    }
+    get latestPayloadsSnapshot$() {
+        if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f"))
+            return __classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f");
+        __classPrivateFieldSet(this, _ActionTable_latestPayloadsSnapshot$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => this.actionSnapshot)), "f");
+        return __classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f");
+    }
     constructor(streamCtl, actionNames) {
         this.streamCtl = streamCtl;
         this.latestPayloads = {};
         this.actionSnapshot = new Map();
+        // private
+        _ActionTable_latestPayloadsByName$.set(this, void 0);
+        _ActionTable_latestPayloadsSnapshot$.set(this, void 0);
+        this.actionNamesAdded$ = new rx.ReplaySubject(1);
+        this.actionNames = [];
         this.l = this.latestPayloads;
         this.addActions(...actionNames);
+        this.actionNamesAdded$.pipe(rx.map(actionNames => {
+            this.onAddActions(actionNames);
+        })).subscribe();
     }
     addActions(...actionNames) {
+        this.actionNames = this.actionNames.concat(actionNames);
+        this.actionNamesAdded$.next(actionNames);
+        return this;
+    }
+    onAddActions(actionNames) {
         var _a;
         for (const type of actionNames) {
             if (stream_core_1.has.call(this.latestPayloads, type))
@@ -129,7 +201,6 @@ class ActionTable {
                 a$.pipe(this.debugLogLatestActionOperator(type)) :
                 a$.asObservable();
         }
-        return this;
     }
     getLatestActionOf(actionName) {
         return this.actionSnapshot.get(actionName);
@@ -162,6 +233,7 @@ class ActionTable {
     }
 }
 exports.ActionTable = ActionTable;
+_ActionTable_latestPayloadsByName$ = new WeakMap(), _ActionTable_latestPayloadsSnapshot$ = new WeakMap();
 /** Rx operator function */
 function actionRelatedToAction(id) {
     return function (up) {
@@ -185,7 +257,8 @@ function serializeAction(action) {
 }
 exports.serializeAction = serializeAction;
 /**
- * Create a new Action with same "i" and "r" properties and dispatched to RxController
+ * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,
+ * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
 function deserializeAction(actionObj, toController) {

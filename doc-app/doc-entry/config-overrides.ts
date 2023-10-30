@@ -8,7 +8,7 @@ const handler: ReactScriptsHandler = {
     // change CRA paths:
 
     // output directory will be dist/static/main
-    if (cmdOpt.buildType === 'app') {
+    if (cmdOpt.buildType !== 'lib') {
       craPaths.appBuild = craPaths.appBuild + '/plink';
       craPaths.publicUrlOrPath = '/plink';
     }
@@ -18,6 +18,7 @@ const handler: ReactScriptsHandler = {
   webpack(cfg, env, cmdOpt) {
     if (docUiCommon.webpack)
       docUiCommon.webpack(cfg, env, cmdOpt);
+
     // cfg.stats = 'verbose';
   }
 };

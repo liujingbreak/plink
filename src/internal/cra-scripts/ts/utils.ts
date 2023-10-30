@@ -5,7 +5,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {gt} from 'semver';
-import {config, PlinkSettings, log4File, ConfigHandlerMgr, findPackagesByNames} from '@wfh/plink';
+import {config, PlinkSettings, log4File, ConfigHandlerMgr} from '@wfh/plink';
 import * as _craPaths from './cra-scripts-paths';
 import {CommandOption} from './build-options';
 import {ReactScriptsHandler} from './types';
@@ -68,8 +68,6 @@ function printConfigValue(value: any, level: number): string {
   return out;
 }
 
-
-// TODO: move to a Redux store
 export function getCmdOptions(): CommandOption {
   const cmdOption: CommandOption = JSON.parse(process.env.REACT_APP_cra_build!);
   if (cmdOption.devMode || cmdOption.watch) {
@@ -84,19 +82,17 @@ export type BuildCliOpts = {
   publicUrl?: string;
   sourceMap?: boolean;
   poll: boolean;
+  refDll?: string[];
   tsck: CommandOption['tsck'];
 } & NonNullable<PlinkSettings['cliOptions']>;
 
-export function saveCmdOptionsToEnv(pkgName: string, cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib'): CommandOption {
-  const completeName = [...findPackagesByNames([pkgName])][0]?.name;
-  if (completeName == null) {
-    throw new Error(`Package named "${pkgName}" can not be found`);
-  }
+export function saveCmdOptionsToEnv(cmdName: string, opts: BuildCliOpts, buildType: 'app' | 'lib' | 'dll', entries: CommandOption['buildTargets']): CommandOption {
   const cmdOptions: CommandOption = {
     cmd: cmdName,
     buildType,
-    buildTarget: completeName,
+    buildTargets: entries,
     watch: opts.watch,
+    refDllManifest: opts.refDll ? opts.refDll.map(item => Path.isAbsolute(item)? item : config.resolve('destDir', item)) : undefined,
     devMode: !!opts.dev,
     publicUrl: opts.publicUrl,
     // external: opts.external,

@@ -1,8 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-// import {findPackage} from './build-target-helper';
-// import childProc from 'child_process';
 const path_1 = tslib_1.__importDefault(require("path"));
 const worker_threads_1 = require("worker_threads");
 const plink_1 = require("@wfh/plink");
@@ -10,17 +8,13 @@ const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const utils_1 = require("./utils");
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-lib');
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const MiniCssExtractPlugin = require(path_1.default.resolve('node_modules/mini-css-extract-plugin'));
 const MODULE_NAME_PAT = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
-function change(buildPackage, config, nodePath) {
-    const foundPkg = [...(0, plink_1.findPackagesByNames)([buildPackage])][0];
-    if (foundPkg == null) {
-        throw new Error(`Can not find package for name like ${buildPackage}`);
-    }
-    const { realPath: pkDir } = foundPkg;
-    if (Array.isArray(config.entry))
+const MiniCssExtractPlugin = require(path_1.default.resolve('node_modules/mini-css-extract-plugin'));
+function change(packageTarget, config) {
+    const { realPath: pkDir } = packageTarget;
+    if (Array.isArray(config.entry)) {
         config.entry = config.entry.filter(item => !/[\\/]react-dev-utils[\\/]webpackHotDevClient/.test(item));
+    }
     config.output.path = path_1.default.resolve(pkDir, 'build'); // Have to override it cuz' react-scripts assign `undefined` in non-production env
     config.output.filename = 'lib-bundle.js';
     config.output.libraryTarget = 'umd';
@@ -31,33 +25,26 @@ function change(buildPackage, config, nodePath) {
         };
     }
     // ---- Plugins filter ----
-    const InlineChunkHtmlPlugin = require(path_1.default.resolve('node_modules/react-dev-utils/InlineChunkHtmlPlugin'));
-    // const InterpolateHtmlPlugin = require(Path.resolve('node_modules/react-dev-utils/InterpolateHtmlPlugin'));
-    const ForkTsCheckerWebpackPlugin = require(path_1.default.resolve('node_modules/react-dev-utils/ForkTsCheckerWebpackPlugin'));
-    // const HtmlWebpackPlugin = require(Path.resolve('node_modules/html-webpack-plugin'));
-    const { HotModuleReplacementPlugin } = require(path_1.default.resolve('node_modules/webpack'));
+    const pluginsToRemove = [
+        MiniCssExtractPlugin,
+        require(path_1.default.resolve('node_modules/react-dev-utils/ForkTsCheckerWebpackPlugin')),
+        require(path_1.default.resolve('node_modules/react-dev-utils/InlineChunkHtmlPlugin')),
+        require(path_1.default.resolve('node_modules/webpack')).HotModuleReplacementPlugin
+    ];
     config.plugins = config.plugins.filter(plugin => {
-        return [
-            MiniCssExtractPlugin,
-            ForkTsCheckerWebpackPlugin,
-            InlineChunkHtmlPlugin,
-            HotModuleReplacementPlugin
-            // HtmlWebpackPlugin,
-            // InterpolateHtmlPlugin
-        ].every(cls => !(plugin instanceof cls));
+        return pluginsToRemove.every(cls => !(plugin instanceof cls));
     });
     findAndChangeRule(config.module.rules);
     const cmdOpts = (0, utils_1.getCmdOptions)();
     const externalRequestSet = new Set();
     const includeModuleRe = (cmdOpts.includes || [])
         .map(mod => new RegExp(mod));
-    includeModuleRe.push(new RegExp(lodash_1.default.escapeRegExp(cmdOpts.buildTarget)));
+    includeModuleRe.push(new RegExp(lodash_1.default.escapeRegExp(packageTarget.name)));
     if (config.externals == null) {
         config.externals = [];
     }
     let entrySet;
-    config.externals
-        .push(async ({ context, request }, callback) => {
+    config.externals.push(async ({ context, request }, callback) => {
         if (request && includeModuleRe.some(rg => rg.test(request))) {
             return callback();
         }
@@ -78,9 +65,7 @@ function change(buildPackage, config, nodePath) {
         }
         callback();
     });
-    config.plugins.push(
-    // new EsmWebpackPlugin(),
-    new (class {
+    config.plugins.push(new (class {
         constructor() {
             this.forkDone = Promise.resolve();
         }

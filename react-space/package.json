@@ -82,13 +82,6 @@
       "ios >= 7",
       "android >= 4.0"
     ],
-    "development": [
-      "ie >= 9",
-      "ff >= 30",
-      "chrome >= 34",
-      "safari >= 7",
-      "ios >= 7",
-      "android >= 4.0"
-    ]
+    "development": ["last 3 versions"]
   }
 }

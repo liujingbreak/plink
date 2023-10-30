@@ -25,7 +25,6 @@ export interface CraScriptsPaths {
     ownNodeModules: string;
     appTypeDeclarations: string;
     ownTypeDeclarations: string;
-    plinkEntryFileSymlink: string;
 }
 export interface ReactScriptsHandler {
     /** Change CRA's paths  */

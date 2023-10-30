@@ -1,18 +1,20 @@
-import parse, {ObjectAst} from '../utils/json-sync-parser';
-import {findPackagesByNames} from './utils';
-import replaceText, {ReplacementInf} from '../utils/patch-text';
-import {exe} from '../process-utils';
 import fs from 'fs';
 import Path from 'path';
 import {getLogger} from 'log4js';
 import _ from 'lodash';
 import chalk from 'chalk';
 import stripAnsi from 'strip-ansi';
+import {exe} from '../process-utils';
+import replaceText, {ReplacementInf} from '../utils/patch-text';
+import parse, {ObjectAst} from '../utils/json-sync-parser';
 import {plinkEnv} from '../utils/misc';
 import {workspacesOfDependencies} from '../package-mgr/package-list-helper';
 import {actionDispatcher as pkgDispater, isCwdWorkspace, getState, workspaceDir, workspaceKey} from '../package-mgr/index';
 import '../editor-helper';
 import {dispatcher as storeSettingDispatcher} from '../store';
+import {findPackagesByNames} from './utils';
+// import inspector from 'inspector';
+// inspector.open(9222, '0.0.0.0', true);
 
 const log = getLogger('plink.cli-add-package');
 
@@ -64,7 +66,8 @@ async function add(packages: string[], toDir: string, dev = false) {
   const objAst = parse(pkgJsonStr);
   const patches: ReplacementInf[] = [];
 
-  const depsAst = dev ? objAst.properties.find(prop => prop.name.text === '"devDependencies"') :
+  const depsAst = dev
+    ? objAst.properties.find(prop => prop.name.text === '"devDependencies"') :
     objAst.properties.find(prop => prop.name.text === '"dependencies"');
 
   const depsSet = depsAst == null ?
@@ -137,6 +140,7 @@ async function add(packages: string[], toDir: string, dev = false) {
   fs.writeFileSync(targetJsonFile, newJsonText);
 }
 
+// TODO: set a timeout control
 async function fetchRemoteVersion(pkgName: string) {
   const text = stripAnsi(await exe('npm', 'view', pkgName, {silent: true}).promise);
   const rPattern = _.escapeRegExp(pkgName) + '@(\\S*)\\s';

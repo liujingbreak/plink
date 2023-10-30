@@ -15,22 +15,6 @@ export function proxyToDevServer(api: ExtensionContext) {
   const config: ServerOptions = _.cloneDeep(setting);
   config.changeOrigin = true;
   config.ws = true;
-  // const plinkSetting = plinkConfig();
-  // config.onProxyReq = fixRequestBody;
-  // config.logLevel = plinkSetting.devMode || plinkSetting.cliOptions?.verbose ? 'debug' : 'info';
-  // config.onError = (err, req, res) => {
-  //   if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
-  //     log.info('Can not connect to %s%s, farward to local static resource', config.target, req.url);
-  //     if (isReqWithNextCb(req))
-  //       return req.__goNext();
-  //     return;
-  //   }
-  // log.warn(err);
-  // if (isReqWithNextCb(req))
-  //   req.__goNext(err);
-  // };
-
-  // const proxyHandler = proxy('/', config);
   const proxyHanlder = proxy.createProxyServer(config);
   api.use((req, res, next) => {
     const body = createBufferForHttpProxy(req);

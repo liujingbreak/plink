@@ -11,6 +11,8 @@ export class ControllerCore {
         this.typePrefix = '#' + SEQ++ + ' ';
         this.dispatcher = {};
         this.dispatcherFor = {};
+        this.actionSubDispatcher = new rx.Subject();
+        this.actionUnsubDispatcher = new rx.Subject();
         this.logPrefix = (opts === null || opts === void 0 ? void 0 : opts.name) ? `[${this.typePrefix}${opts.name}] ` : this.typePrefix;
         this.debugExcludeSet = new Set((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : []);
         const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
@@ -35,11 +37,26 @@ export class ControllerCore {
                             // eslint-disable-next-line no-console
                             console.log(this.logPrefix + 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                         }
-                    }), rx.share())
+                    }))
             : this.actionUpstream;
-        this.action$ = this.interceptor$.pipe(rx.switchMap(interceptor => interceptor ?
-            debuggableAction$.pipe(interceptor, rx.share()) :
-            debuggableAction$));
+        this.connectableAction$ = rx.connectable(this.interceptor$.pipe(rx.switchMap(interceptor => interceptor ?
+            debuggableAction$.pipe(interceptor) :
+            debuggableAction$)));
+        this.action$ = rx.merge(
+        // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
+        // subscribed, since it will be subscribed along together with "connectableAction$"
+        this.connectableAction$, new rx.Observable(sub => {
+            // Notify that action$ is subscribed
+            this.actionSubDispatcher.next();
+            sub.complete();
+        })).pipe(rx.finalize(() => {
+            this.actionUnsubDispatcher.next();
+        }), rx.share());
+        if ((opts === null || opts === void 0 ? void 0 : opts.autoConnect) == null || (opts === null || opts === void 0 ? void 0 : opts.autoConnect)) {
+            this.connectableAction$.connect();
+        }
+        this.actionSubscribed$ = this.actionSubDispatcher.asObservable();
+        this.actionUnsubscribed$ = this.actionUnsubDispatcher.asObservable();
     }
     createAction(type, params) {
         return {
@@ -74,7 +91,7 @@ export class ControllerCore {
         this.dispatcherFor[type] = dispatch;
         return dispatch;
     }
-    replaceActionInterceptor(factory) {
+    updateInterceptor(factory) {
         const newInterceptor = factory(this.interceptor$.getValue());
         this.interceptor$.next(newInterceptor);
     }
@@ -91,6 +108,9 @@ export class ControllerCore {
             const matchTypes = types.map(type => this.typePrefix + type);
             return up.pipe(rx.filter((a) => matchTypes.every(matchType => a.t !== matchType)));
         };
+    }
+    connect() {
+        this.connectableAction$.connect();
     }
 }
 /**

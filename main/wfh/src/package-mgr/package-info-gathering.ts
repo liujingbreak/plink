@@ -11,11 +11,12 @@ import {PackageInfo as PackageState} from './index';
 // import inspector from 'inspector';
 
 const log = getLogger('plink.package-info-gathering');
+
 const {workDir, symlinkDirName} = plinkEnv;
 export interface PackageInfo {
   allModules: PackageInstance[];
   dirTree: DirTree<PackageInstance>;
-  moduleMap: {[name: string]: PackageInstance};
+  moduleMap: Map<string, PackageInstance>;
 }
 
 export {PackageInstance};
@@ -49,12 +50,12 @@ export function packageOfFileFactory() {
 export function walkPackages() {
   // if (packageInfo)
   //   return packageInfo;
-  log.debug('scan for packages info');
+  log.info('scan for packages info');
   const packageInfo: PackageInfo = {
     get allModules() {
-      return Object.values(packageInfo.moduleMap);
+      return [...packageInfo.moduleMap.values()];
     }, // array
-    moduleMap: {},
+    moduleMap: new Map(),
     dirTree: null as unknown as DirTree<PackageInstance>
   };
 
@@ -68,10 +69,8 @@ export function walkPackages() {
 
 
 function addPackageToInfo(moduleMap: PackageInfo['moduleMap'], pkg: PackageState) {
-  let instance;
-  if (_.has(moduleMap, pkg.name)) {
-    instance = moduleMap[pkg.name];
-  } else {
+  let instance = moduleMap.get(pkg.name);
+  if (instance == null) {
     const parsed = parseName(pkg.name);
     // There are also node packages
     instance = new PackageInstance({
@@ -82,10 +81,11 @@ function addPackageToInfo(moduleMap: PackageInfo['moduleMap'], pkg: PackageState
       scope: pkg.scope,
       path: Path.resolve(workDir, pkg.path),
       json: pkg.json,
-      realPath: pkg.realPath
+      realPath: pkg.realPath,
+      orig: pkg
     });
   }
-  moduleMap[instance.longName] = instance;
+  moduleMap.set(instance.longName, instance);
 }
 
 // function trimNoParseSetting(p: string) {

@@ -25,7 +25,6 @@
   "sideEffects": true,
   "dependencies": {
     "@loadable/component": "~5.15.3",
-    "@types/webpack": "~4.41.25",
     "@types/loadable__component": "5.13.3"
   },
   "scripts": {

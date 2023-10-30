@@ -2,13 +2,13 @@ import {dispatcher} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 import loadable from '@loadable/component';
 import {ShowTopLoading} from '@wfh/doc-ui-common/client/components/ShowTopLoading';
 import {AnimatableRoutesProps} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
-import {bootstrap} from './main/clientApp';
+import {bootstrapRoutes} from './main/clientApp';
 // import design1 from '@wfh/doc-ui-common/dist/markdown-loader!@wfh/assets-processer/ts/proxy-cache/design.md';
 
 dispatcher.registerFiles({
-  reactivizer: () => import('@wfh/reactivizer/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/README.md').then(res => res.default),
-  algorithms: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/algorithms/README.md').then(res => res.default),
-  reactivizerP2: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/docs/compare-with-OOP.md').then(res => res.default)
+  // reactivizer: () => import('@wfh/reactivizer/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/README.md').then(res => res.default),
+  // algorithms: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/algorithms/README.md').then(res => res.default),
+  // reactivizerP2: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/docs/compare-with-OOP.md').then(res => res.default)
 
   // intro: () => import('./intro.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!./docs/zh/architecture/intro.md').then(res => res.default),
   // sample: () => import(
@@ -45,10 +45,10 @@ const routes: AnimatableRoutesProps['routes'] = [
   // {path: '/demo/background', element: <BgDemo/>},
   // {path: '/demo/background-blur', element: <BgBlurDemo/>},
   {path: '/demo/surface', element: <SurfaceDemo/>},
-  {path: '/readme/:mdKey', element: <LazyDocComponent/>},
+  // {path: '/readme/:mdKey', element: <LazyDocComponent/>},
   {path: '/docs/:mdKey', element: <LazyDocComponent/>},
-  {path: '/*', redirect: '/readme/reactivizer'}
+  {path: '/*', redirect: '/demo/surface'}
 ];
 // const worker = new Worker(new URL('./feature/demo/worker', import.meta.url));
-bootstrap({routes});
+bootstrapRoutes({routes});
 

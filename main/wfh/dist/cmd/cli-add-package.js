@@ -4,21 +4,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addDependencyTo = void 0;
-const json_sync_parser_1 = __importDefault(require("../utils/json-sync-parser"));
-const utils_1 = require("./utils");
-const patch_text_1 = __importDefault(require("../utils/patch-text"));
-const process_utils_1 = require("../process-utils");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const log4js_1 = require("log4js");
 const lodash_1 = __importDefault(require("lodash"));
 const chalk_1 = __importDefault(require("chalk"));
 const strip_ansi_1 = __importDefault(require("strip-ansi"));
+const process_utils_1 = require("../process-utils");
+const patch_text_1 = __importDefault(require("../utils/patch-text"));
+const json_sync_parser_1 = __importDefault(require("../utils/json-sync-parser"));
 const misc_1 = require("../utils/misc");
 const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const index_1 = require("../package-mgr/index");
 require("../editor-helper");
 const store_1 = require("../store");
+const utils_1 = require("./utils");
+// import inspector from 'inspector';
+// inspector.open(9222, '0.0.0.0', true);
 const log = (0, log4js_1.getLogger)('plink.cli-add-package');
 async function addDependencyTo(packages, to, dev = false) {
     if (packages.length === 0) {
@@ -70,7 +72,8 @@ async function add(packages, toDir, dev = false) {
     const pkgJsonStr = fs_1.default.readFileSync(targetJsonFile, 'utf-8');
     const objAst = (0, json_sync_parser_1.default)(pkgJsonStr);
     const patches = [];
-    const depsAst = dev ? objAst.properties.find(prop => prop.name.text === '"devDependencies"') :
+    const depsAst = dev
+        ? objAst.properties.find(prop => prop.name.text === '"devDependencies"') :
         objAst.properties.find(prop => prop.name.text === '"dependencies"');
     const depsSet = depsAst == null ?
         new Set() :
@@ -139,6 +142,7 @@ async function add(packages, toDir, dev = false) {
     log.info(`Write file: ${targetJsonFile}:\n` + newJsonText);
     fs_1.default.writeFileSync(targetJsonFile, newJsonText);
 }
+// TODO: set a timeout control
 async function fetchRemoteVersion(pkgName) {
     const text = (0, strip_ansi_1.default)(await (0, process_utils_1.exe)('npm', 'view', pkgName, { silent: true }).promise);
     const rPattern = lodash_1.default.escapeRegExp(pkgName) + '@(\\S*)\\s';

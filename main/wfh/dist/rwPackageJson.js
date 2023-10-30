@@ -27,11 +27,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.symbolicLinkPackages = void 0;
-const fs = __importStar(require("fs-extra"));
 const Path = __importStar(require("path"));
+const os_1 = __importDefault(require("os"));
+const fs = __importStar(require("fs-extra"));
 const log4js_1 = require("log4js");
 const operators_1 = require("rxjs/operators");
-const os_1 = __importDefault(require("os"));
 const log = (0, log4js_1.getLogger)('plink.rwPackageJson');
 const isWin32 = os_1.default.platform().indexOf('win32') >= 0;
 function symbolicLinkPackages(destDir) {
@@ -46,9 +46,7 @@ function symbolicLinkPackages(destDir) {
                 }
                 catch (e) {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                    if (e.code === 'ENOENT') {
-                    }
-                    else
+                    if (e.code !== 'ENOENT')
                         throw e;
                 }
                 if (stat) {

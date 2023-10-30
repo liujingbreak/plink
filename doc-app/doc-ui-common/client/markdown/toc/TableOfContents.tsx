@@ -7,29 +7,29 @@ import {createControl, ItemState} from './TableOfContents.control';
 
 export const TableOfContents = React.memo<{markdownKey: string; className?: string}>(props => {
   const [, touchUIState] = React.useState<any>({});
-  const [control, state$] = React.useMemo(() => createControl(touchUIState), []);
-
-  const uiState = state$.getValue();
+  const [{dp}, uiStateFac] = React.useMemo(() => createControl(touchUIState), []);
+  const uiState = uiStateFac();
 
   React.useEffect(() => {
-    control.dispatcher.setDataKey(props.markdownKey);
-  }, [control.dispatcher, props.markdownKey]);
+    dp.setDataKey(props.markdownKey);
+  }, [dp, props.markdownKey]);
 
-  React.useEffect(() => () => control.dispatcher.unmount(), [control.dispatcher]);
+  React.useEffect(() => () => {dp.unmount(); }, [dp]);
 
   const layout = useAppLayout();
   React.useMemo(() => {
-    if (layout)
-      control.dispatcher.setLayoutControl(layout);
-  }, [control.dispatcher, layout]);
+    if (layout) {
+      dp.setLayoutControl(layout);
+    }
+  }, [dp, layout]);
 
-  return uiState.itemByHash && uiState.topLevelItems.length > 0 ?
-    <div className={cln(props.className ?? '', styles.tocBody, {[styles.fixed]: uiState.positionFixed})}>
-      <div ref={control.dispatcher.onPlaceHolderRef}></div>
-      <div className={styles.tocContent} ref={control.dispatcher.onContentDomRef}>
+  return uiState?.itemById && uiState?.itemById[0] && uiState.topLevelItemIdsUpdated && uiState.topLevelItemIdsUpdated[0].length > 0 ?
+    <div className={cln(props.className ?? '', styles.tocBody, {[styles.fixed]: uiState.changeFixPosition[0]})}>
+      <div ref={dp.onPlaceHolderRef}></div>
+      <div className={styles.tocContent} ref={dp.onContentDomRef}>
         <h3>Contents</h3>
         {
-          renderItems(uiState.itemByHash, uiState.topLevelItems)
+          renderItems(uiState.itemById[0], uiState.topLevelItemIdsUpdated[0])
         }
       </div>
     </div> :

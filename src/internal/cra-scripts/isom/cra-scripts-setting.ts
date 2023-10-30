@@ -4,6 +4,8 @@ import {config} from '@wfh/plink';
  * Package setting type
  */
 export interface CraScriptsSetting {
+  /** Same as command line arugment "<packages_or_entries...>" */
+  entries?: string[];
   /** Less loader option: additionalData */
   lessLoaderAdditionalData: string;
   lessLoaderOtherOptions: {[key: string]: any};
