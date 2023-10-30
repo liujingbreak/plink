@@ -1,5 +1,10 @@
 # Changelog
-
+## @wfh/reactivizer 0.1.1
+- RxController supports new methods: groupControllerBy(), connect()
+- ControllerCore supports new option property "autoConnect"
+- ControllerCore supports new meta event observables: actionSubscribed$, actionUnsubscribed$
+- new "Table"'s member fields "latestPayloadsByName$", "latestPayloadsSnapshot$"
+ 
 ## Plink 0.13.x
 - Upgrade RxJS version to 7.x.x
 
