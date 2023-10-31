@@ -1,5 +1,5 @@
-import RJ from 'require-injector';
-import { FactoryMapCollection, FactoryMapInterf } from 'require-injector/dist/factory-map';
+import RJ from '../../packages/require-injector';
+import { FactoryMapCollection, FactoryMapInterf } from '../../packages/require-injector/dist/factory-map';
 import { PlinkSettings } from './config/config-slice';
 export declare class DrPackageInjector extends RJ {
     protected noNode: boolean;

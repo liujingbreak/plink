@@ -27,27 +27,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.testable = exports.publish = exports.pack = void 0;
-const promise_queque_1 = require("../../../packages/thread-promise-pool/dist/promise-queque");
-const _ = __importStar(require("lodash"));
 const fs = __importStar(require("fs"));
-const fs_extra_1 = __importDefault(require("fs-extra"));
 const Path = __importStar(require("path"));
-const process_utils_1 = require("../process-utils");
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const _ = __importStar(require("lodash"));
 const rx = __importStar(require("rxjs"));
 const op = __importStar(require("rxjs/operators"));
-// import {boxString} from './utils';
-// import * as recipeManager from './recipe-manager';
-const json_sync_parser_1 = __importDefault(require("../utils/json-sync-parser"));
-const patch_text_1 = __importDefault(require("require-injector/dist/patch-text"));
-const config_1 = __importDefault(require("../config"));
-const package_mgr_1 = require("../package-mgr");
-const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const log4js_1 = __importDefault(require("log4js"));
 const strip_ansi_1 = __importDefault(require("strip-ansi"));
-const utils_1 = require("./utils");
+const patch_text_1 = __importDefault(require("../utils/patch-text"));
+const package_list_helper_1 = require("../package-mgr/package-list-helper");
+const package_mgr_1 = require("../package-mgr");
+const config_1 = __importDefault(require("../config"));
+const process_utils_1 = require("../process-utils");
+const json_sync_parser_1 = __importDefault(require("../utils/json-sync-parser"));
+const promise_queque_1 = require("../../../packages/thread-promise-pool/dist/promise-queque");
 const misc_1 = require("../utils/misc");
 require("../editor-helper");
 const store_1 = require("../store");
+const utils_1 = require("./utils");
 // let tarballDir: string;
 const log = log4js_1.default.getLogger('plink.cli-pack');
 function init(opts) {
@@ -196,9 +194,7 @@ function changePackageJson(packageTarballMap, targetJsonFile) {
         changeSinglePackageJson(Path.dirname(targetJsonFile), package2tarball);
         return;
     }
-    for (const workspace of _.uniq([
-        ...(0, package_mgr_1.getState)().workspaces.keys(), ''
-    ]).map(dir => Path.resolve((0, config_1.default)().rootPath, dir))) {
+    for (const workspace of _.uniq([...(0, package_mgr_1.getState)().workspaces.keys(), '']).map(dir => Path.resolve((0, config_1.default)().rootPath, dir))) {
         const wsDir = Path.resolve((0, config_1.default)().rootPath, workspace);
         changeSinglePackageJson(wsDir, package2tarball);
     }

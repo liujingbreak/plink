@@ -1,10 +1,10 @@
 // import * as Path from 'path';
-import * as _ from 'lodash';
-import {DirTree} from 'require-injector/dist/dir-tree';
-import PackageInstance from '../packageNodeInstance';
-import {PackageInfo} from '.';
-import {plinkEnv} from '../utils/misc';
 import {resolve} from 'path';
+import * as _ from 'lodash';
+import {DirTree} from '../../../packages/require-injector/dist/dir-tree';
+import PackageInstance from '../packageNodeInstance';
+import {plinkEnv} from '../utils/misc';
+import {PackageInfo} from '.';
 /**
  * @deprecated
  */
@@ -23,8 +23,7 @@ export default class LazyPackageFactory {
         this.packagePathMap.putData(resolve(plinkEnv.workDir, info.path), pk);
       }
     }
-    let found: PackageInstance[];
-    found = this.packagePathMap.getAllData(file);
+    const found = this.packagePathMap.getAllData(file);
     if (found.length > 0)
       return found[found.length - 1];
     return null;

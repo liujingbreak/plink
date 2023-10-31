@@ -1,11 +1,11 @@
-import {LoaderDefinition} from 'webpack';
+import {LoaderDefinitionFunction} from 'webpack';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {markdownToHtml} from './markdown-util';
 // require('node:inspector').open(9222, 'localhost', true);
 
-const markdownLoader: LoaderDefinition = function(source, sourceMap) {
+const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
   const cb = this.async();
   const importCode = [] as string[];
   let imgIdx = 0;

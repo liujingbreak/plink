@@ -34,7 +34,8 @@
     {"path": "packages/redux-toolkit-observable/tsconfig-redux-toolkit.json"},
     {"path": "packages/thread-promise-pool/tsconfig-thread-promise.json"},
     {"path": "packages/algorithms/tsconfig-node.json"},
-    {"path": "packages/reactivizer/tsconfig-node.json"}
+    {"path": "packages/reactivizer/tsconfig-node.json"},
+    {"path": "packages/require-injector/tsconfig-node.json"}
   ],
   "include": [
     "wfh/src/**/*.ts"

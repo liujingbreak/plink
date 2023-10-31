@@ -8,7 +8,7 @@ export type Options = {
     retryOnError?: number;
 };
 export default function (dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory[] | Worker[], opts?: Options): {
-    action$: rx.Subject<"start" | "stop" | "restart">;
+    action$: rx.Subject<"stop" | "start" | "restart">;
     serverState$: rx.BehaviorSubject<"stopped" | "started" | "stopping">;
 };
 export {};

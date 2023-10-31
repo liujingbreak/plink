@@ -9,6 +9,7 @@ const handler: ReactScriptsHandler & ConfigHandler = {
       'react-dom',
       'react-redux',
       'immer',
+      '@wfh/doc-ui-common/client/components/appLayout.state',
       Path.resolve('../main/node_modules/@reduxjs/toolkit'),
       Path.resolve('../main/node_modules/redux-observable'),
       'react',

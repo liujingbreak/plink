@@ -2,7 +2,7 @@ export * from './config-handler';
 export { PlinkSettings, PlinkSettings as DrcpSettings } from './config/config-slice';
 export { PackageSettingInterf } from './config/config.types';
 export { default as config } from './config/index';
-export * from './require-injectors';
+export * from '../../packages/require-injector/dist';
 export { default as ExtensionContext } from './package-mgr/node-package-api';
 export { InjectorConfigHandler, DrPackageInjector, nodeInjector, webInjector } from './injector-factory';
 export * from './cmd/types';

@@ -1,0 +1,19 @@
+declare function translate(key: string): string;
+const A = require('a');
+requir('b');
+import './main.less';
+translate('text');
+alert(__api);
+import C, {a as A, b as B} from 'MODULE';
+import api from '__api';
+import * as _ from 'lodash';
+function () {
+	var a = require('__api');
+	require.ensure('yyy', () => {});
+	require['ensure']('zzz', () => {});
+}
+import('asyncModule');
+a.require('__api');
+export * from 'lodash';
+export {each} from 'lodash';
+export {abc};

@@ -1,4 +1,4 @@
-import { FactoryMapInterf } from 'require-injector/dist/factory-map';
+import { FactoryMapInterf } from '../../packages/require-injector/dist/factory-map';
 import { DrPackageInjector } from './injector-factory';
 export { DrPackageInjector as InjectorFactory };
 export { FactoryMapInterf };

@@ -20,8 +20,8 @@ import {Size} from './layout/MediaMatch';
 
 export const Ctx = React.createContext<Slice<AppLayoutState, typeof reducers> | null | undefined>(null);
 export function useAppLayout() {
-  const ctx = React.useContext(Ctx);
-  return ctx;
+  const slice = React.useContext(Ctx);
+  return slice;
 }
 
 export interface AppLayoutState {

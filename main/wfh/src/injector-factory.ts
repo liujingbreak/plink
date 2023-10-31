@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as Path from 'path';
-import RJ from 'require-injector';
-import {FactoryMapCollection, FactoryMapInterf} from 'require-injector/dist/factory-map';
 import * as _ from 'lodash';
 import log4js from 'log4js';
+import RJ from '../../packages/require-injector';
+import {FactoryMapCollection, FactoryMapInterf} from '../../packages/require-injector/dist/factory-map';
 import _config from './config';
 import {PlinkSettings} from './config/config-slice';
 import {getRootDir, getWorkDir} from './utils/misc';

@@ -1,0 +1,75 @@
+import * as BKLib from '@bk/mf-share';
+import { Injectable } from '@angular/core';
+import { from, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { environment as env } from '@bk/env';
+(window as any).BKLib = BKLib;
+
+export {PayStatus} from '@bk/mf-share';
+/**
+ * @see https://confluence.bkjk-inc.com/pages/viewpage.action?pageId=25533352
+ *
+ * ! 这里返回的 observable 应该是 pure 的，不要做任何处理
+ *
+ * @export
+ * @class BKLibService
+ */
+@Injectable({
+  providedIn: 'root'
+})
+export class BKLibService {
+  cashier = {
+    /**
+     * 使用订单号唤起收银台
+     *
+     * @param {string} orderId
+     * @returns
+     */
+    launchByOrderId(orderId: string) {
+      return from(BKLib.cashier.launchByOrderId({ orderId }));
+      // return from<{ payStatus: PayStatus }>(
+      //   new Promise(resolve => {
+      //     setTimeout(() => {
+      //       resolve({ payStatus: PayStatus.BK_PAY_SUCCESS });
+      //     }, 2000);
+      //   })
+      // );
+    }
+  };
+
+  constructor() {
+    // 全局变量 BKLib
+    if (!(window as any).BKLib) {
+      throw Error('can not find BKLib');
+    }
+  }
+
+  /**
+   * 退出 native 当前视图
+   *
+   * @returns
+   * @memberof BKLibService
+   */
+  pop() {
+    // catchError 是刘晶加的
+    return from(BKLib.pop()).pipe(
+      // LJ: We want to tolerate BKlib's any error when exiting web view
+      catchError((err: any) => {
+        if (env.devFriendly) {
+          alert('[Debug] 退出App web view: ' + err);
+        }
+        return of(true);
+      })
+    );
+  }
+
+  /**
+   * 获取 SDK 基础信息
+   *
+   * @returns
+   * @memberof BKLibService
+   */
+  getWalletInfo() {
+    return from(BKLib.getWalletInfo({force: true}));
+  }
+}

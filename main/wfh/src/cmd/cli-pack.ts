@@ -1,26 +1,24 @@
 
-import {queueUp} from '../../../packages/thread-promise-pool/dist/promise-queque';
-import * as _ from 'lodash';
 import * as fs from 'fs';
-import fsext from 'fs-extra';
 import * as Path from 'path';
-import {exe} from '../process-utils';
+import fsext from 'fs-extra';
+import * as _ from 'lodash';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-// import {boxString} from './utils';
-// import * as recipeManager from './recipe-manager';
-import jsonParser, {ObjectAst, Token} from '../utils/json-sync-parser';
-import replaceCode, {ReplacementInf} from 'require-injector/dist/patch-text';
-import config from '../config';
-import {PackOptions, PublishOptions} from './types';
-import {getPackagesOfProjects, getState, workspaceKey, actionDispatcher} from '../package-mgr';
-import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
 import log4js from 'log4js';
 import stripAnsi from 'strip-ansi';
-import {findPackagesByNames} from './utils';
+import replaceCode, {ReplacementInf} from '../utils/patch-text';
+import {packages4WorkspaceKey} from '../package-mgr/package-list-helper';
+import {getPackagesOfProjects, getState, workspaceKey, actionDispatcher} from '../package-mgr';
+import config from '../config';
+import {exe} from '../process-utils';
+import jsonParser, {ObjectAst, Token} from '../utils/json-sync-parser';
+import {queueUp} from '../../../packages/thread-promise-pool/dist/promise-queque';
 import {plinkEnv} from '../utils/misc';
 import '../editor-helper';
 import {dispatcher as storeSettingDispatcher} from '../store';
+import {findPackagesByNames} from './utils';
+import {PackOptions, PublishOptions} from './types';
 
 // let tarballDir: string;
 const log = log4js.getLogger('plink.cli-pack');
@@ -45,8 +43,8 @@ export async function pack(opts: PackOptions) {
     await packPackages(opts.dir, tarballDir, targetJsonFile);
   } else if (opts.packages && opts.packages.length > 0) {
     const dirs = Array.from(findPackagesByNames(getState(), opts.packages))
-    .filter(pkg => pkg && (pkg.json.dr != null || pkg.json.plink != null))
-    .map(pkg => pkg!.realPath);
+      .filter(pkg => pkg && (pkg.json.dr != null || pkg.json.plink != null))
+      .map(pkg => pkg!.realPath);
     await packPackages(dirs, tarballDir, targetJsonFile);
   } else {
     await packPackages(Array.from(linkedPackagesOfWorkspace(plinkEnv.workDir)), tarballDir, targetJsonFile);
@@ -62,8 +60,8 @@ export async function publish(opts: PublishOptions) {
     await publishPackages(opts.dir, opts.public ? ['--access', 'public'] : []);
   } else if (opts.packages && opts.packages.length > 0) {
     const dirs = Array.from(findPackagesByNames(getState(), opts.packages))
-    .filter(pkg => pkg)
-    .map(pkg => pkg!.realPath);
+      .filter(pkg => pkg)
+      .map(pkg => pkg!.realPath);
     await publishPackages(dirs, opts.public ? ['--access', 'public'] : []);
   } else {
     await publishPackages(Array.from(linkedPackagesOfWorkspace(plinkEnv.workDir)),
@@ -112,9 +110,9 @@ async function packPackages(packageDirs: string[], tarballDir: string, targetJso
     await deleteOldTar(tarInfos.map(item => new RegExp('^' +
       _.escapeRegExp(item.name.replace('@', '').replace(/[/\\]/g, '-'))
         + '\\-\\d+(?:\\.\\d+){1,2}(?:\\-[^]+?)?\\.tgz$', 'i'
-      )),
-      tarInfos.map(item => item.filename),
-      tarballDir);
+    )),
+    tarInfos.map(item => item.filename),
+    tarballDir);
     changePackageJson(package2tarball, targetJsonFile);
     await new Promise(resolve => setImmediate(resolve));
     actionDispatcher.scanAndSyncPackages({
@@ -158,7 +156,7 @@ async function publishProject(projectDirs: string[], npmCliOpts: string[]) {
 }
 
 async function npmPack(packagePath: string, tarballDir: string):
-  Promise<{name: string; filename: string; version: string; dir: string} | null> {
+Promise<{name: string; filename: string; version: string; dir: string} | null> {
   try {
     const output = await (exe('npm', 'pack', Path.resolve(packagePath),
       {silent: true, cwd: tarballDir}).done);
@@ -193,8 +191,7 @@ function changePackageJson(packageTarballMap: Map<string, string>, targetJsonFil
     changeSinglePackageJson(Path.dirname(targetJsonFile), package2tarball);
     return;
   }
-  for (const workspace of _.uniq([
-    ...getState().workspaces.keys(), '']).map(dir => Path.resolve(config().rootPath, dir))
+  for (const workspace of _.uniq([...getState().workspaces.keys(), '']).map(dir => Path.resolve(config().rootPath, dir))
   ) {
     const wsDir = Path.resolve(config().rootPath, workspace);
     changeSinglePackageJson(wsDir, package2tarball);

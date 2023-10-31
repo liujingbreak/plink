@@ -24,7 +24,7 @@ const termux_issue_webpack_plugin_1 = require("./termux-issue-webpack-plugin");
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-config');
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
 function default_1(webpackEnv) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const { addResolveAlias } = require('./webpack-resolve');
     (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${plink_1.config.resolve('destDir', 'cra-scripts.report')}`);
@@ -114,8 +114,9 @@ function default_1(webpackEnv) {
         (0, webpack_dll_1.setupDllPlugin)(cmdOption.buildTargets, config, getPluginConstructor);
     }
     else {
+        let dllJsFiles = [];
         if (cmdOption.refDllManifest) {
-            (0, webpack_dll_1.setupDllReferencePlugin)(cmdOption.refDllManifest, config);
+            dllJsFiles = (0, webpack_dll_1.setupDllReferencePlugin)(cmdOption.refDllManifest, config);
         }
         config.plugins.push(new (class {
             apply(compiler) {
@@ -132,10 +133,7 @@ function default_1(webpackEnv) {
         const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
         htmlWebpackPluginInstance.userOptions.templateParameters = {
             _config: (0, plink_1.config)(),
-            _dllJsFiles: cmdOption.refDllManifest ? cmdOption.refDllManifest.map(file => {
-                const m = /([^/\\.]+)[^/\\]*?$/.exec(file);
-                return m ? `dll/${m[1]}/js/${m[1]}.js` : false;
-            }).filter(v => v) : []
+            _dllJsFiles: dllJsFiles
         };
         (0, splitChunks_1.default)(config, (mod) => {
             var _a;
@@ -148,15 +146,18 @@ function default_1(webpackEnv) {
     }
     const now = new Date();
     const timeStr = now.getDate() + '_' + now.getHours() + '-' + now.getMinutes() + '-' + now.getSeconds() + '-' + now.getMilliseconds();
-    (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin(), new webpack_bundle_analyzer_1.BundleAnalyzerPlugin({
-        analyzerMode: 'disabled',
-        generateStatsFile: true,
-        statsFilename: path_1.default.join(plink_1.plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
-    }));
+    (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin());
+    if (cmdOption.cmd === 'cra-build' && !cmdOption.watch) {
+        (_e = config.plugins) === null || _e === void 0 ? void 0 : _e.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin(), new webpack_bundle_analyzer_1.BundleAnalyzerPlugin({
+            analyzerMode: 'disabled',
+            generateStatsFile: true,
+            statsFilename: path_1.default.join(plink_1.plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
+        }));
+    }
     function getPluginConstructor(pluginPkgName) {
         return require(resolve_1.default.sync(pluginPkgName, { basedir: reactScriptsInstalledDir }));
     }
-    const rules = [...(_f = (_e = config.module) === null || _e === void 0 ? void 0 : _e.rules) !== null && _f !== void 0 ? _f : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
+    const rules = [...(_g = (_f = config.module) === null || _f === void 0 ? void 0 : _f.rules) !== null && _g !== void 0 ? _g : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
     for (const rule of rules) {
         if (typeof rule !== 'string') {
             if (rule.oneOf) {

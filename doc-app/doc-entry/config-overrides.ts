@@ -8,7 +8,7 @@ const handler: ReactScriptsHandler = {
     // change CRA paths:
 
     // output directory will be dist/static/main
-    if (cmdOpt.buildType !== 'lib') {
+    if (cmdOpt.buildType === 'app') {
       craPaths.appBuild = craPaths.appBuild + '/plink';
       craPaths.publicUrlOrPath = '/plink';
     }

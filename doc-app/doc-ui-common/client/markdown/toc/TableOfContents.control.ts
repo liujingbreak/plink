@@ -5,7 +5,7 @@ import {useAppLayout} from '../../components/appLayout.state';
 import {getStore as getMarkdownStore} from '../markdownSlice';
 import {TOC} from '../../../isom/md-types';
 
-const desktopAppTitleBarHeight = 64;
+// const desktopAppTitleBarHeight = 64;
 export type ItemState = {
   expanded?: boolean;
   highlighted?: boolean;
@@ -91,19 +91,43 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  r('When scrolling…dispatch changeFixPosition', i.pt.setLayoutControl.pipe(
-    rx.combineLatestWith(composite.inputTable.l.onPlaceHolderRef.pipe(
-      rx.filter(([, ref]) => ref != null)
-    )),
-    rx.switchMap(([[, slice], [, ref]]) => slice.action$ByType._onScroll.pipe(
-      rx.map(() => ref!)
-    )),
-    rx.map(ref => {
-      return ref.getBoundingClientRect().top <= desktopAppTitleBarHeight;
-    }),
-    op.distinctUntilChanged(),
-    op.map(fixed => o.dp.changeFixPosition(fixed))
+  r('TOC placeholder instersection observing', composite.inputTable.l.onPlaceHolderRef.pipe(
+    rx.combineLatestWith(
+      i.pt.setLayoutControl.pipe(
+        rx.switchMap(([, layout]) => layout.getStore()),
+        rx.map(state => state.frontLayer),
+        rx.filter(container => container != null),
+        rx.take(1)
+      )
+    ),
+    rx.filter(([[, ref], container]) => ref != null),
+    rx.switchMap(([[, ref], container]) => new rx.Observable<boolean>(sub => {
+      const ob = new IntersectionObserver(entries => {
+        sub.next(entries[0].isIntersecting);
+        console.log(entries[0]);
+      }, {// rootMargin: '-' + desktopAppTitleBarHeight + 'px',
+        root: container,
+        threshold: 0
+      });
+      ob.observe(ref!);
+      return () => ob.observe(ref!);
+    })),
+    rx.map(isIntersecting => o.dp.changeFixPosition(!isIntersecting))
   ));
+
+  // r('When scrolling…dispatch changeFixPosition', i.pt.setLayoutControl.pipe(
+  //   rx.combineLatestWith(composite.inputTable.l.onPlaceHolderRef.pipe(
+  //     rx.filter(([, ref]) => ref != null)
+  //   )),
+  //   rx.switchMap(([[, slice], [, ref]]) => slice.action$ByType._onScroll.pipe(
+  //     rx.map(() => ref!)
+  //   )),
+  //   rx.map(ref => {
+  //     return ref.getBoundingClientRect().top <= desktopAppTitleBarHeight;
+  //   }),
+  //   op.distinctUntilChanged(),
+  //   op.map(fixed => o.dp.changeFixPosition(fixed))
+  // ));
 
   r('When position changed', o.pt.changeFixPosition.pipe(
     op.withLatestFrom(
@@ -119,7 +143,9 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     op.map(([[, fixed], placeHolderRef, contentRef]) => {
       if (fixed) {
         const w = placeHolderRef.clientWidth + 'px';
+        const h = placeHolderRef.clientHeight + 'px';
         placeHolderRef.style.width = w;
+        placeHolderRef.style.height = h;
         contentRef.style.width = w;
       } else {
         placeHolderRef.style.width = '';

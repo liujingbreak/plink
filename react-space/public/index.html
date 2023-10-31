@@ -26,7 +26,7 @@
     -->
     <title><%= _config.title || 'Plink' %></title>
     <% for (const dllFile of _dllJsFiles) { %>
-    <script defer src="%PUBLIC_URL%/dll/js/<%=dllFile%>"></script>
+    <script defer src="/<%=dllFile%>"></script>
     <% } %>
   </head>
   <body>

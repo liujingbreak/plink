@@ -1,5 +1,5 @@
-import { PackOptions, PublishOptions } from './types';
 import '../editor-helper';
+import { PackOptions, PublishOptions } from './types';
 export declare function pack(opts: PackOptions): Promise<void>;
 export declare function publish(opts: PublishOptions): Promise<void>;
 /**

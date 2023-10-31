@@ -56,7 +56,7 @@ function paths() {
     }
     else if (cmdOption.buildType === 'dll') {
         const [dllName] = (0, webpack_dll_1.extractDllName)(cmdOption.buildTargets);
-        changedPaths.appBuild = config_1.default.resolve('staticDir', 'dll', dllName);
+        changedPaths.appBuild = (0, webpack_dll_1.outputPathForDllName)(dllName);
         changedPaths.appIndexJs = cmdOption.buildTargets[0].file; // Webpack configuration property entry will be changed in webpack-dll
     }
     changedPaths.appWebpackCache = node_path_1.default.join(plink_1.plinkEnv.distDir, 'webpack-cache');

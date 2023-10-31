@@ -7,9 +7,12 @@
     padding-left: 1rem;
     &.fixed {
       .tocContent {
-        top: 64px;
         position: fixed;
       }
+    }
+    .tocContent {
+      top: 64px;
+      transition: top ease-out 0.25s;
     }
     h3 {
       margin-bottom: 1rem;

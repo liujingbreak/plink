@@ -1,0 +1,68 @@
+{
+  "name": "require-injector",
+  "version": "5.3.3",
+  "description": "Resolve and replacing require() function in both NodeJS and browser side CommonJS packing tool like Webpack and Browserify.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "loader": "webpack-loader",
+  "scripts": {
+    "--iii": "rm -rf spec/node_modules/require-injector ; mkdir spec/node_modules/require-injector ; cp -r lib spec/node_modules/require-injector/ ; cp -r dist spec/node_modules/require-injector/ ; cp *.js spec/node_modules/require-injector/ ; cp *.json spec/node_modules/require-injector/",
+    "--init": "rm -rf spec/node_modules/require-injector && mkdir spec/node_modules/require-injector && cp -r lib spec/node_modules/require-injector/ && cp -r dist spec/node_modules/require-injector/ && cp *.js spec/node_modules/require-injector/ && cp *.json spec/node_modules/require-injector/",
+    "--clean-win32": "rd /s/q spec\\node_modules\\require-injector",
+    "--init-win32": "xcopy lib spec\\node_modules\\require-injector\\ /s/h/e/k/f/c && xcopy ts spec\\node_modules\\require-injector\\ /s/h/e/k/f/c && xcopy dist spec\\node_modules\\require-injector\\ /s/h/e/k/f/c && copy *.js spec\\node_modules\\require-injector\\ && copy *.json spec\\node_modules\\require-injector\\",
+    "--test": "node node_modules/jasmine/bin/jasmine",
+    "--test-ts": "node node_modules/jasmine/bin/jasmine dist/spec/ts-parserSpec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liujingbreak/plink.git",
+    "directory": "main/packages/require-injector"
+  },
+  "keywords": [
+    "import",
+    "resolve",
+    "resolve.alias",
+    "extend",
+    "path",
+    "modules",
+    "dependency",
+    "inject",
+    "require",
+    "typescript",
+    "browserify",
+    "browserify-plugin",
+    "browserify-tool",
+    "transform",
+    "webpack",
+    "loader"
+  ],
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "author": "Liu Jing",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dr-web-house/require-injector/issues"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.97",
+    "@types/node": "^14.11.1",
+    "lodash": "^4.17.20",
+    "tslib": "^2.3.0",
+    "log4js": "^4.4.0"
+  },
+  "devDependencies": {
+    "jasmine": "^3.5.0",
+    "shelljs": "^0.6.0",
+    "tslint": "^5.12.1",
+    "tslint-eslint-rules": "^5.4.0",
+    "typescript": "^4.1.2",
+    "@types/jasmine": "^3.3.5",
+    "@types/webpack": "^4.41.22"
+
+  },
+  "peerDependencies": {
+    "log4js": "*",
+    "typescript": "*"
+  }
+}
