@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { Action, ActionFunctions, InferMapParam, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, PayloadStream, CoreOptions } from './stream-core';
+import { Action, ActionFunctions, InferMapParam, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions } from './stream-core';
 export * from './stream-core';
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
 type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
@@ -35,11 +35,11 @@ export declare class RxController<I extends ActionFunctions> {
         [K in keyof I]: DispatchForAndObserveRes<I, K>;
     };
     payloadByType: {
-        [K in keyof I]: PayloadStream<I, K>;
+        [K in keyof I]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
     };
     /** abbrevation of payloadByType */
     pt: {
-        [K in keyof I]: PayloadStream<I, K>;
+        [K in keyof I]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
     };
     actionByType: {
         [K in keyof I]: rx.Observable<Action<I, K>>;
@@ -78,22 +78,25 @@ export declare class GroupedRxController<I extends ActionFunctions, K> extends R
  *
  */
 export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
-    [P in KS[number]]: InferPayload<I[P]>;
+    [P in KS[number]]: InferPayload<I[P]> | [];
 };
 export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
     #private;
     private streamCtl;
     actionNames: KS;
-    latestPayloads: { [K in KS[number]]: PayloadStream<I, K>; };
+    latestPayloads: { [K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>; };
     /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
     l: {
-        [K in KS[number]]: PayloadStream<I, K>;
+        [K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
     };
     get dataChange$(): rx.Observable<ActionTableDataType<I, KS>>;
+    private data;
     get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>>;
     actionSnapshot: Map<keyof I, [ActionMeta, ...InferPayload<I[keyof I]>]>;
     private actionNamesAdded$;
     constructor(streamCtl: RxController<I>, actionNames: KS);
+    getData(): ActionTableDataType<I, KS>;
+    /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
     addActions<M extends Array<keyof I>>(...actionNames: M): ActionTable<I, (KS[number] | M[number])[]>;
     private onAddActions;
     getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I, K> | undefined;

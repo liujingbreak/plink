@@ -1,6 +1,6 @@
 import React from 'react';
 import clsDdp from 'classnames/dedupe';
-import {useAppLayout} from '../components/appLayout.state';
+import {useAppLayout} from '../components/appLayout.control';
 import {SwitchAnim} from './SwitchAnim';
 import {RouteObject, RouterContext, useRouterProvider} from './AnimatableRoutes.hooks';
 import styles from './AnimatableRoutes.module.scss';
@@ -21,7 +21,7 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
   // When route is switched, scroll to top
   React.useEffect(() => {
     if (router.matchedRoute && layout) {
-      layout.actionDispatcher.scrollTo([0, 0]);
+      layout.i.dp.scrollTo(0, 0);
     }
   }, [layout, router.matchedRoute]);
 

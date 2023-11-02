@@ -95,7 +95,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
     <SwitchAnim className={cls('switchAnim')} innerClassName={styles.container} contentHash={props.mdKey}>
       <>
         <div ref={containerRefCb} className={cln(styles.markdownContent, 'markdown-body')} dangerouslySetInnerHTML={htmlObj}></div>
-        {props.mdKey ? <TableOfContents markdownKey={props.mdKey} /> : '...'}
+        {props.mdKey ? <TableOfContents className={styles.toc} markdownKey={props.mdKey} /> : '...'}
       </>
     </SwitchAnim>
   );

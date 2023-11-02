@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, InferMapParam, InferPayload, ActionMeta,
-  ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, PayloadStream, CoreOptions,
+  ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions,
   has, nameOfAction, actionMetaToStr
 } from './stream-core';
 
@@ -13,6 +13,8 @@ type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O ex
 type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
   waitForAction$: rx.Observable<Action<O, R>>, origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
+
+const EMPTY_ARRY = [] as [];
 
 export class RxController<I extends ActionFunctions> {
   core: ControllerCore<I>;
@@ -28,9 +30,9 @@ export class RxController<I extends ActionFunctions> {
   dispatchForAndObserveRes: {[K in keyof I]: DispatchForAndObserveRes<I, K>};
   /** abbrevation of dispatchForAndObserveRes */
   dfo: {[K in keyof I]: DispatchForAndObserveRes<I, K>};
-  payloadByType: {[K in keyof I]: PayloadStream<I, K>};
+  payloadByType: {[K in keyof I]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
   /** abbrevation of payloadByType */
-  pt: {[K in keyof I]: PayloadStream<I, K>};
+  pt: {[K in keyof I]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
   actionByType: {[K in keyof I]: rx.Observable<Action<I, K>>};
   /** abbrevation of actionByType */
   at: {[K in keyof I]: rx.Observable<Action<I, K>>};
@@ -43,11 +45,23 @@ export class RxController<I extends ActionFunctions> {
     this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I[K]>}, {
       get(_target, key, _rec) {
         return core.dispatchFactory(key as keyof I);
+      },
+      has(_target, key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
       }
     });
     this.dispatcherFor = this.dpf = new Proxy({} as {[K in keyof I]: DispatchFor<I[K]>}, {
       get(_target, key, _rec) {
         return core.dispatchForFactory(key as keyof I);
+      },
+      has(_target, key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
       }
     });
 
@@ -73,6 +87,12 @@ export class RxController<I extends ActionFunctions> {
           ).subscribe(r$);
           return r$.asObservable();
         };
+      },
+      has(_target, key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
       }
     });
 
@@ -82,6 +102,12 @@ export class RxController<I extends ActionFunctions> {
         return <R extends keyof I>(action$: rx.Observable<Action<I, R>>, ...params: any[]) => {
           return self.dfo[key as keyof I](action$, null, ...(params as any));
         };
+      },
+      has(_target, key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
       }
     });
 
@@ -99,6 +125,12 @@ export class RxController<I extends ActionFunctions> {
             );
           }
           return a$;
+        },
+        has(_target, key) {
+          return Object.prototype.hasOwnProperty.call(actionsByType, key);
+        },
+        ownKeys() {
+          return Object.keys(actionsByType);
         }
       });
 
@@ -118,6 +150,12 @@ export class RxController<I extends ActionFunctions> {
             );
           }
           return p$;
+        },
+        has(_target, key) {
+          return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);
+        },
+        ownKeys() {
+          return Object.keys(actionByTypeProxy);
         }
       });
     this.updateInterceptor = core.updateInterceptor;
@@ -196,15 +234,15 @@ export class GroupedRxController<I extends ActionFunctions, K> extends RxControl
  * 
  */
 export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
-  [P in KS[number]]: InferPayload<I[P]>
+  [P in KS[number]]: InferPayload<I[P]> | []
 };
 
 export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
   actionNames: KS;
 
-  latestPayloads = {} as {[K in KS[number]]: PayloadStream<I, K>};
+  latestPayloads = {} as {[K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
   /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
-  l: {[K in KS[number]]: PayloadStream<I, K>};
+  l: {[K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
 
   get dataChange$(): rx.Observable<ActionTableDataType<I, KS>> {
     if (this.#latestPayloadsByName$)
@@ -213,16 +251,19 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
     this.#latestPayloadsByName$ = this.actionNamesAdded$.pipe(
       rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
       rx.map(() => {
-        const payloadByName = {} as {[P in KS[number]]: InferPayload<I[P]>};
-        for (const [k, [, ...v]] of this.actionSnapshot.entries()) {
-          payloadByName[k] = v;
+        this.data = {} as ActionTableDataType<I, KS>;
+        for (const k of this.actionNames) {
+          const v = this.actionSnapshot.get(k);
+          this.data[k] = v ? v.slice(1) as InferPayload<I[keyof I]> : EMPTY_ARRY;
         }
-        return payloadByName;
+        return this.data;
       }),
       rx.share()
     );
     return this.#latestPayloadsByName$;
   }
+
+  private data: ActionTableDataType<I, KS> = {} as ActionTableDataType<I, KS>;
 
   get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
     if (this.#latestPayloadsSnapshot$)
@@ -238,7 +279,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
   actionSnapshot = new Map<keyof I, InferMapParam<I, keyof I>>();
 
   // private
-  #latestPayloadsByName$: rx.Observable<{[P in KS[number]]: InferPayload<I[P]>}> | undefined;
+  #latestPayloadsByName$: rx.Observable<ActionTableDataType<I, KS>> | undefined;
   #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
   private actionNamesAdded$ = new rx.ReplaySubject<ReadonlyArray<keyof I>>(1);
 
@@ -251,9 +292,13 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
         this.onAddActions(actionNames);
       })
     ).subscribe();
-
   }
 
+  getData(): ActionTableDataType<I, KS> {
+    return this.data;
+  }
+
+  /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
   addActions<M extends Array<keyof I>>(...actionNames: M) {
     this.actionNames = this.actionNames.concat(actionNames) as unknown as KS;
     this.actionNamesAdded$.next(actionNames);

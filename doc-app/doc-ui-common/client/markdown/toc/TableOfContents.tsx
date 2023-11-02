@@ -1,6 +1,6 @@
 import React from 'react';
 import cln from 'classnames';
-import {useAppLayout} from '../../components/appLayout.state';
+import {useAppLayout} from '../../components/appLayout.control';
 import styles from './TableOfContents.module.scss';
 // import {TOC} from '../../../isom/md-types';
 import {createControl, ItemState} from './TableOfContents.control';
@@ -23,15 +23,15 @@ export const TableOfContents = React.memo<{markdownKey: string; className?: stri
     }
   }, [dp, layout]);
 
-  return uiState?.itemById && uiState?.itemById[0] && uiState.topLevelItemIdsUpdated && uiState.topLevelItemIdsUpdated[0].length > 0 ?
+  return uiState?.itemById && uiState?.itemById[0] && uiState.topLevelItemIdsUpdated[0] && uiState.topLevelItemIdsUpdated[0].length > 0 ?
     <div className={cln(props.className ?? '', styles.tocBody, {[styles.fixed]: uiState.changeFixPosition[0]})}>
       <div ref={dp.onPlaceHolderRef}>
-        <div className={styles.tocContent} ref={dp.onContentDomRef}>
-          <h3>Contents</h3>
-          {
-            renderItems(uiState.itemById[0], uiState.topLevelItemIdsUpdated[0])
-          }
-        </div>
+      </div>
+      <div className={styles.tocContent} ref={dp.onContentDomRef}>
+        <h3>Contents</h3>
+        {
+          renderItems(uiState.itemById[0], uiState.topLevelItemIdsUpdated[0])
+        }
       </div>
     </div> :
     null;

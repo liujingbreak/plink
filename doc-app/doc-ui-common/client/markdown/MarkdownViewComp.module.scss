@@ -11,10 +11,17 @@
   align-items: flex-start;
 }
 
-:global(.mdc-layout-size-desktop), :global(.mdc-layout-size-tablet) {
+.toc {
+  display: none;
+  width: 28vw;
+  max-width: 400px;
+}
+:global(.mdc-layout-size-desktop) {
   .markdownContent {
-    max-width: 900px;
     flex-grow: 1;
+  }
+  .toc {
+    display: block;
   }
 }
 

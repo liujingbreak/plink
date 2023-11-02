@@ -5,13 +5,16 @@
     flex-grow: 0;
     flex-shrink: 1;
     padding-left: 1rem;
+    // > div:first-child {
+    //   border: 1px solid red;
+    // }
     &.fixed {
       .tocContent {
+        top: 24px;
         position: fixed;
       }
     }
     .tocContent {
-      top: 64px;
       transition: top ease-out 0.25s;
     }
     h3 {

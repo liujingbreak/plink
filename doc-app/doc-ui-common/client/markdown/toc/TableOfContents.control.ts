@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {ReactorComposite, ActionTableDataType} from '@wfh/reactivizer';
-import {useAppLayout} from '../../components/appLayout.state';
+import {useAppLayout} from '../../components/appLayout.control';
 import {getStore as getMarkdownStore} from '../markdownSlice';
 import {TOC} from '../../../isom/md-types';
 
@@ -19,7 +19,7 @@ export type TocUIState = {
 };
 
 type TocUIActions = {
-  setLayoutControl(slice: NonNullable<ReturnType<typeof useAppLayout>>): void;
+  setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): void;
   setDataKey(key: string): void;
   expand(id: string, isExpand: boolean): void;
   clicked(id: string): void;
@@ -53,7 +53,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   o.dp.changeFixPosition(false);
   o.dp.itemById(new Map());
 
-  r('Recursively loadRowItem, itemUpdated', o.pt.loadRawItem.pipe(
+  r('Recursively loadRowItem -> loadRowItem, itemUpdated', o.pt.loadRawItem.pipe(
     rx.tap(([m, toc]) => {
       o.dpf.itemUpdated(m, {...toc, children: toc.children?.map(c => c.id)});
       if (toc.children) {
@@ -63,7 +63,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  r('when load dataByKey, loadRowItem', i.pt.setDataKey.pipe(
+  r('setDataKey -> loadRowItem', i.pt.setDataKey.pipe(
     rx.switchMap(([m, key]) => getMarkdownStore().pipe(
       op.map(s => s.contents[key]),
       op.distinctUntilChanged(),
@@ -91,43 +91,18 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  r('TOC placeholder instersection observing', composite.inputTable.l.onPlaceHolderRef.pipe(
-    rx.combineLatestWith(
-      i.pt.setLayoutControl.pipe(
-        rx.switchMap(([, layout]) => layout.getStore()),
-        rx.map(state => state.frontLayer),
-        rx.filter(container => container != null),
-        rx.take(1)
-      )
-    ),
-    rx.filter(([[, ref], container]) => ref != null),
-    rx.switchMap(([[, ref], container]) => new rx.Observable<boolean>(sub => {
-      const ob = new IntersectionObserver(entries => {
-        sub.next(entries[0].isIntersecting);
-        console.log(entries[0]);
-      }, {// rootMargin: '-' + desktopAppTitleBarHeight + 'px',
-        root: container,
-        threshold: 0
-      });
-      ob.observe(ref!);
-      return () => ob.observe(ref!);
-    })),
-    rx.map(isIntersecting => o.dp.changeFixPosition(!isIntersecting))
+  r('layout onTopAppBarScrollChange -> changeFixPosition', i.pt.setLayoutControl.pipe(
+    rx.switchMap(([, layout]) => layout.outputTable.l.onTopAppBarScrollChange),
+    rx.map(([, outOfViewPort]) => {
+      o.dp.changeFixPosition(outOfViewPort);
+    })
   ));
 
-  // r('When scrolling…dispatch changeFixPosition', i.pt.setLayoutControl.pipe(
-  //   rx.combineLatestWith(composite.inputTable.l.onPlaceHolderRef.pipe(
-  //     rx.filter(([, ref]) => ref != null)
-  //   )),
-  //   rx.switchMap(([[, slice], [, ref]]) => slice.action$ByType._onScroll.pipe(
-  //     rx.map(() => ref!)
-  //   )),
-  //   rx.map(ref => {
-  //     return ref.getBoundingClientRect().top <= desktopAppTitleBarHeight;
-  //   }),
-  //   op.distinctUntilChanged(),
-  //   op.map(fixed => o.dp.changeFixPosition(fixed))
-  // ));
+  r('layout deviceSize', i.pt.setLayoutControl.pipe(
+    rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
+    rx.map(([, deviceSize]) => {
+    })
+  ));
 
   r('When position changed', o.pt.changeFixPosition.pipe(
     op.withLatestFrom(

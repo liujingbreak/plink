@@ -49,19 +49,15 @@ describe('reactivizer', () => {
       const {l} = table;
       const {dp: dp2} = ctl2;
 
-      const combinedLatestCb = jest.fn();
+      const dataChangeCb = jest.fn();
+      const dataCb = jest.fn();
       table.dataChange$.pipe(
         rx.tap(map => {
-          combinedLatestCb(map);
+          dataChangeCb(map);
+          console.log('data:', table.getData());
+          dataCb(table.getData());
         })
       ).subscribe();
-
-      // rx.merge(table.l.msg5, table.l.msg6).pipe(
-      //   rx.map((a) => {
-      //     console.log('zaa', a);
-      //     combinedLatestCb(a);
-      //   })
-      // ).subscribe();
 
       dp2.msg1();
       dp2.msg5('x');
@@ -93,20 +89,28 @@ describe('reactivizer', () => {
       expect(latestPayloadCbMock.mock.calls.length).toBe(3);
       expect(latestPayloadCbMock.mock.calls[2]).toEqual(['msg5', 'y']);
 
-      console.log('combinedLatestCb.mock.calls', combinedLatestCb.mock.calls);
-      expect(combinedLatestCb.mock.calls.length).toBe(3);
+      console.log('dataChangeCb.mock.calls', dataChangeCb.mock.calls);
+      expect(dataChangeCb.mock.calls.length).toBe(3);
 
-      let testTarget = combinedLatestCb.mock.calls[0][0] as Record<string, any>;
+      let testTarget = dataChangeCb.mock.calls[0][0] as Record<string, any>;
       console.log('calls:', testTarget);
       expect(testTarget.msg5).toEqual(['x']);
-      expect(testTarget.msg6).toEqual(undefined);
+      expect(testTarget.msg6).toEqual([]);
 
-      testTarget = combinedLatestCb.mock.calls[1][0] as Record<string, any>;
+      expect((dataCb.mock.calls[0][0] as Record<string, any>).msg5).toEqual(['x']);
+      expect((dataCb.mock.calls[0][0] as Record<string, any>).msg6).toEqual([]);
+
+      testTarget = dataChangeCb.mock.calls[1][0] as Record<string, any>;
       expect(testTarget.msg5).toEqual(['x']);
       expect(testTarget.msg6).toEqual(['aaa', 2]);
-      testTarget = combinedLatestCb.mock.calls[2][0] as Record<string, any>;
+      expect((dataCb.mock.calls[1][0] as Record<string, any>).msg5).toEqual(['x']);
+      expect((dataCb.mock.calls[1][0] as Record<string, any>).msg6).toEqual(['aaa', 2]);
+
+      testTarget = dataChangeCb.mock.calls[2][0] as Record<string, any>;
       expect(testTarget.msg5).toEqual(['y']);
       expect(testTarget.msg6).toEqual(['aaa', 2]);
+      expect((dataCb.mock.calls[2][0] as Record<string, any>).msg5).toEqual(['y']);
+      expect((dataCb.mock.calls[2][0] as Record<string, any>).msg6).toEqual(['aaa', 2]);
     });
 
     it('RxController dispatchAndObserveRes', async () => {

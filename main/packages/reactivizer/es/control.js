@@ -13,6 +13,7 @@ var _ActionTable_latestPayloadsByName$, _ActionTable_latestPayloadsSnapshot$;
 import * as rx from 'rxjs';
 import { ControllerCore, has, nameOfAction, actionMetaToStr } from './stream-core';
 export * from './stream-core';
+const EMPTY_ARRY = [];
 export class RxController {
     constructor(opts) {
         this.opts = opts;
@@ -20,11 +21,23 @@ export class RxController {
         this.dispatcher = this.dp = new Proxy({}, {
             get(_target, key, _rec) {
                 return core.dispatchFactory(key);
+            },
+            has(_target, key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
             }
         });
         this.dispatcherFor = this.dpf = new Proxy({}, {
             get(_target, key, _rec) {
                 return core.dispatchForFactory(key);
+            },
+            has(_target, key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
             }
         });
         // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -42,6 +55,12 @@ export class RxController {
                     })).subscribe(r$);
                     return r$.asObservable();
                 };
+            },
+            has(_target, key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
             }
         });
         this.dispatchAndObserveRes = this.do = new Proxy({}, {
@@ -49,6 +68,12 @@ export class RxController {
                 return (action$, ...params) => {
                     return self.dfo[key](action$, null, ...params);
                 };
+            },
+            has(_target, key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
             }
         });
         const actionsByType = {};
@@ -60,6 +85,12 @@ export class RxController {
                     a$ = actionsByType[type] = core.action$.pipe(rx.filter(({ t }) => t === matchType), rx.share());
                 }
                 return a$;
+            },
+            has(_target, key) {
+                return Object.prototype.hasOwnProperty.call(actionsByType, key);
+            },
+            ownKeys() {
+                return Object.keys(actionsByType);
             }
         });
         const payloadsByType = {};
@@ -72,6 +103,12 @@ export class RxController {
                     p$ = payloadsByType[key] = a$.pipe(mapActionToPayload(), rx.share());
                 }
                 return p$;
+            },
+            has(_target, key) {
+                return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);
+            },
+            ownKeys() {
+                return Object.keys(actionByTypeProxy);
             }
         });
         this.updateInterceptor = core.updateInterceptor;
@@ -121,11 +158,12 @@ export class ActionTable {
         if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f"))
             return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
         __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => {
-            const payloadByName = {};
-            for (const [k, [, ...v]] of this.actionSnapshot.entries()) {
-                payloadByName[k] = v;
+            this.data = {};
+            for (const k of this.actionNames) {
+                const v = this.actionSnapshot.get(k);
+                this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
             }
-            return payloadByName;
+            return this.data;
         }), rx.share()), "f");
         return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
     }
@@ -138,6 +176,7 @@ export class ActionTable {
     constructor(streamCtl, actionNames) {
         this.streamCtl = streamCtl;
         this.latestPayloads = {};
+        this.data = {};
         this.actionSnapshot = new Map();
         // private
         _ActionTable_latestPayloadsByName$.set(this, void 0);
@@ -150,6 +189,10 @@ export class ActionTable {
             this.onAddActions(actionNames);
         })).subscribe();
     }
+    getData() {
+        return this.data;
+    }
+    /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
     addActions(...actionNames) {
         this.actionNames = this.actionNames.concat(actionNames);
         this.actionNamesAdded$.next(actionNames);

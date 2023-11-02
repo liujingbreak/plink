@@ -8,7 +8,7 @@ import {getStore} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 // import {DocListComponents} from './DocListComponents';
 import {useRouter} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
 import * as op from 'rxjs/operators';
-import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.state';
+import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.control';
 import {renderByMdKey} from './articaleComponents';
 import styles from './ArticalePage.module.scss';
 
@@ -54,7 +54,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
         op.distinctUntilChanged(),
         op.filter(md => {
           if (md && layout) {
-            layout.actionDispatcher.updateBarTitle(md.toc[0]?.text || 'Document (untitled)');
+            layout.i.dp.updateBarTitle(md.toc[0]?.text || 'Document (untitled)');
             return true;
           }
           return false;
@@ -64,8 +64,6 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     }
   }, [layout, matchedParams?.mdKey]);
 
-  console.log('matched route', matchedRoute);
-  console.log('matchedParams?.mdKey', matchedParams?.mdKey);
   // mdc-layout-grid provides proper margin or padding space for page element
   return (
     <div className={cls('articale-page', 'mdc-layout-grid')}> {/* CSS class mdc-layout-grid provides proper margin or padding space for page element */}

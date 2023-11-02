@@ -1,11 +1,11 @@
 import React from 'react';
+import rx from 'rxjs';
 import cls from 'classnames/bind';
 // import {useParams} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes';
 import {Ripple} from '@wfh/material-components-react/client/Ripple';
-import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.state';
+import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.control';
 import {Button} from '@wfh/material-components-react/client/Button';
 import {IconButton} from '@wfh/material-components-react/client/IconButton';
-import * as op from 'rxjs/operators';
 import {useRtk} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {useNavigateHandler} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
 import {Palette} from '../../components/color/Palette';
@@ -18,25 +18,28 @@ type DemoPageProps = Props;
 
 const DemoPage: React.FC<DemoPageProps> = function(props) {
   const layout = useAppLayout();
-  const [layoutState, setLayoutState] = React.useState(layout?.state$.getValue());
+  const [layoutState, setLayoutState] = React.useState({...layout?.inputTable.getData(), ...layout?.outputTable.getData()});
 
   useRtk(sliceOptionFactory, props, epicFactory);
 
   const turnOnLoading = React.useCallback(() => {
-    layout?.actionDispatcher.setLoadingVisible(true);
-  }, [ layout?.actionDispatcher]);
+    layout?.i.dp.setLoadingVisible(true);
+  }, [layout?.i.dp]);
 
   const turnOffLoading = React.useCallback(() => {
-    layout?.actionDispatcher.setLoadingVisible(false);
-  }, [ layout?.actionDispatcher]);
+    layout?.i.dp.setLoadingVisible(false);
+  }, [layout?.i.dp]);
   React.useEffect(() => {
     let destroy: undefined  | (() => void);
     if (layout) {
-      setTimeout(() => layout.actionDispatcher.updateBarTitle('Demo'), 0);
-      const sub = layout.state$.pipe(
-        // op.distinctUntilChanged(),
-        op.tap(s => setLayoutState(s))
+      setTimeout(() => layout.i.dp.updateBarTitle('Demo'), 0);
+      const sub = rx.combineLatest([layout.inputTable.dataChange$, layout.outputTable.dataChange$]).pipe(
+        rx.map(([it, ot]) => setLayoutState(Object.assign({}, it, ot)))
       ).subscribe();
+      // const sub = layout.state$.pipe(
+      //   // op.distinctUntilChanged(),
+      //   op.tap(s => setLayoutState(s))
+      // ).subscribe();
       destroy = () => sub.unsubscribe();
     }
     if (destroy)
