@@ -204,9 +204,22 @@ export class RxController<I extends ActionFunctions> {
     );
   }
 
+  // eslint-disable-next-line space-before-function-paren
+  subForTypes<KS extends (keyof I & string)[]>(actionTypes: KS, opts?: CoreOptions<KS>) {
+    const sub = new RxController<Pick<I, KS[number]>>(opts);
+    const typeSet = new Set(actionTypes);
+    this.core.action$.pipe(
+      rx.filter(a => typeSet.has(nameOfAction(a))),
+      rx.tap(value => {
+        sub.core.actionUpstream.next(value);
+      })
+    ).subscribe();
+    return sub;
+  }
+
   /**
    * Delegate to `this.core.action$.connect()`
-   * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+   * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
    *
    * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
    * `undefined` or `true`, in that case you don't need to call this method manually.
@@ -307,6 +320,8 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
 
   private onAddActions<M extends ReadonlyArray<keyof I>>(actionNames: M) {
     for (const type of actionNames) {
+      if (this.data[type] == null)
+        this.data[type] = EMPTY_ARRY;
       if (has.call(this.latestPayloads, type))
         continue;
 

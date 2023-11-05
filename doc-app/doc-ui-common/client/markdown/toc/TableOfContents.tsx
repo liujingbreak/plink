@@ -1,20 +1,32 @@
 import React from 'react';
 import cln from 'classnames';
+import {RxController} from '@wfh/reactivizer';
 import {useAppLayout} from '../../components/appLayout.control';
 import styles from './TableOfContents.module.scss';
 // import {TOC} from '../../../isom/md-types';
-import {createControl, ItemState} from './TableOfContents.control';
+import {createControl, ItemState, TocUIActions} from './TableOfContents.control';
 
-export const TableOfContents = React.memo<{markdownKey: string; className?: string}>(props => {
+export interface TableOfContentsProps {
+  markdownKey: string;
+  className?: string;
+  getDispatcher?(dispatcher: RxController<TocUIActions>['dp']): void;
+}
+
+export const TableOfContents = React.memo<TableOfContentsProps>(props => {
   const [, touchUIState] = React.useState<any>({});
-  const [{dp}, uiStateFac] = React.useMemo(() => createControl(touchUIState), []);
+  const [{dp}, destory, uiStateFac] = React.useMemo(() => createControl(touchUIState), []);
   const uiState = uiStateFac();
 
   React.useEffect(() => {
     dp.setDataKey(props.markdownKey);
   }, [dp, props.markdownKey]);
 
-  React.useEffect(() => () => {dp.unmount(); }, [dp]);
+  React.useEffect(() => {
+    if (props.getDispatcher && dp)
+      props.getDispatcher(dp);
+  }, [dp, props]);
+
+  React.useEffect(() => () => {destory(); }, [destory]);
 
   const layout = useAppLayout();
   React.useMemo(() => {

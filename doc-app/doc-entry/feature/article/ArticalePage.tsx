@@ -4,7 +4,7 @@ import clsBinder from 'classnames/bind';
 // import {Drawer} from '@wfh/material-components-react/client/Drawer';
 // import {useParams} from 'react-router-dom';
 import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client/markdown/MarkdownViewComp';
-import {getStore} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
+import {markdownsControl} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 // import {DocListComponents} from './DocListComponents';
 import {useRouter} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
 import * as op from 'rxjs/operators';
@@ -49,8 +49,8 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
 
   React.useEffect(() => {
     if (matchedParams?.mdKey) {
-      const sub = getStore().pipe(
-        op.map(s => s.contents[matchedParams.mdKey]),
+      const sub = markdownsControl.outputTable.l.contents.pipe(
+        op.map(([, contents]) => contents[matchedParams.mdKey]),
         op.distinctUntilChanged(),
         op.filter(md => {
           if (md && layout) {

@@ -1,4 +1,5 @@
 // @import 'github-markdown-css/github-markdown.css';
+@use "@wfh/material-components-react/client/theme";
 @import 'variables';
 
 .switchAnim {
@@ -9,6 +10,16 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
+
+  .tocPopBtn {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    border-radius: 50%;
+    background-color: theme.$primary;
+    box-shadow: 0 1px 10px rgba(0,0,0,0.5);
+    color: theme.$on-primary;
+  }
 }
 
 .toc {
@@ -16,12 +27,16 @@
   width: 28vw;
   max-width: 400px;
 }
+
 :global(.mdc-layout-size-desktop) {
   .markdownContent {
     flex-grow: 1;
   }
   .toc {
     display: block;
+  }
+  .tocPopBtn {
+    display: none;
   }
 }
 

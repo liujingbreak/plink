@@ -1,13 +1,12 @@
 import React from 'react';
-import * as op from 'rxjs/operators';
+import * as rx from 'rxjs';
 import classnames from 'classnames/bind';
 import cln from 'classnames';
 import 'github-markdown-css/github-markdown.css';
 import unescape from 'lodash/unescape';
-// import {MarkdownIndex} from './MarkdownIndex';
+import {IconButton} from '@wfh/material-components-react/client/IconButton';
 import {SwitchAnim} from '../animation/SwitchAnim';
-
-import {getState, getStore, dispatcher} from './markdownSlice';
+import {markdownsControl} from './markdownSlice';
 import styles from './MarkdownViewComp.module.scss';
 import {TableOfContents} from './toc/TableOfContents';
 
@@ -20,14 +19,9 @@ export type MarkdownViewCompProps = {
   onContent?: (dom: HTMLElement) => void;
 };
 
-const EMPTY_HTML_OBJ = {__html: ''};
+const {outputTable, i} = markdownsControl;
 
 export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props) {
-  // const routeParams = useParams<{mdKey: string}>();
-  // {__html: props.contents[routeParams.mdKey]}
-
-  // const containerRef = React.createRef<HTMLDivElement>();
-  // const contentRef = React.useRef<HTMLDivElement>(null);
   const [, setLoaded] = React.useState<boolean>(false);
   const [containerDom, setContainerDom] = React.useState<HTMLElement>();
 
@@ -38,17 +32,16 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
 
   React.useEffect(() => {
     setLoaded(false);
-    if (props.mdKey && getState().computed.reactHtml[props.mdKey] == null) {
-      dispatcher.getHtml(props.mdKey);
+    if (props.mdKey && outputTable.getData().computedHtmlForReact[0]?.reactHtml[props.mdKey] == null) {
+      i.dp.getHtml(props.mdKey);
     }
   }, [props.mdKey]);
 
-  const [htmlObj, setHtmlObj] = React.useState<{__html: string}>(EMPTY_HTML_OBJ);
-
   React.useEffect(() => {
-    if (props.mdKey != null && getState().computed.reactHtml[props.mdKey] && containerDom) {
+    const computed = props.mdKey != null ? outputTable.getData().computedHtmlForReact[0]?.reactHtml[props.mdKey] : false;
+    if (computed && containerDom) {
       // containerDom.innerHTML = getState().computed.reactHtml[props.mdKey].__html;
-      setHtmlObj(getState().computed.reactHtml[props.mdKey]);
+      setHtmlObj(computed);
 
       setTimeout(() => {
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -73,7 +66,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   [
     containerDom, props.mdKey,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    props.mdKey != null ? getState().computed.reactHtml[props.mdKey] : null,
+    (props.mdKey != null && outputTable.getData().computedHtmlForReact[0]) ? outputTable.getData().computedHtmlForReact[0]!.reactHtml[props.mdKey] : null,
     props.onContent
   ]);
 
@@ -81,21 +74,18 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   React.useEffect(() => {
     if (props.mdKey == null)
       return;
-    const state$ = getStore();
-    const sub = state$.pipe(
-      op.map(s => s.computed.reactHtml[props.mdKey!]?.__html),
-      op.distinctUntilChanged()
-    ).subscribe({next(s) {
-      touchState({});
-    }});
+    const sub = outputTable.dataChange$.pipe(
+      rx.tap(() => touchState({}))
+    ).subscribe();
     return () => sub.unsubscribe();
   }, [props.mdKey]);
 
   return (
     <SwitchAnim className={cls('switchAnim')} innerClassName={styles.container} contentHash={props.mdKey}>
       <>
-        <div ref={containerRefCb} className={cln(styles.markdownContent, 'markdown-body')} dangerouslySetInnerHTML={htmlObj}></div>
+        <div ref={containerRefCb} className={cln(styles.markdownContent, 'markdown-body')}></div>
         {props.mdKey ? <TableOfContents className={styles.toc} markdownKey={props.mdKey} /> : '...'}
+        <IconButton className={styles.tocPopBtn} materialIcon="toc" materialIconToggleOn="close"/>
       </>
     </SwitchAnim>
   );

@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {ReactorComposite, ActionTableDataType} from '@wfh/reactivizer';
 import {useAppLayout} from '../../components/appLayout.control';
-import {getStore as getMarkdownStore} from '../markdownSlice';
+import {markdownsControl} from '../markdownSlice';
 import {TOC} from '../../../isom/md-types';
 
 // const desktopAppTitleBarHeight = 64;
@@ -18,7 +18,7 @@ export type TocUIState = {
   itemByHash?: Map<string, ItemState>;
 };
 
-type TocUIActions = {
+export type TocUIActions = {
   setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): void;
   setDataKey(key: string): void;
   expand(id: string, isExpand: boolean): void;
@@ -26,7 +26,8 @@ type TocUIActions = {
   onPlaceHolderRef(ref: HTMLDivElement | null): void;
   onContentDomRef(ref: HTMLDivElement | null): void;
   onContentScroll(): void;
-  unmount(): void;
+  showPopup(): void;
+  hidePopup(): void;
 };
 
 type TocUIEvents = {
@@ -39,7 +40,7 @@ type TocUIEvents = {
   itemById(map: Map<string, ItemState>): void;
 };
 
-const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef'] as const;
+const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef', 'showPopup', 'hidePopup'] as const;
 const tocOutputTableFor = ['changeFixPosition', 'topLevelItemIdsUpdated', 'itemById'] as const;
 
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
@@ -64,8 +65,8 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   ));
 
   r('setDataKey -> loadRowItem', i.pt.setDataKey.pipe(
-    rx.switchMap(([m, key]) => getMarkdownStore().pipe(
-      op.map(s => s.contents[key]),
+    rx.switchMap(([m, key]) => markdownsControl.outputTable.l.contents.pipe(
+      op.map(([, contents]) => contents[key]),
       op.distinctUntilChanged(),
       op.filter(data => data != null),
       op.take(1),
@@ -137,5 +138,5 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  return [i, () => state] as const;
+  return [i, () => composite.destory(), () => state] as const;
 }

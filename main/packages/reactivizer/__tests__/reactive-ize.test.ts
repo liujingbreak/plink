@@ -297,5 +297,8 @@ describe('reactivizer', () => {
       expect(jestFn1.mock.calls[2]).toEqual(['aaa', 'aaa', 3]);
       expect(jestFn2.mock.calls[1]).toEqual(['bbb', 'bbb', 'y']);
     });
+
+    it('subForTypes', () => {
+    });
   });
 });

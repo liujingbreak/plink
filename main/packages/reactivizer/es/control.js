@@ -201,6 +201,8 @@ export class ActionTable {
     onAddActions(actionNames) {
         var _a;
         for (const type of actionNames) {
+            if (this.data[type] == null)
+                this.data[type] = EMPTY_ARRY;
             if (has.call(this.latestPayloads, type))
                 continue;
             const a$ = new rx.ReplaySubject(1);

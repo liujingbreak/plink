@@ -204,7 +204,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
 // eslint-disable-next-line space-before-function-paren
 export function nameOfAction<I extends ActionFunctions>(
   action: Pick<Action<I>, 't'>
-) {
+): keyof I & string {
   const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
   return (match ? match[1] : action.t) as keyof I & string;
 }
