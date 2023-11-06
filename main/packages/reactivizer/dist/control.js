@@ -164,8 +164,30 @@ class RxController {
         }, [null, new Map()]));
     }
     /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForTypes(actionTypes, opts) {
+        const sub = new RxController(opts);
+        const typeSet = new Set(actionTypes);
+        this.core.action$.pipe(rx.filter(a => typeSet.has((0, stream_core_1.nameOfAction)(a))), rx.tap(value => {
+            sub.core.actionUpstream.next(value);
+        })).subscribe();
+        return sub;
+    }
+    /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForExcludeTypes(excludeActionTypes, opts) {
+        const sub = new RxController(opts);
+        const typeSet = new Set(excludeActionTypes);
+        this.core.action$.pipe(rx.filter(a => !typeSet.has((0, stream_core_1.nameOfAction)(a))), rx.tap(value => {
+            sub.core.actionUpstream.next(value);
+        })).subscribe();
+        return sub;
+    }
+    /**
      * Delegate to `this.core.action$.connect()`
-     * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+     * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
      *
      * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
      * `undefined` or `true`, in that case you don't need to call this method manually.

@@ -2,8 +2,8 @@
 /* eslint-disable no-console */
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {RxController, ReactorComposite, actionRelatedToPayload, nameOfAction,
-  ActionTable} from '../src';
+import {RxController, ReactorComposite, actionRelatedToPayload,
+  ActionTable, nameOfAction} from '../src';
 
 type TestMessages = {
   msg1(): void;
@@ -49,12 +49,12 @@ describe('reactivizer', () => {
       const {l} = table;
       const {dp: dp2} = ctl2;
 
+      // test table.getData(), table.dataChange$
       const dataChangeCb = jest.fn();
       const dataCb = jest.fn();
       table.dataChange$.pipe(
         rx.tap(map => {
           dataChangeCb(map);
-          console.log('data:', table.getData());
           dataCb(table.getData());
         })
       ).subscribe();
@@ -78,6 +78,7 @@ describe('reactivizer', () => {
         )
       ).subscribe();
 
+      // test table.getLatestActionOf()
       expect(table.getLatestActionOf('msg5')!.slice(1)).toEqual(['x']);
       expect(table.getLatestActionOf('msg6')!.slice(1)).toEqual(['aaa', 2]);
       expect(table.getLatestActionOf('msg3Reply')).toBe(undefined);
@@ -203,11 +204,10 @@ describe('reactivizer', () => {
     it('Action meta', async () => {
       const c = new RxController<TestMessages>();
 
+      const mock = jest.fn();
       const done = rx.firstValueFrom(c.pt.msg3.pipe(
         rx.map(([m, a, b]) => {
-          expect(a).toEqual('aaa');
-          expect(b).toEqual(999);
-          expect(typeof m.i).toEqual('number');
+          mock(m, a, b);
           c.dispatcherFor.msg3Reply(m, 'done');
         })
       ));
@@ -219,7 +219,11 @@ describe('reactivizer', () => {
         actionRelatedToPayload(id)
       ));
       await done;
-      await replied;
+      expect(mock.mock.calls[0].slice(1)).toEqual(['aaa', 999]);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(typeof (mock.mock.calls[0][0] as any).i).toEqual('number');
+      const [, replyPayload] = await replied;
+      expect(replyPayload).toEqual('done');
     });
   });
 
@@ -299,6 +303,20 @@ describe('reactivizer', () => {
     });
 
     it('subForTypes', () => {
+      const control = new RxController<TestMessages>();
+      const sub = control.subForTypes(['msg2', 'msg3'] as const);
+      const mock = jest.fn();
+      sub.core.action$.subscribe(action => mock(nameOfAction(action)));
+
+      control.dp.msg1();
+      control.dp.msg2('2');
+      control.dp.msg1();
+      control.dp.msg3('3');
+      control.dp.msg1();
+
+      expect(mock.mock.calls.length).toBe(2);
+      expect(mock.mock.calls[0][0]).toEqual('msg2');
+      expect(mock.mock.calls[1][0]).toEqual('msg3');
     });
   });
 });

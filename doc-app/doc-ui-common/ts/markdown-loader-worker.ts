@@ -5,7 +5,7 @@ import MarkdownIt from 'markdown-it';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import highlight from 'highlight.js';
-import type {DefaultTreeAdapterMap} from 'parse5';
+import {type DefaultTreeAdapterMap} from 'parse5';
 import {log4File, initAsChildProcess} from '@wfh/plink';
 import findLastIndex from 'lodash/findLastIndex';
 import {TOC} from '../isom/md-types';
@@ -107,7 +107,7 @@ function dfsAccessElement(
           const endQuoteSyntaxPos = el.sourceCodeLocation!.attrs!.class!.endOffset - 1;
           output.push(
             sourceHtml.slice(htmlOffset, endQuoteSyntaxPos),
-            rx.of('+ " hljs" +')
+            ' hljs'
           );
           htmlOffset = endQuoteSyntaxPos;
         }
@@ -115,14 +115,17 @@ function dfsAccessElement(
         const imgSrc = el.attrs.find(item => item.name === 'src');
         if (resolveImage && imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
           log.info('found img src=' + imgSrc.value);
-          output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.src!.startOffset + 'src'.length + 2));
+          output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.src!.startOffset + 'src="'.length));
           // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
           htmlOffset = el.sourceCodeLocation!.attrs?.src.endOffset! - 1;
           return output.push(resolveImage(imgSrc.value));
         }
       } else if (headerSet.has(nodeName)) {
         const text = lookupTextNodeIn(el);
-        const hash = md5(text);
+        const hash = btoa(md5(text, {asString: true}));
+        const posBeforeStartTagEnd = el.sourceCodeLocation!.startTag!.endOffset - 1;
+        output.push(sourceHtml.slice(htmlOffset, posBeforeStartTagEnd), ` id="mdt-${hash}"`);
+        htmlOffset = posBeforeStartTagEnd;
         toc.push({
           level: 0,
           tag: nodeName,
@@ -143,7 +146,7 @@ function dfsAccessElement(
       acc.push(item);
       return acc;
     }, []),
-    op.map(frags => frags.join(''))
+    op.map(frags => frags.join(' + '))
   );
 }
 

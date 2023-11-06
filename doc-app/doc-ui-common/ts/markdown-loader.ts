@@ -17,7 +17,7 @@ const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
     imgSrc => {
       const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
       importCode.push(`import imgSrc${imgIdx} from '${url}';`);
-      return Promise.resolve(' + imgSrc' + (imgIdx++) + ' + ');
+      return Promise.resolve('imgSrc' + (imgIdx++));
     })
     .pipe(
       op.take(1),

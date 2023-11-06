@@ -7,7 +7,7 @@ import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client
 import {markdownsControl} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 // import {DocListComponents} from './DocListComponents';
 import {useRouter} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
-import * as op from 'rxjs/operators';
+import * as rx from 'rxjs';
 import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.control';
 import {renderByMdKey} from './articaleComponents';
 import styles from './ArticalePage.module.scss';
@@ -49,10 +49,11 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
 
   React.useEffect(() => {
     if (matchedParams?.mdKey) {
-      const sub = markdownsControl.outputTable.l.contents.pipe(
-        op.map(([, contents]) => contents[matchedParams.mdKey]),
-        op.distinctUntilChanged(),
-        op.filter(md => {
+      const sub = markdownsControl.outputTable.l.htmlDone.pipe(
+        rx.filter(([, key]) => key === matchedParams.mdKey),
+        rx.map(([, , contents]) => contents),
+        rx.distinctUntilChanged(),
+        rx.filter(md => {
           if (md && layout) {
             layout.i.dp.updateBarTitle(md.toc[0]?.text || 'Document (untitled)');
             return true;

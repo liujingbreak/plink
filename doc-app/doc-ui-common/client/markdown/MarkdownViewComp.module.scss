@@ -22,18 +22,9 @@
   }
 }
 
-.toc {
-  display: none;
-  width: 28vw;
-  max-width: 400px;
-}
-
 :global(.mdc-layout-size-desktop) {
   .markdownContent {
     flex-grow: 1;
-  }
-  .toc {
-    display: block;
   }
   .tocPopBtn {
     display: none;

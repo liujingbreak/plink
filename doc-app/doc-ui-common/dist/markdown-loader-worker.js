@@ -77,7 +77,7 @@ toc = []) {
             const classAttr = el.attrs.find(item => item.name === 'class');
             if (classAttr) {
                 const endQuoteSyntaxPos = el.sourceCodeLocation.attrs.class.endOffset - 1;
-                output.push(sourceHtml.slice(htmlOffset, endQuoteSyntaxPos), rx.of('+ " hljs" +'));
+                output.push(sourceHtml.slice(htmlOffset, endQuoteSyntaxPos), ' hljs');
                 htmlOffset = endQuoteSyntaxPos;
             }
         }
@@ -85,7 +85,7 @@ toc = []) {
             const imgSrc = el.attrs.find(item => item.name === 'src');
             if (resolveImage && imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
                 log.info('found img src=' + imgSrc.value);
-                output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation.attrs.src.startOffset + 'src'.length + 2));
+                output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation.attrs.src.startOffset + 'src="'.length));
                 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                 htmlOffset = ((_a = el.sourceCodeLocation.attrs) === null || _a === void 0 ? void 0 : _a.src.endOffset) - 1;
                 return output.push(resolveImage(imgSrc.value));
@@ -93,7 +93,10 @@ toc = []) {
         }
         else if (headerSet.has(nodeName)) {
             const text = lookupTextNodeIn(el);
-            const hash = (0, md5_1.default)(text);
+            const hash = btoa((0, md5_1.default)(text, { asString: true }));
+            const posBeforeStartTagEnd = el.sourceCodeLocation.startTag.endOffset - 1;
+            output.push(sourceHtml.slice(htmlOffset, posBeforeStartTagEnd), ` id="mdt-${hash}"`);
+            htmlOffset = posBeforeStartTagEnd;
             toc.push({
                 level: 0,
                 tag: nodeName,
@@ -109,7 +112,7 @@ toc = []) {
     return rx.from(output).pipe(op.concatMap(item => typeof item === 'string' ? rx.of(JSON.stringify(item)) : item == null ? ' + img + ' : item), op.reduce((acc, item) => {
         acc.push(item);
         return acc;
-    }, []), op.map(frags => frags.join('')));
+    }, []), op.map(frags => frags.join(' + ')));
 }
 function lookupTextNodeIn(el) {
     const chr = new rx.BehaviorSubject(el.childNodes || []);

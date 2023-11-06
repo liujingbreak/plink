@@ -28,7 +28,7 @@ export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [Actio
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
 export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
 
-export type CoreOptions<K extends string[]> = {
+export type CoreOptions<I extends ActionFunctions> = {
   name?: string | boolean;
   /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not 
   * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
@@ -37,7 +37,7 @@ export type CoreOptions<K extends string[]> = {
   * */
   autoConnect?: boolean;
   debug?: boolean;
-  debugExcludeTypes?: K;
+  debugExcludeTypes?: (keyof I & string)[];
   logStyle?: 'full' | 'noParam';
   log?: (msg: string, ...objs: any[]) => unknown;
 };
@@ -65,7 +65,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   protected actionUnsubDispatcher = new rx.Subject<void>();
   private connectableAction$: rx.Connectable<Action<I>>;
 
-  constructor(public opts?: CoreOptions<(string & keyof I)[]>) {
+  constructor(public opts?: CoreOptions<I>) {
     this.logPrefix = opts?.name ? `[${this.typePrefix}${opts.name}] ` : this.typePrefix;
     this.debugExcludeSet = new Set(opts?.debugExcludeTypes ?? []);
 

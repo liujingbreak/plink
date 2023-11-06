@@ -4,7 +4,7 @@ export * from './stream-core';
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
 type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
 export declare class RxController<I extends ActionFunctions> {
-    opts?: CoreOptions<(string & keyof I)[]> | undefined;
+    opts?: CoreOptions<I> | undefined;
     core: ControllerCore<I>;
     dispatcher: {
         [K in keyof I]: Dispatch<I[K]>;
@@ -49,13 +49,21 @@ export declare class RxController<I extends ActionFunctions> {
         [K in keyof I]: rx.Observable<Action<I, K>>;
     };
     updateInterceptor: ControllerCore<I>['updateInterceptor'];
-    constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
+    constructor(opts?: CoreOptions<I> | undefined);
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-    groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<(string & keyof I)[]>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
+    groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
+    /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
+    /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForExcludeTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
     /**
      * Delegate to `this.core.action$.connect()`
-     * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+     * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
      *
      * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
      * `undefined` or `true`, in that case you don't need to call this method manually.
@@ -66,7 +74,7 @@ export declare class RxController<I extends ActionFunctions> {
 }
 export declare class GroupedRxController<I extends ActionFunctions, K> extends RxController<I> {
     key: K;
-    constructor(key: K, opts?: CoreOptions<(string & keyof I)[]>);
+    constructor(key: K, opts?: CoreOptions<I>);
 }
 /**
  * If we consider ActionTable a 2-dimentional data structure, this is the infer type of it.

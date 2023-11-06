@@ -39,7 +39,7 @@ export class RxController<I extends ActionFunctions> {
 
   updateInterceptor: ControllerCore<I>['updateInterceptor'];
 
-  constructor(public opts?: CoreOptions<(string & keyof I)[]>) {
+  constructor(public opts?: CoreOptions<I>) {
     const core = this.core = new ControllerCore(opts);
 
     this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I[K]>}, {
@@ -166,7 +166,7 @@ export class RxController<I extends ActionFunctions> {
   }
 
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-  groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<(string & keyof I)[]>):
+  groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
   rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]> {
     return this.core.action$.pipe(
       rx.groupBy(keySelector),
@@ -204,8 +204,10 @@ export class RxController<I extends ActionFunctions> {
     );
   }
 
-  // eslint-disable-next-line space-before-function-paren
-  subForTypes<KS extends (keyof I & string)[]>(actionTypes: KS, opts?: CoreOptions<KS>) {
+  /**
+   * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+   */
+  subForTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
     const sub = new RxController<Pick<I, KS[number]>>(opts);
     const typeSet = new Set(actionTypes);
     this.core.action$.pipe(
@@ -217,6 +219,20 @@ export class RxController<I extends ActionFunctions> {
     return sub;
   }
 
+  /**
+   * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+   */
+  subForExcludeTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
+    const sub = new RxController<Pick<I, KS[number]>>(opts);
+    const typeSet = new Set(excludeActionTypes);
+    this.core.action$.pipe(
+      rx.filter(a => !typeSet.has(nameOfAction(a))),
+      rx.tap(value => {
+        sub.core.actionUpstream.next(value);
+      })
+    ).subscribe();
+    return sub;
+  }
   /**
    * Delegate to `this.core.action$.connect()`
    * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
@@ -232,7 +248,7 @@ export class RxController<I extends ActionFunctions> {
 }
 
 export class GroupedRxController<I extends ActionFunctions, K> extends RxController<I> {
-  constructor(public key: K, opts?: CoreOptions<(string & keyof I)[]>) {
+  constructor(public key: K, opts?: CoreOptions<I>) {
     super(opts);
   }
 }

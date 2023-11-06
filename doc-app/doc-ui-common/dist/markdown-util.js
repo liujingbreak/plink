@@ -25,7 +25,7 @@ function markdownToHtml(source, resolveImage) {
         args: [source]
     });
     const threadMsg$ = new rx.Subject();
-    threadMsg$.pipe(op.filter(msg => msg.type === 'resolveImageSrc'), op.map(msg => msg.data), op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(' + ' + JSON.stringify(imgSrc) + ' + ')), op.tap({
+    threadMsg$.pipe(op.filter(msg => msg.type === 'resolveImageSrc'), op.map(msg => msg.data), op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(JSON.stringify(imgSrc))), op.tap({
         next: imgUrl => {
             var _a;
             (_a = threadTask.thread) === null || _a === void 0 ? void 0 : _a.postMessage({ type: 'resolveImageSrc', data: imgUrl });
@@ -66,7 +66,7 @@ function tocToString(tocs) {
 }
 exports.tocToString = tocToString;
 function insertOrUpdateMarkdownToc(input) {
-    return markdownToHtml(input).pipe(op.map(({ toc, content: html }) => {
+    return rx.firstValueFrom(markdownToHtml(input).pipe(op.map(({ toc, content: html }) => {
         const tocStr = tocMarkdown(toc);
         const BEGIN = '<!-- Plink markdown toc -->';
         const END = '<!-- Plink markdown toc end -->';
@@ -81,7 +81,7 @@ function insertOrUpdateMarkdownToc(input) {
             changedMd = [BEGIN, tocStr, END, input].join('\n');
         }
         return { changedMd, toc: tocToString(toc), html };
-    }), op.take(1)).toPromise();
+    })));
 }
 exports.insertOrUpdateMarkdownToc = insertOrUpdateMarkdownToc;
 function tocMarkdown(tocs) {

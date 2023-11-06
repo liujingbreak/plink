@@ -1,5 +1,6 @@
 # Changelog
 ## @wfh/reactivizer 0.1.2
+- RxController supports new methods `subForTypes`, `subForExcludeTypes`
 - Remove type definition `PayloadStream`, since it contains too deep type inference which Typescript language server does not show complete resolved type information for it
 
 ## @wfh/reactivizer 0.1.1

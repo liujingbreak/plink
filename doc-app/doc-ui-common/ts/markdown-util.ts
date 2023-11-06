@@ -32,7 +32,7 @@ rx.Observable<{toc: TOC[]; content: string}> {
   threadMsg$.pipe(
     op.filter(msg => msg.type === 'resolveImageSrc'),
     op.map(msg => msg.data),
-    op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(' + ' + JSON.stringify(imgSrc) + ' + ')),
+    op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(JSON.stringify(imgSrc))),
     op.tap({
       next: imgUrl => {
         threadTask.thread?.postMessage({type: 'resolveImageSrc', data: imgUrl});
@@ -77,7 +77,7 @@ export function tocToString(tocs: TOC[]) {
 }
 
 export function insertOrUpdateMarkdownToc(input: string) {
-  return markdownToHtml(input).pipe(
+  return rx.firstValueFrom(markdownToHtml(input).pipe(
     op.map(({toc, content: html}) => {
       const tocStr = tocMarkdown(toc);
       const BEGIN = '<!-- Plink markdown toc -->';
@@ -92,9 +92,8 @@ export function insertOrUpdateMarkdownToc(input: string) {
         changedMd = [BEGIN, tocStr, END, input].join('\n');
       }
       return {changedMd, toc: tocToString(toc), html};
-    }),
-    op.take(1)
-  ).toPromise();
+    })
+  ));
 }
 
 function tocMarkdown(tocs: TOC[]) {

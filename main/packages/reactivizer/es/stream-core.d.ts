@@ -18,7 +18,7 @@ export type Action<I extends ActionFunctions, K extends keyof I = keyof I & stri
 export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
 export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
-export type CoreOptions<K extends string[]> = {
+export type CoreOptions<I extends ActionFunctions> = {
     name?: string | boolean;
     /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
     * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
@@ -27,7 +27,7 @@ export type CoreOptions<K extends string[]> = {
     * */
     autoConnect?: boolean;
     debug?: boolean;
-    debugExcludeTypes?: K;
+    debugExcludeTypes?: (keyof I & string)[];
     logStyle?: 'full' | 'noParam';
     log?: (msg: string, ...objs: any[]) => unknown;
 };
@@ -35,7 +35,7 @@ export declare const has: (v: PropertyKey) => boolean;
 export declare class ControllerCore<I extends ActionFunctions = {
     [k: string]: never;
 }> {
-    opts?: CoreOptions<(string & keyof I)[]> | undefined;
+    opts?: CoreOptions<I> | undefined;
     actionUpstream: rx.Subject<Action<I, keyof I & string>>;
     interceptor$: rx.BehaviorSubject<(up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>>;
     typePrefix: string;
@@ -51,7 +51,7 @@ export declare class ControllerCore<I extends ActionFunctions = {
     protected actionSubDispatcher: rx.Subject<void>;
     protected actionUnsubDispatcher: rx.Subject<void>;
     private connectableAction$;
-    constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
+    constructor(opts?: CoreOptions<I> | undefined);
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J, K>;
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I>;
     dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I>;

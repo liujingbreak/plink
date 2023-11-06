@@ -1,3 +1,3 @@
-import { LoaderDefinition } from 'webpack';
-declare const markdownLoader: LoaderDefinition;
+import { LoaderDefinitionFunction } from 'webpack';
+declare const markdownLoader: LoaderDefinitionFunction;
 export default markdownLoader;

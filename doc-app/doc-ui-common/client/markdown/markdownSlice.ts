@@ -4,45 +4,21 @@ import {LoaderRecivedData} from '@wfh/doc-ui-common/isom/md-types';
 
 type FileRegister = {[key: string]: () => Promise<LoaderRecivedData> | LoaderRecivedData};
 
-type RegisterActions = {
-  registerFiles(payload: FileRegister): void;
-};
-type RegisterEvents = {
-  filesRegistered(loader: {[key: string]: () => Promise<LoaderRecivedData> | LoaderRecivedData}): void;
-};
-const regInputTableFor = ['registerFiles'] as const;
-const regOutputTableFor = ['filesRegistered'] as const;
-
-export const register = new ReactorComposite<RegisterActions, RegisterEvents, typeof regInputTableFor, typeof regOutputTableFor>({
-  name: 'markdown register',
-  inputTableFor: regInputTableFor,
-  outputTableFor: regOutputTableFor,
-  debug: process.env.NODE_ENV === 'development'
-});
-
-register.r('registerFiles -> filesRegistered', register.i.pt.registerFiles.pipe(
-  rx.scan((acc, [m, value]) => {
-    acc[0] = m;
-    Object.assign(acc[1], value);
-    return acc;
-  }),
-  rx.tap(([m, files]) => {
-    register.o.dpf.filesRegistered(m, files);
-  })
-));
-
 type Actions = {
+  registerFiles(payload: FileRegister): void;
+  setMermaidClassName(n: string): void;
   setMarkdownBodyRef(key: string, div: HTMLDivElement | null): void;
   getHtml(key: string): void;
 };
 
-const inputTableFor = ['setMarkdownBodyRef'] as const;
+const inputTableFor = ['registerFiles', 'setMermaidClassName'] as const;
 
 type Events = {
-  getHtmlDone(key: string, data: LoaderRecivedData): void;
+  filesRegistered(loader: {[key: string]: () => Promise<LoaderRecivedData> | LoaderRecivedData}): void;
+  htmlDone(key: string, data: LoaderRecivedData): void;
 };
 
-const outputTableFor = [] as const;
+const outputTableFor = ['filesRegistered', 'htmlDone'] as const;
 
 const composite = new ReactorComposite<Actions, Events, typeof inputTableFor, typeof outputTableFor>({
   name: 'Markdown',
@@ -51,28 +27,88 @@ const composite = new ReactorComposite<Actions, Events, typeof inputTableFor, ty
   debug: process.env.NODE_ENV === 'development'
 });
 
-const {i, o, r} = composite;
+const {i, o, r, outputTable, inputTable} = composite;
 
-r('group markdown by key', i.groupControllerBy(action => action.p[0]).pipe(
+r('registerFiles -> filesRegistered', i.pt.registerFiles.pipe(
+  rx.scan((acc, [m, value]) => {
+    acc[0] = m;
+    Object.assign(acc[1], value);
+    return acc;
+  }),
+  rx.tap(([m, files]) => {
+    o.dpf.filesRegistered(m, files);
+  })
+));
+
+let mermaidIdSeed = 0;
+const inputForHasKey = i.subForTypes(['getHtml', 'setMarkdownBodyRef']);
+r('group markdown by key -> htmlDone', inputForHasKey.groupControllerBy(action => action.p[0]).pipe(
   rx.mergeMap(([ctl]) => {
     return rx.merge(
       ctl.pt.getHtml.pipe(
-        rx.mergeMap(([m, key]) => register.outputTable.l.filesRegistered.pipe(
+        rx.mergeMap(([m, key]) => outputTable.l.filesRegistered.pipe(
           rx.take(1),
           rx.mergeMap(async ([, files]) => {
             const res = files[key]();
             return await Promise.resolve(res);
           }),
           rx.tap(data => {
-            o.dpf.getHtmlDone(m, key, data);
+            o.dpf.htmlDone(m, key, data);
           }),
-          composite.labelError(`For key: ${key} getHtml -> getHtmlDone`)
+          composite.labelError(`For key: ${key} getHtml -> htmlDone`)
         ))
+      ),
+      rx.combineLatest([
+        ctl.pt.setMarkdownBodyRef.pipe( rx.filter(([, , dom]) => dom != null)),
+        outputTable.l.htmlDone.pipe(
+          rx.filter(([, key]) => ctl.key === key)
+        ),
+        inputTable.l.setMermaidClassName
+      ]).pipe(
+        rx.map(([[, _key, containerDom], [, , data], [, mermaidClassName]]) => {
+          containerDom!.innerHTML = data.html;
+          return [containerDom!, mermaidClassName] as const;
+        }),
+        rx.delay(50),
+        rx.tap(([containerDom, mermaidClassName]) => {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+          containerDom.querySelectorAll('.language-mermaid').forEach(async el => {
+            el.id = 'mermaid-diagram-' + mermaidIdSeed++;
+            const container = document.createElement('div');
+            container.className = mermaidClassName;
+            el.parentElement!.insertBefore(container, el);
+            // Can not be moved to a Worker, mermaid relies on DOM
+            const svgStr = await drawMermaidDiagram(el.id, unescape(el.innerHTML));
+            container.innerHTML = svgStr;
+          });
+        }),
+        composite.labelError('setMarkdownBodyRef -> render mermaid')
       )
     );
   })
 ));
 
+const mermaidInited = false;
+
+async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promise<string> {
+  const mermaid = (await import('mermaid')).default;
+  if (mermaidStr == null)
+    return Promise.resolve('');
+  if (!mermaidInited) {
+    mermaid.initialize({
+      securityLevel: 'loose',
+      startOnLoad: false
+    });
+  }
+
+  try {
+    const {svg} = await mermaid.render(id, mermaidStr);
+    return svg;
+  } catch (err) {
+    console.error('Failed to draw mermaid diagram', err);
+    return '';
+  }
+}
 export {composite as markdownsControl};
 
 if (module.hot) {

@@ -2,6 +2,7 @@ import fs from 'fs';
 import Path from 'path';
 import {CliExtension} from '@wfh/plink/wfh/dist';
 import {mkdirpSync} from 'fs-extra';
+import * as rx from 'rxjs';
 import * as markdownUtil from '../markdown-util';
 // import util from 'util';
 
@@ -26,7 +27,7 @@ const cliExt: CliExtension = (program) => {
           console.log('Output HTML to file:', target);
         }
       } else {
-        const {toc, content} = await markdownToHtml(input).toPromise();
+        const {toc, content} = await rx.firstValueFrom(markdownToHtml(input));
         // eslint-disable-next-line no-console
         console.log('Table of content:\n' + tocToString(toc));
         if (mdCli.opts().out) {

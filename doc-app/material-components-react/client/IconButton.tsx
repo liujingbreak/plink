@@ -33,11 +33,11 @@ const IconButton: React.FC<IconButtonProps> = function(props) {
   const clickCb = React.useCallback<React.MouseEventHandler<HTMLButtonElement>>((event) => {
     if (onClick) {
       onClick(event);
-      if (props.onToggle && props.materialIconToggleOn) {
-        setTimeout(() => {
-          props.onToggle!(state.mdcInstance!.on);
-        }, 0);
-      }
+    }
+    if (props.onToggle && props.materialIconToggleOn) {
+      setTimeout(() => {
+        props.onToggle!(state.mdcInstance!.on);
+      }, 0);
     }
   }, [onClick, props.materialIconToggleOn, props.onToggle, state.mdcInstance]);
 
