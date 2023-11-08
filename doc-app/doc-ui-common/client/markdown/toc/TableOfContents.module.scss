@@ -46,9 +46,9 @@
   &-item {
     line-height: 1.5rem;
     position: relative;
-    padding-left: 1rem;
   }
   &-title {
+    position: relative;
     white-space: nowrap;
     color: change-color(theme.$primary, $alpha: 0.7);
     text-overflow: ellipsis;
@@ -58,6 +58,30 @@
       color: theme.$primary;
     }
   }
+}
+
+$level-indent-unit: 12px;
+
+.level-1 {
+  padding-left: 1 * $level-indent-unit;
+}
+.level-2 {
+  padding-left: 2 * $level-indent-unit;
+}
+.level-3 {
+  padding-left: 3 * $level-indent-unit;
+}
+.level-4 {
+  padding-left: 1 * $level-indent-unit;
+}
+.level-5 {
+  padding-left: 1 * $level-indent-unit;
+}
+.level-6 {
+  padding-left: 1 * $level-indent-unit;
+}
+.level-7 {
+  padding-left: 7 * $level-indent-unit;
 }
 
 :global(.mdc-layout-size-desktop) {

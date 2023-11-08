@@ -241,6 +241,7 @@ class ActionTable {
         this.actionNamesAdded$.pipe(rx.map(actionNames => {
             this.onAddActions(actionNames);
         })).subscribe();
+        this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
     }
     getData() {
         return this.data;

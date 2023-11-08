@@ -6,6 +6,7 @@ import {Ripple, MDCRipple} from './Ripple';
 // import clsddp from 'classnames/dedupe';
 // import './icons/icon-fonts.scss';
 import './IconButton.scss';
+export {MDCIconButtonToggle};
 
 export type IconButtonProps = React.PropsWithChildren<{
   onClick?(evt: any): void;
@@ -15,7 +16,7 @@ export type IconButtonProps = React.PropsWithChildren<{
   materialIcon?: string;
   materialIconToggleOn?: string;
   onMdcInstance?(instance: MDCIconButtonToggle): void;
-  onToggle?(isOn: boolean): void;
+  onToggle?(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
 }>;
 
 interface IconButtonState {
@@ -36,7 +37,7 @@ const IconButton: React.FC<IconButtonProps> = function(props) {
     }
     if (props.onToggle && props.materialIconToggleOn) {
       setTimeout(() => {
-        props.onToggle!(state.mdcInstance!.on);
+        props.onToggle!(state.mdcInstance!.on, (isOn) => state.mdcInstance!.on = isOn);
       }, 0);
     }
   }, [onClick, props.materialIconToggleOn, props.onToggle, state.mdcInstance]);

@@ -2,6 +2,7 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {ReactorComposite, ActionTableDataType, actionRelatedToPayload} from '@wfh/reactivizer';
 import {useAppLayout} from '../../components/appLayout.control';
+import {Router} from '../../animation/AnimatableRoutes.hooks';
 import {markdownsControl} from '../markdownSlice';
 import {TOC} from '../../../isom/md-types';
 
@@ -11,6 +12,7 @@ export type ItemState = {
   highlighted?: boolean;
   children?: string[]; // hashes
   textDom?: HTMLDivElement;
+  level: number;
 } & Omit<TOC, 'children'>;
 
 export type TocUIActions = {
@@ -18,28 +20,30 @@ export type TocUIActions = {
   setDataKey(key: string): void;
   setMarkdownBodyRef(key: string, dom: HTMLDivElement): void;
   expand(id: string, isExpand: boolean): void;
+  setRouter(router: Router): void;
   clicked(id: string): void;
   onPlaceHolderRef(ref: HTMLDivElement | null): void;
   onContentDomRef(ref: HTMLDivElement | null): void;
   onContentScroll(): void;
-  togglePopup(isOn: boolean): void;
+  togglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
 };
 
 type TocUIEvents = {
-  changeFixPosition(fixed: boolean): void;
+  changeFixedPosition(fixed: boolean): void;
 
   topLevelItemIdsUpdated(ids: string[]): void;
   itemUpdated(toc: ItemState): void;
 
-  loadRawItem(toc: TOC): void;
+  loadRawItem(toc: TOC, levelDecrement?: number): void;
   itemById(map: Map<string, ItemState>): void;
-  togglePopup: TocUIActions['togglePopup'];
   togglePopupClassName(cln: string): void;
+  scrollToItem(id: string): void;
+  mdHtmlScanned(done: boolean, key?: string): void;
 };
 
-const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef', 'togglePopup'] as const;
-const tocOutputTableFor = ['changeFixPosition', 'topLevelItemIdsUpdated', 'itemById', 'togglePopup',
-  'togglePopupClassName'] as const;
+const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef', 'togglePopup', 'setRouter'] as const;
+const tocOutputTableFor = ['changeFixedPosition', 'topLevelItemIdsUpdated', 'itemById',
+  'togglePopupClassName', 'mdHtmlScanned'] as const;
 
 export type TocUIEventTable = ActionTableDataType<TocUIEvents, typeof tocOutputTableFor>;
 
@@ -51,20 +55,27 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     outputTableFor: tocOutputTableFor
   });
   const {i, o, r, outputTable} = composite;
-  o.dp.changeFixPosition(false);
+  o.dp.changeFixedPosition(false);
   o.dp.itemById(new Map());
+  o.dp.mdHtmlScanned(false);
 
   r('Recursively loadRowItem -> loadRowItem, itemUpdated', o.pt.loadRawItem.pipe(
-    rx.tap(([m, toc]) => {
-      o.dpf.itemUpdated(m, {...toc, children: toc.children?.map(c => c.id)});
+    rx.tap(([m, toc, levelDecre]) => {
+      o.dpf.itemUpdated(m, {
+        ...toc,
+        level: levelDecre != null ? toc.level - levelDecre : toc.level,
+        children: toc.children?.map(c => c.id)
+      });
       if (toc.children) {
         for (const chr of toc.children)
-          o.dpf.loadRawItem(m, chr);
+          o.dpf.loadRawItem(m, chr, levelDecre ?? 0);
       }
     })
   ));
 
-  r('setDataKey -> loadRowItem', i.pt.setDataKey.pipe(
+  r('setDataKey -> loadRowItem, reset mdHtmlScanned', i.pt.setDataKey.pipe(
+    rx.distinctUntilChanged(([, a], [, b]) => a === b),
+    rx.tap(() => o.dp.mdHtmlScanned(false)),
     rx.switchMap(([m, key]) => markdownsControl.outputTable.l.htmlDone.pipe(
       rx.filter(([, key0]) => key0 === key),
       op.map(([, , contents]) => contents),
@@ -77,9 +88,14 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
           return;
         }
         // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
-        const items = data.toc.length > 1 ? data.toc : data.toc[0]?.children ?? [];
+        let items = data.toc;
+        let levelDecre = 0;
+        if (data.toc.length <= 1) {
+          items = data.toc[0]?.children ?? [];
+          levelDecre = 1;
+        }
         for (const toc of items) {
-          o.dpf.loadRawItem(m, toc);
+          o.dpf.loadRawItem(m, toc, levelDecre);
         }
         o.dpf.topLevelItemIdsUpdated(m, items.map(t => t.id));
       })
@@ -93,57 +109,81 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  r('setDataKey, onContentDomRef, topLevelItemIdsUpdated -> scan HTML for heads (itemById.textDom)',
+  r('setDataKey, onContentDomRef, topLevelItemIdsUpdated -> scan HTML for heads (itemById.textDom), mdHtmlScanned',
     rx.combineLatest([
       i.pt.setMarkdownBodyRef,
       i.pt.setDataKey
     ]).pipe(
       rx.filter(([[, mdKey], [, key]]) => mdKey === key),
-      rx.switchMap(([[, mdKey, dom], [m, key]]) => outputTable.l.topLevelItemIdsUpdated.pipe(
+      rx.switchMap(([[, , dom], [m, key]]) => outputTable.l.topLevelItemIdsUpdated.pipe(
         actionRelatedToPayload(m.i),
         rx.take(1),
         rx.withLatestFrom(outputTable.l.itemById),
-        rx.tap(([, [, itemById]]) => {
+        rx.tap(([[m2], [, itemById]]) => {
           for (const [id, item] of itemById.entries()) {
             const textDiv = dom.querySelector('[id="mdt-' + id + '"]');
             if (textDiv) {
               item.textDom = textDiv as HTMLDivElement;
             }
           }
+          o.dpf.mdHtmlScanned([m, m2], true, key);
         })
       ))
     ));
 
-  r('clicked', i.pt.setLayoutControl.pipe(
-    rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
-    rx.filter(([, ref]) => ref != null),
-    rx.switchMap(([, scrollable]) => i.pt.clicked.pipe(
-      rx.switchMap(([, id]) => {
-        return outputTable.l.itemById.pipe(
-          rx.take(1),
-          rx.switchMap(([, map]) => {
-            const itemState = map.get(id);
-            const rect = itemState?.textDom!.getBoundingClientRect();
-            // eslint-disable-next-line no-console
-            console.log(rect);
-            i.dp.togglePopup(false);
-            if (rect)
-              return rx.timer(250).pipe(
-                rx.tap(() => scrollable!.scrollTo({
-                  left: 0,
-                  top: rect.y - scrollable!.getBoundingClientRect().y,
-                  behavior: 'smooth'
-                }))
-              );
-            else
-              return rx.EMPTY;
-          })
-        );
+  r('clicked -> router navigate', i.pt.clicked.pipe(
+    rx.switchMap(([, id]) => composite.inputTable.l.setRouter.pipe(
+      rx.take(1),
+      rx.tap(([, {matchedRoute, control}]) => {
+        control.dp.navigateTo(matchedRoute!.location.pathname + '#' + id);
       })
     ))
   ));
 
-  r('For desktop device: layout.onTopAppBarScrollChange -> changeFixPosition', i.pt.setLayoutControl.pipe(
+  r('matched route, mdHtmlScanned -> togglePopup(false), navigate', i.pt.setLayoutControl.pipe(
+    rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
+    rx.filter(([, ref]) => ref != null),
+    rx.combineLatestWith(composite.inputTable.l.setRouter.pipe(
+      rx.map(([, {matchedRoute}]) => matchedRoute!.location.hash.slice(1)),
+      rx.distinctUntilChanged()
+    ), outputTable.l.mdHtmlScanned.pipe(
+      rx.filter(([, done, key]) => done)
+    )),
+    rx.switchMap(([[, scrollable], id]) => {
+      o.dp.scrollToItem(id);
+      return rx.combineLatest([
+        outputTable.l.mdHtmlScanned.pipe(rx.filter(([, done]) => done)),
+        outputTable.l.itemById
+      ]).pipe(
+        rx.take(1),
+        rx.switchMap(([, [, map]]) => {
+          const itemState = map.get(id);
+          const rect = itemState?.textDom!.getBoundingClientRect();
+          const [, toggleIcon] = composite.inputTable.getData().togglePopup;
+          if (toggleIcon) {
+            // change icon button
+            toggleIcon(false);
+            // close TOC popup
+            i.dp.togglePopup(false, toggleIcon);
+          }
+          if (rect) {
+            return rx.timer(250).pipe(
+              rx.tap(() => scrollable!.scrollTo({
+                left: 0,
+                top: Math.floor(rect.y - scrollable!.getBoundingClientRect().y + scrollable!.scrollTop),
+                behavior: 'smooth'
+              }))
+            );
+          } else {
+            console.error(`Can not find item of ${id} to be scrolled to, client rectangle is`, rect);
+            return rx.EMPTY;
+          }
+        })
+      );
+    })
+  ));
+
+  r('For desktop device: layout.onTopAppBarScrollChange -> changeFixedPosition', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize.pipe(
       // rx.filter(([, size]) => size === 'desktop'),
       rx.switchMap(([, size]) => {
@@ -151,9 +191,9 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
           return rx.merge(
             layout.outputTable.l.onTopAppBarScrollChange.pipe(
               rx.tap(([, outOfViewPort]) => {
-                o.dp.changeFixPosition(outOfViewPort);
+                o.dp.changeFixedPosition(outOfViewPort);
               }),
-              composite.labelError('-> changeFixPosition')
+              composite.labelError('-> changeFixedPosition')
             )
           );
         } else {
@@ -167,12 +207,12 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
     rx.filter(([, size]) => size !== 'desktop'),
     rx.switchMap(() => {
-      o.dp.changeFixPosition(false);
+      o.dp.changeFixedPosition(false);
       return i.pt.togglePopup;
     }),
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
-    rx.map(([m, on]) => {
-      o.dpf.togglePopup(m, on);
+    rx.map(([_m, on]) => {
+      // o.dpf.togglePopup(m, on);
       return on;
     }),
     // eslint-disable-next-line multiline-ternary
@@ -189,7 +229,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ))
   ));
 
-  r('When changeFixPosition', o.pt.changeFixPosition.pipe(
+  r('When changeFixedPosition', o.pt.changeFixedPosition.pipe(
     op.withLatestFrom(
       i.pt.onPlaceHolderRef.pipe(
         rx.map(([, ref]) => ref),
@@ -200,8 +240,15 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
         op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
       )
     ),
-    op.switchMap(([[, fixed], placeHolderRef, contentRef]) => {
+    op.switchMap(([[m, fixed], placeHolderRef, contentRef]) => {
       if (fixed) {
+        if (placeHolderRef.clientWidth < 0.05) {
+          setTimeout(() => {
+            o.dpf.changeFixedPosition(m, false);
+            rx.timer(320).pipe(rx.tap(() => o.dpf.changeFixedPosition(m, true))).subscribe();
+          }, 0);
+          return rx.EMPTY;
+        }
         const w = placeHolderRef.clientWidth + 'px';
         const h = placeHolderRef.clientHeight + 'px';
         placeHolderRef.style.width = w;

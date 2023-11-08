@@ -1,7 +1,9 @@
 import React from 'react';
 import cln from 'classnames';
 import {RxController} from '@wfh/reactivizer';
+import {Ripple} from '@wfh/material-components-react/client/Ripple';
 import {useAppLayout} from '../../components/appLayout.control';
+import {useRouter} from '../../animation/AnimatableRoutes.hooks';
 import styles from './TableOfContents.module.scss';
 // import {TOC} from '../../../isom/md-types';
 import {createControl, TocUIActions, TocUIEventTable} from './TableOfContents.control';
@@ -19,9 +21,17 @@ export const TableOfContents = React.memo<TableOfContentsProps>(props => {
   const [{dp}, destory, uiStateFac] = React.useMemo(() => createControl(touchUIState), []);
   const uiState = uiStateFac();
 
+  const router = useRouter();
+  React.useEffect(() => {
+    if (router) {
+      dp.setRouter(router);
+    }
+  }, [dp, router]);
+
   React.useEffect(() => {
     dp.setDataKey(props.markdownKey);
   }, [dp, props.markdownKey]);
+
 
   React.useEffect(() => {
     if (props.getDispatcher && dp)
@@ -56,7 +66,7 @@ export const TableOfContents = React.memo<TableOfContentsProps>(props => {
     <div className={cln(
       props.className ?? '',
       styles.tocBody,
-      {[styles.fixed]: uiState.changeFixPosition[0]},
+      {[styles.fixed]: uiState.changeFixedPosition[0]},
       togglePopupClassName[0] ? styles[togglePopupClassName[0]] : ''
     )}>
       <div ref={dp.onPlaceHolderRef}>
@@ -82,7 +92,7 @@ function renderItems(
       return null;
 
     return <div key={id} className={cln(styles['toc-item'], {hl: item.highlighted})} >
-      <div className={cln(styles['toc-title'])} onClick={clickHandlers.get(item.id)}>{item?.text}</div>
+      <div className={cln(styles['toc-title'], styles['level-' + item.level])} onClick={clickHandlers.get(item.id)}>{item?.text}<Ripple/></div>
       {item?.children != null && item?.children?.length > 0 ?
         <div className={cln(styles['toc-children'])}>
           { renderItems(item.children, clickHandlers, uiState)}

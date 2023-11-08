@@ -294,22 +294,22 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
 
   private data: ActionTableDataType<I, KS> = {} as ActionTableDataType<I, KS>;
 
-  get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
-    if (this.#latestPayloadsSnapshot$)
-      return this.#latestPayloadsSnapshot$;
+  // get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
+  //   if (this.#latestPayloadsSnapshot$)
+  //     return this.#latestPayloadsSnapshot$;
 
-    this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
-      rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
-      rx.map(() => this.actionSnapshot)
-    );
-    return this.#latestPayloadsSnapshot$;
-  }
+  //   this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
+  //     rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+  //     rx.map(() => this.actionSnapshot)
+  //   );
+  //   return this.#latestPayloadsSnapshot$;
+  // }
 
   actionSnapshot = new Map<keyof I, InferMapParam<I, keyof I>>();
 
   // private
   #latestPayloadsByName$: rx.Observable<ActionTableDataType<I, KS>> | undefined;
-  #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
+  // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
   private actionNamesAdded$ = new rx.ReplaySubject<ReadonlyArray<keyof I>>(1);
 
   constructor(private streamCtl: RxController<I>, actionNames: KS) {
@@ -321,6 +321,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
         this.onAddActions(actionNames);
       })
     ).subscribe();
+    this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
   }
 
   getData(): ActionTableDataType<I, KS> {

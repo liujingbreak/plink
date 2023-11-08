@@ -55,7 +55,10 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
       <>
         <div ref={onContainer} className={cln(styles.markdownContent, 'markdown-body')}></div>
         {props.mdKey ? <TableOfContents getDispatcher={setTocInputDp} className={styles.toc} markdownKey={props.mdKey} /> : '...'}
-        <IconButton className={styles.tocPopBtn} onToggle={tocInputDp?.togglePopup} materialIcon="toc" materialIconToggleOn="close"/>
+        <IconButton className={styles.tocPopBtn}
+          onToggle={tocInputDp?.togglePopup}
+          materialIcon="toc"
+          materialIconToggleOn="close"/>
       </>
     </SwitchAnim>
   );
