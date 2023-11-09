@@ -8,13 +8,16 @@ import * as op from 'rxjs/operators';
 type RouteActions = {
   /** @param relativePath the path relative to "basenameOrParent" */
   navigateTo(relativePath: string): void;
+  setRoutes(r: RouteObject[]): void;
   /** Redirect another path */
   replaceUrl(relativePath: string): void;
   setBasenameOrParent(value: string): void;
+  /** for switch animation */
+  setRootElement(div: HTMLDivElement | null): void;
 };
 
-const routeInputTableFor = ['setBasenameOrParent'] as const;
-const routeOutputTableFor = ['routeCompiled'] as const;
+const routeInputTableFor = ['setBasenameOrParent', 'setRootElement'] as const;
+const routeOutputTableFor = ['routeCompiled', 'routeMatched'] as const;
 
 type RouteEvents = {
   onBrowserHistoryPopstate(): void;
@@ -33,7 +36,8 @@ export type RouteObject = {
 
 export type Router = {
   matchedRoute: MatchedRouteObject | null;
-  control: RxController<RouteActions>;
+  rootElement?: HTMLDivElement;
+  control?: RxController<RouteActions>;
 };
 
 type CompiledRouteObject = RouteObject & {
@@ -47,14 +51,9 @@ export type MatchedRouteObject = CompiledRouteObject & {
   location: PathWithQueryAndHash;
 };
 
-export type RouterState = {
-  routes?: RouteObject[];
-  // compiledRoutes?: CompiledRouteObject[];
-  matchedRoute?: RouteObject;
-};
-
 export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) {
-  const state$ = React.useMemo(() => new rx.BehaviorSubject<RouterState>({}), []);
+  // const state$ = React.useMemo(() => new rx.BehaviorSubject<RouterState>({}), []);
+  const [router, setRouter] = React.useState<Router>({matchedRoute: null});
 
   const composite = React.useMemo(() => {
     const composite = new ReactorComposite<RouteActions, RouteEvents, typeof routeInputTableFor, typeof routeOutputTableFor>({
@@ -76,16 +75,14 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       }
     }));
 
-    r('build compiledRoutes', state$.pipe(
-      op.map(s => s.routes),
-      op.distinctUntilChanged(),
-      op.map(routes => {
+    r('setRoutes', i.pt.setRoutes.pipe(
+      op.map(([, routes]) => {
         if (routes)
           o.dp.routeCompiled(compileRoutes(routes));
       })
     ));
 
-    r('matchingUrl -> matchRoute, setRouter', o.pt.matchingUrl.pipe(
+    r('matchingUrl -> call matchRoute, dispatch routeMatched', o.pt.matchingUrl.pipe(
       op.switchMap(([m, url]) => outputTable.l.routeCompiled.pipe(
         op.take(1),
         op.map(([, compiledRoutes]) => {
@@ -94,7 +91,7 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
           const matched = matchRoute(compiledRoutes, url);
           if (matched) {
             o.dpf.routeMatched(m, matched);
-            setRouter(s => ({...s, matchedRoute: matched}));
+            // setRouter(s => ({...s, matchedRoute: matched}));
           }
 
           return matched?.redirect;
@@ -142,13 +139,20 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       )
     ));
 
-    return composite;
-  }, [basenameOrParent, state$]);
-  const [router, setRouter] = React.useState<Router>({matchedRoute: null, control: composite.i});
+    r('sync setRootElement to setRouter', inputTable.l.setRootElement.pipe(
+      rx.filter(([, el]) => el != null),
+      rx.tap(([, rootElement]) => setRouter(s => ({...s, rootElement: rootElement!})))
+    ));
 
-  React.useMemo(() => {
-    state$.next({...state$.getValue(), routes});
-  }, [routes, state$]);
+    r('sync outputTable to setRouter', outputTable.l.routeMatched.pipe(
+      rx.tap(([, matchedRoute]) => setRouter(s => ({...s, matchedRoute})))
+    ));
+
+    i.dp.setRoutes(routes);
+    setRouter(s => ({...s, control: composite.i}));
+    return composite;
+  }, [basenameOrParent, routes]);
+
 
   React.useEffect(() => {
     return () => {composite.destory(); };
@@ -171,8 +175,8 @@ export function useRouter() {
 export function useNavigateHandler<C extends(...args: any[]) => void>(path: string) {
   const router = useRouter();
   return React.useCallback(() => {
-    router?.control.dispatcher.navigateTo(path);
-  }, [path, router?.control.dispatcher]) as C;
+    router?.control?.dispatcher.navigateTo(path);
+  }, [path, router?.control?.dispatcher]) as C;
 }
 
 function resolvePath(...strs: string[]) {

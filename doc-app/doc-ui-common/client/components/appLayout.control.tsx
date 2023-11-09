@@ -14,7 +14,7 @@ export type InputActions = {
   updateBarTitle(title: string | null): void;
   updateFooter(content: React.ReactNode): void;
   setLoadingVisible(visible: boolean): void;
-  scrollTo(left: number, top: number): void;
+  scrollTo(...args: [left: number, top: number] | [ScrollToOptions]): void;
   setLoadingBarRef(dom: HTMLDivElement | null): void;
   setTopAppBarRef(mdc: Promise<MDCTopAppBar> | null): void;
   setTopAppBarDomRef(dom: HTMLHeadElement): void;
@@ -83,11 +83,11 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
   ));
 
   r('When scrollTo', i.pt.scrollTo.pipe(
-    rx.concatMap(([m, x, y]) => inputTable.l.setFrontLayerRef.pipe(
+    rx.concatMap(([m, ...opts]) => inputTable.l.setFrontLayerRef.pipe(
       rx.filter(([, v]) => v != null),
       rx.take(1),
       rx.tap(([, dom]) => {
-        dom!.scrollTo(x, y);
+        dom!.scrollTo(...(opts as [ScrollOptions]));
         i.dpf.onScroll(m, null);
       })
     ))

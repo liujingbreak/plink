@@ -44,7 +44,7 @@ export declare class ReactorComposite<I extends ActionFunctions = Record<string,
      *
      * `addReaction(lable, ...)` uses this op internally.
      */
-    labelError(label: string): (upStream: rx.Observable<any>) => rx.Observable<any>;
+    labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T>;
     protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     protected logError(label: string, err: any): void;
     protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;

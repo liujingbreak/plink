@@ -2,8 +2,9 @@
 import {bootstrapRoutesWith} from '@wfh/doc-entry/dll/shell-entry';
 import loadable from '@loadable/component';
 import {markdownsControl} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
+import {ShowTopLoading} from '@wfh/doc-ui-common/client/components/ShowTopLoading';
 
-bootstrapRoutesWith((ShowTopLoading) => {
+bootstrapRoutesWith(() => {
   const LazyDocComponent = loadable(async () => {
     return (await import('../article/ArticalePage')).ArticalePage;
   }, {fallback: <ShowTopLoading/>});

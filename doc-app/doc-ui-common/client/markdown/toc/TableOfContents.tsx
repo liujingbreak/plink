@@ -34,9 +34,10 @@ export const TableOfContents = React.memo<TableOfContentsProps>(props => {
 
 
   React.useEffect(() => {
-    if (props.getDispatcher && dp)
+    if (props.getDispatcher && dp) {
       props.getDispatcher(dp);
-  }, [dp, props]);
+    }
+  }, [dp, props, props.getDispatcher]);
 
   const clickHandlers = React.useMemo(() => {
     const handlers = new Map<string, React.MouseEventHandler<HTMLDivElement>>();

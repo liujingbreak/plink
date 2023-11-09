@@ -99,7 +99,6 @@ export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyA
     };
     get dataChange$(): rx.Observable<ActionTableDataType<I, KS>>;
     private data;
-    get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>>;
     actionSnapshot: Map<keyof I, [ActionMeta, ...InferPayload<I[keyof I]>]>;
     private actionNamesAdded$;
     constructor(streamCtl: RxController<I>, actionNames: KS);

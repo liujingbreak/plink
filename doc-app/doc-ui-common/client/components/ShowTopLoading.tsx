@@ -10,7 +10,7 @@ export type ShowTopLoadingProps = React.PropsWithChildren<{
   // Define your component properties
 }>;
 
-const ShowTopLoading: React.FC<ShowTopLoadingProps> = function(props) {
+const ShowTopLoading: React.FC<ShowTopLoadingProps> = function() {
   const slice = useAppLayout();
   React.useEffect(() => {
     if (slice)

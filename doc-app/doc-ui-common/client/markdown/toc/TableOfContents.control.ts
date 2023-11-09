@@ -133,9 +133,10 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
 
   r('clicked -> router navigate', i.pt.clicked.pipe(
     rx.switchMap(([, id]) => composite.inputTable.l.setRouter.pipe(
+      rx.filter(([, r]) => r.control != null),
       rx.take(1),
       rx.tap(([, {matchedRoute, control}]) => {
-        control.dp.navigateTo(matchedRoute!.location.pathname + '#' + id);
+        control!.dp.navigateTo(matchedRoute!.location.pathname + '#' + id);
       })
     ))
   ));
@@ -143,12 +144,14 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   r('matched route, mdHtmlScanned -> togglePopup(false), navigate', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
     rx.filter(([, ref]) => ref != null),
-    rx.combineLatestWith(composite.inputTable.l.setRouter.pipe(
-      rx.map(([, {matchedRoute}]) => matchedRoute!.location.hash.slice(1)),
-      rx.distinctUntilChanged()
-    ), outputTable.l.mdHtmlScanned.pipe(
-      rx.filter(([, done, key]) => done)
-    )),
+    rx.combineLatestWith(
+      composite.inputTable.l.setRouter.pipe(
+        rx.map(([, {matchedRoute}]) => matchedRoute!.location.hash.slice(1)),
+        rx.distinctUntilChanged()
+      ),
+      outputTable.l.mdHtmlScanned.pipe(
+        rx.filter(([, done, key]) => done)
+      )),
     rx.switchMap(([[, scrollable], id]) => {
       o.dp.scrollToItem(id);
       return rx.combineLatest([

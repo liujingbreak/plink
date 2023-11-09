@@ -3,7 +3,7 @@ import * as rx from 'rxjs';
 import classnames from 'classnames/bind';
 import cln from 'classnames';
 import 'github-markdown-css/github-markdown.css';
-import {IconButton} from '@wfh/material-components-react/client/IconButton';
+import {IconButton, IconButtonProps} from '@wfh/material-components-react/client/IconButton';
 import {SwitchAnim} from '../animation/SwitchAnim';
 import {markdownsControl} from './markdownSlice';
 import styles from './MarkdownViewComp.module.scss';
@@ -39,24 +39,29 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   }, [props.mdKey]);
 
   const [tocInputDp, setTocInputDp] = React.useState<TocInputDispatcher | undefined>();
+  const [containerDom, setContainerDom] = React.useState<HTMLDivElement | null>();
 
-  const onContainer = React.useCallback((dom: HTMLDivElement | null) => {
-    if (props.mdKey) {
-      i.dp.setMarkdownBodyRef(props.mdKey, dom);
-      if (dom) {
-        tocInputDp?.setMarkdownBodyRef(props.mdKey, dom);
+  React.useEffect(() => {
+    if (containerDom && props.mdKey) {
+      i.dp.setMarkdownBodyRef(props.mdKey, containerDom);
+      if (tocInputDp) {
+        tocInputDp.setMarkdownBodyRef(props.mdKey, containerDom);
       }
     }
-  }, [props.mdKey, tocInputDp]);
+  }, [containerDom, props.mdKey, tocInputDp]);
 
+  const tocPopupIconCb = React.useCallback<NonNullable<IconButtonProps['onToggle']>>((isOn, toggleIcon) => {
+    if (tocInputDp)
+      tocInputDp.togglePopup(isOn, toggleIcon);
+  }, [tocInputDp]);
 
   return (
-    <SwitchAnim className={cls('switchAnim')} innerClassName={styles.container} contentHash={props.mdKey}>
+    <SwitchAnim debug={false} className={cls('switchAnim')} innerClassName={styles.container} contentHash={props.mdKey}>
       <>
-        <div ref={onContainer} className={cln(styles.markdownContent, 'markdown-body')}></div>
+        <div ref={setContainerDom} className={cln(styles.markdownContent, 'markdown-body')}></div>
         {props.mdKey ? <TableOfContents getDispatcher={setTocInputDp} className={styles.toc} markdownKey={props.mdKey} /> : '...'}
         <IconButton className={styles.tocPopBtn}
-          onToggle={tocInputDp?.togglePopup}
+          onToggle={tocPopupIconCb}
           materialIcon="toc"
           materialIconToggleOn="close"/>
       </>

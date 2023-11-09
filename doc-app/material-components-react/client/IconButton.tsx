@@ -29,18 +29,18 @@ interface IconButtonState {
  * @param props 
  */
 const IconButton: React.FC<IconButtonProps> = function(props) {
-  const {onClick} = props;
+  const {onClick, onToggle, materialIconToggleOn} = props;
   const [state, setState] = React.useState<IconButtonState>({});
   const clickCb = React.useCallback<React.MouseEventHandler<HTMLButtonElement>>((event) => {
     if (onClick) {
       onClick(event);
     }
-    if (props.onToggle && props.materialIconToggleOn) {
+    if (onToggle && materialIconToggleOn) {
       setTimeout(() => {
-        props.onToggle!(state.mdcInstance!.on, (isOn) => state.mdcInstance!.on = isOn);
+        onToggle(state.mdcInstance!.on, (isOn) => state.mdcInstance!.on = isOn);
       }, 0);
     }
-  }, [onClick, props.materialIconToggleOn, props.onToggle, state.mdcInstance]);
+  }, [onClick, onToggle, materialIconToggleOn, state.mdcInstance]);
 
   const btnRef = React.useCallback((btn: HTMLButtonElement | null) => {
     setState(state => {

@@ -23,7 +23,9 @@ const MainComp: React.FC<{routes: AnimatableRoutesProps['routes']}> = function(p
   }
   return <ReduxProvider store={reduxStore}>
     <AppLayout parentDom={rootEl}>
-      <AnimatableRoutes routes={prop.routes} basename={process.env.REACT_APP_routeBasename}/>
+      <AnimatableRoutes routes={prop.routes} basename={process.env.REACT_APP_routeBasename}>
+        There is nothing here.
+      </AnimatableRoutes>
     </AppLayout>
   </ReduxProvider>;
 };

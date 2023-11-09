@@ -132,8 +132,8 @@ export class ReactorComposite<
    *
    * `addReaction(lable, ...)` uses this op internally.
    */
-  labelError(label: string) {
-    return (upStream: rx.Observable<any>) => upStream.pipe(
+  labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T> {
+    return (upStream: rx.Observable<T>): rx.Observable<T> => upStream.pipe(
       rx.catchError((err) => {
         this.logError(label, err);
         return rx.throwError(() => err instanceof Error ? err : new Error(err));

@@ -9,7 +9,7 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var _ActionTable_latestPayloadsByName$, _ActionTable_latestPayloadsSnapshot$;
+var _ActionTable_latestPayloadsByName$;
 import * as rx from 'rxjs';
 import { ControllerCore, has, nameOfAction, actionMetaToStr } from './stream-core';
 export * from './stream-core';
@@ -189,20 +189,23 @@ export class ActionTable {
         }), rx.share()), "f");
         return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
     }
-    get latestPayloadsSnapshot$() {
-        if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f"))
-            return __classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f");
-        __classPrivateFieldSet(this, _ActionTable_latestPayloadsSnapshot$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => this.actionSnapshot)), "f");
-        return __classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f");
-    }
     constructor(streamCtl, actionNames) {
         this.streamCtl = streamCtl;
         this.latestPayloads = {};
         this.data = {};
+        // get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
+        //   if (this.#latestPayloadsSnapshot$)
+        //     return this.#latestPayloadsSnapshot$;
+        //   this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
+        //     rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+        //     rx.map(() => this.actionSnapshot)
+        //   );
+        //   return this.#latestPayloadsSnapshot$;
+        // }
         this.actionSnapshot = new Map();
         // private
         _ActionTable_latestPayloadsByName$.set(this, void 0);
-        _ActionTable_latestPayloadsSnapshot$.set(this, void 0);
+        // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
         this.actionNamesAdded$ = new rx.ReplaySubject(1);
         this.actionNames = [];
         this.l = this.latestPayloads;
@@ -269,7 +272,7 @@ export class ActionTable {
                 });
     }
 }
-_ActionTable_latestPayloadsByName$ = new WeakMap(), _ActionTable_latestPayloadsSnapshot$ = new WeakMap();
+_ActionTable_latestPayloadsByName$ = new WeakMap();
 /** Rx operator function */
 export function actionRelatedToAction(id) {
     return function (up) {
