@@ -141,26 +141,27 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ))
   ));
 
-  r('matched route, mdHtmlScanned -> togglePopup(false), navigate', i.pt.setLayoutControl.pipe(
+  r('matched route, mdHtmlScanned -> togglePopup(false), scroll to heads', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
     rx.filter(([, ref]) => ref != null),
     rx.combineLatestWith(
       composite.inputTable.l.setRouter.pipe(
-        rx.map(([, {matchedRoute}]) => matchedRoute!.location.hash.slice(1)),
+        rx.map(([, {matchedRoute}]) => matchedRoute!.location.hash.length > 0 ? matchedRoute!.location.hash.slice(1) : null),
         rx.distinctUntilChanged()
       ),
       outputTable.l.mdHtmlScanned.pipe(
         rx.filter(([, done, key]) => done)
       )),
+    rx.filter(([, id]) => id != null),
     rx.switchMap(([[, scrollable], id]) => {
-      o.dp.scrollToItem(id);
+      o.dp.scrollToItem(id!);
       return rx.combineLatest([
         outputTable.l.mdHtmlScanned.pipe(rx.filter(([, done]) => done)),
         outputTable.l.itemById
       ]).pipe(
         rx.take(1),
         rx.switchMap(([, [, map]]) => {
-          const itemState = map.get(id);
+          const itemState = map.get(id!);
           const rect = itemState?.textDom!.getBoundingClientRect();
           const [, toggleIcon] = composite.inputTable.getData().togglePopup;
           if (toggleIcon) {
@@ -170,15 +171,18 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
             i.dp.togglePopup(false, toggleIcon);
           }
           if (rect) {
+            let targetY = Math.floor(rect.y - scrollable!.getBoundingClientRect().y + scrollable!.scrollTop);
+            if (targetY > 64)
+              targetY -= 64;
             return rx.timer(250).pipe(
               rx.tap(() => scrollable!.scrollTo({
                 left: 0,
-                top: Math.floor(rect.y - scrollable!.getBoundingClientRect().y + scrollable!.scrollTop),
+                top: targetY,
                 behavior: 'smooth'
               }))
             );
           } else {
-            console.error(`Can not find item of ${id} to be scrolled to, client rectangle is`, rect);
+            console.error(`Can not find item of ${id!} to be scrolled to, client rectangle is`, rect);
             return rx.EMPTY;
           }
         })
@@ -188,7 +192,6 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
 
   r('For desktop device: layout.onTopAppBarScrollChange -> changeFixedPosition', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize.pipe(
-      // rx.filter(([, size]) => size === 'desktop'),
       rx.switchMap(([, size]) => {
         if (size === 'desktop') {
           return rx.merge(
@@ -246,11 +249,13 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     op.switchMap(([[m, fixed], placeHolderRef, contentRef]) => {
       if (fixed) {
         if (placeHolderRef.clientWidth < 0.05) {
-          setTimeout(() => {
-            o.dpf.changeFixedPosition(m, false);
-            rx.timer(320).pipe(rx.tap(() => o.dpf.changeFixedPosition(m, true))).subscribe();
-          }, 0);
-          return rx.EMPTY;
+          return rx.timer(1).pipe(
+            rx.tap(() => {
+              o.dpf.changeFixedPosition(m, false);
+            }),
+            rx.switchMap(() => rx.timer(320)),
+            rx.tap(() => o.dpf.changeFixedPosition(m, true))
+          );
         }
         const w = placeHolderRef.clientWidth + 'px';
         const h = placeHolderRef.clientHeight + 'px';

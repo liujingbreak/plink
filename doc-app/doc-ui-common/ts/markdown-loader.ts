@@ -13,7 +13,7 @@ const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
   // const logger = this.getLogger('markdown-loader');
   // debugger;
 
-  markdownToHtml(source,
+  markdownToHtml(source, this.resourcePath,
     imgSrc => {
       const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
       importCode.push(`import imgSrc${imgIdx} from '${url}';`);

@@ -34,8 +34,8 @@ export function setupDllPlugin(entries: CommandOption['buildTargets'], config: C
 
   log.info('DLL library name:', requirePath);
 
-  config.output!.filename = '[name].js';
-  config.output!.chunkFilename = '[name].chunk.js';
+  config.output!.filename = 'dll/[name].js';
+  config.output!.chunkFilename = 'dll/[name].chunk.js';
   config.output!.library = {
     type: 'global',
     name: '_dll_' + dllName
@@ -73,13 +73,9 @@ export function setupDllPlugin(entries: CommandOption['buildTargets'], config: C
   log.info('DLL manifest:', manifestFile);
 }
 
-export function outputPathForDllName(dllName: string) {
-  return plinkConfig.resolve('staticDir', 'dll', dllName);
-}
-
 /**
  * Refer to https://github.com/webpack/webpack/blob/main/test/configCases/dll-plugin/2-use-dll-without-scope/webpack.config.js
- * @returns DLL js files paths
+ * @returns entry DLL js files names
  */
 export function setupDllReferencePlugin(manifestFiles: string[], config: Configuration) {
   if (config.optimization == null)
@@ -99,10 +95,10 @@ export function setupDllReferencePlugin(manifestFiles: string[], config: Configu
     }));
     log.info('Dll Reference:', manifestFile);
 
-    let outputPath = Path.relative(plinkConfig.resolve('staticDir'), outputPathForDllName(m[1]));
-    if (Path.sep === '\\')
-      outputPath = outputPath.replace(/\\/g, '/');
+    // let outputPath = Path.relative(plinkConfig.resolve('staticDir'), outputPathForDllName(m[1]));
+    // if (Path.sep === '\\')
+    //   outputPath = outputPath.replace(/\\/g, '/');
 
-    return outputPath + '/' + m[1] + '.js';
+    return 'dll/' + m[1] + '.js';
   }).filter(v => v) as string[];
 }

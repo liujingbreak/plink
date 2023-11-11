@@ -1,5 +1,5 @@
 import api from '__api';
-import RJ from 'require-injector';
+import RJ from '@wfh/plink/packages/require-injector';
 import ts from 'typescript';
 import {sortedIndexBy} from 'lodash';
 import TsPreCompiler from './tsjs-replacement';

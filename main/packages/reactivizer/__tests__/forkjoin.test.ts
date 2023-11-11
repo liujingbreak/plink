@@ -75,7 +75,7 @@ describe('forkjoin worker', () => {
     });
 
     const {i, o} = broker;
-    const numOfWorkers = workerNum ?? (os.cpus().length > 0 ? os.cpus().length - 1 : 3);
+    const numOfWorkers = workerNum ?? os.availableParallelism();
 
     let ranksByWorkerNo: ReturnType<typeof applyScheduler>;
     if (threadMode === 'scheduler') {
@@ -149,8 +149,8 @@ describe('forkjoin worker', () => {
 
     performance.mark(threadMode + '/sort start');
     // call main sort function
-    await rx.firstValueFrom(sorter.i.do.sortInWorker(
-      sorter.o.at.sortCompleted, testArr.buffer as SharedArrayBuffer, 0, num, num / numOfWorkers / 2
+    await rx.firstValueFrom(sorter.i.do.sortAllInWorker(
+      sorter.o.at.sortAllInWorkerResolved, testArr.buffer as SharedArrayBuffer, 0, num, num / numOfWorkers / 2
     ));
     performance.measure(`measure ${numOfWorkers}`, threadMode + '/sort start');
     const performanceEntry = performance.getEntriesByName(`measure ${numOfWorkers}`)[0];

@@ -2,12 +2,13 @@
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, deserializeAction, serializeAction, RxController,
   actionRelatedToAction, InferPayload, actionRelatedToPayload} from './control';
-import {ReactorComposite, InferFuncReturnEvents} from './epic';
+import {ReactorComposite} from './epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
 import {DuplexOptions} from './duplex';
 // import {createBroker} from './node-worker-broker';
 
-export function createWorkerControl<I extends ActionFunctions = Record<string, never>>(isInWorker: boolean, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
+export function createWorkerControl<I extends ActionFunctions = Record<string, never>>(isInWorker: boolean, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>):
+Promise<ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput>> {
   const inputTableFor = ['exit'] as const;
   const outputTableFor = ['log', 'warn'] as const;
   let broker: Broker | undefined;
@@ -16,7 +17,7 @@ export function createWorkerControl<I extends ActionFunctions = Record<string, n
     initWorker() :
     [rx.of('main') as rx.Observable<string | number>, rx.EMPTY as rx.Observable<Action<any>>, new rx.Subject<void>()] as const;
 
-  return workerNo$.pipe(
+  return rx.firstValueFrom(workerNo$.pipe(
     rx.map(workerNo => {
       const logPrefix = '[Worker:' + (!isInWorker ? 'main]' : workerNo + ']');
       const comp = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>({
@@ -131,7 +132,7 @@ export function createWorkerControl<I extends ActionFunctions = Record<string, n
 
       return comp as unknown as ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput>;
     })
-  );
+  ));
 }
 
 function initWorker() {
@@ -159,17 +160,17 @@ function initWorker() {
   return [workerNo$.asObservable(), actionMsg$.asObservable(), stop$] as const;
 }
 
-export function reativizeRecursiveFuncs<
-  I extends ActionFunctions,
-  O extends ActionFunctions,
-  LI extends ReadonlyArray<keyof I>,
-  LO extends ReadonlyArray<keyof O>,
-  // eslint-disable-next-line space-before-function-paren
-  F extends {[s: string]: (...a: any[]) => any}
->(comp: ReactorComposite<I, O, LI, LO>, fObject: F) {
-  comp.reactivize(fObject);
-  return comp as unknown as ReactorComposite< InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O, LI, LO >;
-}
+// export function reativizeRecursiveFuncs<
+//   I extends ActionFunctions,
+//   O extends ActionFunctions,
+//   LI extends ReadonlyArray<keyof I>,
+//   LO extends ReadonlyArray<keyof O>,
+//   // eslint-disable-next-line space-before-function-paren
+//   F extends {[s: string]: (...a: any[]) => any}
+// >(comp: ReactorComposite<I, O, LI, LO>, fObject: F) {
+//   comp.reactivize(fObject);
+//   return comp as unknown as ReactorComposite<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O, LI, LO >;
+// }
 
 export function fork< I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends keyof I = `${K}Resolved`>(
   comp: ReactorComposite<I, O>,

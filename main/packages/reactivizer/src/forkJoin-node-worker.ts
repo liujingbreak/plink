@@ -8,10 +8,11 @@ import {Action, ActionFunctions, deserializeAction, serializeAction, RxControlle
 import {ReactorComposite} from './epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
 import {DuplexOptions} from './duplex';
-export {reativizeRecursiveFuncs} from './forkJoin-web-worker';
 // import {createBroker} from './node-worker-broker';
 
-export function createWorkerControl<I extends ActionFunctions = Record<string, never>>(opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
+export function createWorkerControl<I extends ActionFunctions = Record<string, never>>(
+  opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>
+): Promise<ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput>> {
   const inputTableFor = ['exit'] as const;
   const outputTableFor = ['log', 'warn'] as const;
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -31,7 +32,7 @@ export function createWorkerControl<I extends ActionFunctions = Record<string, n
     initWorker() :
     [rx.of('main') as rx.Observable<string | number>, rx.EMPTY as rx.Observable<Action<any>>, new rx.Subject<void>()] as const;
 
-  return workerNo$.pipe(
+  return rx.firstValueFrom(workerNo$.pipe(
     rx.map(workerNo => {
       const logPrefix = '[Worker:' + (!parentPort ? 'main]' : workerNo + ']');
       const {r, i, o} = comp;
@@ -46,7 +47,7 @@ export function createWorkerControl<I extends ActionFunctions = Record<string, n
           })
         ));
 
-        r('Pass worker wait and awake message to broker', rx.merge(
+        r('postMessage wait, stopWaiting, returned message to broker', rx.merge(
           o.at.wait,
           o.at.stopWaiting,
           o.at.returned
@@ -56,13 +57,13 @@ export function createWorkerControl<I extends ActionFunctions = Record<string, n
           })
         ));
 
-        r(lo.log.pipe(
+        r('postMessage log to broker (parent thread)', lo.log.pipe(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           rx.map(([, ...p]) => parentPort?.postMessage({type: 'log', p: [logPrefix, ...p]}))
         ));
       } else {
         // main thread
-        r(rx.merge(lo.log, lo.warn).pipe(
+        r('log, warn > console.log', rx.merge(lo.log, lo.warn).pipe(
           // eslint-disable-next-line no-console
           rx.map(([, ...p]) => (opts?.log ?? console.log)(logPrefix, ...p))
         ));
@@ -103,7 +104,7 @@ export function createWorkerControl<I extends ActionFunctions = Record<string, n
         })
       ));
 
-      r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(
+      r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(
         rx.mergeMap(([, origAct, port]) => {
           const origId = origAct.i;
           deserializeAction(origAct, i);
@@ -144,7 +145,7 @@ export function createWorkerControl<I extends ActionFunctions = Record<string, n
       ).subscribe();
       return comp as unknown as ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput>;
     })
-  );
+  ));
 }
 
 function initWorker() {
@@ -174,11 +175,11 @@ function initWorker() {
 
 export function fork< I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends keyof I = `${K}Resolved`>(
   comp: ReactorComposite<I, O>,
-  actionType: K & string, params: InferPayload<I[K]>,
+  actionName: K & string, params: InferPayload<I[K]>,
   resActionType?: R
 ): Promise<InferPayload<I[R]>[0]> {
-  const forkedAction = comp.o.createAction(actionType, ...params);
-  const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType ?? (actionType + 'Resolved')) as keyof I].pipe(
+  const forkedAction = comp.o.createAction(actionName, ...params);
+  const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType ?? (actionName + 'Resolved')) as keyof I].pipe(
     actionRelatedToPayload(forkedAction.i),
     rx.map(([, res]) => res)
   ));

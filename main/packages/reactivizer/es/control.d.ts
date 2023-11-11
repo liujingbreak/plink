@@ -50,6 +50,10 @@ export declare class RxController<I extends ActionFunctions> {
     };
     updateInterceptor: ControllerCore<I>['updateInterceptor'];
     constructor(opts?: CoreOptions<I> | undefined);
+    /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
+    * belongs to
+    */
+    setName(value: string): void;
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;

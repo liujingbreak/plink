@@ -17,6 +17,7 @@ interface BaseOptions {
   className?: string;
   innerClassName?: string;
   debug?: boolean;
+  logName?: string;
 }
 
 export type SwitchAnimProps = React.PropsWithChildren<BaseOptions & {
@@ -33,6 +34,11 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
   }, []);
 
   composite.i.dp.syncFromProps(props.contentHash, props.children);
+
+  React.useEffect(() => {
+    if (props.logName)
+      composite.setName(props.logName);
+  }, [composite, props.logName]);
 
   React.useEffect(() => {
     composite.i.dp.setBaseOptions(props);

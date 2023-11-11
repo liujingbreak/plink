@@ -113,6 +113,12 @@ export class RxController {
         });
         this.updateInterceptor = core.updateInterceptor;
     }
+    /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
+    * belongs to
+    */
+    setName(value) {
+        this.core.setName(value);
+    }
     createAction(type, ...params) {
         return this.core.createAction(type, params);
     }

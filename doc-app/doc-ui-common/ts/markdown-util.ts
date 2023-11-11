@@ -1,5 +1,6 @@
 import path from 'path';
 import os from 'os';
+import {ReactorComposite} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {Pool} from '@wfh/thread-promise-pool';
@@ -16,7 +17,11 @@ let threadPool: Pool;
  * @param source 
  * @param resolveImage 
  */
-export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>):
+export function markdownToHtml(
+  source: string,
+  srcFile: string,
+  resolveImage: (imgSrc: string) => Promise<string> | rx.Observable<string>,
+  resolveLink?: (link: string) => rx.Observable<string> | string):
 rx.Observable<{toc: TOC[]; content: string}> {
   if (threadPool == null) {
     threadPool = new Pool(os.cpus().length > 1 ? os.cpus().length - 1 : 3, 1000);
@@ -76,8 +81,8 @@ export function tocToString(tocs: TOC[]) {
   return str;
 }
 
-export function insertOrUpdateMarkdownToc(input: string) {
-  return rx.firstValueFrom(markdownToHtml(input).pipe(
+export function insertOrUpdateMarkdownToc(input: string, srcFile: string) {
+  return rx.firstValueFrom(markdownToHtml(input, srcFile, img => rx.of(img)).pipe(
     op.map(({toc, content: html}) => {
       const tocStr = tocMarkdown(toc);
       const BEGIN = '<!-- Plink markdown toc -->';
@@ -109,3 +114,21 @@ function tocMarkdown(tocs: TOC[]) {
   }
   return str.slice(0, -1);
 }
+
+type MdInputActions = {
+  processFile(markdownFileContent: string, filePath: string): void;
+  /** Consumer should dispatach to be related to "resolveImage" event */
+  imageResolved(resultUrl: string): void;
+  /** Consumer should dispatch */
+  anchorLinkResolved(url: string): void;
+};
+
+type MdOutputEvents = {
+  processFileDone(resultHtml: string, toc: TOC[]): void;
+  /** Consumer program should react on this event */
+  imageToBeResolved(imgSrc: string, mdFilePath: string): void;
+  /** Consumer should react and dispatach "anchorLinkResolved" */
+  anchorLinkToBeResolved(linkSrc: string, mdFilePath: string): void;
+};
+
+export const markdownProcessor = new ReactorComposite<MdInputActions, MdOutputEvents>({name: 'markdownProcessor', debug: true});

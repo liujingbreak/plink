@@ -15,4 +15,10 @@ export class DuplexController<I extends ActionFunctions, O extends ActionFunctio
     this.inputControl = this.i = new RxController<I>({...opts, debug: opts?.debug, name: name + '.input', log: opts?.log});
     this.outputControl = this.o = new RxController<O>({...opts, debug: opts?.debug, name: name + '.output', log: opts?.log});
   }
+
+  /** Invoke `setName` on RxController */
+  setName(value: string) {
+    this.i.setName(value + '.input');
+    this.o.setName(value + '.output');
+  }
 }

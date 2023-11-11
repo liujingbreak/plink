@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setupDllReferencePlugin = exports.outputPathForDllName = exports.setupDllPlugin = exports.extractDllName = void 0;
+exports.setupDllReferencePlugin = exports.setupDllPlugin = exports.extractDllName = void 0;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const plink_1 = require("@wfh/plink");
@@ -30,8 +30,8 @@ function setupDllPlugin(entries, config, pluginConstFinder) {
         }).filter(file => file != null)
     };
     log.info('DLL library name:', requirePath);
-    config.output.filename = '[name].js';
-    config.output.chunkFilename = '[name].chunk.js';
+    config.output.filename = 'dll/[name].js';
+    config.output.chunkFilename = 'dll/[name].chunk.js';
     config.output.library = {
         type: 'global',
         name: '_dll_' + dllName
@@ -63,13 +63,9 @@ function setupDllPlugin(entries, config, pluginConstFinder) {
     log.info('DLL manifest:', manifestFile);
 }
 exports.setupDllPlugin = setupDllPlugin;
-function outputPathForDllName(dllName) {
-    return plink_1.config.resolve('staticDir', 'dll', dllName);
-}
-exports.outputPathForDllName = outputPathForDllName;
 /**
  * Refer to https://github.com/webpack/webpack/blob/main/test/configCases/dll-plugin/2-use-dll-without-scope/webpack.config.js
- * @returns DLL js files paths
+ * @returns entry DLL js files names
  */
 function setupDllReferencePlugin(manifestFiles, config) {
     if (config.optimization == null)
@@ -86,10 +82,10 @@ function setupDllReferencePlugin(manifestFiles, config) {
             sourceType: 'global'
         }));
         log.info('Dll Reference:', manifestFile);
-        let outputPath = path_1.default.relative(plink_1.config.resolve('staticDir'), outputPathForDllName(m[1]));
-        if (path_1.default.sep === '\\')
-            outputPath = outputPath.replace(/\\/g, '/');
-        return outputPath + '/' + m[1] + '.js';
+        // let outputPath = Path.relative(plinkConfig.resolve('staticDir'), outputPathForDllName(m[1]));
+        // if (Path.sep === '\\')
+        //   outputPath = outputPath.replace(/\\/g, '/');
+        return 'dll/' + m[1] + '.js';
     }).filter(v => v);
 }
 exports.setupDllReferencePlugin = setupDllReferencePlugin;

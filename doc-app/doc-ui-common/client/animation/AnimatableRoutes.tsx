@@ -36,7 +36,7 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
       { router.matchedRoute != null ?
         prop.noAnim === true ?
           router.matchedRoute.element :
-          <SwitchAnim debug={true} size="full"
+          <SwitchAnim logName="RouterSwitchAnim" debug={true} size="full"
             parentDom={router.rootElement}
             contentHash={router.matchedRoute.path}>{router.matchedRoute.element}</SwitchAnim> :
         prop.children ? prop.children : <></>

@@ -29,7 +29,7 @@ export type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
 export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
 
 export type CoreOptions<I extends ActionFunctions> = {
-  name?: string | boolean;
+  name?: string;
   /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not 
   * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
   * otherwise, any actions that is dispatched to `actionUpstream` will not be observed and emitted by `action$`,
@@ -51,7 +51,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   actionUpstream = new rx.Subject<Action<I>>();
   interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>>(a => a);
   typePrefix = '#' + SEQ++ + ' ';
-  logPrefix: string;
+  logPrefix: string = this.typePrefix;
   action$: rx.Observable<Action<I>>;
   debugExcludeSet: Set<string>;
 
@@ -66,7 +66,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   private connectableAction$: rx.Connectable<Action<I>>;
 
   constructor(public opts?: CoreOptions<I>) {
-    this.logPrefix = opts?.name ? `[${this.typePrefix}${opts.name}] ` : this.typePrefix;
+    this.setName(opts?.name);
     this.debugExcludeSet = new Set(opts?.debugExcludeTypes ?? []);
 
     const debuggableAction$ = opts?.debug
@@ -133,6 +133,11 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       p: params ?? []
     } as Action<J, K>;
+  }
+
+  /** change the "name" as previous specified in CoreOptions of constructor */
+  setName(name: string | null | undefined) {
+    this.logPrefix = name ? `[${this.typePrefix}${name}] ` : this.typePrefix;
   }
 
   dispatchFactory<K extends keyof I>(type: K): Dispatch<I> {

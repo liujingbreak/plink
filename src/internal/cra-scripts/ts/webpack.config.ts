@@ -78,9 +78,9 @@ export default function(webpackEnv: 'production' | 'development') {
       log.error('Failed to write ' + Path.resolve(reportDir, 'webpack.config.cra.js'), err);
   });
 
-  if (cmdOption.buildType === 'app') {
-    config.output!.path = craPaths().appBuild;
-  }
+  // if (cmdOption.buildType === 'app') {
+  //   config.output!.path = craPaths().appBuild;
+  // }
 
   // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
   if (config.resolve?.plugins) {
@@ -147,7 +147,7 @@ export default function(webpackEnv: 'production' | 'development') {
     const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as {userOptions: HtmlWebpackPluginOptions};
     htmlWebpackPluginInstance.userOptions.templateParameters = {
       _config: plinkConfig(),
-      _dllJsFiles: dllJsFiles
+      _dllJsFiles: dllJsFiles.map(p => config.output!.publicPath + p)
     };
     setupSplitChunks(config, (mod) => {
       const file = mod.resource ?? null;

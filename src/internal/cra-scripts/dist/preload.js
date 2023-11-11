@@ -43,13 +43,22 @@ function poo() {
     (0, loaderHooks_1.hookCommonJsRequire)((filename, target, req, resolve) => {
         if (filename.startsWith(reactScriptsPath + path_2.sep)) {
             if (filename === buildScriptsPath) {
-                if (target === 'fs-extra' && (0, utils_2.getCmdOptions)().buildType === 'lib') {
-                    // Disable copy public path
-                    return Object.assign({}, fs_extra_1.default, {
-                        copySync(src) {
-                            console.log('[prepload] skip copy ', src);
-                        }
-                    });
+                if (target === 'fs-extra') {
+                    if ((0, utils_2.getCmdOptions)().buildType === 'lib') {
+                        // Disable copy public path
+                        return Object.assign({}, fs_extra_1.default, {
+                            copySync(src) {
+                                console.log('[prepload] skip copy ', src);
+                            }
+                        });
+                    }
+                    else {
+                        return Object.assign({}, fs_extra_1.default, {
+                            emptyDirSync(dir) {
+                                console.log('[prepload] skip emptyDirSync ', dir);
+                            }
+                        });
+                    }
                 }
                 if (target === 'webpack') {
                     return (0, hack_webpack_api_1.hackWebpack4Compiler)();

@@ -1,28 +1,21 @@
-import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
-import {createWorkerControl, reativizeRecursiveFuncs, ForkTransferablePayload, fork} from '../forkJoin-node-worker';
+import {createWorkerControl, ForkTransferablePayload, fork} from '../forkJoin-node-worker';
 import {DuplexOptions} from '../duplex';
 import {ForkWorkerInput, ForkWorkerOutput} from '../types';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
 
-type SorterInput = {
-  sortInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): void;
-};
+// type SorterInput = {
+//   sortInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): void;
+// };
 
 export async function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
-  const ctl = await rx.firstValueFrom(createWorkerControl<SorterInput>(opts));
   const cmp = comparator ?? new DefaultComparator();
 
-  ctl.r(ctl.i.pt.sortInWorker.pipe(
-    rx.map(async ([m, ...params]) => {
-      const forkDone = fork(sorter, 'sort', params);
-      const ret = await forkDone;
-      o.dpf.sortResolved(m, ret);
-      o.dpf.sortCompleted(m);
-    })
-  ));
-
   const sortActions = {
+    async sortAllInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number) {
+      const forkDone = fork(sorter, 'sort', [buf, offset, len, noForkThreshold]);
+      return forkDone;
+    },
     /**
      * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
      */
@@ -141,7 +134,7 @@ export async function createSorter<D extends WritableArray>(comparator?: ForkSor
     }
   };
 
-  const sorter = reativizeRecursiveFuncs(ctl, sortActions);
+  const sorter = (await createWorkerControl(opts)).reativizeRecursiveFuncs(sortActions);
   const {o} = sorter;
   return sorter;
 }

@@ -1,4 +1,4 @@
-import {ReactorComposite, ActionTableDataType} from '@wfh/reactivizer';
+import {ReactorComposite, ActionTableDataType, actionRelatedToPayload} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import cln from 'classnames';
 import styles from './SwitchAnim.module.scss';
@@ -52,13 +52,21 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
 
   const {i, o, r, outputTable, inputTable} = composite;
 
-  r('entering -> changeContent', o.pt.entering.pipe(
+  r('entering -> set className, changeContent & entering(null) -> changeContent', o.pt.entering.pipe(
     rx.filter(([, key]) => key != null),
     rx.withLatestFrom(o.pt.changeContent),
-    rx.tap(([[m, key], [, keys, contentByKey]]) => {
+    rx.mergeMap(([[m, key], [, keys, contentByKey]]) => {
       const item = contentByKey.get(key!)!;
       item.clsName = cln(styles.enterStart, styles.entering);
       o.dpf.changeContent(m, keys, contentByKey);
+      return o.pt.entering.pipe(
+        actionRelatedToPayload(m.r as number),
+        rx.take(1),
+        rx.tap(() => {
+          item.clsName = '';
+          o.dpf.changeContent(m, keys, contentByKey);
+        })
+      );
     })
   ));
 

@@ -8,4 +8,6 @@ export declare class DuplexController<I extends ActionFunctions, O extends Actio
     o: RxController<O>;
     outputControl: RxController<O>;
     constructor(opts?: DuplexOptions<I & O>);
+    /** Invoke `setName` on RxController */
+    setName(value: string): void;
 }

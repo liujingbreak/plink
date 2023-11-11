@@ -46,7 +46,7 @@ export class RxController<I extends ActionFunctions> {
       get(_target, key, _rec) {
         return core.dispatchFactory(key as keyof I);
       },
-      has(_target, key) {
+      has(_target, _key) {
         return true;
       },
       ownKeys() {
@@ -159,6 +159,13 @@ export class RxController<I extends ActionFunctions> {
         }
       });
     this.updateInterceptor = core.updateInterceptor;
+  }
+
+  /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
+  * belongs to
+  */
+  setName(value: string) {
+    this.core.setName(value);
   }
 
   createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>) {

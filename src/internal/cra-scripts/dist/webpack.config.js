@@ -71,9 +71,9 @@ function default_1(webpackEnv) {
         if (err)
             log.error('Failed to write ' + path_1.default.resolve(reportDir, 'webpack.config.cra.js'), err);
     });
-    if (cmdOption.buildType === 'app') {
-        config.output.path = craPaths().appBuild;
-    }
+    // if (cmdOption.buildType === 'app') {
+    //   config.output!.path = craPaths().appBuild;
+    // }
     // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
     if ((_a = config.resolve) === null || _a === void 0 ? void 0 : _a.plugins) {
         const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
@@ -133,7 +133,7 @@ function default_1(webpackEnv) {
         const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
         htmlWebpackPluginInstance.userOptions.templateParameters = {
             _config: (0, plink_1.config)(),
-            _dllJsFiles: dllJsFiles
+            _dllJsFiles: dllJsFiles.map(p => config.output.publicPath + p)
         };
         (0, splitChunks_1.default)(config, (mod) => {
             var _a;

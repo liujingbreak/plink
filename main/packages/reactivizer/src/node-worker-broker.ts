@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent */
 import {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
 import {DuplexOptions} from './duplex';
@@ -8,7 +9,11 @@ import {Broker, BrokerInput, BrokerEvent, ForkWorkerInput, ForkWorkerOutput} fro
 
 /** WA - Worker output Message
 */
-export function createBroker<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>, WA extends ActionFunctions = Record<string, never>>(
+export function createBroker<
+  I extends ActionFunctions = Record<string, never>,
+  O extends ActionFunctions = Record<string, never>,
+  WA extends ActionFunctions = Record<string, never>
+>(
   mainWorker: ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O>,
   opts?: DuplexOptions<BrokerInput & O & BrokerEvent & ForkWorkerOutput>
 ) {
@@ -18,7 +23,7 @@ export function createBroker<I extends ActionFunctions = Record<string, never>, 
   const workerInitState = new Map<number, 'DONE' | 'WIP'>();
 
   const {r, i, o} = comp;
-  comp.startAll();
+  // comp.startAll();
   const workerOutputs = new Map<number, RxController<ForkWorkerOutput>>();
 
   r('Emit newWorkerReady event', o.pt.workerInited.pipe(
@@ -105,7 +110,7 @@ export function createBroker<I extends ActionFunctions = Record<string, never>, 
     })
   ));
 
-  r(i.pt.letWorkerExit.pipe(
+  r('letWorkerExit -> postMessage to thread worker', i.pt.letWorkerExit.pipe(
     rx.map(([, worker]) => {
       // eslint-disable-next-line @typescript-eslint/ban-types
       (worker as NodeWorker).postMessage(serializeAction(

@@ -68,16 +68,13 @@ export class ReactorComposite<
       this.oTable = new ActionTable(this.o, opts.outputTableFor);
     }
     // this.logSubj = new rx.ReplaySubject(50);
-    rx.merge(
-      this.reactorSubj.pipe(
-        rx.mergeMap(([label, downStream, noError]) => {
-          if (noError == null || !noError) {
-            downStream = this.handleError(downStream, label);
-          }
-          return downStream;
-        })
-      )
-    ).pipe(
+    this.reactorSubj.pipe(
+      rx.mergeMap(([label, downStream, noError]) => {
+        if (noError == null || !noError) {
+          downStream = this.handleError(downStream, label);
+        }
+        return downStream;
+      }),
       rx.takeUntil(this.destory$),
       rx.catchError((err, src) => {
         if (this.opts?.log)
@@ -105,7 +102,12 @@ export class ReactorComposite<
         this.reactivizeFunction(key, func, fObject);
       }
     }
-    return this as unknown as ReactorComposite<I & F, InferFuncReturnEvents<F> & O>;
+    return this as unknown as ReactorComposite<I & F, InferFuncReturnEvents<F> & O, LI, LO>;
+  }
+
+  reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F) {
+    this.reactivize(fObject);
+    return this as unknown as ReactorComposite<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O, LI, LO>;
   }
 
   /** 

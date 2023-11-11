@@ -19,7 +19,7 @@ export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [Actio
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
 export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
 export type CoreOptions<I extends ActionFunctions> = {
-    name?: string | boolean;
+    name?: string;
     /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
     * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
     * otherwise, any actions that is dispatched to `actionUpstream` will not be observed and emitted by `action$`,
@@ -53,6 +53,8 @@ export declare class ControllerCore<I extends ActionFunctions = {
     private connectableAction$;
     constructor(opts?: CoreOptions<I> | undefined);
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J, K>;
+    /** change the "name" as previous specified in CoreOptions of constructor */
+    setName(name: string | null | undefined): void;
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I>;
     dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I>;
     updateInterceptor(factory: (previous: (up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>) => (up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>): void;
