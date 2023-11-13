@@ -1,6 +1,5 @@
 import path from 'path';
 import os from 'os';
-import {ReactorComposite} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {Pool} from '@wfh/thread-promise-pool';
@@ -20,7 +19,7 @@ let threadPool: Pool;
 export function markdownToHtml(
   source: string,
   srcFile: string,
-  resolveImage: (imgSrc: string) => Promise<string> | rx.Observable<string>,
+  resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
   resolveLink?: (link: string) => rx.Observable<string> | string):
 rx.Observable<{toc: TOC[]; content: string}> {
   if (threadPool == null) {
@@ -115,20 +114,3 @@ function tocMarkdown(tocs: TOC[]) {
   return str.slice(0, -1);
 }
 
-type MdInputActions = {
-  processFile(markdownFileContent: string, filePath: string): void;
-  /** Consumer should dispatach to be related to "resolveImage" event */
-  imageResolved(resultUrl: string): void;
-  /** Consumer should dispatch */
-  anchorLinkResolved(url: string): void;
-};
-
-type MdOutputEvents = {
-  processFileDone(resultHtml: string, toc: TOC[]): void;
-  /** Consumer program should react on this event */
-  imageToBeResolved(imgSrc: string, mdFilePath: string): void;
-  /** Consumer should react and dispatach "anchorLinkResolved" */
-  anchorLinkToBeResolved(linkSrc: string, mdFilePath: string): void;
-};
-
-export const markdownProcessor = new ReactorComposite<MdInputActions, MdOutputEvents>({name: 'markdownProcessor', debug: true});

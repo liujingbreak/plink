@@ -1,17 +1,13 @@
-import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
-import { createWorkerControl, reativizeRecursiveFuncs, fork } from '../forkJoin-node-worker';
+import { createWorkerControl, fork } from '../fork-join/node-worker';
 import { DefaultComparator } from './sort-comparator-interf';
-export async function createSorter(comparator, opts) {
-    const ctl = await rx.firstValueFrom(createWorkerControl(opts));
+export function createSorter(comparator, opts) {
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new DefaultComparator();
-    ctl.r(ctl.i.pt.sortInWorker.pipe(rx.map(async ([m, ...params]) => {
-        const forkDone = fork(sorter, 'sort', params);
-        const ret = await forkDone;
-        o.dpf.sortResolved(m, ret);
-        o.dpf.sortCompleted(m);
-    })));
     const sortActions = {
+        async sortAllInWorker(buf, offset, len, noForkThreshold) {
+            const forkDone = fork(sorter, 'sort', [buf, offset, len, noForkThreshold]);
+            return forkDone;
+        },
         /**
          * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
          */
@@ -121,7 +117,7 @@ export async function createSorter(comparator, opts) {
                 return { content: destBuf, transferList: [destBuf] };
         }
     };
-    const sorter = reativizeRecursiveFuncs(ctl, sortActions);
+    const sorter = createWorkerControl(opts).reativizeRecursiveFuncs(sortActions);
     const { o } = sorter;
     return sorter;
 }

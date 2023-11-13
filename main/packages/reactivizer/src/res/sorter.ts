@@ -1,14 +1,10 @@
 import binarySearch from 'lodash/sortedIndex';
-import {createWorkerControl, ForkTransferablePayload, fork} from '../forkJoin-node-worker';
-import {DuplexOptions} from '../duplex';
-import {ForkWorkerInput, ForkWorkerOutput} from '../types';
+import {createWorkerControl, ForkTransferablePayload, fork} from '../fork-join/node-worker';
+import type {ReactorCompositeOpt} from '../epic';
+import {ForkWorkerInput, ForkWorkerOutput} from '../fork-join/types';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
 
-// type SorterInput = {
-//   sortInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): void;
-// };
-
-export async function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
+export function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput>) {
   const cmp = comparator ?? new DefaultComparator();
 
   const sortActions = {
@@ -134,7 +130,7 @@ export async function createSorter<D extends WritableArray>(comparator?: ForkSor
     }
   };
 
-  const sorter = (await createWorkerControl(opts)).reativizeRecursiveFuncs(sortActions);
+  const sorter = createWorkerControl(opts).reativizeRecursiveFuncs(sortActions);
   const {o} = sorter;
   return sorter;
 }

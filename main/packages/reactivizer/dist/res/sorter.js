@@ -1,46 +1,19 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSorter = void 0;
-const rx = __importStar(require("rxjs"));
 const sortedIndex_1 = __importDefault(require("lodash/sortedIndex"));
-const forkJoin_node_worker_1 = require("../forkJoin-node-worker");
+const node_worker_1 = require("../fork-join/node-worker");
 const sort_comparator_interf_1 = require("./sort-comparator-interf");
-async function createSorter(comparator, opts) {
-    const ctl = await rx.firstValueFrom((0, forkJoin_node_worker_1.createWorkerControl)(opts));
+function createSorter(comparator, opts) {
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new sort_comparator_interf_1.DefaultComparator();
-    ctl.r(ctl.i.pt.sortInWorker.pipe(rx.map(async ([m, ...params]) => {
-        const forkDone = (0, forkJoin_node_worker_1.fork)(sorter, 'sort', params);
-        const ret = await forkDone;
-        o.dpf.sortResolved(m, ret);
-        o.dpf.sortCompleted(m);
-    })));
     const sortActions = {
+        async sortAllInWorker(buf, offset, len, noForkThreshold) {
+            const forkDone = (0, node_worker_1.fork)(sorter, 'sort', [buf, offset, len, noForkThreshold]);
+            return forkDone;
+        },
         /**
          * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
          */
@@ -51,7 +24,7 @@ async function createSorter(comparator, opts) {
                 const rightPartOffset = offset + leftPartLen;
                 const rightpartLen = arr.length - leftPartLen;
                 // o.dp.log('create fork sort action for half', rightPartOffset, rightpartLen, `action id: ${sortAction.i}`);
-                const forkDone = (0, forkJoin_node_worker_1.fork)(sorter, 'sort', [buf, rightPartOffset, rightpartLen, noForkThreshold]);
+                const forkDone = (0, node_worker_1.fork)(sorter, 'sort', [buf, rightPartOffset, rightpartLen, noForkThreshold]);
                 // o.dp.log('sort another half in current worker', leftPartOffset, leftPartLen);
                 await sortActions.sort(buf, offset, leftPartLen, noForkThreshold);
                 o.dp.wait();
@@ -104,7 +77,7 @@ async function createSorter(comparator, opts) {
                 // o.dp.log('merge with fork', offset1, len1, [...arr1], offset2, len2, [...arr2], ', binarySerach pivot value:', arr1[arr1LeftLen - 1], '\n',
                 //   '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n',
                 //   '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
-                const forkDone = (0, forkJoin_node_worker_1.fork)(sorter, 'merge', [buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold]);
+                const forkDone = (0, node_worker_1.fork)(sorter, 'merge', [buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold]);
                 const leftMerged = (_a = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))) === null || _a === void 0 ? void 0 : _a.content;
                 o.dp.wait();
                 const rightMerged = (_b = (await forkDone)) === null || _b === void 0 ? void 0 : _b.content;
@@ -150,7 +123,7 @@ async function createSorter(comparator, opts) {
                 return { content: destBuf, transferList: [destBuf] };
         }
     };
-    const sorter = (0, forkJoin_node_worker_1.reativizeRecursiveFuncs)(ctl, sortActions);
+    const sorter = (0, node_worker_1.createWorkerControl)(opts).reativizeRecursiveFuncs(sortActions);
     const { o } = sorter;
     return sorter;
 }

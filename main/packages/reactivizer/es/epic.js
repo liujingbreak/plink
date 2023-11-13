@@ -66,6 +66,10 @@ export class ReactorComposite extends DuplexController {
         }
         return this;
     }
+    reativizeRecursiveFuncs(fObject) {
+        this.reactivize(fObject);
+        return this;
+    }
     /**
      * It is just a declaration of mergeMap() operator, which merge an observable to the main stream
      * which will be or has already been observed by `startAll()`.

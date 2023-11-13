@@ -7,7 +7,7 @@ class DefaultComparator {
         this.compositeCtrl = new epic_1.ReactorComposite();
         this.input = this.compositeCtrl.i;
         this.output = this.compositeCtrl.o;
-        this.compositeCtrl.startAll();
+        // this.compositeCtrl.startAll();
     }
     compare(a, b) {
         return a - b;

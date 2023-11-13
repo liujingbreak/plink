@@ -51,7 +51,7 @@ class RxController {
             get(_target, key, _rec) {
                 return core.dispatchFactory(key);
             },
-            has(_target, key) {
+            has(_target, _key) {
                 return true;
             },
             ownKeys() {

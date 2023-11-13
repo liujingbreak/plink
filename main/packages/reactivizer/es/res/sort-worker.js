@@ -1,6 +1,7 @@
 import { createSorter } from './sorter';
-// import {defaultComparator} from './sort-comparator-interf';
-void createSorter(null, {
-    debug: false
+const sorter = createSorter(null, {
+    name: 'sorter',
+    debug: true
 });
+export { sorter };
 //# sourceMappingURL=sort-worker.js.map
