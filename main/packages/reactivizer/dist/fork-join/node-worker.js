@@ -32,10 +32,9 @@ const epic_1 = require("../epic");
 const inputTableFor = ['exit'];
 const outputTableFor = ['workerInited', 'log', 'warn'];
 function createWorkerControl(opts) {
-    var _a;
+    var _a, _b, _c;
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor,
-        outputTableFor, name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...inputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...outputTableFor], name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : '') + ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
     let broker;
     const { r, i, o } = comp;
     const lo = comp.outputTable.l;
@@ -100,9 +99,8 @@ function createWorkerControl(opts) {
         }));
     })));
     r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(rx.mergeMap(([, origAct, port]) => {
-        const origId = origAct.i;
         (0, control_1.deserializeAction)(origAct, i);
-        return o.core.action$.pipe((0, control_1.actionRelatedToAction)(origId), rx.take(1), rx.map(action => {
+        return o.core.action$.pipe((0, control_1.actionRelatedToAction)(origAct), rx.take(1), rx.map(action => {
             const { p } = action;
             if (hasReturnTransferable(p)) {
                 const [{ transferList }] = p;
@@ -129,9 +127,9 @@ function createWorkerControl(opts) {
     return comp;
 }
 exports.createWorkerControl = createWorkerControl;
-function fork(comp, actionName, params, resActionName) {
+function fork(comp, actionName, params, responseAction$) {
     const forkedAction = comp.o.createAction(actionName, ...params);
-    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionName !== null && resActionName !== void 0 ? resActionName : (actionName + 'Resolved'))].pipe((0, control_1.actionRelatedToPayload)(forkedAction.i), rx.map(([, res]) => res)));
+    const forkDone = rx.firstValueFrom((responseAction$ !== null && responseAction$ !== void 0 ? responseAction$ : comp.i.pt[actionName + 'Resolved']).pipe((0, control_1.payloadRelatedToAction)(forkedAction), rx.map(([, ...p]) => p)));
     comp.o.dp.fork(forkedAction);
     return forkDone;
 }

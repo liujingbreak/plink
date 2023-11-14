@@ -2,7 +2,7 @@
 /* eslint-disable no-console */
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {RxController, ReactorComposite, actionRelatedToPayload,
+import {RxController, ReactorComposite, payloadRelatedToAction,
   ActionTable, nameOfAction} from '../src';
 
 type TestMessages = {
@@ -150,9 +150,9 @@ describe('reactivizer', () => {
         hello(greeting: string) {
           return 'Yes ' + greeting;
         },
-        async world(foobar: number) {
+        async world(param: number) {
           await new Promise(r => setTimeout(r, 100));
-          return foobar;
+          return param;
         }
       };
       const ctl3 = comp.reactivize(functions1);
@@ -162,7 +162,8 @@ describe('reactivizer', () => {
       const ctl4 = ctl3.reactivize(functions2);
       // ctl4.startAll();
       const {r, i} = ctl4;
-      const actionResultIdByKey = new Map<`${keyof (typeof functions1 & typeof functions2)}Resolved`, number>();
+
+      const mock = jest.fn();
 
       const latest = ctl4.outputTable.addActions('worldResolved', 'foobarResolved', 'helloResolved').l;
       r(i.core.action$.pipe(
@@ -177,17 +178,17 @@ describe('reactivizer', () => {
       ));
       const {at} = ctl4.o;
       r(rx.merge(at.helloResolved, at.worldResolved, at.foobarResolved).pipe(
-        rx.map(({t, p: [s], r}) => {
+        rx.map(({t, p: s, r}) => {
           const type = nameOfAction({t})!;
-          actionResultIdByKey.set(type as any, r as number);
-          actionResults.push(s);
+          mock(type, r, ...s);
+          actionResults.push(s[0]);
         })
       ));
 
       i.dp.msg3('a', 1);
-      const helloId = i.dp.hello('human');
-      const worldId = i.dp.world(998);
-      const foobarId = i.dp.foobar();
+      const helloAction = i.dp.hello('human');
+      const worldAction = i.dp.world(998);
+      const foobarAction = i.dp.foobar();
 
       await rx.firstValueFrom(latest.worldResolved);
       // await new Promise(r => setTimeout(r, 8000));
@@ -196,9 +197,12 @@ describe('reactivizer', () => {
       console.log('actionResults: ', actionResults);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       expect(actionResults).toEqual(['Yes human', 1, 2, 3, 998]);
-      expect(actionResultIdByKey.get('foobarResolved')).toEqual(foobarId);
-      expect(actionResultIdByKey.get('helloResolved')).toEqual(helloId);
-      expect(actionResultIdByKey.get('worldResolved')).toEqual(worldId);
+      expect(mock.mock.calls.length).toBe(5);
+      expect(mock.mock.calls[0]).toEqual(['helloResolved', helloAction.i, 'Yes human']);
+      expect(mock.mock.calls[1]).toEqual(['foobarResolved', foobarAction.i, 1]);
+      expect(mock.mock.calls[2]).toEqual(['foobarResolved', foobarAction.i, 2]);
+      expect(mock.mock.calls[3]).toEqual(['foobarResolved', foobarAction.i, 3]);
+      expect(mock.mock.calls[4]).toEqual(['worldResolved', worldAction.i, 998]);
     }, 10000);
 
     it('Action meta', async () => {
@@ -214,9 +218,9 @@ describe('reactivizer', () => {
 
       const latest = new ActionTable(c, ['msg3Reply']).l;
 
-      const id = c.dp.msg3('aaa', 999);
+      const action = c.dp.msg3('aaa', 999);
       const replied = rx.firstValueFrom(latest.msg3Reply.pipe(
-        actionRelatedToPayload(id)
+        payloadRelatedToAction(action)
       ));
       await done;
       expect(mock.mock.calls[0].slice(1)).toEqual(['aaa', 999]);

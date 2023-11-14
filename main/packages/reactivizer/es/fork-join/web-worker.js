@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import * as rx from 'rxjs';
-import { deserializeAction, serializeAction, actionRelatedToAction, actionRelatedToPayload } from '../control';
+import { deserializeAction, serializeAction, actionRelatedToAction, payloadRelatedToAction } from '../control';
 import { ReactorComposite } from '../epic';
 // import {createBroker} from '../node-worker-broker';
 const inputTableFor = ['exit'];
@@ -74,9 +74,8 @@ export function createWorkerControl(isInWorker, opts) {
         }));
     })));
     r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(rx.mergeMap(([, origAct, port]) => {
-        const origId = origAct.i;
         deserializeAction(origAct, i);
-        return o.core.action$.pipe(actionRelatedToAction(origId), rx.take(1), rx.map(action => {
+        return o.core.action$.pipe(actionRelatedToAction(origAct), rx.take(1), rx.map(action => {
             const { p } = action;
             if (hasReturnTransferable(p)) {
                 const [{ transferList }] = p;
@@ -104,7 +103,7 @@ export function createWorkerControl(isInWorker, opts) {
 }
 export function fork(comp, actionType, params, resActionType) {
     const forkedAction = comp.o.createAction(actionType, ...params);
-    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe(actionRelatedToPayload(forkedAction.i), rx.map(([, res]) => res)));
+    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe(payloadRelatedToAction(forkedAction), rx.map(([, res]) => res)));
     comp.o.dp.fork(forkedAction);
     return forkDone;
 }

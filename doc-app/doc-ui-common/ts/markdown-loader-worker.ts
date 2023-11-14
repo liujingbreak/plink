@@ -5,7 +5,7 @@ import MarkdownIt from 'markdown-it';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import highlight from 'highlight.js';
-import {type DefaultTreeAdapterMap} from 'parse5';
+import type {DefaultTreeAdapterMap} from 'parse5';
 import {log4File, initAsChildProcess} from '@wfh/plink';
 import findLastIndex from 'lodash/findLastIndex';
 import {TOC} from '../isom/md-types';

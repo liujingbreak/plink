@@ -13,7 +13,7 @@ import {applyScheduler} from '../fork-join/worker-scheduler';
 const log = log4File(__filename);
 
 export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker',
-workerNum?: number) {
+  workerNum?: number) {
   const num = 30;
   const testArr = createSharedArryForTest(0, num);
   const sorter = createSorter(null, {

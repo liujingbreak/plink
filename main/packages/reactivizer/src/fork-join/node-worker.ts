@@ -4,7 +4,7 @@ import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, deserializeAction, serializeAction, RxController,
-  actionRelatedToAction, InferPayload, actionRelatedToPayload} from '../control';
+  actionRelatedToAction, payloadRelatedToAction, InferPayload, InferMapParam} from '../control';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
 // import {createBroker} from './node-worker-broker';
@@ -14,15 +14,17 @@ const outputTableFor = ['workerInited', 'log', 'warn'] as const;
 
 export function createWorkerControl<
   I extends ActionFunctions = Record<string, never>,
-  O extends ActionFunctions = Record<string, never>
+  O extends ActionFunctions = Record<string, never>,
+  LI extends ReadonlyArray<keyof I> = readonly [],
+  LO extends ReadonlyArray<keyof O> = readonly []
 >(
   opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I & O>
-): ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O> {
+) {
   // eslint-disable-next-line @typescript-eslint/ban-types
   const comp = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>({
     ...(opts ?? {}),
-    inputTableFor,
-    outputTableFor,
+    inputTableFor: [...(opts?.inputTableFor ?? []), ...inputTableFor],
+    outputTableFor: [...(opts?.outputTableFor ?? []), ...outputTableFor],
     name: (opts?.name ?? '') + ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')),
     debug: opts?.debug,
     log: isMainThread ? opts?.log : (...args) => parentPort?.postMessage({type: 'log', p: args}),
@@ -135,10 +137,9 @@ export function createWorkerControl<
 
   r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(
     rx.mergeMap(([, origAct, port]) => {
-      const origId = origAct.i;
       deserializeAction(origAct, i);
       return o.core.action$.pipe(
-        actionRelatedToAction(origId),
+        actionRelatedToAction(origAct),
         rx.take(1),
         rx.map(action => {
           const {p} = action;
@@ -168,19 +169,20 @@ export function createWorkerControl<
     })
   ));
 
-  return comp as unknown as ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O>;
+  return comp as unknown as ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O,
+  ReadonlyArray<typeof inputTableFor[number] | LI[number]>, ReadonlyArray<typeof outputTableFor[number] | LO[number]>>;
 }
 
-export function fork< I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends keyof I = `${K}Resolved`>(
-  comp: ReactorComposite<I, O>,
+export function fork<I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends string & keyof I = `${K}Resolved`>(
+  comp: ReactorComposite<I, O, any, any>,
   actionName: K & string,
   params: InferPayload<I[K]>,
-  resActionName?: R
-): Promise<InferPayload<I[R]>[0]> {
+  returnedActionName: R
+): Promise<[...InferPayload<I[R]>]> {
   const forkedAction = comp.o.createAction(actionName, ...params);
-  const forkDone = rx.firstValueFrom(comp.i.pt[(resActionName ?? (actionName + 'Resolved')) as keyof I].pipe(
-    actionRelatedToPayload(forkedAction.i),
-    rx.map(([, res]) => res)
+  const forkDone = rx.firstValueFrom((returnedActionName ? comp.i.pt[returnedActionName] : comp.i.pt[actionName + 'Resolved']).pipe(
+    payloadRelatedToAction(forkedAction),
+    rx.map(([, ...p]) => p)
   ));
   (comp.o as unknown as RxController<ForkWorkerOutput>).dp.fork(forkedAction);
   return forkDone;

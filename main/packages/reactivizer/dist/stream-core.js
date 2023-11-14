@@ -104,7 +104,7 @@ class ControllerCore {
         const dispatch = (...params) => {
             const action = this.createAction(type, params);
             this.actionUpstream.next(action);
-            return action.i;
+            return action;
         };
         this.dispatcher[type] = dispatch;
         return dispatch;
@@ -117,7 +117,7 @@ class ControllerCore {
             const action = this.createAction(type, params);
             action.r = Array.isArray(metas) ? metas.map(m => m.i) : metas.i;
             this.actionUpstream.next(action);
-            return action.i;
+            return action;
         };
         this.dispatcherFor[type] = dispatch;
         return dispatch;

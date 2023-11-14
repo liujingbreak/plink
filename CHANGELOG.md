@@ -1,8 +1,10 @@
 # Changelog
-## @wfh/reactivizer 0.1.2
+## @wfh/reactivizer 0.2.0
 - RxController supports new methods `subForTypes`, `subForExcludeTypes`
 - Remove type definition `PayloadStream`, since it contains too deep type inference which Typescript language server does not show complete resolved type information for it
 - New method "setName" on RxController, ReactorComposite
+- Refactor API functions of "fork join" feature for more convenient usage
+- Break changes to action filter operators: actionRelatedToAction, payloadRelatedToAction
 
 ## @wfh/reactivizer 0.1.1
 - RxController supports new methods: groupControllerBy(), connect()

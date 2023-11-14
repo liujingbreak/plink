@@ -146,8 +146,8 @@ export class ReactorComposite<
   protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {
     const resolveFuncKey = key + 'Resolved';
     const finishFuncKey = key + 'Completed';
-    const dispatchResolved = (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).o.core.dispatchForFactory(resolveFuncKey as any);
-    const dispatchCompleted = (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).o.core.dispatchForFactory(finishFuncKey as any);
+    const dispatchResolved = (this as unknown as ReactorComposite<Record<string, never>, Record<string, any>>).o.core.dispatchForFactory(resolveFuncKey as any);
+    const dispatchCompleted = (this as unknown as ReactorComposite<Record<string, never>, Record<string, () => void>>).o.core.dispatchForFactory(finishFuncKey as any);
 
     this.r(this.i.pt[key as keyof I].pipe(
       rx.mergeMap(([meta, ...params]) => {

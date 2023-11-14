@@ -87,7 +87,8 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
         const forkDone = fork(sorter, 'merge', [buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold]);
         const leftMerged = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))?.content;
         o.dp.wait();
-        const rightMerged = (await forkDone)?.content;
+        const [forkResult] = await forkDone;
+        const rightMerged = forkResult?.content;
         o.dp.stopWaiting();
 
         const destArr = targetBuffer ? cmp.createTypedArray(targetBuffer, targetOffset, len1 + len2) : cmp.createTypedArray(destBuf);

@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, deserializeAction, serializeAction, RxController,
-  actionRelatedToAction, InferPayload, actionRelatedToPayload} from '../control';
+  actionRelatedToAction, InferPayload, payloadRelatedToAction} from '../control';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
 // import {createBroker} from '../node-worker-broker';
@@ -122,10 +122,9 @@ ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput> {
 
   r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(
     rx.mergeMap(([, origAct, port]) => {
-      const origId = origAct.i;
       deserializeAction(origAct, i);
       return o.core.action$.pipe(
-        actionRelatedToAction(origId),
+        actionRelatedToAction(origAct),
         rx.take(1),
         rx.map(action => {
           const {p} = action;
@@ -164,7 +163,7 @@ export function fork< I extends ActionFunctions, O extends ForkWorkerOutput, K e
 ): Promise<InferPayload<I[R]>[0]> {
   const forkedAction = comp.o.createAction(actionType, ...params);
   const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType ?? (actionType + 'Resolved')) as keyof I].pipe(
-    actionRelatedToPayload(forkedAction.i),
+    payloadRelatedToAction(forkedAction),
     rx.map(([, res]) => res)
   ));
   (comp.o as unknown as RxController<ForkWorkerOutput>).dp.fork(forkedAction);

@@ -1,24 +1,25 @@
 import * as rx from 'rxjs';
-import { Action, ActionFunctions, InferMapParam, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions } from './stream-core';
+import { Action, ActionFunctions, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions } from './stream-core';
 export * from './stream-core';
+export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
 type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
 export declare class RxController<I extends ActionFunctions> {
     opts?: CoreOptions<I> | undefined;
     core: ControllerCore<I>;
     dispatcher: {
-        [K in keyof I]: Dispatch<I[K]>;
+        [K in keyof I]: Dispatch<I, K & string>;
     };
     dispatcherFor: {
-        [K in keyof I]: DispatchFor<I[K]>;
+        [K in keyof I]: DispatchFor<I, K & string>;
     };
     /** abbrevation of property "dispatcher", exactly same instance of dispatcher */
     dp: {
-        [K in keyof I]: Dispatch<I[K]>;
+        [K in keyof I]: Dispatch<I, K & string>;
     };
     /** abbrevation of property "dispatcherFor", exactly same instance of dispatcherFor */
     dpf: {
-        [K in keyof I]: DispatchFor<I[K]>;
+        [K in keyof I]: DispatchFor<I, K & string>;
     };
     dispatchAndObserveRes: {
         [K in keyof I]: DispatchAndObserveRes<I, K>;
@@ -114,9 +115,9 @@ export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyA
     protected debugLogLatestActionOperator<K extends string & keyof I, P extends InferMapParam<I, K>>(type: K): rx.OperatorFunction<P, P>;
 }
 /** Rx operator function */
-export declare function actionRelatedToAction<T extends Action<any>>(id: ActionMeta['i']): (up: rx.Observable<T>) => rx.Observable<T>;
+export declare function actionRelatedToAction<T extends Action<any>>(actionOrMeta: ActionMeta): (up: rx.Observable<T>) => rx.Observable<T>;
 /** Rx operator function */
-export declare function actionRelatedToPayload<T extends [ActionMeta, ...any[]]>(id: ActionMeta['i']): (up: rx.Observable<T>) => rx.Observable<T>;
+export declare function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: ActionMeta): (up: rx.Observable<T>) => rx.Observable<T>;
 export declare function serializeAction<I extends ActionFunctions = any, K extends keyof I = string>(action: Action<I, K>): {
     t: string;
     p: InferPayload<I[K]>;

@@ -14,7 +14,7 @@ export function createBroker<
   O extends ActionFunctions = Record<string, never>,
   WA extends ActionFunctions = Record<string, never>
 >(
-  workerController: ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O>,
+  workerController: ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, any, any>,
   opts?: ReactorCompositeOpt<BrokerInput & O & BrokerEvent & ForkWorkerOutput>
 ) {
   const mainWorkerComp = workerController as unknown as ReactorComposite<ForkWorkerInput, ForkWorkerOutput>;

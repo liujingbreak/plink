@@ -49,7 +49,7 @@ export class RxController {
                     if (referActions)
                         action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
                     const r$ = new rx.ReplaySubject(1);
-                    rx.merge(action$.pipe(actionRelatedToAction(action.i), mapActionToPayload()), new rx.Observable(sub => {
+                    rx.merge(action$.pipe(actionRelatedToAction(action), mapActionToPayload()), new rx.Observable(sub => {
                         self.core.actionUpstream.next(action);
                         sub.complete();
                     })).subscribe(r$);
@@ -280,15 +280,15 @@ export class ActionTable {
 }
 _ActionTable_latestPayloadsByName$ = new WeakMap();
 /** Rx operator function */
-export function actionRelatedToAction(id) {
+export function actionRelatedToAction(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(m => (m.r != null && m.r === id) || (Array.isArray(m.r) && m.r.some(r => r === id))));
+        return up.pipe(rx.filter(m => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
     };
 }
 /** Rx operator function */
-export function actionRelatedToPayload(id) {
+export function payloadRelatedToAction(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === id) || (Array.isArray(m.r) && m.r.some(r => r === id))));
+        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
     };
 }
 export function serializeAction(action) {

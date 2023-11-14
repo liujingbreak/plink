@@ -100,9 +100,8 @@ function createWorkerControl(isInWorker, opts) {
         }));
     })));
     r('On recieving "being forked" message, wait for fork action returns', i.pt.onFork.pipe(rx.mergeMap(([, origAct, port]) => {
-        const origId = origAct.i;
         (0, control_1.deserializeAction)(origAct, i);
-        return o.core.action$.pipe((0, control_1.actionRelatedToAction)(origId), rx.take(1), rx.map(action => {
+        return o.core.action$.pipe((0, control_1.actionRelatedToAction)(origAct), rx.take(1), rx.map(action => {
             const { p } = action;
             if (hasReturnTransferable(p)) {
                 const [{ transferList }] = p;
@@ -131,7 +130,7 @@ function createWorkerControl(isInWorker, opts) {
 exports.createWorkerControl = createWorkerControl;
 function fork(comp, actionType, params, resActionType) {
     const forkedAction = comp.o.createAction(actionType, ...params);
-    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe((0, control_1.actionRelatedToPayload)(forkedAction.i), rx.map(([, res]) => res)));
+    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe((0, control_1.payloadRelatedToAction)(forkedAction), rx.map(([, res]) => res)));
     comp.o.dp.fork(forkedAction);
     return forkDone;
 }

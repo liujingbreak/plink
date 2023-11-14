@@ -42,7 +42,7 @@ export function createSorter(comparator, opts) {
             return [offset, len];
         },
         async merge(buf, offset1, len1, offset2, len2, noForkThreshold = 50, targetBuffer, targetOffset) {
-            var _a, _b;
+            var _a;
             const destBuf = cmp.createArrayBufferOfSize(len1 + len2);
             if (len1 < len2) {
                 // Ensure 1st array is longer than 2nd array, because we split 1st array into evenly half to be forked merge, 1st array's length determines how much
@@ -74,7 +74,8 @@ export function createSorter(comparator, opts) {
                 const forkDone = fork(sorter, 'merge', [buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold]);
                 const leftMerged = (_a = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))) === null || _a === void 0 ? void 0 : _a.content;
                 o.dp.wait();
-                const rightMerged = (_b = (await forkDone)) === null || _b === void 0 ? void 0 : _b.content;
+                const [forkResult] = await forkDone;
+                const rightMerged = forkResult === null || forkResult === void 0 ? void 0 : forkResult.content;
                 o.dp.stopWaiting();
                 const destArr = targetBuffer ? cmp.createTypedArray(targetBuffer, targetOffset, len1 + len2) : cmp.createTypedArray(destBuf);
                 let i = 0;

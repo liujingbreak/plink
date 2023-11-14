@@ -4,4 +4,4 @@ import { Broker } from './types';
 export declare function applyScheduler(broker: Broker, opts: {
     maxNumOfWorker: number;
     workerFactory(): Worker | NodeWorker;
-}): Map<number, [worker: Worker | NodeWorker, rank: number]>;
+}): Map<number, [worker: NodeWorker | Worker, rank: number]>;

@@ -21,12 +21,11 @@ export type Action<I extends ActionFunctions, K extends keyof I = keyof I & stri
   p: InferPayload<I[K]>;
 } & ActionMeta;
 
-export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
-
 // export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
 
-export type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
-export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
+export type Dispatch<I extends ActionFunctions, K extends string & keyof I> = (...params: InferPayload<I[K]>) => Action<I, K>;
+export type DispatchFor<I extends ActionFunctions, K extends string & keyof I> =
+  (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<I[K]>) => Action<I, K>;
 
 export type CoreOptions<I extends ActionFunctions> = {
   name?: string;
@@ -59,8 +58,8 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   actionSubscribed$: rx.Observable<void>;
   /** Event when `action$` is entirely unsubscribed by all observers */
   actionUnsubscribed$: rx.Observable<void>;
-  protected dispatcher = {} as {[K in keyof I]: Dispatch<I[keyof I]>};
-  protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[keyof I]>};
+  protected dispatcher = {} as {[K in keyof I]: Dispatch<I, K & string>};
+  protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I, K & string>};
   protected actionSubDispatcher = new rx.Subject<void>();
   protected actionUnsubDispatcher = new rx.Subject<void>();
   private connectableAction$: rx.Connectable<Action<I>>;
@@ -140,20 +139,20 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
     this.logPrefix = name ? `[${this.typePrefix}${name}] ` : this.typePrefix;
   }
 
-  dispatchFactory<K extends keyof I>(type: K): Dispatch<I> {
+  dispatchFactory<K extends string & keyof I>(type: K): Dispatch<I, K> {
     if (has.call(this.dispatcher, type)) {
       return this.dispatcher[type];
     }
     const dispatch = (...params: InferPayload<I[keyof I]>) => {
       const action = this.createAction(type, params);
       this.actionUpstream.next(action);
-      return action.i;
+      return action;
     };
     this.dispatcher[type] = dispatch;
     return dispatch;
   }
 
-  dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I> {
+  dispatchForFactory<K extends string & keyof I>(type: K): DispatchFor<I, K> {
     if (has.call(this.dispatcherFor, type)) {
       return this.dispatcherFor[type];
     }
@@ -161,7 +160,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
       const action = this.createAction(type, params);
       action.r = Array.isArray(metas) ? metas.map(m => m.i) : (metas as ActionMeta).i;
       this.actionUpstream.next(action);
-      return action.i;
+      return action;
     };
     this.dispatcherFor[type] = dispatch;
     return dispatch;

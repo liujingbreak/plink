@@ -38,7 +38,7 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
 };
 var _ActionTable_latestPayloadsByName$;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deserializeAction = exports.serializeAction = exports.actionRelatedToPayload = exports.actionRelatedToAction = exports.ActionTable = exports.GroupedRxController = exports.RxController = void 0;
+exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.actionRelatedToAction = exports.ActionTable = exports.GroupedRxController = exports.RxController = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 __exportStar(require("./stream-core"), exports);
@@ -78,7 +78,7 @@ class RxController {
                     if (referActions)
                         action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
                     const r$ = new rx.ReplaySubject(1);
-                    rx.merge(action$.pipe(actionRelatedToAction(action.i), mapActionToPayload()), new rx.Observable(sub => {
+                    rx.merge(action$.pipe(actionRelatedToAction(action), mapActionToPayload()), new rx.Observable(sub => {
                         self.core.actionUpstream.next(action);
                         sub.complete();
                     })).subscribe(r$);
@@ -312,19 +312,19 @@ class ActionTable {
 exports.ActionTable = ActionTable;
 _ActionTable_latestPayloadsByName$ = new WeakMap();
 /** Rx operator function */
-function actionRelatedToAction(id) {
+function actionRelatedToAction(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(m => (m.r != null && m.r === id) || (Array.isArray(m.r) && m.r.some(r => r === id))));
+        return up.pipe(rx.filter(m => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
     };
 }
 exports.actionRelatedToAction = actionRelatedToAction;
 /** Rx operator function */
-function actionRelatedToPayload(id) {
+function payloadRelatedToAction(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === id) || (Array.isArray(m.r) && m.r.some(r => r === id))));
+        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
     };
 }
-exports.actionRelatedToPayload = actionRelatedToPayload;
+exports.payloadRelatedToAction = payloadRelatedToAction;
 function serializeAction(action) {
     const a = Object.assign(Object.assign({}, action), { t: (0, stream_core_1.nameOfAction)(action) });
     // if (a.r instanceof Set) {

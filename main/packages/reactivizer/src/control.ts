@@ -1,29 +1,30 @@
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, InferMapParam, InferPayload, ActionMeta,
+import {Action, ActionFunctions, InferPayload, ActionMeta,
   ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions,
   has, nameOfAction, actionMetaToStr
 } from './stream-core';
 
 export * from './stream-core';
 
+export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
   waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
 
 type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
-  waitForAction$: rx.Observable<Action<O, R>>, origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
+  waitForAction$: rx.Observable<Action<O, R>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
 
 const EMPTY_ARRY = [] as [];
 
 export class RxController<I extends ActionFunctions> {
   core: ControllerCore<I>;
-  dispatcher: {[K in keyof I]: Dispatch<I[K]>};
-  dispatcherFor: {[K in keyof I]: DispatchFor<I[K]>};
+  dispatcher: {[K in keyof I]: Dispatch<I, K & string>};
+  dispatcherFor: {[K in keyof I]: DispatchFor<I, K & string>};
   /** abbrevation of property "dispatcher", exactly same instance of dispatcher */
-  dp: {[K in keyof I]: Dispatch<I[K]>};
+  dp: {[K in keyof I]: Dispatch<I, K & string>};
   /** abbrevation of property "dispatcherFor", exactly same instance of dispatcherFor */
-  dpf: {[K in keyof I]: DispatchFor<I[K]>};
+  dpf: {[K in keyof I]: DispatchFor<I, K & string>};
   dispatchAndObserveRes: {[K in keyof I]: DispatchAndObserveRes<I, K>};
   /** abbrevation of property "dispatchAndObserveRes", exactly same instance of dispatchAndObserveRes */
   do: {[K in keyof I]: DispatchAndObserveRes<I, K>};
@@ -42,9 +43,9 @@ export class RxController<I extends ActionFunctions> {
   constructor(public opts?: CoreOptions<I>) {
     const core = this.core = new ControllerCore(opts);
 
-    this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I[K]>}, {
+    this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I, K & string>}, {
       get(_target, key, _rec) {
-        return core.dispatchFactory(key as keyof I);
+        return core.dispatchFactory(key as string & keyof I);
       },
       has(_target, _key) {
         return true;
@@ -53,9 +54,9 @@ export class RxController<I extends ActionFunctions> {
         return [] as string[];
       }
     });
-    this.dispatcherFor = this.dpf = new Proxy({} as {[K in keyof I]: DispatchFor<I[K]>}, {
+    this.dispatcherFor = this.dpf = new Proxy({} as {[K in keyof I]: DispatchFor<I, K & string>}, {
       get(_target, key, _rec) {
-        return core.dispatchForFactory(key as keyof I);
+        return core.dispatchForFactory(key as string & keyof I);
       },
       has(_target, key) {
         return true;
@@ -77,7 +78,7 @@ export class RxController<I extends ActionFunctions> {
           const r$ = new rx.ReplaySubject<InferMapParam<I, R>>(1);
           rx.merge(
             action$.pipe(
-              actionRelatedToAction(action.i),
+              actionRelatedToAction(action),
               mapActionToPayload()
             ),
             new rx.Observable<never>(sub => {
@@ -399,24 +400,24 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
 }
 
 /** Rx operator function */
-export function actionRelatedToAction<T extends Action<any>>(id: ActionMeta['i']) {
+export function actionRelatedToAction<T extends Action<any>>(actionOrMeta: ActionMeta) {
   return function(up: rx.Observable<T>) {
     return up.pipe(
       rx.filter(
-        m => (m.r != null && m.r === id) || (
-          Array.isArray(m.r) && m.r.some(r => r === id)
+        m => (m.r != null && m.r === actionOrMeta.i) || (
+          Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i)
         )
       )
     );
   };
 }
 /** Rx operator function */
-export function actionRelatedToPayload<T extends [ActionMeta, ...any[]]>(id: ActionMeta['i']) {
+export function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: ActionMeta) {
   return function(up: rx.Observable<T>): rx.Observable<T> {
     return up.pipe(
       rx.filter(
-        ([m]) => (m.r != null && m.r === id) || (
-          Array.isArray(m.r) && m.r.some(r => r === id)
+        ([m]) => (m.r != null && m.r === actionOrMeta.i) || (
+          Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i)
         )
       )
     );
