@@ -243,7 +243,7 @@ export class ActionTable {
                 this.actionSnapshot.set(type, mapParam);
                 return mapParam;
             })).subscribe(a$);
-            this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debug) ?
+            this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debugTableAction) ?
                 a$.pipe(this.debugLogLatestActionOperator(type)) :
                 a$.asObservable();
         }
@@ -257,7 +257,7 @@ export class ActionTable {
         return ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.log) ?
             rx.map((action, idx) => {
                 if (idx === 0 && !core.debugExcludeSet.has(type)) {
-                    this.streamCtl.opts.log(core.logPrefix + 'rx:latest', type, action);
+                    this.streamCtl.opts.log(core.logPrefix + 'rx:latest', type, actionMetaToStr(action[0]));
                 }
                 return action;
             }) :

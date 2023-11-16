@@ -2,13 +2,14 @@
 import type { Worker as NodeWorker, MessagePort as NodeMessagePort } from 'worker_threads';
 import { ReactorComposite } from '../epic';
 import { Action, ActionFunctions, RxController } from '../control';
-export type Broker<WA extends ActionFunctions = Record<string, never>> = ReactorComposite<BrokerInput, BrokerEvent & WA>;
+export declare const brokerOutputTableFor: readonly ["newWorkerReady", "assignWorker", "portOfWorker"];
+export type Broker<WA extends ActionFunctions = Record<string, never>> = ReactorComposite<BrokerInput, BrokerEvent & WA, [], typeof brokerOutputTableFor>;
 export type ForkWorkerInput = {
     exit(): void;
     onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): void;
 };
 export type ForkWorkerOutput = {
-    workerInited(workerNo: string | number, logPrefix: string): void;
+    workerInited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): void;
     fork(targetAction: Action<any>): void;
     /** Informs broker that current step is waiting on forked function returns*/
     wait(): void;
@@ -37,4 +38,5 @@ export type BrokerEvent = {
     onWorkerExit(workerNo: number, exitCode: number): void;
     onAllWorkerExit(): void;
     assignWorker(): void;
+    portOfWorker(map: Map<Worker | NodeWorker, MessagePort | NodeMessagePort>): void;
 };

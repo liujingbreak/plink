@@ -11,3 +11,4 @@ setupForMainWorker(markdownProcessor, {
   }
 });
 
+export {markdownProcessor};

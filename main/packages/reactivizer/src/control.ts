@@ -40,7 +40,7 @@ export class RxController<I extends ActionFunctions> {
 
   updateInterceptor: ControllerCore<I>['updateInterceptor'];
 
-  constructor(public opts?: CoreOptions<I>) {
+  constructor(public opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
     const core = this.core = new ControllerCore(opts);
 
     this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I, K & string>}, {
@@ -359,7 +359,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
         })
       ).subscribe(a$);
 
-      this.latestPayloads[type] = this.streamCtl.opts?.debug ?
+      this.latestPayloads[type] = this.streamCtl.opts?.debugTableAction ?
         a$.pipe(
           this.debugLogLatestActionOperator(type as string)
         ) :
@@ -376,7 +376,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
     return this.streamCtl.opts?.log ?
       rx.map<P, P>((action, idx) => {
         if (idx === 0 && !core.debugExcludeSet.has(type)) {
-          this.streamCtl.opts!.log!(core.logPrefix + 'rx:latest', type, action);
+          this.streamCtl.opts!.log!(core.logPrefix + 'rx:latest', type, actionMetaToStr(action[0]));
         }
         return action;
       }) :

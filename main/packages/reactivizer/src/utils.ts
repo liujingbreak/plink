@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 
-export function timeoutLog<T>(millseconds: number, log: () => void) {
+export function timeoutLog<T>(millseconds: number, log: () => void): (up: rx.Observable<T>) => rx.Observable<T> {
   return function(up: rx.Observable<T>): rx.Observable<T> {
     let hasValue = false;
     return rx.merge(

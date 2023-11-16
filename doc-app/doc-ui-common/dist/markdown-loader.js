@@ -11,7 +11,7 @@ const markdownLoader = function (source, sourceMap) {
     let imgIdx = 0;
     // const logger = this.getLogger('markdown-loader');
     // debugger;
-    (0, markdown_util_1.markdownToHtml)(source, imgSrc => {
+    (0, markdown_util_1.markdownToHtml)(source, this.resourcePath, imgSrc => {
         const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
         importCode.push(`import imgSrc${imgIdx} from '${url}';`);
         return Promise.resolve('imgSrc' + (imgIdx++));

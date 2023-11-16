@@ -15,7 +15,7 @@ const cliExt = (program) => {
         const { markdownToHtml, tocToString, insertOrUpdateMarkdownToc } = require('../markdown-util');
         const input = fs_1.default.readFileSync(path_1.default.resolve(file), 'utf8');
         if (mdCli.opts().insert) {
-            const { changedMd, toc, html } = await insertOrUpdateMarkdownToc(input);
+            const { changedMd, toc, html } = await insertOrUpdateMarkdownToc(input, file);
             // eslint-disable-next-line no-console
             console.log('Table of content:\n' + toc);
             fs_1.default.writeFileSync(file, changedMd);
@@ -28,7 +28,7 @@ const cliExt = (program) => {
             }
         }
         else {
-            const { toc, content } = await rx.firstValueFrom(markdownToHtml(input));
+            const { toc, content } = await rx.firstValueFrom(markdownToHtml(input, file));
             // eslint-disable-next-line no-console
             console.log('Table of content:\n' + tocToString(toc));
             if (mdCli.opts().out) {
