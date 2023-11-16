@@ -33,7 +33,7 @@ exports.packageOfFileFactory = exports.log4File = exports.logConfig = exports.lo
 __exportStar(require("./config-handler"), exports);
 var index_1 = require("./config/index");
 Object.defineProperty(exports, "config", { enumerable: true, get: function () { return __importDefault(index_1).default; } });
-__exportStar(require("./require-injectors"), exports);
+__exportStar(require("../../packages/require-injector/dist"), exports);
 var node_package_api_1 = require("./package-mgr/node-package-api");
 Object.defineProperty(exports, "ExtensionContext", { enumerable: true, get: function () { return __importDefault(node_package_api_1).default; } });
 var injector_factory_1 = require("./injector-factory");

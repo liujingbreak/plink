@@ -39,7 +39,7 @@ export class DefaultComparator implements ForkSortComparator<Uint32Array> {
   constructor() {
     this.input = this.compositeCtrl.i;
     this.output = this.compositeCtrl.o;
-    this.compositeCtrl.startAll();
+    // this.compositeCtrl.startAll();
   }
 
   compare(a: number, b: number): number {

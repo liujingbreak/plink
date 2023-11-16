@@ -1,4 +1,11 @@
 # Changelog
+## @wfh/reactivizer 0.2.0
+- RxController supports new methods `subForTypes`, `subForExcludeTypes`
+- Remove type definition `PayloadStream`, since it contains too deep type inference which Typescript language server does not show complete resolved type information for it
+- New method "setName" on RxController, ReactorComposite
+- Refactor API functions of "fork join" feature for more convenient usage
+- Break changes to action filter operators: actionRelatedToAction, payloadRelatedToAction
+
 ## @wfh/reactivizer 0.1.1
 - RxController supports new methods: groupControllerBy(), connect()
 - ControllerCore supports new option property "autoConnect"
@@ -7,6 +14,7 @@
  
 ## Plink 0.13.x
 - Upgrade RxJS version to 7.x.x
+- Move require-injector inside Plink
 
 ## @wfh/reactivizer 0.1.0, @wfh/algorithms 1.0.0
 - New Rx utilities library to replace @wfh/redux-toolkit-observable, which has zero 3rd-party dependency

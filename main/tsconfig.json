@@ -57,8 +57,10 @@
     "packages/reactive-terminal-ui/src/**/*.ts",
     "packages/reactivizer/src/**/*.ts",
     "packages/reactivizer/__tests__/**/*.ts",
+    "packages/reactivizer/docs/**/*.ts",
     "packages/algorithms/src/**/*.ts",
-    "packages/algorithms/__tests__/**/*.ts"
+    "packages/algorithms/__tests__/**/*.ts",
+    "packages/require-injector/ts/**/*.ts"
   ],
   "exclude": [
     "packages/**/*.d.ts"

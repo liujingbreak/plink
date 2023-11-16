@@ -6,19 +6,27 @@ import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 
 type RouteActions = {
+  /** @param relativePath the path relative to "basenameOrParent" */
   navigateTo(relativePath: string): void;
+  setRoutes(r: RouteObject[]): void;
   /** Redirect another path */
   replaceUrl(relativePath: string): void;
   setBasenameOrParent(value: string): void;
+  /** for switch animation */
+  setRootElement(div: HTMLDivElement | null): void;
 };
 
-const routeInputTableFor = ['setBasenameOrParent'] as const;
-const routeOutputTableFor = ['routeCompiled'] as const;
+const routeInputTableFor = ['setBasenameOrParent', 'setRootElement'] as const;
+const routeOutputTableFor = ['routeCompiled', 'routeMatched'] as const;
 
 type RouteEvents = {
   onBrowserHistoryPopstate(): void;
   routeCompiled(routeObjs: CompiledRouteObject[]): void;
+  matchingUrl(pathWithQueryAndHash: {pathname: string; hash: string; search: string; searchParams: URLSearchParams}): void;
+  routeMatched(r: MatchedRouteObject): void;
 };
+
+type PathWithQueryAndHash = {pathname: string; hash: string; search: string; searchParams: URLSearchParams};
 
 export type RouteObject = {
   path: string;
@@ -28,7 +36,8 @@ export type RouteObject = {
 
 export type Router = {
   matchedRoute: MatchedRouteObject | null;
-  control: RxController<RouteActions>;
+  rootElement?: HTMLDivElement;
+  control?: RxController<RouteActions>;
 };
 
 type CompiledRouteObject = RouteObject & {
@@ -38,58 +47,68 @@ type CompiledRouteObject = RouteObject & {
 
 export type MatchedRouteObject = CompiledRouteObject & {
   matchedParams: Record<string, string>;
-};
-
-export type RouterState = {
-  routes?: RouteObject[];
-  // compiledRoutes?: CompiledRouteObject[];
-  matchedRoute?: RouteObject;
+  /** The original location being navigated to */
+  location: PathWithQueryAndHash;
 };
 
 export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) {
-  const state$ = React.useMemo(() => new rx.BehaviorSubject<RouterState>({}), []);
+  // const state$ = React.useMemo(() => new rx.BehaviorSubject<RouterState>({}), []);
+  const [router, setRouter] = React.useState<Router>({matchedRoute: null});
 
-  const composite = React.useMemo(() => new ReactorComposite<RouteActions, RouteEvents, typeof routeInputTableFor, typeof routeOutputTableFor>(
-    {name: 'router', debug: process.env.NODE_ENV === 'development', inputTableFor: routeInputTableFor, outputTableFor: routeOutputTableFor}), []);
-  const [router, setRouter] = React.useState<Router>({matchedRoute: null, control: composite.i});
-  const {i, o, r, inputTable, outputTable} = composite;
-
-  React.useMemo(() => {
+  const composite = React.useMemo(() => {
+    const composite = new ReactorComposite<RouteActions, RouteEvents, typeof routeInputTableFor, typeof routeOutputTableFor>({
+      name: 'router',
+      debug: process.env.NODE_ENV === 'development',
+      inputTableFor: routeInputTableFor,
+      outputTableFor: routeOutputTableFor
+    });
+    const {i, o, r, inputTable, outputTable} = composite;
     i.dp.setBasenameOrParent(basenameOrParent);
-    // state$.next({...state$.getValue(), basenameOrParent});
-  }, [basenameOrParent, i.dp]);
-
-  React.useMemo(() => {
-    state$.next({...state$.getValue(), routes});
-  }, [routes, state$]);
-
-  React.useMemo(() => {
     function onPopstate(evt: PopStateEvent) {
       o.dp.onBrowserHistoryPopstate();
     }
 
-    r('Listen to popstate event', new rx.Observable<void>(sub => {
+    r('Listen to popstate event', new rx.Observable<void>(() => {
       if (typeof window !== 'undefined') {
         window.addEventListener('popstate', onPopstate);
         return () => window.removeEventListener('popstate', onPopstate);
       }
     }));
 
-    r('build compiledRoutes', state$.pipe(
-      op.map(s => s.routes),
-      op.distinctUntilChanged(),
-      op.map(routes => {
+    r('setRoutes', i.pt.setRoutes.pipe(
+      op.map(([, routes]) => {
         if (routes)
           o.dp.routeCompiled(compileRoutes(routes));
       })
     ));
 
-    r('Handle navigations', rx.merge(
+    r('matchingUrl -> call matchRoute, dispatch routeMatched', o.pt.matchingUrl.pipe(
+      op.switchMap(([m, url]) => outputTable.l.routeCompiled.pipe(
+        op.take(1),
+        op.map(([, compiledRoutes]) => {
+        // eslint-disable-next-line no-console
+          console.log('Route to', url);
+          const matched = matchRoute(compiledRoutes, url);
+          if (matched) {
+            o.dpf.routeMatched(m, matched);
+            // setRouter(s => ({...s, matchedRoute: matched}));
+          }
+
+          return matched?.redirect;
+        })
+      )),
+      op.filter((r): r is string => r != null),
+      op.observeOn(rx.asyncScheduler),
+      op.map(redirect => i.dp.replaceUrl(redirect))
+    ));
+
+    r('Handle navigations -> matchingUrl', rx.merge(
       o.at.onBrowserHistoryPopstate.pipe(
         op.withLatestFrom(inputTable.l.setBasenameOrParent),
         op.concatMap(([, [, basenameOrParent]]) => rx.timer(16).pipe(op.map(() => basenameOrParent))),
         op.map(basenameOrParent => {
-          return subPathOf(basenameOrParent, window.location.pathname) ?? window.location.pathname;
+          const temp = new URL((subPathOf(basenameOrParent, window.location.pathname) ?? window.location.pathname) + window.location.search + window.location.hash, window.location.href);
+          o.dp.matchingUrl(temp);
         })
       ),
       i.pt.navigateTo.pipe(
@@ -98,7 +117,8 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
           if (typeof window !== 'undefined') {
             window.history.pushState({}, '', resolvePath(basenameOrParent, toPath));
           }
-          return toPath;
+          const tempURL = new URL(toPath, 'http://w.g.c');
+          o.dp.matchingUrl(tempURL);
         })
       ),
       i.pt.replaceUrl.pipe(
@@ -107,33 +127,32 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
           if (typeof window !== 'undefined') {
             window.history.replaceState({}, '', resolvePath(basenameOrParent, toPath));
           }
-          return toPath;
+          o.dp.matchingUrl(new URL(toPath, 'http://w.g.c'));
         })
       ),
       rx.of(typeof window !== 'undefined' ? window.location.pathname : '').pipe(
         op.filter(url => !!url),
         op.withLatestFrom(inputTable.l.setBasenameOrParent),
-        op.map(([toPath, [, basenameOrParent]]) => subPathOf(basenameOrParent, toPath) ?? toPath)
+        op.map(([pathname, [, basenameOrParent]]) => {
+          o.dp.matchingUrl(new URL((subPathOf(basenameOrParent, pathname) ?? pathname) + window.location.search + window.location.hash, window.location.href));
+        })
       )
-    ).pipe(
-      op.switchMap(toPath => outputTable.l.routeCompiled.pipe(
-        op.take(1),
-        op.map(([, compiled]) => [toPath, compiled] as const)
-      )),
-      op.map(([toPath, compiledRoutes]) => {
-        // eslint-disable-next-line no-console
-        console.log('Route to', toPath);
-        const matched = matchRoute(compiledRoutes, toPath);
-        if (matched)
-          setRouter(s => ({...s, matchedRoute: matched}));
-
-        return matched?.redirect;
-      }),
-      op.filter((r): r is string => r != null),
-      op.observeOn(rx.asyncScheduler),
-      op.map(redirect => i.dp.replaceUrl(redirect))
     ));
-  }, [i.dp, i.pt.navigateTo, i.pt.replaceUrl, inputTable.l.setBasenameOrParent, o.at.onBrowserHistoryPopstate, o.dp, outputTable.l.routeCompiled, r, state$]);
+
+    r('sync setRootElement to setRouter', inputTable.l.setRootElement.pipe(
+      rx.filter(([, el]) => el != null),
+      rx.tap(([, rootElement]) => setRouter(s => ({...s, rootElement: rootElement!})))
+    ));
+
+    r('sync outputTable to setRouter', outputTable.l.routeMatched.pipe(
+      rx.tap(([, matchedRoute]) => setRouter(s => ({...s, matchedRoute})))
+    ));
+
+    i.dp.setRoutes(routes);
+    setRouter(s => ({...s, control: composite.i}));
+    return composite;
+  }, [basenameOrParent, routes]);
+
 
   React.useEffect(() => {
     return () => {composite.destory(); };
@@ -156,8 +175,8 @@ export function useRouter() {
 export function useNavigateHandler<C extends(...args: any[]) => void>(path: string) {
   const router = useRouter();
   return React.useCallback(() => {
-    router?.control.dispatcher.navigateTo(path);
-  }, [path, router?.control.dispatcher]) as C;
+    router?.control?.dispatcher.navigateTo(path);
+  }, [path, router?.control?.dispatcher]) as C;
 }
 
 function resolvePath(...strs: string[]) {
@@ -190,24 +209,26 @@ function compileRoutes(routes: RouteObject[]) {
   }) as CompiledRouteObject[];
 }
 
-function matchRoute(routes: CompiledRouteObject[], location: string) {
+function matchRoute(routes: CompiledRouteObject[], location: PathWithQueryAndHash) {
   let matched: MatchedRouteObject | undefined;
-  location = /^(.*?)\/*$/.exec(location)![1];
+  // location = /^(.*?)\/*$/.exec(location)![1];
   for (const route of routes) {
     if (route.pathPattern) {
-      const res = route.pathPattern.exec(location);
+      const res = route.pathPattern.exec(location.pathname);
       if (res == null)
         continue;
-      matched = route as RouteObject as MatchedRouteObject;
+      matched = route as MatchedRouteObject;
       let i = 1;
       matched.matchedParams = {};
       for (const param of route.paramNames) {
         matched.matchedParams[param] = res[i++];
       }
+      matched.location = location;
       return matched;
-    } else if (route.path === location) {
-      (route as RouteObject as MatchedRouteObject).matchedParams = {};
-      return (route as RouteObject as MatchedRouteObject);
+    } else if (route.path === location.pathname) {
+      (route as MatchedRouteObject).matchedParams = {};
+      (route as MatchedRouteObject).location = location;
+      return (route as MatchedRouteObject);
     }
   }
 }

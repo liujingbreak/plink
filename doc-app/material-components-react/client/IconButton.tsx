@@ -1,24 +1,27 @@
+/* eslint-disable multiline-ternary */
 import React from 'react';
-import {Ripple, MDCRipple} from './Ripple';
 import cls from 'classnames';
+import {MDCIconButtonToggle} from '@material/icon-button';
+import {Ripple, MDCRipple} from './Ripple';
 // import clsddp from 'classnames/dedupe';
 // import './icons/icon-fonts.scss';
 import './IconButton.scss';
+export {MDCIconButtonToggle};
 
 export type IconButtonProps = React.PropsWithChildren<{
   onClick?(evt: any): void;
   className?: string;
   disabled?: boolean;
   dialogAction?: string;
-  // isToggleOn?: boolean;
   materialIcon?: string;
-  // materialIconOff?: string;
-  // materialIconStyle?: 'regular' | 'outlined' | 'towtone'
+  materialIconToggleOn?: string;
+  onMdcInstance?(instance: MDCIconButtonToggle): void;
+  onToggle?(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
 }>;
 
 interface IconButtonState {
   btnRef?: HTMLButtonElement;
-  isToggleOn?: boolean;
+  mdcInstance?: MDCIconButtonToggle;
 }
 
 /**
@@ -26,14 +29,19 @@ interface IconButtonState {
  * @param props 
  */
 const IconButton: React.FC<IconButtonProps> = function(props) {
-  const {onClick} = props;
+  const {onClick, onToggle, materialIconToggleOn} = props;
+  const [state, setState] = React.useState<IconButtonState>({});
   const clickCb = React.useCallback<React.MouseEventHandler<HTMLButtonElement>>((event) => {
     if (onClick) {
       onClick(event);
     }
-  }, [onClick]);
+    if (onToggle && materialIconToggleOn) {
+      setTimeout(() => {
+        onToggle(state.mdcInstance!.on, (isOn) => state.mdcInstance!.on = isOn);
+      }, 0);
+    }
+  }, [onClick, onToggle, materialIconToggleOn, state.mdcInstance]);
 
-  const [state, setState] = React.useState<IconButtonState>({});
   const btnRef = React.useCallback((btn: HTMLButtonElement | null) => {
     setState(state => {
       return {
@@ -53,19 +61,43 @@ const IconButton: React.FC<IconButtonProps> = function(props) {
     }
   }, [props.dialogAction, state.btnRef]);
 
+  // create MDC toggleIconButton instance
+  React.useEffect(() => {
+    if (props.materialIconToggleOn && state.btnRef) {
+      const mdc = new MDCIconButtonToggle(state.btnRef);
+      setState(s => {
+        return {...s, mdcInstance: mdc};
+      });
+    }
+  }, [props.materialIconToggleOn, state.btnRef]);
+
+  // Invoke MDC toggleIconButton instance callback
+  React.useEffect(() => {
+    if (state.mdcInstance && props.onMdcInstance) {
+      props.onMdcInstance(state.mdcInstance);
+    }
+  }, [props, state.mdcInstance]);
+
   const onRippleRef = React.useCallback((mdcRipple: MDCRipple) => {
     mdcRipple.unbounded = true;
   }, []);
   const iconCls = 'material-icons'; // + (props.materialIconStyle != null ? '-' + props.materialIconStyle : '');
+
+  const iconClassName = cls(iconCls, 'material-icons', 'mdc-icon-button__icon');
   return <button ref={btnRef} className={cls('mdc-icon-button', props.className)}
     disabled={!!props.disabled}
     onClick={clickCb}>
-    { props.materialIcon ? <>
-      {/* <i className={iconCls + ' mdc-icon-button__icon mdc-icon-button__icon--on'}>{props.materialIcon}</i> */}
-      <i className={cls(iconCls, 'mdc-icon-button__icon', props.materialIcon ? 'md-' + props.materialIcon : '')}></i>
+    <span className="mdc-icon-button__focus-ring"></span>
+    { props.materialIcon ?
+      <>
+        { props.materialIconToggleOn ?
+          <i className={cls(iconClassName, 'md-' + props.materialIconToggleOn, 'mdc-icon-button__icon--on')}></i> :
+          null
+        }
+        <i className={cls(iconClassName, 'md-' + props.materialIcon)}></i>
       </> : props.children
     }
-    <Ripple className='ripple' getMdcRef={onRippleRef} />
+    <Ripple className="ripple" getMdcRef={onRippleRef} />
   </button>;
 };
 

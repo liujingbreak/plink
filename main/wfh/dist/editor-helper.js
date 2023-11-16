@@ -234,7 +234,7 @@ function writePackageSettingType() {
     const done = new Array((0, package_mgr_1.getState)().workspaces.size);
     let i = 0;
     for (const wsKey of (0, package_mgr_1.getState)().workspaces.keys()) {
-        let header = '';
+        let header = 'import \'@wfh/plink\';';
         // let body = 'export interface PackagesConfig {\n';
         let interfaceBody = 'declare module \'@wfh/plink\' {\n';
         interfaceBody += '  interface PlinkSettings {\n';

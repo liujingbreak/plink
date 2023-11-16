@@ -1,17 +1,13 @@
-import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
-import { createWorkerControl, reativizeRecursiveFuncs, fork } from '../forkJoin-node-worker';
+import { createWorkerControl, fork } from '../fork-join/node-worker';
 import { DefaultComparator } from './sort-comparator-interf';
-export async function createSorter(comparator, opts) {
-    const ctl = await rx.firstValueFrom(createWorkerControl(opts));
+export function createSorter(comparator, opts) {
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new DefaultComparator();
-    ctl.r(ctl.i.pt.sortInWorker.pipe(rx.map(async ([m, ...params]) => {
-        const forkDone = fork(sorter, 'sort', params);
-        const ret = await forkDone;
-        o.dpf.sortResolved(m, ret);
-        o.dpf.sortCompleted(m);
-    })));
     const sortActions = {
+        async sortAllInWorker(buf, offset, len, noForkThreshold) {
+            const forkDone = fork(sorter, 'sort', [buf, offset, len, noForkThreshold]);
+            return forkDone;
+        },
         /**
          * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
          */
@@ -46,7 +42,7 @@ export async function createSorter(comparator, opts) {
             return [offset, len];
         },
         async merge(buf, offset1, len1, offset2, len2, noForkThreshold = 50, targetBuffer, targetOffset) {
-            var _a, _b;
+            var _a;
             const destBuf = cmp.createArrayBufferOfSize(len1 + len2);
             if (len1 < len2) {
                 // Ensure 1st array is longer than 2nd array, because we split 1st array into evenly half to be forked merge, 1st array's length determines how much
@@ -78,7 +74,8 @@ export async function createSorter(comparator, opts) {
                 const forkDone = fork(sorter, 'merge', [buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold]);
                 const leftMerged = (_a = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))) === null || _a === void 0 ? void 0 : _a.content;
                 o.dp.wait();
-                const rightMerged = (_b = (await forkDone)) === null || _b === void 0 ? void 0 : _b.content;
+                const [forkResult] = await forkDone;
+                const rightMerged = forkResult === null || forkResult === void 0 ? void 0 : forkResult.content;
                 o.dp.stopWaiting();
                 const destArr = targetBuffer ? cmp.createTypedArray(targetBuffer, targetOffset, len1 + len2) : cmp.createTypedArray(destBuf);
                 let i = 0;
@@ -121,7 +118,7 @@ export async function createSorter(comparator, opts) {
                 return { content: destBuf, transferList: [destBuf] };
         }
     };
-    const sorter = reativizeRecursiveFuncs(ctl, sortActions);
+    const sorter = createWorkerControl(opts).reativizeRecursiveFuncs(sortActions);
     const { o } = sorter;
     return sorter;
 }

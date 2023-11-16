@@ -1,8 +1,8 @@
 import Path from 'path';
 import * as _ from 'lodash';
 import {getLogger} from 'log4js';
-import {DirTree} from 'require-injector/dist/dir-tree';
 import LRU from 'lru-cache';
+import {DirTree} from '../../../packages/require-injector/dist/dir-tree';
 import PackageInstance from '../packageNodeInstance';
 import {plinkEnv} from '../utils/misc';
 import {packages4Workspace} from './package-list-helper';

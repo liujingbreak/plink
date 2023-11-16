@@ -1,10 +1,9 @@
 // eslint-disable  max-len
 import {EventEmitter} from 'events';
 
-import npmimportCssLoader from 'require-injector/dist/css-loader';
-import Inject from 'require-injector';
 import _ from 'lodash';
 import {Logger, getLogger} from 'log4js';
+import Inject from '../../../packages/require-injector';
 import PackageInstance from '../packageNodeInstance';
 import * as assetsUrl from '../share/assets-url';
 import config from '../config';
@@ -81,9 +80,6 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
   }
 
   /**
-	 * @param {string} url
-	 * @param {string} sourceFile
-	 * @return {string} | {packageName: string, path: string, isTilde: boolean, isPage: boolean}, returns string if it is a relative path, or object if
 	 * it is in format of /^(?:assets:\/\/|~|page(?:-([^:]+))?:\/\/)((?:@[^\/]+\/)?[^\/]+)?\/(.*)$/
 	 */
   normalizeAssetsUrl(url: string, sourceFile: string) {
@@ -97,9 +93,9 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
           throw new Error(`${sourceFile} does not belong to any known package`);
         packageName = compPackage.longName;
       }
-      const injectedPackageName = npmimportCssLoader.getInjectedPackage(packageName, sourceFile, this.browserInjector);
-      if (injectedPackageName)
-        packageName = injectedPackageName;
+      // const injectedPackageName = npmimportCssLoader.getInjectedPackage(packageName, sourceFile, this.browserInjector);
+      // if (injectedPackageName)
+      //   packageName = injectedPackageName;
 
       return {
         packageName,
@@ -114,8 +110,6 @@ class NodeApi implements assetsUrl.PackageApi, assetsUrl.ExtendedApi {
   }
   /**
 	 * join contextPath
-	 * @param {string} path
-	 * @return {[type]} [description]
 	 */
   joinContextPath(path: string) {
     return (this.contextPath + '/' + path).replace(/\/\//g, '/');

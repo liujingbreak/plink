@@ -4,10 +4,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseName = void 0;
-const dir_tree_1 = require("require-injector/dist/dir-tree");
+// import * as Path from 'path';
+const path_1 = require("path");
+const dir_tree_1 = require("../../../packages/require-injector/dist/dir-tree");
 const packageNodeInstance_1 = __importDefault(require("../packageNodeInstance"));
 const misc_1 = require("../utils/misc");
-const path_1 = require("path");
 /**
  * @deprecated
  */
@@ -24,8 +25,7 @@ class LazyPackageFactory {
                 this.packagePathMap.putData((0, path_1.resolve)(misc_1.plinkEnv.workDir, info.path), pk);
             }
         }
-        let found;
-        found = this.packagePathMap.getAllData(file);
+        const found = this.packagePathMap.getAllData(file);
         if (found.length > 0)
             return found[found.length - 1];
         return null;

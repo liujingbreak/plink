@@ -68,16 +68,13 @@ export class ReactorComposite<
       this.oTable = new ActionTable(this.o, opts.outputTableFor);
     }
     // this.logSubj = new rx.ReplaySubject(50);
-    rx.merge(
-      this.reactorSubj.pipe(
-        rx.mergeMap(([label, downStream, noError]) => {
-          if (noError == null || !noError) {
-            downStream = this.handleError(downStream, label);
-          }
-          return downStream;
-        })
-      )
-    ).pipe(
+    this.reactorSubj.pipe(
+      rx.mergeMap(([label, downStream, noError]) => {
+        if (noError == null || !noError) {
+          downStream = this.handleError(downStream, label);
+        }
+        return downStream;
+      }),
       rx.takeUntil(this.destory$),
       rx.catchError((err, src) => {
         if (this.opts?.log)
@@ -105,7 +102,12 @@ export class ReactorComposite<
         this.reactivizeFunction(key, func, fObject);
       }
     }
-    return this as unknown as ReactorComposite<I & F, InferFuncReturnEvents<F> & O>;
+    return this as unknown as ReactorComposite<I & F, InferFuncReturnEvents<F> & O, LI, LO>;
+  }
+
+  reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F) {
+    this.reactivize(fObject);
+    return this as unknown as ReactorComposite<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O, LI, LO>;
   }
 
   /** 
@@ -132,8 +134,8 @@ export class ReactorComposite<
    *
    * `addReaction(lable, ...)` uses this op internally.
    */
-  labelError(label: string) {
-    return (upStream: rx.Observable<any>) => upStream.pipe(
+  labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T> {
+    return (upStream: rx.Observable<T>): rx.Observable<T> => upStream.pipe(
       rx.catchError((err) => {
         this.logError(label, err);
         return rx.throwError(() => err instanceof Error ? err : new Error(err));
@@ -144,8 +146,8 @@ export class ReactorComposite<
   protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {
     const resolveFuncKey = key + 'Resolved';
     const finishFuncKey = key + 'Completed';
-    const dispatchResolved = (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).o.core.dispatchForFactory(resolveFuncKey as any);
-    const dispatchCompleted = (this as unknown as ReactorComposite<Record<string, never>, Record<string, never>>).o.core.dispatchForFactory(finishFuncKey as any);
+    const dispatchResolved = (this as unknown as ReactorComposite<Record<string, never>, Record<string, any>>).o.core.dispatchForFactory(resolveFuncKey as any);
+    const dispatchCompleted = (this as unknown as ReactorComposite<Record<string, never>, Record<string, () => void>>).o.core.dispatchForFactory(finishFuncKey as any);
 
     this.r(this.i.pt[key as keyof I].pipe(
       rx.mergeMap(([meta, ...params]) => {

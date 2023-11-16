@@ -16,7 +16,11 @@ let threadPool: Pool;
  * @param source 
  * @param resolveImage 
  */
-export function markdownToHtml(source: string, resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>):
+export function markdownToHtml(
+  source: string,
+  srcFile: string,
+  resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
+  resolveLink?: (link: string) => rx.Observable<string> | string):
 rx.Observable<{toc: TOC[]; content: string}> {
   if (threadPool == null) {
     threadPool = new Pool(os.cpus().length > 1 ? os.cpus().length - 1 : 3, 1000);
@@ -32,7 +36,7 @@ rx.Observable<{toc: TOC[]; content: string}> {
   threadMsg$.pipe(
     op.filter(msg => msg.type === 'resolveImageSrc'),
     op.map(msg => msg.data),
-    op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(' + ' + JSON.stringify(imgSrc) + ' + ')),
+    op.mergeMap(imgSrc => resolveImage ? resolveImage(imgSrc) : rx.of(JSON.stringify(imgSrc))),
     op.tap({
       next: imgUrl => {
         threadTask.thread?.postMessage({type: 'resolveImageSrc', data: imgUrl});
@@ -76,8 +80,8 @@ export function tocToString(tocs: TOC[]) {
   return str;
 }
 
-export function insertOrUpdateMarkdownToc(input: string) {
-  return markdownToHtml(input).pipe(
+export function insertOrUpdateMarkdownToc(input: string, srcFile: string) {
+  return rx.firstValueFrom(markdownToHtml(input, srcFile, img => rx.of(img)).pipe(
     op.map(({toc, content: html}) => {
       const tocStr = tocMarkdown(toc);
       const BEGIN = '<!-- Plink markdown toc -->';
@@ -92,9 +96,8 @@ export function insertOrUpdateMarkdownToc(input: string) {
         changedMd = [BEGIN, tocStr, END, input].join('\n');
       }
       return {changedMd, toc: tocToString(toc), html};
-    }),
-    op.take(1)
-  ).toPromise();
+    })
+  ));
 }
 
 function tocMarkdown(tocs: TOC[]) {
@@ -110,3 +113,4 @@ function tocMarkdown(tocs: TOC[]) {
   }
   return str.slice(0, -1);
 }
+

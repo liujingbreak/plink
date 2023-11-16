@@ -1,28 +1,17 @@
-import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
-import {createWorkerControl, reativizeRecursiveFuncs, ForkTransferablePayload, fork} from '../forkJoin-node-worker';
-import {DuplexOptions} from '../duplex';
-import {ForkWorkerInput, ForkWorkerOutput} from '../types';
+import {createWorkerControl, ForkTransferablePayload, fork} from '../fork-join/node-worker';
+import type {ReactorCompositeOpt} from '../epic';
+import {ForkWorkerInput, ForkWorkerOutput} from '../fork-join/types';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
 
-type SorterInput = {
-  sortInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): void;
-};
-
-export async function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: DuplexOptions<ForkWorkerInput & ForkWorkerOutput>) {
-  const ctl = await rx.firstValueFrom(createWorkerControl<SorterInput>(opts));
+export function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput>) {
   const cmp = comparator ?? new DefaultComparator();
 
-  ctl.r(ctl.i.pt.sortInWorker.pipe(
-    rx.map(async ([m, ...params]) => {
-      const forkDone = fork(sorter, 'sort', params);
-      const ret = await forkDone;
-      o.dpf.sortResolved(m, ret);
-      o.dpf.sortCompleted(m);
-    })
-  ));
-
   const sortActions = {
+    async sortAllInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number) {
+      const forkDone = fork(sorter, 'sort', [buf, offset, len, noForkThreshold]);
+      return forkDone;
+    },
     /**
      * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
      */
@@ -98,7 +87,8 @@ export async function createSorter<D extends WritableArray>(comparator?: ForkSor
         const forkDone = fork(sorter, 'merge', [buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold]);
         const leftMerged = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))?.content;
         o.dp.wait();
-        const rightMerged = (await forkDone)?.content;
+        const [forkResult] = await forkDone;
+        const rightMerged = forkResult?.content;
         o.dp.stopWaiting();
 
         const destArr = targetBuffer ? cmp.createTypedArray(targetBuffer, targetOffset, len1 + len2) : cmp.createTypedArray(destBuf);
@@ -141,7 +131,7 @@ export async function createSorter<D extends WritableArray>(comparator?: ForkSor
     }
   };
 
-  const sorter = reativizeRecursiveFuncs(ctl, sortActions);
+  const sorter = createWorkerControl(opts).reativizeRecursiveFuncs(sortActions);
   const {o} = sorter;
   return sorter;
 }

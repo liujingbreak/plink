@@ -37,12 +37,12 @@ export class ReactorComposite extends DuplexController {
             this.oTable = new ActionTable(this.o, opts.outputTableFor);
         }
         // this.logSubj = new rx.ReplaySubject(50);
-        rx.merge(this.reactorSubj.pipe(rx.mergeMap(([label, downStream, noError]) => {
+        this.reactorSubj.pipe(rx.mergeMap(([label, downStream, noError]) => {
             if (noError == null || !noError) {
                 downStream = this.handleError(downStream, label);
             }
             return downStream;
-        }))).pipe(rx.takeUntil(this.destory$), rx.catchError((err, src) => {
+        }), rx.takeUntil(this.destory$), rx.catchError((err, src) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
@@ -64,6 +64,10 @@ export class ReactorComposite extends DuplexController {
                 this.reactivizeFunction(key, func, fObject);
             }
         }
+        return this;
+    }
+    reativizeRecursiveFuncs(fObject) {
+        this.reactivize(fObject);
         return this;
     }
     /**

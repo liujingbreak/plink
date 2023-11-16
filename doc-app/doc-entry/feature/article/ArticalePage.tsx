@@ -4,11 +4,11 @@ import clsBinder from 'classnames/bind';
 // import {Drawer} from '@wfh/material-components-react/client/Drawer';
 // import {useParams} from 'react-router-dom';
 import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client/markdown/MarkdownViewComp';
-import {getStore} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
+import {markdownsControl} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 // import {DocListComponents} from './DocListComponents';
 import {useRouter} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
-import * as op from 'rxjs/operators';
-import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.state';
+import * as rx from 'rxjs';
+import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.control';
 import {renderByMdKey} from './articaleComponents';
 import styles from './ArticalePage.module.scss';
 
@@ -17,13 +17,13 @@ const cls = clsBinder.bind(styles);
 const EMPTY_ARR: any[] = [];
 export type ArticalePageProps = React.PropsWithChildren<Record<string, never>>;
 
-const ArticalePage: React.FC<ArticalePageProps> = function(props) {
+const ArticalePage = React.memo<ArticalePageProps>(function() {
   const matchedRoute = useRouter();
   const matchedParams = matchedRoute?.matchedRoute?.matchedParams;
   const [portals, setPortals] = useState(EMPTY_ARR);
 
   const onContentLoaded = useCallback<NonNullable<MarkdownViewCompProps['onContent']>>((div) => {
-    if (matchedParams) {
+    if (matchedParams?.mdKey) {
       const renderers = renderByMdKey[matchedParams?.mdKey];
       if (!renderers) return;
 
@@ -43,18 +43,19 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
       }
       setPortals(els);
     }
-  }, [matchedParams]);
+  }, [matchedParams?.mdKey]);
 
   const layout = useAppLayout();
 
   React.useEffect(() => {
     if (matchedParams?.mdKey) {
-      const sub = getStore().pipe(
-        op.map(s => s.contents[matchedParams.mdKey]),
-        op.distinctUntilChanged(),
-        op.filter(md => {
+      const sub = markdownsControl.outputTable.l.htmlDone.pipe(
+        rx.filter(([, key]) => key === matchedParams.mdKey),
+        rx.map(([, , contents]) => contents),
+        rx.distinctUntilChanged(),
+        rx.filter(md => {
           if (md && layout) {
-            layout.actionDispatcher.updateBarTitle(md.toc[0]?.text || 'Document (untitled)');
+            layout.i.dp.updateBarTitle(md.toc[0]?.text || 'Document (untitled)');
             return true;
           }
           return false;
@@ -64,8 +65,13 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
     }
   }, [layout, matchedParams?.mdKey]);
 
-  console.log('matched route', matchedRoute);
-  console.log('matchedParams?.mdKey', matchedParams?.mdKey);
+  React.useEffect(() => {
+    console.log('............. new Articale');
+    return () => {
+      console.log('....... unmount Article');
+    };
+  }, []);
+
   // mdc-layout-grid provides proper margin or padding space for page element
   return (
     <div className={cls('articale-page', 'mdc-layout-grid')}> {/* CSS class mdc-layout-grid provides proper margin or padding space for page element */}
@@ -73,7 +79,7 @@ const ArticalePage: React.FC<ArticalePageProps> = function(props) {
       {portals}
     </div>
   );
-};
+});
 
 export {ArticalePage};
 

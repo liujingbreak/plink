@@ -1,53 +1,68 @@
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, InferMapParam, InferPayload, ActionMeta,
-  ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, PayloadStream, CoreOptions,
+import {Action, ActionFunctions, InferPayload, ActionMeta,
+  ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions,
   has, nameOfAction, actionMetaToStr
 } from './stream-core';
 
 export * from './stream-core';
 
+export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
   waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
 
 type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
-  waitForAction$: rx.Observable<Action<O, R>>, origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
+  waitForAction$: rx.Observable<Action<O, R>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
+
+const EMPTY_ARRY = [] as [];
 
 export class RxController<I extends ActionFunctions> {
   core: ControllerCore<I>;
-  dispatcher: {[K in keyof I]: Dispatch<I[K]>};
-  dispatcherFor: {[K in keyof I]: DispatchFor<I[K]>};
+  dispatcher: {[K in keyof I]: Dispatch<I, K & string>};
+  dispatcherFor: {[K in keyof I]: DispatchFor<I, K & string>};
   /** abbrevation of property "dispatcher", exactly same instance of dispatcher */
-  dp: {[K in keyof I]: Dispatch<I[K]>};
+  dp: {[K in keyof I]: Dispatch<I, K & string>};
   /** abbrevation of property "dispatcherFor", exactly same instance of dispatcherFor */
-  dpf: {[K in keyof I]: DispatchFor<I[K]>};
+  dpf: {[K in keyof I]: DispatchFor<I, K & string>};
   dispatchAndObserveRes: {[K in keyof I]: DispatchAndObserveRes<I, K>};
   /** abbrevation of property "dispatchAndObserveRes", exactly same instance of dispatchAndObserveRes */
   do: {[K in keyof I]: DispatchAndObserveRes<I, K>};
   dispatchForAndObserveRes: {[K in keyof I]: DispatchForAndObserveRes<I, K>};
   /** abbrevation of dispatchForAndObserveRes */
   dfo: {[K in keyof I]: DispatchForAndObserveRes<I, K>};
-  payloadByType: {[K in keyof I]: PayloadStream<I, K>};
+  payloadByType: {[K in keyof I]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
   /** abbrevation of payloadByType */
-  pt: {[K in keyof I]: PayloadStream<I, K>};
+  pt: {[K in keyof I]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
   actionByType: {[K in keyof I]: rx.Observable<Action<I, K>>};
   /** abbrevation of actionByType */
   at: {[K in keyof I]: rx.Observable<Action<I, K>>};
 
   updateInterceptor: ControllerCore<I>['updateInterceptor'];
 
-  constructor(public opts?: CoreOptions<(string & keyof I)[]>) {
+  constructor(public opts?: CoreOptions<I>) {
     const core = this.core = new ControllerCore(opts);
 
-    this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I[K]>}, {
+    this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I, K & string>}, {
       get(_target, key, _rec) {
-        return core.dispatchFactory(key as keyof I);
+        return core.dispatchFactory(key as string & keyof I);
+      },
+      has(_target, _key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
       }
     });
-    this.dispatcherFor = this.dpf = new Proxy({} as {[K in keyof I]: DispatchFor<I[K]>}, {
+    this.dispatcherFor = this.dpf = new Proxy({} as {[K in keyof I]: DispatchFor<I, K & string>}, {
       get(_target, key, _rec) {
-        return core.dispatchForFactory(key as keyof I);
+        return core.dispatchForFactory(key as string & keyof I);
+      },
+      has(_target, key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
       }
     });
 
@@ -63,7 +78,7 @@ export class RxController<I extends ActionFunctions> {
           const r$ = new rx.ReplaySubject<InferMapParam<I, R>>(1);
           rx.merge(
             action$.pipe(
-              actionRelatedToAction(action.i),
+              actionRelatedToAction(action),
               mapActionToPayload()
             ),
             new rx.Observable<never>(sub => {
@@ -73,6 +88,12 @@ export class RxController<I extends ActionFunctions> {
           ).subscribe(r$);
           return r$.asObservable();
         };
+      },
+      has(_target, key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
       }
     });
 
@@ -82,6 +103,12 @@ export class RxController<I extends ActionFunctions> {
         return <R extends keyof I>(action$: rx.Observable<Action<I, R>>, ...params: any[]) => {
           return self.dfo[key as keyof I](action$, null, ...(params as any));
         };
+      },
+      has(_target, key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
       }
     });
 
@@ -99,6 +126,12 @@ export class RxController<I extends ActionFunctions> {
             );
           }
           return a$;
+        },
+        has(_target, key) {
+          return Object.prototype.hasOwnProperty.call(actionsByType, key);
+        },
+        ownKeys() {
+          return Object.keys(actionsByType);
         }
       });
 
@@ -118,9 +151,22 @@ export class RxController<I extends ActionFunctions> {
             );
           }
           return p$;
+        },
+        has(_target, key) {
+          return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);
+        },
+        ownKeys() {
+          return Object.keys(actionByTypeProxy);
         }
       });
     this.updateInterceptor = core.updateInterceptor;
+  }
+
+  /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
+  * belongs to
+  */
+  setName(value: string) {
+    this.core.setName(value);
   }
 
   createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>) {
@@ -128,7 +174,7 @@ export class RxController<I extends ActionFunctions> {
   }
 
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-  groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<(string & keyof I)[]>):
+  groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
   rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]> {
     return this.core.action$.pipe(
       rx.groupBy(keySelector),
@@ -167,8 +213,37 @@ export class RxController<I extends ActionFunctions> {
   }
 
   /**
+   * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+   */
+  subForTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
+    const sub = new RxController<Pick<I, KS[number]>>(opts);
+    const typeSet = new Set(actionTypes);
+    this.core.action$.pipe(
+      rx.filter(a => typeSet.has(nameOfAction(a))),
+      rx.tap(value => {
+        sub.core.actionUpstream.next(value);
+      })
+    ).subscribe();
+    return sub;
+  }
+
+  /**
+   * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+   */
+  subForExcludeTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
+    const sub = new RxController<Pick<I, KS[number]>>(opts);
+    const typeSet = new Set(excludeActionTypes);
+    this.core.action$.pipe(
+      rx.filter(a => !typeSet.has(nameOfAction(a))),
+      rx.tap(value => {
+        sub.core.actionUpstream.next(value);
+      })
+    ).subscribe();
+    return sub;
+  }
+  /**
    * Delegate to `this.core.action$.connect()`
-   * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+   * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
    *
    * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
    * `undefined` or `true`, in that case you don't need to call this method manually.
@@ -181,7 +256,7 @@ export class RxController<I extends ActionFunctions> {
 }
 
 export class GroupedRxController<I extends ActionFunctions, K> extends RxController<I> {
-  constructor(public key: K, opts?: CoreOptions<(string & keyof I)[]>) {
+  constructor(public key: K, opts?: CoreOptions<I>) {
     super(opts);
   }
 }
@@ -196,15 +271,15 @@ export class GroupedRxController<I extends ActionFunctions, K> extends RxControl
  * 
  */
 export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
-  [P in KS[number]]: InferPayload<I[P]>
+  [P in KS[number]]: InferPayload<I[P]> | []
 };
 
 export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
   actionNames: KS;
 
-  latestPayloads = {} as {[K in KS[number]]: PayloadStream<I, K>};
+  latestPayloads = {} as {[K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
   /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
-  l: {[K in KS[number]]: PayloadStream<I, K>};
+  l: {[K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
 
   get dataChange$(): rx.Observable<ActionTableDataType<I, KS>> {
     if (this.#latestPayloadsByName$)
@@ -213,33 +288,36 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
     this.#latestPayloadsByName$ = this.actionNamesAdded$.pipe(
       rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
       rx.map(() => {
-        const payloadByName = {} as {[P in KS[number]]: InferPayload<I[P]>};
-        for (const [k, [, ...v]] of this.actionSnapshot.entries()) {
-          payloadByName[k] = v;
+        this.data = {} as ActionTableDataType<I, KS>;
+        for (const k of this.actionNames) {
+          const v = this.actionSnapshot.get(k);
+          this.data[k] = v ? v.slice(1) as InferPayload<I[keyof I]> : EMPTY_ARRY;
         }
-        return payloadByName;
+        return this.data;
       }),
       rx.share()
     );
     return this.#latestPayloadsByName$;
   }
 
-  get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
-    if (this.#latestPayloadsSnapshot$)
-      return this.#latestPayloadsSnapshot$;
+  private data: ActionTableDataType<I, KS> = {} as ActionTableDataType<I, KS>;
 
-    this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
-      rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
-      rx.map(() => this.actionSnapshot)
-    );
-    return this.#latestPayloadsSnapshot$;
-  }
+  // get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
+  //   if (this.#latestPayloadsSnapshot$)
+  //     return this.#latestPayloadsSnapshot$;
+
+  //   this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
+  //     rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+  //     rx.map(() => this.actionSnapshot)
+  //   );
+  //   return this.#latestPayloadsSnapshot$;
+  // }
 
   actionSnapshot = new Map<keyof I, InferMapParam<I, keyof I>>();
 
   // private
-  #latestPayloadsByName$: rx.Observable<{[P in KS[number]]: InferPayload<I[P]>}> | undefined;
-  #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
+  #latestPayloadsByName$: rx.Observable<ActionTableDataType<I, KS>> | undefined;
+  // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
   private actionNamesAdded$ = new rx.ReplaySubject<ReadonlyArray<keyof I>>(1);
 
   constructor(private streamCtl: RxController<I>, actionNames: KS) {
@@ -251,9 +329,14 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
         this.onAddActions(actionNames);
       })
     ).subscribe();
-
+    this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
   }
 
+  getData(): ActionTableDataType<I, KS> {
+    return this.data;
+  }
+
+  /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
   addActions<M extends Array<keyof I>>(...actionNames: M) {
     this.actionNames = this.actionNames.concat(actionNames) as unknown as KS;
     this.actionNamesAdded$.next(actionNames);
@@ -262,6 +345,8 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
 
   private onAddActions<M extends ReadonlyArray<keyof I>>(actionNames: M) {
     for (const type of actionNames) {
+      if (this.data[type] == null)
+        this.data[type] = EMPTY_ARRY;
       if (has.call(this.latestPayloads, type))
         continue;
 
@@ -315,24 +400,24 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
 }
 
 /** Rx operator function */
-export function actionRelatedToAction<T extends Action<any>>(id: ActionMeta['i']) {
+export function actionRelatedToAction<T extends Action<any>>(actionOrMeta: ActionMeta) {
   return function(up: rx.Observable<T>) {
     return up.pipe(
       rx.filter(
-        m => (m.r != null && m.r === id) || (
-          Array.isArray(m.r) && m.r.some(r => r === id)
+        m => (m.r != null && m.r === actionOrMeta.i) || (
+          Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i)
         )
       )
     );
   };
 }
 /** Rx operator function */
-export function actionRelatedToPayload<T extends [ActionMeta, ...any[]]>(id: ActionMeta['i']) {
+export function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: ActionMeta) {
   return function(up: rx.Observable<T>): rx.Observable<T> {
     return up.pipe(
       rx.filter(
-        ([m]) => (m.r != null && m.r === id) || (
-          Array.isArray(m.r) && m.r.some(r => r === id)
+        ([m]) => (m.r != null && m.r === actionOrMeta.i) || (
+          Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i)
         )
       )
     );

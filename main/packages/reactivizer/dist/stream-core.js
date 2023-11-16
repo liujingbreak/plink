@@ -35,11 +35,12 @@ class ControllerCore {
         this.actionUpstream = new rx.Subject();
         this.interceptor$ = new rx.BehaviorSubject(a => a);
         this.typePrefix = '#' + SEQ++ + ' ';
+        this.logPrefix = this.typePrefix;
         this.dispatcher = {};
         this.dispatcherFor = {};
         this.actionSubDispatcher = new rx.Subject();
         this.actionUnsubDispatcher = new rx.Subject();
-        this.logPrefix = (opts === null || opts === void 0 ? void 0 : opts.name) ? `[${this.typePrefix}${opts.name}] ` : this.typePrefix;
+        this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
         this.debugExcludeSet = new Set((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : []);
         const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
             ? this.actionUpstream.pipe((opts === null || opts === void 0 ? void 0 : opts.log) ?
@@ -92,6 +93,10 @@ class ControllerCore {
             p: params !== null && params !== void 0 ? params : []
         };
     }
+    /** change the "name" as previous specified in CoreOptions of constructor */
+    setName(name) {
+        this.logPrefix = name ? `[${this.typePrefix}${name}] ` : this.typePrefix;
+    }
     dispatchFactory(type) {
         if (exports.has.call(this.dispatcher, type)) {
             return this.dispatcher[type];
@@ -99,7 +104,7 @@ class ControllerCore {
         const dispatch = (...params) => {
             const action = this.createAction(type, params);
             this.actionUpstream.next(action);
-            return action.i;
+            return action;
         };
         this.dispatcher[type] = dispatch;
         return dispatch;
@@ -112,7 +117,7 @@ class ControllerCore {
             const action = this.createAction(type, params);
             action.r = Array.isArray(metas) ? metas.map(m => m.i) : metas.i;
             this.actionUpstream.next(action);
-            return action.i;
+            return action;
         };
         this.dispatcherFor[type] = dispatch;
         return dispatch;

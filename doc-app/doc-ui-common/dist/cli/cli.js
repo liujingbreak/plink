@@ -4,6 +4,7 @@ const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const fs_extra_1 = require("fs-extra");
+const rx = tslib_1.__importStar(require("rxjs"));
 // import util from 'util';
 const cliExt = (program) => {
     const mdCli = program.command('markdown <file>')
@@ -27,7 +28,7 @@ const cliExt = (program) => {
             }
         }
         else {
-            const { toc, content } = await markdownToHtml(input).toPromise();
+            const { toc, content } = await rx.firstValueFrom(markdownToHtml(input));
             // eslint-disable-next-line no-console
             console.log('Table of content:\n' + tocToString(toc));
             if (mdCli.opts().out) {

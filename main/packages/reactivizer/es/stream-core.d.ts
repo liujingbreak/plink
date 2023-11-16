@@ -15,12 +15,10 @@ export type Action<I extends ActionFunctions, K extends keyof I = keyof I & stri
     /** payload **/
     p: InferPayload<I[K]>;
 } & ActionMeta;
-export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
-export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<InferMapParam<I, K>>;
-export type Dispatch<F> = (...params: InferPayload<F>) => Action<any>['i'];
-export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<any>['i'];
-export type CoreOptions<K extends string[]> = {
-    name?: string | boolean;
+export type Dispatch<I extends ActionFunctions, K extends string & keyof I> = (...params: InferPayload<I[K]>) => Action<I, K>;
+export type DispatchFor<I extends ActionFunctions, K extends string & keyof I> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<I[K]>) => Action<I, K>;
+export type CoreOptions<I extends ActionFunctions> = {
+    name?: string;
     /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
     * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
     * otherwise, any actions that is dispatched to `actionUpstream` will not be observed and emitted by `action$`,
@@ -28,7 +26,7 @@ export type CoreOptions<K extends string[]> = {
     * */
     autoConnect?: boolean;
     debug?: boolean;
-    debugExcludeTypes?: K;
+    debugExcludeTypes?: (keyof I & string)[];
     logStyle?: 'full' | 'noParam';
     log?: (msg: string, ...objs: any[]) => unknown;
 };
@@ -36,7 +34,7 @@ export declare const has: (v: PropertyKey) => boolean;
 export declare class ControllerCore<I extends ActionFunctions = {
     [k: string]: never;
 }> {
-    opts?: CoreOptions<(string & keyof I)[]> | undefined;
+    opts?: CoreOptions<I> | undefined;
     actionUpstream: rx.Subject<Action<I, keyof I & string>>;
     interceptor$: rx.BehaviorSubject<(up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>>;
     typePrefix: string;
@@ -47,15 +45,17 @@ export declare class ControllerCore<I extends ActionFunctions = {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    protected dispatcher: { [K in keyof I]: Dispatch<I[keyof I]>; };
-    protected dispatcherFor: { [K in keyof I]: DispatchFor<I[keyof I]>; };
+    protected dispatcher: { [K in keyof I]: Dispatch<I, K & string>; };
+    protected dispatcherFor: { [K in keyof I]: DispatchFor<I, K & string>; };
     protected actionSubDispatcher: rx.Subject<void>;
     protected actionUnsubDispatcher: rx.Subject<void>;
     private connectableAction$;
-    constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
+    constructor(opts?: CoreOptions<I> | undefined);
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J, K>;
-    dispatchFactory<K extends keyof I>(type: K): Dispatch<I>;
-    dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I>;
+    /** change the "name" as previous specified in CoreOptions of constructor */
+    setName(name: string | null | undefined): void;
+    dispatchFactory<K extends string & keyof I>(type: K): Dispatch<I, K>;
+    dispatchForFactory<K extends string & keyof I>(type: K): DispatchFor<I, K>;
     updateInterceptor(factory: (previous: (up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>) => (up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>): void;
     ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any, any>>) => rx.Observable<Action<I, T[number]>>;
     notOfType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any, any>>) => rx.Observable<Action<I, Exclude<keyof I, T[number]>>>;

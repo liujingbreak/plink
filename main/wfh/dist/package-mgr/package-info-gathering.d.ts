@@ -1,4 +1,4 @@
-import { DirTree } from 'require-injector/dist/dir-tree';
+import { DirTree } from '../../../packages/require-injector/dist/dir-tree';
 import PackageInstance from '../packageNodeInstance';
 export interface PackageInfo {
     allModules: PackageInstance[];

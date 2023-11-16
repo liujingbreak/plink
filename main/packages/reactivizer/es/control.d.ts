@@ -1,24 +1,25 @@
 import * as rx from 'rxjs';
-import { Action, ActionFunctions, InferMapParam, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, PayloadStream, CoreOptions } from './stream-core';
+import { Action, ActionFunctions, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions } from './stream-core';
 export * from './stream-core';
+export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
 type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
 type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
 export declare class RxController<I extends ActionFunctions> {
-    opts?: CoreOptions<(string & keyof I)[]> | undefined;
+    opts?: CoreOptions<I> | undefined;
     core: ControllerCore<I>;
     dispatcher: {
-        [K in keyof I]: Dispatch<I[K]>;
+        [K in keyof I]: Dispatch<I, K & string>;
     };
     dispatcherFor: {
-        [K in keyof I]: DispatchFor<I[K]>;
+        [K in keyof I]: DispatchFor<I, K & string>;
     };
     /** abbrevation of property "dispatcher", exactly same instance of dispatcher */
     dp: {
-        [K in keyof I]: Dispatch<I[K]>;
+        [K in keyof I]: Dispatch<I, K & string>;
     };
     /** abbrevation of property "dispatcherFor", exactly same instance of dispatcherFor */
     dpf: {
-        [K in keyof I]: DispatchFor<I[K]>;
+        [K in keyof I]: DispatchFor<I, K & string>;
     };
     dispatchAndObserveRes: {
         [K in keyof I]: DispatchAndObserveRes<I, K>;
@@ -35,11 +36,11 @@ export declare class RxController<I extends ActionFunctions> {
         [K in keyof I]: DispatchForAndObserveRes<I, K>;
     };
     payloadByType: {
-        [K in keyof I]: PayloadStream<I, K>;
+        [K in keyof I]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
     };
     /** abbrevation of payloadByType */
     pt: {
-        [K in keyof I]: PayloadStream<I, K>;
+        [K in keyof I]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
     };
     actionByType: {
         [K in keyof I]: rx.Observable<Action<I, K>>;
@@ -49,13 +50,25 @@ export declare class RxController<I extends ActionFunctions> {
         [K in keyof I]: rx.Observable<Action<I, K>>;
     };
     updateInterceptor: ControllerCore<I>['updateInterceptor'];
-    constructor(opts?: CoreOptions<(string & keyof I)[]> | undefined);
+    constructor(opts?: CoreOptions<I> | undefined);
+    /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
+    * belongs to
+    */
+    setName(value: string): void;
     createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-    groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<(string & keyof I)[]>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
+    groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
+    /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
+    /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForExcludeTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
     /**
      * Delegate to `this.core.action$.connect()`
-     * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+     * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
      *
      * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
      * `undefined` or `true`, in that case you don't need to call this method manually.
@@ -66,7 +79,7 @@ export declare class RxController<I extends ActionFunctions> {
 }
 export declare class GroupedRxController<I extends ActionFunctions, K> extends RxController<I> {
     key: K;
-    constructor(key: K, opts?: CoreOptions<(string & keyof I)[]>);
+    constructor(key: K, opts?: CoreOptions<I>);
 }
 /**
  * If we consider ActionTable a 2-dimentional data structure, this is the infer type of it.
@@ -78,31 +91,33 @@ export declare class GroupedRxController<I extends ActionFunctions, K> extends R
  *
  */
 export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
-    [P in KS[number]]: InferPayload<I[P]>;
+    [P in KS[number]]: InferPayload<I[P]> | [];
 };
 export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
     #private;
     private streamCtl;
     actionNames: KS;
-    latestPayloads: { [K in KS[number]]: PayloadStream<I, K>; };
+    latestPayloads: { [K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>; };
     /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
     l: {
-        [K in KS[number]]: PayloadStream<I, K>;
+        [K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
     };
     get dataChange$(): rx.Observable<ActionTableDataType<I, KS>>;
-    get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>>;
+    private data;
     actionSnapshot: Map<keyof I, [ActionMeta, ...InferPayload<I[keyof I]>]>;
     private actionNamesAdded$;
     constructor(streamCtl: RxController<I>, actionNames: KS);
+    getData(): ActionTableDataType<I, KS>;
+    /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
     addActions<M extends Array<keyof I>>(...actionNames: M): ActionTable<I, (KS[number] | M[number])[]>;
     private onAddActions;
     getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I, K> | undefined;
     protected debugLogLatestActionOperator<K extends string & keyof I, P extends InferMapParam<I, K>>(type: K): rx.OperatorFunction<P, P>;
 }
 /** Rx operator function */
-export declare function actionRelatedToAction<T extends Action<any>>(id: ActionMeta['i']): (up: rx.Observable<T>) => rx.Observable<T>;
+export declare function actionRelatedToAction<T extends Action<any>>(actionOrMeta: ActionMeta): (up: rx.Observable<T>) => rx.Observable<T>;
 /** Rx operator function */
-export declare function actionRelatedToPayload<T extends [ActionMeta, ...any[]]>(id: ActionMeta['i']): (up: rx.Observable<T>) => rx.Observable<T>;
+export declare function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: ActionMeta): (up: rx.Observable<T>) => rx.Observable<T>;
 export declare function serializeAction<I extends ActionFunctions = any, K extends keyof I = string>(action: Action<I, K>): {
     t: string;
     p: InferPayload<I[K]>;

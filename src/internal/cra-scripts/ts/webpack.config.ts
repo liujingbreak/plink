@@ -78,9 +78,9 @@ export default function(webpackEnv: 'production' | 'development') {
       log.error('Failed to write ' + Path.resolve(reportDir, 'webpack.config.cra.js'), err);
   });
 
-  if (cmdOption.buildType === 'app') {
-    config.output!.path = craPaths().appBuild;
-  }
+  // if (cmdOption.buildType === 'app') {
+  //   config.output!.path = craPaths().appBuild;
+  // }
 
   // Remove ModulesScopePlugin from resolve plugins, it stops us using source fold out side of project directory
   if (config.resolve?.plugins) {
@@ -127,8 +127,9 @@ export default function(webpackEnv: 'production' | 'development') {
   } else if (cmdOption.buildType === 'dll') {
     setupDllPlugin(cmdOption.buildTargets, config, getPluginConstructor);
   } else {
+    let dllJsFiles = [] as string[];
     if (cmdOption.refDllManifest) {
-      setupDllReferencePlugin(cmdOption.refDllManifest, config);
+      dllJsFiles = setupDllReferencePlugin(cmdOption.refDllManifest, config);
     }
     config.plugins!.push(new (class {
       apply(compiler: Compiler) {
@@ -146,10 +147,7 @@ export default function(webpackEnv: 'production' | 'development') {
     const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as {userOptions: HtmlWebpackPluginOptions};
     htmlWebpackPluginInstance.userOptions.templateParameters = {
       _config: plinkConfig(),
-      _dllJsFiles: cmdOption.refDllManifest ? cmdOption.refDllManifest.map(file => {
-        const m = /([^/\\.]+)[^/\\]*?$/.exec(file);
-        return m ? `dll/${m[1]}/js/${m[1]}.js` : false;
-      }).filter(v => v) : []
+      _dllJsFiles: dllJsFiles.map(p => config.output!.publicPath + p)
     };
     setupSplitChunks(config, (mod) => {
       const file = mod.resource ?? null;
@@ -162,14 +160,18 @@ export default function(webpackEnv: 'production' | 'development') {
 
   const now = new Date();
   const timeStr = now.getDate() + '_' + now.getHours() + '-' + now.getMinutes() + '-' + now.getSeconds() + '-' + now.getMilliseconds();
-  config.plugins?.push(
-    new TermuxWebpackPlugin(),
-    new BundleAnalyzerPlugin({
-      analyzerMode: 'disabled',
-      generateStatsFile: true,
-      statsFilename: Path.join(plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
-    })
-  );
+  config.plugins?.push( new TermuxWebpackPlugin());
+
+  if (cmdOption.cmd === 'cra-build' && !cmdOption.watch) {
+    config.plugins?.push(
+      new TermuxWebpackPlugin(),
+      new BundleAnalyzerPlugin({
+        analyzerMode: 'disabled',
+        generateStatsFile: true,
+        statsFilename: Path.join(plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
+      })
+    );
+  }
 
   function getPluginConstructor(pluginPkgName: string) {
     return require(nodeResolve.sync(pluginPkgName, {basedir: reactScriptsInstalledDir}));

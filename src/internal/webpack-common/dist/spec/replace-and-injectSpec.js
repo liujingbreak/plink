@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const replace_and_inject_1 = tslib_1.__importDefault(require("../../ts/tsjs/replace-and-inject"));
-const require_injector_1 = tslib_1.__importDefault(require("require-injector"));
+const require_injector_1 = tslib_1.__importDefault(require("@wfh/plink/packages/require-injector"));
 const path_1 = tslib_1.__importDefault(require("path"));
 describe('replace-and-inject', () => {
     it('replace', () => {

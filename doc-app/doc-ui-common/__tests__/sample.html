@@ -1,0 +1,123 @@
+<h1>Make your plain object reactive</h1>
+<p>contents</p>
+<pre><code> |- 1. A brief introduction
+ | |- 1.1 Some of implemented design goals and APIs
+ | |- 1.2 Quick view of what it looks like
+ | | |- 1.2.1 Use interface or type to define the shape of reusable entity
+ | | |- 1.2.2 Turn plain object to reactive reusable entity
+</code></pre>
+<h2>1. A brief introduction</h2>
+<p><code>@wfh/reactivizer</code> is a RxJS based Reactive Programming library for programming convenience.
+Like a lot of other <code>rx</code> series library, it provides some utility functions and classes
+that help to program our application in an opinionated Reactive programming style or paradigm at a low level.</p>
+<p>The idea is combining traditional object-oriented designed resuable software entity (Class/Object) with &quot;event streaming&quot; and reactive style.</p>
+<p>Unlike other &quot;rx&quot; based librarys,</p>
+<ul>
+<li>@wfh/reactivizer does not emphasize contribution on either <strong>frontend</strong> or <strong>backend</strong> side, it is just a low level programming utility,
+but it is not limited to be used as frontend state management tool or a backend service controller, even graphics scene builder.</li>
+<li>@wfh/reactivizer is not a platform or architecture tool like &quot;event sourcing&quot; to address and solve high level design concerns in between modules or services.</li>
+</ul>
+<p>Some of the concepts and conventions are inspired by Apache kafka, Redux-observable</p>
+<h3>1.1. Some of implemented design goals and APIs</h3>
+<ul>
+<li>Great Typescript type definition for type inference</li>
+<li>You can use plain &quot;interface&quot;, &quot;class&quot; and &quot;member functions&quot; to define group of <code>Observable</code> message streams.</li>
+<li>Mimic OOP concept, You can <strong>extend</strong> exsting reusable entity (class/object), <strong>intercept</strong> input or output messages to <strong>override</strong> existing behaviors of extended entity.</li>
+<li>Simple, easy to understand how it works and easy to remember any of API name, less coding in consumer program.</li>
+<li>Taking care of error handling by default.</li>
+<li><code>table</code>s, message's state management, which is a queriable snapshot of <code>Observable</code> messages.</li>
+<li>Message, tracing and tracking which can help to debug and locate problems of from big amount of Observable messages.</li>
+<li>A <strong>recursive forkjoin</strong> API for Node.js <strong>thread_workers</strong> and browser's <strong>web worker</strong>, and on top of it, an implementation of multithread <strong>merge sort</strong> algorithm.</li>
+<li>RxJS is the only required (peer) dependency, another optional dependency <a href="../algorithms/README.md">@wfh/algorithms</a> is only needed in case of using <strong>forkjoin</strong> module</li>
+</ul>
+<h3>1.2. Quick view of what it looks like</h3>
+<h4>1.2.1. Use <code>interface</code> or <code>type</code> to define the shape of reusable entity</h4>
+<pre><code class="language-ts hljs"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> rx <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;rxjs&#x27;</span>;
+<span class="hljs-keyword">import</span> {<span class="hljs-title class_">ReactorComposite</span>} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@wfh/reactivizer&#x27;</span>;
+
+<span class="hljs-comment">// input message</span>
+<span class="hljs-keyword">type</span> <span class="hljs-title class_">InputActions</span> = {
+  <span class="hljs-title function_">greeting</span>(<span class="hljs-attr">byName</span>: <span class="hljs-built_in">string</span>): <span class="hljs-built_in">void</span>;
+  <span class="hljs-title function_">askQuestion</span>(<span class="hljs-attr">topic</span>: <span class="hljs-built_in">string</span>, <span class="hljs-attr">detial</span>: <span class="hljs-built_in">string</span>): <span class="hljs-built_in">void</span>;
+  <span class="hljs-title function_">setLanguage</span>(<span class="hljs-attr">locale</span>: <span class="hljs-built_in">string</span>): <span class="hljs-built_in">void</span>;
+};
+
+<span class="hljs-comment">// output message</span>
+<span class="hljs-keyword">type</span> <span class="hljs-title class_">OutputEvent</span> = {
+  <span class="hljs-title function_">replyGreeting</span>(<span class="hljs-attr">word</span>: <span class="hljs-built_in">string</span>): <span class="hljs-built_in">void</span>;
+  <span class="hljs-title function_">answerQuestion</span>(<span class="hljs-attr">content</span>: <span class="hljs-built_in">string</span>): <span class="hljs-built_in">void</span>;
+};
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">createSample</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-comment">// define which actions should be stateful (treated as new ReplaySubject(1))</span>
+  <span class="hljs-keyword">const</span> inputTableFor = [<span class="hljs-string">&#x27;setLanguage&#x27;</span>] <span class="hljs-keyword">as</span> <span class="hljs-keyword">const</span>;
+
+  <span class="hljs-keyword">const</span> sample = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ReactorComposite</span>&lt;<span class="hljs-title class_">InputActions</span>, <span class="hljs-title class_">OutputEvent</span>, <span class="hljs-keyword">typeof</span> inputTableFor&gt;({
+    <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;Sample&#x27;</span>,
+    inputTableFor
+  });
+
+  <span class="hljs-keyword">const</span> {<span class="hljs-attr">i</span>: input, <span class="hljs-attr">o</span>: output, <span class="hljs-attr">r</span>: addReactor, inputTable} = sample;
+
+  <span class="hljs-comment">// set default value for a stateful message stream</span>
+  input.<span class="hljs-property">dispatcher</span>.<span class="hljs-title function_">setLanguage</span>(<span class="hljs-string">&#x27;zh&#x27;</span>);
+
+  <span class="hljs-comment">// Plan reactions on incoming &quot;action&quot;</span>
+  <span class="hljs-title function_">addReactor</span>(<span class="hljs-string">&#x27;handle greeting&#x27;</span>, input.<span class="hljs-property">payloadByType</span>.<span class="hljs-property">greeting</span>.<span class="hljs-title function_">pipe</span>(
+    rx.<span class="hljs-title function_">mergeMap</span>(<span class="hljs-keyword">async</span> ([, byName]) =&gt; {
+      <span class="hljs-keyword">const</span> nickName = <span class="hljs-keyword">await</span> <span class="hljs-title function_">someAsyncQuery</span>(byName);
+      output.<span class="hljs-property">dispatcher</span>.<span class="hljs-title function_">replyGreeting</span>(<span class="hljs-string">&#x27;Hi &#x27;</span> + nickName);
+    })
+  ));
+
+  <span class="hljs-title function_">addReactor</span>(<span class="hljs-string">&#x27;answer questions&#x27;</span>, input.<span class="hljs-property">payloadByType</span>.<span class="hljs-property">askQuestion</span>.<span class="hljs-title function_">pipe</span>(
+    <span class="hljs-comment">// retrieve latest value of stateful message &quot;setLanguage&quot;</span>
+    rx.<span class="hljs-title function_">combineLatestWith</span>(inputTable.<span class="hljs-property">l</span>.<span class="hljs-property">setLanguage</span>.<span class="hljs-title function_">pipe</span>(rx.<span class="hljs-title function_">take</span>(<span class="hljs-number">1</span>)),
+    <span class="hljs-comment">// Choose to ignore last question</span>
+    rx.<span class="hljs-title function_">switchMap</span>(<span class="hljs-keyword">async</span> ([[meta1, topic, detail], [meta2, lang]]) =&gt; {
+      <span class="hljs-keyword">const</span> answer = <span class="hljs-keyword">await</span> <span class="hljs-title function_">someAsyncQuery</span>(lang, detail);
+      output.<span class="hljs-property">dispatcherFor</span>.<span class="hljs-title function_">answerQuestion</span>([meta1, meta2], <span class="hljs-string">`&gt;&gt; <span class="hljs-subst">${topic}</span>\n`</span> + answer);
+    })
+  ));
+}
+</code></pre>
+<h4>1.2.2. Turn plain object to reactive reusable entity</h4>
+<pre><code class="language-ts hljs"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyService</span> {
+  <span class="hljs-title function_">greeting</span>(<span class="hljs-params">user: <span class="hljs-built_in">string</span>, msg: <span class="hljs-built_in">string</span></span>) {
+    <span class="hljs-keyword">return</span> <span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>(<span class="hljs-string">&#x27;Welcome&#x27;</span> + user);
+  }
+
+  <span class="hljs-title function_">search</span>(<span class="hljs-params">keyWords: <span class="hljs-built_in">string</span></span>) {
+    <span class="hljs-keyword">return</span> rx.<span class="hljs-title function_">of</span>(<span class="hljs-string">&#x27;result: ...&#x27;</span>);
+  }
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">createMyReactiveService</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ReactorComposite</span>({<span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;myService&#x27;</span>})
+    .<span class="hljs-title function_">reactivize</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">MyService</span>());
+}
+
+<span class="hljs-comment">// Use reactive version of MyService</span>
+<span class="hljs-keyword">const</span> myRxService = <span class="hljs-title function_">createMyReactiveService</span>();
+
+<span class="hljs-comment">// Dispatch &quot;search&quot; message and observe respective &quot;returned&quot; message, &quot;at&quot; stands for &quot;actionByType&quot;</span>
+myRxService.<span class="hljs-property">i</span>.<span class="hljs-property">dispatchAndObserveRes</span>.<span class="hljs-title function_">search</span>(myRxService.<span class="hljs-property">o</span>.<span class="hljs-property">at</span>.<span class="hljs-property">searchResolved</span>, <span class="hljs-string">&#x27;ReactiveX&#x27;</span>).<span class="hljs-title function_">pipe</span>(
+  rx.<span class="hljs-title function_">tap</span>(<span class="hljs-function">(<span class="hljs-params">[, result]</span>) =&gt;</span> {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;we got search result&#x27;</span>, result);
+  })
+).<span class="hljs-title function_">subscribe</span>();
+
+<span class="hljs-comment">// pt stands for abbrevation of &quot;payloadByType&quot;</span>
+myRxService.<span class="hljs-property">o</span>.<span class="hljs-property">pt</span>.<span class="hljs-property">greetingResolved</span>.<span class="hljs-title function_">pipe</span>(
+  rx.<span class="hljs-title function_">tap</span>(<span class="hljs-function">(<span class="hljs-params">[, replyGreeting]</span>) =&gt;</span> {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;My service resplied with:&#x27;</span>, replyGreeting);
+  })
+).<span class="hljs-title function_">subscribe</span>();
+
+myRxService.<span class="hljs-property">i</span>.<span class="hljs-property">dispatcher</span>.<span class="hljs-title function_">greeting</span>(<span class="hljs-string">&#x27;Tommy&#x27;</span>, <span class="hljs-string">&#x27;Hi&#x27;</span>);
+</code></pre>
+<h2>2. Understand by comparing with plain object-oriented programming</h2>
+<p><a href="./docs/compare-with-OOP.md">Further reading</a></p>
+<blockquote>
+<p>Document site is under construction, author is also working on implementing a version in Java.</p>
+</blockquote>

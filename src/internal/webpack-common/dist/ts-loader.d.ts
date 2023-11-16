@@ -1,5 +1,5 @@
 import * as wp from 'webpack';
-import RJ from 'require-injector';
+import RJ from '@wfh/plink/packages/require-injector';
 export interface Options {
     tsConfigFile: string;
     injector: RJ;

@@ -1,6 +1,6 @@
 {
   "name": "@wfh/material-components-react",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Google's material-components-web encapsulated in React and RxJS",
   "plink": {
     "setting": {
@@ -30,7 +30,7 @@
     "@material/button": "14.0.0",
     "@material/linear-progress": "14.0.0",
     "@material/layout-grid": "14.0.0",
-    "@material-icons/font": "1.0.21",
+    "@material-icons/font": "1.0.35",
     "@material/slider": "14.0.0",
     "@material/dialog": "14.0.0",
     "@material/textfield": "14.0.0",

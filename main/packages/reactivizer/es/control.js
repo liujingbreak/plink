@@ -9,10 +9,11 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var _ActionTable_latestPayloadsByName$, _ActionTable_latestPayloadsSnapshot$;
+var _ActionTable_latestPayloadsByName$;
 import * as rx from 'rxjs';
 import { ControllerCore, has, nameOfAction, actionMetaToStr } from './stream-core';
 export * from './stream-core';
+const EMPTY_ARRY = [];
 export class RxController {
     constructor(opts) {
         this.opts = opts;
@@ -20,11 +21,23 @@ export class RxController {
         this.dispatcher = this.dp = new Proxy({}, {
             get(_target, key, _rec) {
                 return core.dispatchFactory(key);
+            },
+            has(_target, _key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
             }
         });
         this.dispatcherFor = this.dpf = new Proxy({}, {
             get(_target, key, _rec) {
                 return core.dispatchForFactory(key);
+            },
+            has(_target, key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
             }
         });
         // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -36,12 +49,18 @@ export class RxController {
                     if (referActions)
                         action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
                     const r$ = new rx.ReplaySubject(1);
-                    rx.merge(action$.pipe(actionRelatedToAction(action.i), mapActionToPayload()), new rx.Observable(sub => {
+                    rx.merge(action$.pipe(actionRelatedToAction(action), mapActionToPayload()), new rx.Observable(sub => {
                         self.core.actionUpstream.next(action);
                         sub.complete();
                     })).subscribe(r$);
                     return r$.asObservable();
                 };
+            },
+            has(_target, key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
             }
         });
         this.dispatchAndObserveRes = this.do = new Proxy({}, {
@@ -49,6 +68,12 @@ export class RxController {
                 return (action$, ...params) => {
                     return self.dfo[key](action$, null, ...params);
                 };
+            },
+            has(_target, key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
             }
         });
         const actionsByType = {};
@@ -60,6 +85,12 @@ export class RxController {
                     a$ = actionsByType[type] = core.action$.pipe(rx.filter(({ t }) => t === matchType), rx.share());
                 }
                 return a$;
+            },
+            has(_target, key) {
+                return Object.prototype.hasOwnProperty.call(actionsByType, key);
+            },
+            ownKeys() {
+                return Object.keys(actionsByType);
             }
         });
         const payloadsByType = {};
@@ -72,9 +103,21 @@ export class RxController {
                     p$ = payloadsByType[key] = a$.pipe(mapActionToPayload(), rx.share());
                 }
                 return p$;
+            },
+            has(_target, key) {
+                return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);
+            },
+            ownKeys() {
+                return Object.keys(actionByTypeProxy);
             }
         });
         this.updateInterceptor = core.updateInterceptor;
+    }
+    /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
+    * belongs to
+    */
+    setName(value) {
+        this.core.setName(value);
     }
     createAction(type, ...params) {
         return this.core.createAction(type, params);
@@ -98,8 +141,30 @@ export class RxController {
         }, [null, new Map()]));
     }
     /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForTypes(actionTypes, opts) {
+        const sub = new RxController(opts);
+        const typeSet = new Set(actionTypes);
+        this.core.action$.pipe(rx.filter(a => typeSet.has(nameOfAction(a))), rx.tap(value => {
+            sub.core.actionUpstream.next(value);
+        })).subscribe();
+        return sub;
+    }
+    /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForExcludeTypes(excludeActionTypes, opts) {
+        const sub = new RxController(opts);
+        const typeSet = new Set(excludeActionTypes);
+        this.core.action$.pipe(rx.filter(a => !typeSet.has(nameOfAction(a))), rx.tap(value => {
+            sub.core.actionUpstream.next(value);
+        })).subscribe();
+        return sub;
+    }
+    /**
      * Delegate to `this.core.action$.connect()`
-     * "core.action$" is a `connectable` observable, under the hook, it is like `action$ = connectable(actionUpstream)`.
+     * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
      *
      * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
      * `undefined` or `true`, in that case you don't need to call this method manually.
@@ -121,27 +186,32 @@ export class ActionTable {
         if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f"))
             return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
         __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => {
-            const payloadByName = {};
-            for (const [k, [, ...v]] of this.actionSnapshot.entries()) {
-                payloadByName[k] = v;
+            this.data = {};
+            for (const k of this.actionNames) {
+                const v = this.actionSnapshot.get(k);
+                this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
             }
-            return payloadByName;
+            return this.data;
         }), rx.share()), "f");
         return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
-    }
-    get latestPayloadsSnapshot$() {
-        if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f"))
-            return __classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f");
-        __classPrivateFieldSet(this, _ActionTable_latestPayloadsSnapshot$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => this.actionSnapshot)), "f");
-        return __classPrivateFieldGet(this, _ActionTable_latestPayloadsSnapshot$, "f");
     }
     constructor(streamCtl, actionNames) {
         this.streamCtl = streamCtl;
         this.latestPayloads = {};
+        this.data = {};
+        // get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
+        //   if (this.#latestPayloadsSnapshot$)
+        //     return this.#latestPayloadsSnapshot$;
+        //   this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
+        //     rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+        //     rx.map(() => this.actionSnapshot)
+        //   );
+        //   return this.#latestPayloadsSnapshot$;
+        // }
         this.actionSnapshot = new Map();
         // private
         _ActionTable_latestPayloadsByName$.set(this, void 0);
-        _ActionTable_latestPayloadsSnapshot$.set(this, void 0);
+        // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
         this.actionNamesAdded$ = new rx.ReplaySubject(1);
         this.actionNames = [];
         this.l = this.latestPayloads;
@@ -149,7 +219,12 @@ export class ActionTable {
         this.actionNamesAdded$.pipe(rx.map(actionNames => {
             this.onAddActions(actionNames);
         })).subscribe();
+        this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
     }
+    getData() {
+        return this.data;
+    }
+    /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
     addActions(...actionNames) {
         this.actionNames = this.actionNames.concat(actionNames);
         this.actionNamesAdded$.next(actionNames);
@@ -158,6 +233,8 @@ export class ActionTable {
     onAddActions(actionNames) {
         var _a;
         for (const type of actionNames) {
+            if (this.data[type] == null)
+                this.data[type] = EMPTY_ARRY;
             if (has.call(this.latestPayloads, type))
                 continue;
             const a$ = new rx.ReplaySubject(1);
@@ -201,17 +278,17 @@ export class ActionTable {
                 });
     }
 }
-_ActionTable_latestPayloadsByName$ = new WeakMap(), _ActionTable_latestPayloadsSnapshot$ = new WeakMap();
+_ActionTable_latestPayloadsByName$ = new WeakMap();
 /** Rx operator function */
-export function actionRelatedToAction(id) {
+export function actionRelatedToAction(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(m => (m.r != null && m.r === id) || (Array.isArray(m.r) && m.r.some(r => r === id))));
+        return up.pipe(rx.filter(m => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
     };
 }
 /** Rx operator function */
-export function actionRelatedToPayload(id) {
+export function payloadRelatedToAction(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === id) || (Array.isArray(m.r) && m.r.some(r => r === id))));
+        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
     };
 }
 export function serializeAction(action) {

@@ -28,7 +28,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 // eslint-disable  max-len
 const events_1 = require("events");
-const css_loader_1 = __importDefault(require("require-injector/dist/css-loader"));
 const lodash_1 = __importDefault(require("lodash"));
 const log4js_1 = require("log4js");
 const assetsUrl = __importStar(require("../share/assets-url"));
@@ -82,9 +81,6 @@ class NodeApi {
         this.config().browserSideConfigProp.push(path);
     }
     /**
-       * @param {string} url
-       * @param {string} sourceFile
-       * @return {string} | {packageName: string, path: string, isTilde: boolean, isPage: boolean}, returns string if it is a relative path, or object if
        * it is in format of /^(?:assets:\/\/|~|page(?:-([^:]+))?:\/\/)((?:@[^\/]+\/)?[^\/]+)?\/(.*)$/
        */
     normalizeAssetsUrl(url, sourceFile) {
@@ -98,9 +94,9 @@ class NodeApi {
                     throw new Error(`${sourceFile} does not belong to any known package`);
                 packageName = compPackage.longName;
             }
-            const injectedPackageName = css_loader_1.default.getInjectedPackage(packageName, sourceFile, this.browserInjector);
-            if (injectedPackageName)
-                packageName = injectedPackageName;
+            // const injectedPackageName = npmimportCssLoader.getInjectedPackage(packageName, sourceFile, this.browserInjector);
+            // if (injectedPackageName)
+            //   packageName = injectedPackageName;
             return {
                 packageName,
                 path: relPath,
@@ -115,8 +111,6 @@ class NodeApi {
     }
     /**
        * join contextPath
-       * @param {string} path
-       * @return {[type]} [description]
        */
     joinContextPath(path) {
         return (this.contextPath + '/' + path).replace(/\/\//g, '/');

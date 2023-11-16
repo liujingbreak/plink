@@ -11,7 +11,6 @@ const config_1 = tslib_1.__importDefault(require("@wfh/plink/wfh/dist/config"));
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
 const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
 const plink_1 = require("@wfh/plink");
-const webpack_dll_1 = require("./webpack-dll");
 const types_1 = require("./types");
 const utils_1 = require("./utils");
 const log = (0, plink_1.log4File)(__filename);
@@ -55,8 +54,9 @@ function paths() {
         changedPaths.appBuild = config_1.default.resolve('staticDir');
     }
     else if (cmdOption.buildType === 'dll') {
-        const [dllName] = (0, webpack_dll_1.extractDllName)(cmdOption.buildTargets);
-        changedPaths.appBuild = config_1.default.resolve('staticDir', 'dll', dllName);
+        // const [dllName] = extractDllName(cmdOption.buildTargets);
+        changedPaths.appBuild = config_1.default.resolve('staticDir');
+        // changedPaths.appBuild = outputPathForDllName(dllName);
         changedPaths.appIndexJs = cmdOption.buildTargets[0].file; // Webpack configuration property entry will be changed in webpack-dll
     }
     changedPaths.appWebpackCache = node_path_1.default.join(plink_1.plinkEnv.distDir, 'webpack-cache');

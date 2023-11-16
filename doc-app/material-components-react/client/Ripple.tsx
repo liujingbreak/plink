@@ -2,7 +2,7 @@ import React from 'react';
 import cls from 'classnames';
 import {useTinyRtk} from '@wfh/redux-toolkit-observable/es/tiny-redux-toolkit-hook';
 import {MDCRipple} from '@material/ripple/index';
-import * as op from 'rxjs/operators';
+import * as rx from 'rxjs';
 import {sliceOptionFactory, epicFactory, RippleObservableProps} from './ripple.state';
 
 import './Ripple.scss';
@@ -17,11 +17,11 @@ const Ripple: React.ForwardRefRenderFunction<Promise<MDCRipple>, RippleProps> = 
   const [state, slice] = useTinyRtk(sliceOptionFactory, props, epicFactory);
   const store = slice.getStore();
 
-  React.useImperativeHandle(ref, () => store.pipe(
-    op.map(s => s.mdcRef), op.filter(value => value != null),
-    op.distinctUntilChanged(),
-    op.take(1)
-  ).toPromise() as Promise<MDCRipple>, [store]);
+  React.useImperativeHandle(ref, () => rx.firstValueFrom(store.pipe(
+    rx.map(s => s.mdcRef),
+    rx.filter((value): value is NonNullable<typeof value> => value != null),
+    rx.distinctUntilChanged()
+  )), [store]);
 
   React.useEffect(() => {
     return () => {slice.actionDispatcher.destory(); };

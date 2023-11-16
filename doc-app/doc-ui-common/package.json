@@ -32,7 +32,7 @@
     "@types/animejs": "3.1.2",
     "@types/markdown-it": "12.0.1",
     "axios-observable": "~1.2.0",
-    "markdown-it": "12.0.4",
+    "markdown-it": "13.0.2",
     "highlight.js": "11.8.0",
     "github-markdown-css": "4.0.0",
     "mermaid": "^10.1.0",

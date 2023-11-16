@@ -1,5 +1,5 @@
 import replaceAndInject from '../../ts/tsjs/replace-and-inject';
-import RJ from 'require-injector';
+import RJ from '@wfh/plink/packages/require-injector';
 import Path from 'path';
 
 describe('replace-and-inject', () => {

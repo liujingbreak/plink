@@ -46,13 +46,21 @@ export function poo() {
   hookCommonJsRequire((filename, target, req, resolve) => {
     if (filename.startsWith(reactScriptsPath + sep)) {
       if (filename === buildScriptsPath) {
-        if (target === 'fs-extra' && getCmdOptions().buildType === 'lib') {
-          // Disable copy public path
-          return Object.assign({}, fs, {
-            copySync(src: string) {
-              console.log('[prepload] skip copy ', src);
-            }
-          });
+        if (target === 'fs-extra') {
+          if (getCmdOptions().buildType === 'lib') {
+            // Disable copy public path
+            return Object.assign({}, fs, {
+              copySync(src: string) {
+                console.log('[prepload] skip copy ', src);
+              }
+            });
+          } else {
+            return Object.assign({}, fs, {
+              emptyDirSync(dir: string) {
+                console.log('[prepload] skip emptyDirSync ', dir);
+              }
+            });
+          }
         }
         if (target === 'webpack') {
           return hackWebpack4Compiler();

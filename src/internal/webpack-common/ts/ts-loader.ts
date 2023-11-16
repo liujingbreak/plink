@@ -1,5 +1,5 @@
 import * as wp from 'webpack';
-import RJ from 'require-injector';
+import RJ from '@wfh/plink/packages/require-injector';
 import replaceAndInject from './tsjs/replace-and-inject';
 
 export interface Options {
