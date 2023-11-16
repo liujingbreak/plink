@@ -96,6 +96,7 @@ function dfsAccessElement(
       if (nodeName === 'code') {
         const classAttr = el.attrs.find(item => item.name === 'class');
         if (classAttr) {
+          log.warn('markdown code for language:', classAttr.value);
           const endQuoteSyntaxPos = el.sourceCodeLocation!.attrs!.class!.endOffset - 1;
           output.push(
             sourceHtml.slice(htmlOffset, endQuoteSyntaxPos),

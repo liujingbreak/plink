@@ -124,7 +124,7 @@ export function createBroker<
 export function setupForMainWorker<
   I extends ActionFunctions = Record<string, never>,
   O extends ActionFunctions = Record<string, never>
->(workerContoller: ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O>,
+>(workerContoller: ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, any, any>,
   opts: {
     maxNumOfWorker: number;
     workerFactory(): Worker | NodeWorker;
