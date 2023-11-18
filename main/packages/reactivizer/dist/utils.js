@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.timeoutLog = void 0;
+exports.arrayBuffer2ascii = exports.ascii2ArrayBuffer = exports.arrayBuffer2str = exports.str2ArrayBuffer = exports.timeoutLog = void 0;
 const rx = __importStar(require("rxjs"));
 function timeoutLog(millseconds, log) {
     return function (up) {
@@ -39,4 +39,36 @@ function timeoutLog(millseconds, log) {
     };
 }
 exports.timeoutLog = timeoutLog;
+/**
+ * Turn string to web worker transferable `ArrayBuffer`
+ */
+function str2ArrayBuffer(str, isShared = false) {
+    const buf = isShared ? new SharedArrayBuffer(str.length << 1) : new ArrayBuffer(str.length << 1);
+    const u16arr = new Uint16Array(buf);
+    for (let i = 0, l = str.length; i < l; i++) {
+        u16arr[i] = str.charCodeAt(i);
+    }
+    return buf;
+}
+exports.str2ArrayBuffer = str2ArrayBuffer;
+function arrayBuffer2str(buf, byteOffset, length) {
+    return String.fromCharCode.apply(null, (new Uint16Array(buf, byteOffset, length)));
+}
+exports.arrayBuffer2str = arrayBuffer2str;
+/**
+ * Turn ascii string to web worker transferable `ArrayBuffer` by Uint8Array
+ */
+function ascii2ArrayBuffer(str, isShared = false) {
+    const buf = isShared ? new SharedArrayBuffer(str.length) : new ArrayBuffer(str.length);
+    const u16arr = new Uint8Array(buf);
+    for (let i = 0, l = str.length; i < l; i++) {
+        u16arr[i] = str.charCodeAt(i);
+    }
+    return buf;
+}
+exports.ascii2ArrayBuffer = ascii2ArrayBuffer;
+function arrayBuffer2ascii(buf, byteOffset, length) {
+    return String.fromCharCode.apply(null, (new Uint8Array(buf, byteOffset, length)));
+}
+exports.arrayBuffer2ascii = arrayBuffer2ascii;
 //# sourceMappingURL=utils.js.map

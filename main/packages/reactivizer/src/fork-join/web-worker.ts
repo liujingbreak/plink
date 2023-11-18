@@ -1,27 +1,30 @@
 /* eslint-disable no-restricted-globals */
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, deserializeAction, serializeAction, RxController,
-  actionRelatedToAction, InferPayload, payloadRelatedToAction} from '../control';
+import {Action, ActionFunctions, deserializeAction, serializeAction,
+  actionRelatedToAction} from '../control';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
-import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
 // import {createBroker} from '../node-worker-broker';
+import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
+  workerOutputTableFor as outputTableFor, WorkerControl} from './types';
+export {fork} from './common';
 
-const inputTableFor = ['exit'] as const;
-const outputTableFor = ['workerInited', 'log', 'warn'] as const;
-
-export function createWorkerControl<I extends ActionFunctions = Record<string, never>>(
+export function createWorkerControl<
+  I extends ActionFunctions = Record<string, never>,
+  O extends ActionFunctions = Record<string, never>,
+  LI extends ReadonlyArray<keyof I> = readonly [],
+  LO extends ReadonlyArray<keyof O> = readonly []
+>(
   isInWorker: boolean,
   opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput>
-):
-ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput> {
+) {
   let broker: Broker | undefined;
 
   let mainPort: MessagePort | undefined; // parent thread port
   const comp = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>({
     ...opts,
     name: opts?.name ?? '',
-    inputTableFor,
-    outputTableFor,
+    inputTableFor: [...(opts?.inputTableFor ?? []), ...inputTableFor],
+    outputTableFor: [...(opts?.outputTableFor ?? []), ...outputTableFor],
     debug: opts?.debug,
     log: !isInWorker ? opts?.log : (...args) => mainPort?.postMessage({type: 'log', p: args}),
     debugExcludeTypes: ['log', 'warn'],
@@ -127,7 +130,7 @@ ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput> {
             const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
             (mainPort as MessagePort).postMessage(serializeAction(forkByBroker), [chan.port2]);
           } else {
-            o.dp.forkByBroker(wrappedAct, chan.port2);
+            o.dpf.forkByBroker(act, wrappedAct, chan.port2);
           }
         })
       );
@@ -171,21 +174,7 @@ ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput> {
       }
     })
   ));
-  return comp as unknown as ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput>;
-}
-
-export function fork< I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends keyof I = `${K}Resolved`>(
-  comp: ReactorComposite<I, O>,
-  actionType: K & string, params: InferPayload<I[K]>,
-  resActionType?: R
-): Promise<InferPayload<I[R]>[0]> {
-  const forkedAction = comp.o.createAction(actionType, ...params);
-  const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType ?? (actionType + 'Resolved')) as keyof I].pipe(
-    payloadRelatedToAction(forkedAction),
-    rx.map(([, res]) => res)
-  ));
-  (comp.o as unknown as RxController<ForkWorkerOutput>).dp.fork(forkedAction);
-  return forkDone;
+  return comp as unknown as WorkerControl<I, O, LI, LO>;
 }
 
 export type WebForkTransferablePayload<T = unknown> = {

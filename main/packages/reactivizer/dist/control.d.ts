@@ -119,9 +119,13 @@ export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyA
     protected debugLogLatestActionOperator<K extends string & keyof I, P extends InferMapParam<I, K>>(type: K): rx.OperatorFunction<P, P>;
 }
 /** Rx operator function */
-export declare function actionRelatedToAction<T extends Action<any>>(actionOrMeta: ActionMeta): (up: rx.Observable<T>) => rx.Observable<T>;
+export declare function actionRelatedToAction<T extends Action<any>>(actionOrMeta: {
+    i: ActionMeta['i'];
+}): (up: rx.Observable<T>) => rx.Observable<T>;
 /** Rx operator function */
-export declare function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: ActionMeta): (up: rx.Observable<T>) => rx.Observable<T>;
+export declare function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: {
+    i: ActionMeta['i'];
+}): (up: rx.Observable<T>) => rx.Observable<T>;
 export declare function serializeAction<I extends ActionFunctions = any, K extends keyof I = string>(action: Action<I, K>): {
     t: string;
     p: InferPayload<I[K]>;

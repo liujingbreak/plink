@@ -3,14 +3,15 @@ import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, deserializeAction, serializeAction, RxController,
-  actionRelatedToAction, payloadRelatedToAction, InferPayload} from '../control';
+import {Action, ActionFunctions, deserializeAction, serializeAction,
+  actionRelatedToAction} from '../control';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
-import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
-// import {createBroker} from './node-worker-broker';
+import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
+  workerOutputTableFor as outputTableFor, WorkerControl} from './types';
 
-const inputTableFor = ['exit'] as const;
-const outputTableFor = ['workerInited', 'log', 'warn'] as const;
+export {fork} from './common';
+export {WorkerControl} from './types';
+// import {createBroker} from './node-worker-broker';
 
 export function createWorkerControl<
   I extends ActionFunctions = Record<string, never>,
@@ -115,7 +116,7 @@ export function createWorkerControl<
     ));
   }
 
-  r('"fork" -> forkByBroker', o.at.fork.pipe(
+  r('"fork" -> mainPort.postMessage, forkByBroker', o.at.fork.pipe(
     rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b] as const), rx.take(1))),
     rx.mergeMap(([act, [, , , mainPort]]) => {
       const {p: [wrappedAct]} = act;
@@ -145,7 +146,7 @@ export function createWorkerControl<
             const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
             mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
           } else {
-            o.dp.forkByBroker(wrappedAct, chan.port2);
+            o.dpf.forkByBroker(act, wrappedAct, chan.port2);
           }
         })
       );
@@ -154,21 +155,25 @@ export function createWorkerControl<
 
   r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(
     rx.mergeMap(([, origAct, port]) => {
-      deserializeAction(origAct, i);
-      return o.core.action$.pipe(
-        actionRelatedToAction(origAct),
-        rx.take(1),
-        rx.map(action => {
-          const {p} = action;
-          if (hasReturnTransferable(p)) {
-            const [{transferList}] = p;
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (p[0] as any).transferList = null;
-            port.postMessage(serializeAction(action), transferList);
-          } else {
-            port.postMessage(serializeAction(action));
-          }
-          o.dp.returned();
+      return rx.merge(
+        o.core.action$.pipe(
+          actionRelatedToAction(origAct),
+          rx.take(1),
+          rx.map(action => {
+            const {p} = action;
+            if (hasReturnTransferable(p)) {
+              const [{transferList}] = p;
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (p[0] as any).transferList = null;
+              port.postMessage(serializeAction(action), transferList);
+            } else {
+              port.postMessage(serializeAction(action));
+            }
+            o.dp.returned();
+          })
+        ),
+        new rx.Observable(() => {
+          deserializeAction(origAct, i);
         })
       );
     })
@@ -190,23 +195,7 @@ export function createWorkerControl<
     })
   ));
 
-  return comp as unknown as ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O,
-  ReadonlyArray<typeof inputTableFor[number] | LI[number]>, ReadonlyArray<typeof outputTableFor[number] | LO[number]>>;
-}
-
-export function fork<I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends string & keyof I = `${K}Resolved`>(
-  comp: ReactorComposite<I, O, any, any>,
-  actionName: K & string,
-  params: InferPayload<I[K]>,
-  returnedActionName?: R
-): Promise<[...InferPayload<I[R]>]> {
-  const forkedAction = comp.o.createAction(actionName, ...params);
-  const forkDone = rx.firstValueFrom((returnedActionName ? comp.i.pt[returnedActionName] : comp.i.pt[actionName + 'Resolved']).pipe(
-    payloadRelatedToAction(forkedAction),
-    rx.map(([, ...p]) => p)
-  ));
-  (comp.o as unknown as RxController<ForkWorkerOutput>).dp.fork(forkedAction);
-  return forkDone;
+  return comp as unknown as WorkerControl<I, O, LI, LO>;
 }
 
 export type ForkTransferablePayload<T = unknown> = {

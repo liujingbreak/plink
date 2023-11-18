@@ -23,19 +23,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fork = exports.createWorkerControl = void 0;
+exports.createWorkerControl = exports.fork = void 0;
 const worker_threads_1 = require("worker_threads");
 const rx = __importStar(require("rxjs"));
 const control_1 = require("../control");
 const epic_1 = require("../epic");
+const types_1 = require("./types");
+var common_1 = require("./common");
+Object.defineProperty(exports, "fork", { enumerable: true, get: function () { return common_1.fork; } });
 // import {createBroker} from './node-worker-broker';
-const inputTableFor = ['exit'];
-const outputTableFor = ['workerInited', 'log', 'warn'];
 function createWorkerControl(opts) {
     var _a, _b, _c;
     let mainPort; // parent thread port
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...inputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...outputTableFor], name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : '') + ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...types_1.workerInputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...types_1.workerOutputTableFor], name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : '') + ('[Thread:' + (worker_threads_1.isMainThread ? 'main]' : worker_threads_1.threadId + ']')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
     let broker;
     const { r, i, o, outputTable } = comp;
     const lo = comp.outputTable.l;
@@ -89,7 +90,7 @@ function createWorkerControl(opts) {
         // eslint-disable-next-line no-console
         rx.map(([, ...p]) => { var _a; return ((_a = opts === null || opts === void 0 ? void 0 : opts.log) !== null && _a !== void 0 ? _a : console.log)(logPrefix, ...p); })))));
     }
-    r('"fork" -> forkByBroker', o.at.fork.pipe(rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b]), rx.take(1))), rx.mergeMap(([act, [, , , mainPort]]) => {
+    r('"fork" -> mainPort.postMessage, forkByBroker', o.at.fork.pipe(rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b]), rx.take(1))), rx.mergeMap(([act, [, , , mainPort]]) => {
         const { p: [wrappedAct] } = act;
         const chan = new worker_threads_1.MessageChannel();
         const error$ = rx.fromEventPattern(h => chan.port1.on('messageerror', h), h => chan.port1.off('messageerror', h));
@@ -103,13 +104,12 @@ function createWorkerControl(opts) {
                 mainPort.postMessage((0, control_1.serializeAction)(forkByBroker), [chan.port2]);
             }
             else {
-                o.dp.forkByBroker(wrappedAct, chan.port2);
+                o.dpf.forkByBroker(act, wrappedAct, chan.port2);
             }
         }));
     })));
     r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(rx.mergeMap(([, origAct, port]) => {
-        (0, control_1.deserializeAction)(origAct, i);
-        return o.core.action$.pipe((0, control_1.actionRelatedToAction)(origAct), rx.take(1), rx.map(action => {
+        return rx.merge(o.core.action$.pipe((0, control_1.actionRelatedToAction)(origAct), rx.take(1), rx.map(action => {
             const { p } = action;
             if (hasReturnTransferable(p)) {
                 const [{ transferList }] = p;
@@ -121,6 +121,8 @@ function createWorkerControl(opts) {
                 port.postMessage((0, control_1.serializeAction)(action));
             }
             o.dp.returned();
+        })), new rx.Observable(() => {
+            (0, control_1.deserializeAction)(origAct, i);
         }));
     })));
     r('Pass error to broker', comp.error$.pipe(rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b]), rx.take(1))), rx.map(([[label, err], [, , , mainPort]]) => {
@@ -136,13 +138,6 @@ function createWorkerControl(opts) {
     return comp;
 }
 exports.createWorkerControl = createWorkerControl;
-function fork(comp, actionName, params, returnedActionName) {
-    const forkedAction = comp.o.createAction(actionName, ...params);
-    const forkDone = rx.firstValueFrom((returnedActionName ? comp.i.pt[returnedActionName] : comp.i.pt[actionName + 'Resolved']).pipe((0, control_1.payloadRelatedToAction)(forkedAction), rx.map(([, ...p]) => p)));
-    comp.o.dp.fork(forkedAction);
-    return forkDone;
-}
-exports.fork = fork;
 function hasReturnTransferable(payload) {
     var _a;
     return Array.isArray((_a = payload[0]) === null || _a === void 0 ? void 0 : _a.transferList);

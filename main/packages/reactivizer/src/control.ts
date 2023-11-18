@@ -400,7 +400,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
 }
 
 /** Rx operator function */
-export function actionRelatedToAction<T extends Action<any>>(actionOrMeta: ActionMeta) {
+export function actionRelatedToAction<T extends Action<any>>(actionOrMeta: {i: ActionMeta['i']}) {
   return function(up: rx.Observable<T>) {
     return up.pipe(
       rx.filter(
@@ -412,7 +412,7 @@ export function actionRelatedToAction<T extends Action<any>>(actionOrMeta: Actio
   };
 }
 /** Rx operator function */
-export function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: ActionMeta) {
+export function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: {i: ActionMeta['i']}) {
   return function(up: rx.Observable<T>): rx.Observable<T> {
     return up.pipe(
       rx.filter(

@@ -23,20 +23,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fork = exports.createWorkerControl = void 0;
+exports.createWorkerControl = exports.fork = void 0;
 /* eslint-disable no-restricted-globals */
 const rx = __importStar(require("rxjs"));
 const control_1 = require("../control");
 const epic_1 = require("../epic");
 // import {createBroker} from '../node-worker-broker';
-const inputTableFor = ['exit'];
-const outputTableFor = ['workerInited', 'log', 'warn'];
+const types_1 = require("./types");
+var common_1 = require("./common");
+Object.defineProperty(exports, "fork", { enumerable: true, get: function () { return common_1.fork; } });
 function createWorkerControl(isInWorker, opts) {
-    var _a;
+    var _a, _b, _c;
     let broker;
     let mainPort; // parent thread port
-    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, opts), { name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '', inputTableFor,
-        outputTableFor, debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, opts), { name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '', inputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _b !== void 0 ? _b : []), ...types_1.workerInputTableFor], outputTableFor: [...((_c = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _c !== void 0 ? _c : []), ...types_1.workerOutputTableFor], debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
     const { r, i, o, outputTable } = comp;
     const lo = comp.outputTable.l;
     r('worker$ -> workerInited', new rx.Observable(() => {
@@ -100,7 +100,7 @@ function createWorkerControl(isInWorker, opts) {
                 mainPort.postMessage((0, control_1.serializeAction)(forkByBroker), [chan.port2]);
             }
             else {
-                o.dp.forkByBroker(wrappedAct, chan.port2);
+                o.dpf.forkByBroker(act, wrappedAct, chan.port2);
             }
         }));
     })));
@@ -133,13 +133,6 @@ function createWorkerControl(isInWorker, opts) {
     return comp;
 }
 exports.createWorkerControl = createWorkerControl;
-function fork(comp, actionType, params, resActionType) {
-    const forkedAction = comp.o.createAction(actionType, ...params);
-    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe((0, control_1.payloadRelatedToAction)(forkedAction), rx.map(([, res]) => res)));
-    comp.o.dp.fork(forkedAction);
-    return forkDone;
-}
-exports.fork = fork;
 function hasReturnTransferable(payload) {
     var _a;
     return Array.isArray((_a = payload[0]) === null || _a === void 0 ? void 0 : _a.transferList);

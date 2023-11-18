@@ -1,16 +1,16 @@
 import type {Worker as NodeWorker} from 'node:worker_threads';
 import * as algorithms from '@wfh/algorithms';
 import * as rx from 'rxjs';
-import {Broker} from './types';
+import {Broker, WorkerControl} from './types';
 
-export function applyScheduler(broker: Broker, opts: {
+export function applyScheduler<W extends WorkerControl<any, any, any, any>>(broker: Broker<W>, opts: {
   maxNumOfWorker: number;
   /** Default `false`, in which case the current thread (main) will also be assigned for tasks */
   excludeCurrentThead?: boolean;
   workerFactory(): Worker | NodeWorker;
 }) {
   let WORKER_NO_SEQ = 0;
-  const {r, o, i, outputTable} = broker;
+  const {r, o, i, outputTable} = broker as unknown as Broker;
   let algo: typeof algorithms;
   try {
     algo = require('@wfh/algorithms') as typeof algorithms;

@@ -1,16 +1,15 @@
 /* eslint-disable no-restricted-globals */
 import * as rx from 'rxjs';
-import { deserializeAction, serializeAction, actionRelatedToAction, payloadRelatedToAction } from '../control';
+import { deserializeAction, serializeAction, actionRelatedToAction } from '../control';
 import { ReactorComposite } from '../epic';
 // import {createBroker} from '../node-worker-broker';
-const inputTableFor = ['exit'];
-const outputTableFor = ['workerInited', 'log', 'warn'];
+import { workerInputTableFor as inputTableFor, workerOutputTableFor as outputTableFor } from './types';
+export { fork } from './common';
 export function createWorkerControl(isInWorker, opts) {
-    var _a;
+    var _a, _b, _c;
     let broker;
     let mainPort; // parent thread port
-    const comp = new ReactorComposite(Object.assign(Object.assign({}, opts), { name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '', inputTableFor,
-        outputTableFor, debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new ReactorComposite(Object.assign(Object.assign({}, opts), { name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '', inputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _b !== void 0 ? _b : []), ...inputTableFor], outputTableFor: [...((_c = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _c !== void 0 ? _c : []), ...outputTableFor], debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
     const { r, i, o, outputTable } = comp;
     const lo = comp.outputTable.l;
     r('worker$ -> workerInited', new rx.Observable(() => {
@@ -74,7 +73,7 @@ export function createWorkerControl(isInWorker, opts) {
                 mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
             }
             else {
-                o.dp.forkByBroker(wrappedAct, chan.port2);
+                o.dpf.forkByBroker(act, wrappedAct, chan.port2);
             }
         }));
     })));
@@ -105,12 +104,6 @@ export function createWorkerControl(isInWorker, opts) {
         }
     })));
     return comp;
-}
-export function fork(comp, actionType, params, resActionType) {
-    const forkedAction = comp.o.createAction(actionType, ...params);
-    const forkDone = rx.firstValueFrom(comp.i.pt[(resActionType !== null && resActionType !== void 0 ? resActionType : (actionType + 'Resolved'))].pipe(payloadRelatedToAction(forkedAction), rx.map(([, res]) => res)));
-    comp.o.dp.fork(forkedAction);
-    return forkDone;
 }
 function hasReturnTransferable(payload) {
     var _a;
