@@ -10,4 +10,5 @@ export interface TOC {
 export interface LoaderRecivedData {
   toc: TOC[];
   html: string;
+  mermaids: string[];
 }
