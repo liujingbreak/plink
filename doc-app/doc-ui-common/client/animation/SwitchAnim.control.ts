@@ -1,4 +1,4 @@
-import {ReactorComposite, ActionTableDataType, actionRelatedToPayload} from '@wfh/reactivizer';
+import {ReactorComposite, ActionTableDataType, payloadRelatedToAction} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import cln from 'classnames';
 import styles from './SwitchAnim.module.scss';
@@ -60,7 +60,7 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
       item.clsName = cln(styles.enterStart, styles.entering);
       o.dpf.changeContent(m, keys, contentByKey);
       return o.pt.entering.pipe(
-        actionRelatedToPayload(m.r as number),
+        payloadRelatedToAction({i: m.r as number}),
         rx.take(1),
         rx.tap(() => {
           item.clsName = '';

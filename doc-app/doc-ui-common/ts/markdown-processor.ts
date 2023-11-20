@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import {log4File} from '@wfh/plink';
-import {createWorkerControl, fork} from '@wfh/reactivizer/dist/fork-join/node-worker';
-import {ActionMeta} from '@wfh/reactivizer';
+import {createWorkerControl, fork, WorkerControl} from '@wfh/reactivizer/dist/fork-join/node-worker';
+import {ActionMeta, serializeAction, str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
 import md5 from 'md5';
 import MarkdownIt from 'markdown-it';
 import highlight from 'highlight.js';
@@ -13,15 +13,15 @@ const log = log4File(__filename);
 
 type MdInputActions = {
   forkProcessFile(markdownFileContent: string, filePath: string): void;
-  processFile(markdownFileContent: string, filePath: string): void;
-  processFileDone(resultHtml: string, toc: TOC[]): void;
+  processFile(markdownFileContent: SharedArrayBuffer, filePath: string): void;
+  processFileDone(res: {resultHtml: ArrayBuffer; toc: TOC[]; mermaid: ArrayBuffer[]; transferList: ArrayBuffer[]}): void;
   /** Consumer should dispatach to be related to "resolveImage" event */
   imageResolved(resultUrl: string): void;
   /** Consumer should dispatch */
   anchorLinkResolved(url: string): void;
 };
 
-type MdOutputEvents = {
+export type MdOutputEvents = {
   processFileDone: MdInputActions['processFileDone'];
   /** Consumer program should react on this event */
   imageToBeResolved(imgSrc: string, mdFilePath: string): void;
@@ -46,31 +46,55 @@ const md = new MarkdownIt({
     return str;
   }
 });
-export const markdownProcessor = createWorkerControl<MdInputActions, MdOutputEvents>({name: 'markdownProcessor', debug: true});
+export type MarkdownProcessor = WorkerControl<MdInputActions, MdOutputEvents>;
 
-const {r, i, o} = markdownProcessor;
+export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions, MdOutputEvents>({
+  name: 'markdownProcessor', debug: true,
+  log(...msg) {
+    log.info(...msg);
+  }
+});
 
-r('forkProcessFile', i.pt.forkProcessFile.pipe(
+const {r, i, o, outputTable} = markdownProcessor;
+
+r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.pipe(
   rx.mergeMap(async ([m, content, file]) => {
-    const result = fork(markdownProcessor, 'processFile', [content, file], 'processFileDone');
+    const resultDone = fork(markdownProcessor, 'processFile', [str2ArrayBuffer<SharedArrayBuffer>(content, true), file], 'processFileDone', m);
     o.dp.wait();
-    const [html, toc] = await result;
+    const [result] = await resultDone;
     o.dp.stopWaiting();
-    o.dpf.processFileDone(m, html, toc);
+    o.dpf.processFileDone(m, result);
   })
 ));
 
-r('processFile', i.pt.processFile.pipe(
+r('processFile -> processFileDone', i.pt.processFile.pipe(
   rx.combineLatestWith(import('parse5')),
   rx.mergeMap(([[m, content, file], parse5]) => {
-    const html = md.render(content);
+    const html = md.render(arrayBuffer2str(content));
     const doc = parse5.parse(html, {sourceCodeLocationInfo: true});
     const content$ = dfsAccessElement(m, html, file, doc);
-    return content$.pipe(rx.map(([content, toc]) => ({toc: createTocTree(toc), content})));
+    return content$.pipe(
+      rx.map(([content, toc, mermaidCodes]) => {
+        const buf = str2ArrayBuffer<ArrayBuffer>(content);
+        const mermaidBufs = mermaidCodes.map(code => str2ArrayBuffer<ArrayBuffer>(code));
+        o.dpf.processFileDone(m, {resultHtml: buf, toc: createTocTree(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs]});
+      })
+    );
   }),
   rx.catchError(err => {
     log.error(err);
-    return rx.of({toc: [], content: (err as Error).toString()});
+    // o.dpf.processFileDone({toc: [], content: (err as Error).toString()});
+    return rx.EMPTY;
+  })
+));
+
+r('imageToBeResolved -> main thread port postMessage', o.at.imageToBeResolved.pipe(
+  rx.withLatestFrom(outputTable.l.workerInited),
+  rx.tap(([resolveAction, [, , , port]]) => {
+    if (port) {
+      o.dp.log('pass imageToBeResolved action to main thread');
+      port.postMessage(serializeAction(resolveAction));
+    }
   })
 ));
 
@@ -78,10 +102,11 @@ function dfsAccessElement(
   processFileActionMeta: ActionMeta,
   sourceHtml: string,
   file: string,
-  root: DefaultTreeAdapterMap['document'],
+  root: DefaultTreeAdapterMap['document']
   // transpileCode?: (language: string, sourceCode: string) => Promise<string> | rx.Observable<string> | void,
 ) {
   const toc: TOC[] = [];
+  const mermaidCode = [] as string[];
   const chr = new rx.BehaviorSubject<ChildNode[]>(root.childNodes || []);
   const output = [] as Array<string | Promise<string> | rx.Observable<string> | null | undefined>;
   let htmlOffset = 0;
@@ -96,12 +121,22 @@ function dfsAccessElement(
       if (nodeName === 'code') {
         const classAttr = el.attrs.find(item => item.name === 'class');
         if (classAttr) {
+          const langMatch = /^language-(.*)$/.exec(classAttr.value);
+          const lang = langMatch ? langMatch[1] : null;
           const endQuoteSyntaxPos = el.sourceCodeLocation!.attrs!.class!.endOffset - 1;
           output.push(
             sourceHtml.slice(htmlOffset, endQuoteSyntaxPos),
             ' hljs'
           );
           htmlOffset = endQuoteSyntaxPos;
+
+          if (lang === 'mermaid' && el.childNodes.length > 0) {
+            const mermaidCodeStart = (el.childNodes[0] as Element).sourceCodeLocation!.startOffset;
+            const mermaidCodeEnd = (el.childNodes[el.childNodes.length - 1] as Element).sourceCodeLocation!.endOffset;
+            mermaidCode.push(sourceHtml.slice(mermaidCodeStart, mermaidCodeEnd));
+            output.push(sourceHtml.slice(htmlOffset, mermaidCodeStart));
+            htmlOffset = mermaidCodeEnd;
+          }
         }
       } else if (nodeName === 'img') {
         const imgSrc = el.attrs.find(item => item.name === 'src');
@@ -114,7 +149,7 @@ function dfsAccessElement(
             new rx.Observable<never>(() => {
               o.dp.wait();
             }),
-            o.dfo.imageToBeResolved(i.at.imageResolved, processFileActionMeta, imgSrc.value, file)
+            o.do.imageToBeResolved(i.at.imageResolved, imgSrc.value, file)
           ).pipe(
             rx.take(1),
             rx.map(([, url]) => url),
@@ -147,6 +182,6 @@ function dfsAccessElement(
       acc.push(item);
       return acc;
     }, []),
-    rx.map(frags => [frags.join(' + '), toc] as const)
+    rx.map(frags => [frags.join(' + '), toc, mermaidCode] as const)
   );
 }

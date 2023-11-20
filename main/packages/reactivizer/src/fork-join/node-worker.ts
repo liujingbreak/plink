@@ -3,14 +3,15 @@ import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, deserializeAction, serializeAction, RxController,
-  actionRelatedToAction, payloadRelatedToAction, InferPayload, InferMapParam} from '../control';
+import {Action, ActionFunctions, deserializeAction, serializeAction,
+  actionRelatedToAction} from '../control';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
-import {Broker, ForkWorkerInput, ForkWorkerOutput} from './types';
-// import {createBroker} from './node-worker-broker';
+import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
+  workerOutputTableFor as outputTableFor, WorkerControl} from './types';
 
-const inputTableFor = ['exit'] as const;
-const outputTableFor = ['workerInited', 'log', 'warn'] as const;
+export {fork} from './common';
+export {WorkerControl} from './types';
+// import {createBroker} from './node-worker-broker';
 
 export function createWorkerControl<
   I extends ActionFunctions = Record<string, never>,
@@ -20,6 +21,7 @@ export function createWorkerControl<
 >(
   opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I & O>
 ) {
+  let mainPort: MessagePort | undefined; // parent thread port
   // eslint-disable-next-line @typescript-eslint/ban-types
   const comp = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>({
     ...(opts ?? {}),
@@ -27,38 +29,50 @@ export function createWorkerControl<
     outputTableFor: [...(opts?.outputTableFor ?? []), ...outputTableFor],
     name: (opts?.name ?? '') + ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')),
     debug: opts?.debug,
-    log: isMainThread ? opts?.log : (...args) => parentPort?.postMessage({type: 'log', p: args}),
+    log: isMainThread ? opts?.log : (...args) => mainPort?.postMessage({type: 'log', p: args}),
     debugExcludeTypes: ['log', 'warn'],
     logStyle: 'noParam'
   });
   let broker: Broker | undefined;
 
-  const {r, i, o} = comp;
+  const {r, i, o, outputTable} = comp;
   const lo = comp.outputTable.l;
 
-  r('worker$ -> workerInited', new rx.Observable(() => {
-    const handler = (event: {type?: string; workerNo: number}) => {
+  r('-> workerInited', new rx.Observable(() => {
+    const handler = (event: {type?: string; workerNo: number; mainPort: MessagePort}) => {
       const msg = event;
       if (msg.type === 'ASSIGN_WORKER_NO') {
-        parentPort!.postMessage({type: 'WORKER_READY'});
+        msg.mainPort.postMessage({type: 'WORKER_READY'});
+        mainPort = msg.mainPort;
         const workerNo = msg.workerNo;
         const logPrefix = (opts?.name ?? '') + '[Worker:' + workerNo + ']';
-        o.dp.workerInited(workerNo, logPrefix);
+        o.dp.workerInited(workerNo, logPrefix, msg.mainPort);
         comp.setName(logPrefix);
-      } else {
-        const act = event as unknown as Action<any>;
-        deserializeAction(act, i);
       }
     };
     if (parentPort) {
       /* eslint-disable no-restricted-globals */
       parentPort.on('message', handler);
     } else {
-      o.dp.workerInited('main', '[main]');
+      o.dp.workerInited('main', '[main]', null);
     }
     return () => parentPort?.off('message', handler);
   }));
 
+  r('workerInited -> main worker message port listener', outputTable.l.workerInited.pipe(
+    rx.filter(([, , , port]) => port != null),
+    rx.switchMap(([, , , port]) => new rx.Observable(() => {
+      function handler(event: unknown) {
+        const act = event as Action<any>;
+        deserializeAction(act, i);
+      }
+      (port as MessagePort).on('message', handler);
+      return () => {
+        (port as MessagePort).close();
+        (port as MessagePort).off('message', handler);
+      };
+    }))
+  ));
 
   if (parentPort) {
     r('exit', comp.inputTable.l.exit.pipe(
@@ -70,22 +84,25 @@ export function createWorkerControl<
     ));
 
     r('postMessage wait, stopWaiting, returned message to broker', lo.workerInited.pipe(
+      rx.filter(([, , , port]) => port != null),
       rx.take(1),
-      rx.switchMap(() => rx.merge(
+      rx.switchMap(([, , , port]) => rx.merge(
         o.at.wait,
         o.at.stopWaiting,
         o.at.returned
-      )),
-      rx.map(action => {
-        parentPort?.postMessage(serializeAction(action));
-      })
+      ).pipe(
+        rx.map(action => {
+          port!.postMessage(serializeAction(action));
+        })
+      ))
     ));
 
     r('postMessage log to broker (parent thread)', lo.workerInited.pipe(
+      rx.filter(([, , , port]) => port != null),
       rx.take(1),
-      rx.switchMap(([, , logPrefix]) => lo.log.pipe(
+      rx.switchMap(([, , logPrefix, port]) => lo.log.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        rx.map(([, ...p]) => parentPort?.postMessage({type: 'log', p: [logPrefix, ...p]}))
+        rx.map(([, ...p]) => port?.postMessage({type: 'log', p: [logPrefix, ...p]}))
       ))
     ));
   } else {
@@ -99,8 +116,9 @@ export function createWorkerControl<
     ));
   }
 
-  r('On output "fork" request message', o.at.fork.pipe(
-    rx.mergeMap(act => {
+  r('"fork" -> mainPort.postMessage, forkByBroker', o.at.fork.pipe(
+    rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b] as const), rx.take(1))),
+    rx.mergeMap(([act, [, , , mainPort]]) => {
       const {p: [wrappedAct]} = act;
       const chan = new NodeMessagechannel();
       const error$ = rx.fromEventPattern(
@@ -124,11 +142,11 @@ export function createWorkerControl<
           rx.takeUntil(rx.merge(error$, close$))
         ),
         new rx.Observable<void>(_sub => {
-          if (parentPort) {
+          if (mainPort) {
             const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
-            parentPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
+            mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
           } else {
-            o.dp.forkByBroker(wrappedAct, chan.port2);
+            o.dpf.forkByBroker(act, wrappedAct, chan.port2);
           }
         })
       );
@@ -137,31 +155,39 @@ export function createWorkerControl<
 
   r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(
     rx.mergeMap(([, origAct, port]) => {
-      deserializeAction(origAct, i);
-      return o.core.action$.pipe(
-        actionRelatedToAction(origAct),
-        rx.take(1),
-        rx.map(action => {
-          const {p} = action;
-          if (hasReturnTransferable(p)) {
-            const [{transferList}] = p;
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (p[0] as any).transferList = null;
-            port.postMessage(serializeAction(action), transferList);
-          } else {
-            port.postMessage(serializeAction(action));
-          }
-          o.dp.returned();
+      return rx.merge(
+        o.core.action$.pipe(
+          actionRelatedToAction(origAct),
+          rx.take(1),
+          rx.map(action => {
+            const {p} = action;
+            if (hasReturnTransferable(p)) {
+              const [{transferList}] = p;
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              (p[0] as any).transferList = null;
+              port.postMessage(serializeAction(action), transferList);
+            } else {
+              port.postMessage(serializeAction(action));
+            }
+            o.dp.returned();
+          })
+        ),
+        new rx.Observable(() => {
+          deserializeAction(origAct, i);
         })
       );
     })
   ));
 
   r('Pass error to broker', comp.error$.pipe(
-    rx.map(([label, err]) => {
-      if (parentPort) {
+    rx.switchMap(a => outputTable.l.workerInited.pipe(
+      rx.map(b => [a, b] as const),
+      rx.take(1)
+    )),
+    rx.map(([[label, err], [, , , mainPort]]) => {
+      if (mainPort) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        parentPort.postMessage({error: {label, detail: err}});
+        (mainPort as MessagePort).postMessage({error: {label, detail: err}});
       } else if (broker) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         broker.o.dp.onWorkerError(-1, {label, detail: err}, 'customized error');
@@ -169,23 +195,7 @@ export function createWorkerControl<
     })
   ));
 
-  return comp as unknown as ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O,
-  ReadonlyArray<typeof inputTableFor[number] | LI[number]>, ReadonlyArray<typeof outputTableFor[number] | LO[number]>>;
-}
-
-export function fork<I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends string & keyof I = `${K}Resolved`>(
-  comp: ReactorComposite<I, O, any, any>,
-  actionName: K & string,
-  params: InferPayload<I[K]>,
-  returnedActionName: R
-): Promise<[...InferPayload<I[R]>]> {
-  const forkedAction = comp.o.createAction(actionName, ...params);
-  const forkDone = rx.firstValueFrom((returnedActionName ? comp.i.pt[returnedActionName] : comp.i.pt[actionName + 'Resolved']).pipe(
-    payloadRelatedToAction(forkedAction),
-    rx.map(([, ...p]) => p)
-  ));
-  (comp.o as unknown as RxController<ForkWorkerOutput>).dp.fork(forkedAction);
-  return forkDone;
+  return comp as unknown as WorkerControl<I, O, LI, LO>;
 }
 
 export type ForkTransferablePayload<T = unknown> = {

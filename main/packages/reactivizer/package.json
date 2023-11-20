@@ -6,8 +6,18 @@
   "module": "es/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    "import": "./es/index.js",
-    "require": "./dist/index.js"
+    ".": {
+      "import": "./es/index.js",
+      "require": "./dist/index.js"
+    },
+    "./dist/fork-join/*": {
+      "import": "./es/fork-join/*.js",
+      "require": "./dist/fork-join/*.js"
+    },
+    "./es/fork-join/*": {
+      "import": "./es/fork-join/*.js",
+      "require": "./dist/fork-join/*.js"
+    }
   },
   "files": [
     "dist", "es", "__tests__"

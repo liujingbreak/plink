@@ -6,7 +6,7 @@ flowchart LR
 
 worker[forkJoin-node-worker]
 broker[node-worker-broker]
-target[Your multithreaded <br>service]
+target["Your multithreaded <br>service"]
 
 target-->|"create & extend"|worker
 

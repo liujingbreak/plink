@@ -1,15 +1,16 @@
 import type {Worker as NodeWorker} from 'node:worker_threads';
 import * as algorithms from '@wfh/algorithms';
 import * as rx from 'rxjs';
-import {Broker} from './types';
+import {Broker, WorkerControl} from './types';
 
-let SEQ = 0;
-
-export function applyScheduler(broker: Broker, opts: {
+export function applyScheduler<W extends WorkerControl<any, any, any, any>>(broker: Broker<W>, opts: {
   maxNumOfWorker: number;
+  /** Default `false`, in which case the current thread (main) will also be assigned for tasks */
+  excludeCurrentThead?: boolean;
   workerFactory(): Worker | NodeWorker;
 }) {
-  const {r, o, i} = broker;
+  let WORKER_NO_SEQ = 0;
+  const {r, o, i, outputTable} = broker as unknown as Broker;
   let algo: typeof algorithms;
   try {
     algo = require('@wfh/algorithms') as typeof algorithms;
@@ -19,21 +20,26 @@ export function applyScheduler(broker: Broker, opts: {
   }
   const {RedBlackTree} = algo;
   const workerRankTree = new RedBlackTree<number, number[]>();
-  const ranksByWorkerNo = new Map<number, [worker: Worker | NodeWorker, rank: number]>();
+  const ranksByWorkerNo = new Map<number, [worker: Worker | NodeWorker | 'main', rank: number]>();
 
-  r(o.pt.assignWorker.pipe(
+  let {maxNumOfWorker} = opts;
+  if (opts.excludeCurrentThead === true) {
+    maxNumOfWorker--;
+  }
+
+  r('assignWorker -> workerAssigned', outputTable.l.assignWorker.pipe(
     rx.map(([m]) => {
-      if (ranksByWorkerNo.size < opts.maxNumOfWorker) {
-        const newWorker = opts.workerFactory();
-        ranksByWorkerNo.set(SEQ, [newWorker, 0]);
+      if (ranksByWorkerNo.size < maxNumOfWorker) {
+        const newWorker = (ranksByWorkerNo.size === 0 && opts.excludeCurrentThead !== true) ? 'main' : opts.workerFactory();
+        ranksByWorkerNo.set(WORKER_NO_SEQ, [newWorker, 0]);
         const tnode = workerRankTree.insert(1);
         if (tnode.value) {
-          tnode.value.push(SEQ);
+          tnode.value.push(WORKER_NO_SEQ);
         } else {
-          tnode.value = [SEQ];
+          tnode.value = [WORKER_NO_SEQ];
         }
-        i.dpf.workerAssigned(m, SEQ, newWorker);
-        SEQ++;
+        i.dpf.workerAssigned(m, WORKER_NO_SEQ, newWorker);
+        WORKER_NO_SEQ++;
       } else {
         const treeNode = workerRankTree.minimum()!;
         if (treeNode == null)
@@ -47,28 +53,29 @@ export function applyScheduler(broker: Broker, opts: {
     })
   ));
 
-  r(i.pt.workerAssigned.pipe(
+  r('workerAssigned -> changeWorkerRank()', i.pt.workerAssigned.pipe(
     rx.map(([, workerNo]) => {
       changeWorkerRank(workerNo, 1);
     })
   ));
 
-  r(o.pt.newWorkerReady.pipe(
-    rx.mergeMap(([, workerNo,  workerOutputCtl]) => rx.merge(
-      workerOutputCtl.pt.stopWaiting.pipe(
-        rx.tap(() => changeWorkerRank(workerNo, 1))
-      ),
-      rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(
-        rx.tap(() => changeWorkerRank(workerNo, -1))
-      )
-    ))
-  ));
+  r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()',
+    outputTable.l.newWorkerReady.pipe(
+      rx.mergeMap(([, workerNo, workerOutputCtl]) => rx.merge(
+        workerOutputCtl.pt.stopWaiting.pipe(
+          rx.tap(() => changeWorkerRank(workerNo, 1))
+        ),
+        rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(
+          rx.tap(() => changeWorkerRank(workerNo, -1))
+        )
+      ))
+    ));
 
   // r(rx.merge(i.pt.onWorkerWait, i.pt.onWorkerReturned).pipe(
   //   rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))
   // ));
 
-  r(o.pt.onWorkerExit.pipe(
+  r('onWorkerExit', o.pt.onWorkerExit.pipe(
     rx.tap(([, workerNo]) => {
       if (ranksByWorkerNo.has(workerNo)) {
         const [, rank] = ranksByWorkerNo.get(workerNo)!;
@@ -84,14 +91,16 @@ export function applyScheduler(broker: Broker, opts: {
     })
   ));
 
-  r(i.at.letAllWorkerExit.pipe(
+  r('letAllWorkerExit', i.at.letAllWorkerExit.pipe(
     rx.exhaustMap(a => {
       const num = ranksByWorkerNo.size;
-      for (const [worker] of ranksByWorkerNo.values())
-        i.dp.letWorkerExit(worker);
+      for (const [worker] of ranksByWorkerNo.values()) {
+        if (worker !== 'main')
+          i.dpf.letWorkerExit(a, worker);
+      }
       return rx.concat(
         o.at.onWorkerExit.pipe(
-          rx.take(num)
+          rx.take(ranksByWorkerNo.get(0)![0] === 'main' ? num - 1 : num)
         ),
         new rx.Observable((sub) => {
           o.dpf.onAllWorkerExit(a);

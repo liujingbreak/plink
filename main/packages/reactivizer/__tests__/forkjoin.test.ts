@@ -43,9 +43,9 @@ describe('forkjoin worker', () => {
     await forkMergeSort('singleWorker');
   }, 50000);
 
-  // it.skip('main worker and wokers can fork another worker or main worker itself', async () => {
-  //   await forkMergeSort('mix');
-  // }, 50000);
+  it('Exclude main thread', async () => {
+    await forkMergeSort('excludeMainThread');
+  }, 50000);
 
 
   it('Scheduled workers can fork another worker or main worker itself', async () => {

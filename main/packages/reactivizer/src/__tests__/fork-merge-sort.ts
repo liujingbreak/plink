@@ -12,13 +12,13 @@ import {applyScheduler} from '../fork-join/worker-scheduler';
 
 const log = log4File(__filename);
 
-export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker',
+export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker' | 'excludeMainThread',
   workerNum?: number) {
   const num = 30;
   const testArr = createSharedArryForTest(0, num);
   const sorter = createSorter(null, {
     name: 'sorter',
-    debug: true,
+    debug: false,
     log(...msg) {
       log.info(...msg);
     }
@@ -30,7 +30,7 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
 
   const broker = createBroker(sorter, {
     name: 'broker',
-    debug: false,
+    debug: true,
     log(...msg) {
       log.info(...msg);
     },
@@ -49,6 +49,15 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
   if (threadMode === 'scheduler') {
     ranksByWorkerNo = applyScheduler(broker, {
       maxNumOfWorker: numOfWorkers,
+      excludeCurrentThead: false,
+      workerFactory() {
+        return new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
+      }
+    });
+  } else if (threadMode === 'excludeMainThread') {
+    ranksByWorkerNo = applyScheduler(broker, {
+      maxNumOfWorker: numOfWorkers,
+      excludeCurrentThead: true,
       workerFactory() {
         return new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
       }
@@ -120,21 +129,22 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
   performance.clearMeasures();
   performance.clearMarks();
 
-  if (threadMode !== 'scheduler') {
+  if (!['scheduler', 'excludeMainThread'].includes(threadMode)) {
     expect(workerIsAssigned).toBe(true);
   }
   sorter.o.dp.log('-----------------------------\nsorted:', testArr);
 
-  if (threadMode === 'scheduler') {
+  if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
     await new Promise(r => setTimeout(r, 500));
-    console.log('Ranks of workers:', [...ranksByWorkerNo!.entries()].map(([workerNo, [, rank]]) => `#${workerNo}: ${rank}`));
-    for (const [, rank] of ranksByWorkerNo!.values()) {
+    console.log('Ranks of workers:', [...ranksByWorkerNo!.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
+    for (const [, [, rank]] of ranksByWorkerNo!.entries()) {
+      // console.log('Rank of worker ' + workerKey + `: ${rank}`);
       expect(rank).toBe(0);
     }
   }
 
   const latestBrokerEvents = broker.outputTable.addActions('onWorkerExit').l;
-  if (threadMode === 'scheduler') {
+  if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
     await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
     broker.destory();
     sorter.destory();

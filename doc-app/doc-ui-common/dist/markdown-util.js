@@ -15,7 +15,7 @@ let threadPool;
  * @param source
  * @param resolveImage
  */
-function markdownToHtml(source, resolveImage) {
+function markdownToHtml(source, srcFile, resolveImage, resolveLink) {
     if (threadPool == null) {
         threadPool = new thread_promise_pool_1.Pool(os_1.default.cpus().length > 1 ? os_1.default.cpus().length - 1 : 3, 1000);
     }
@@ -65,8 +65,8 @@ function tocToString(tocs) {
     return str;
 }
 exports.tocToString = tocToString;
-function insertOrUpdateMarkdownToc(input) {
-    return rx.firstValueFrom(markdownToHtml(input).pipe(op.map(({ toc, content: html }) => {
+function insertOrUpdateMarkdownToc(input, srcFile) {
+    return rx.firstValueFrom(markdownToHtml(input, srcFile, img => rx.of(img)).pipe(op.map(({ toc, content: html }) => {
         const tocStr = tocMarkdown(toc);
         const BEGIN = '<!-- Plink markdown toc -->';
         const END = '<!-- Plink markdown toc end -->';

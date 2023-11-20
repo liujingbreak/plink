@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-import {ReactorComposite, ActionTableDataType, actionRelatedToPayload} from '@wfh/reactivizer';
+import {ReactorComposite, ActionTableDataType, payloadRelatedToAction} from '@wfh/reactivizer';
 import {useAppLayout} from '../../components/appLayout.control';
 import {Router} from '../../animation/AnimatableRoutes.hooks';
 import {markdownsControl} from '../markdownSlice';
@@ -116,7 +116,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ]).pipe(
       rx.filter(([[, mdKey], [, key]]) => mdKey === key),
       rx.switchMap(([[, , dom], [m, key]]) => outputTable.l.topLevelItemIdsUpdated.pipe(
-        actionRelatedToPayload(m.i),
+        payloadRelatedToAction(m),
         rx.take(1),
         rx.withLatestFrom(outputTable.l.itemById),
         rx.tap(([[m2], [, itemById]]) => {
