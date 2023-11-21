@@ -4,6 +4,7 @@ import { ReactorComposite } from '../epic';
 import { serializeAction, deserializeAction, RxController } from '../control';
 import { brokerOutputTableFor as outputTableFor } from './types';
 import { applyScheduler } from './worker-scheduler';
+export * from './types';
 /** Broker manages worker threads, create message channels between child worker threads and main thread, transmits actions
 */
 export function createBroker(workerController, opts) {

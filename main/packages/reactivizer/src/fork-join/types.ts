@@ -1,4 +1,5 @@
 import type {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_threads';
+import * as rx from 'rxjs';
 import {ReactorComposite} from '../epic';
 import {Action, ActionFunctions} from '../control';
 
@@ -8,6 +9,11 @@ export type Broker<W extends WorkerControl<any, any, any, any> = WorkerControl> 
 export type ForkWorkerInput = {
   exit(): void;
   onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): void;
+  /** set actions which are supposed to be sent to parent main thread by "messagePort.postMessage()",
+   * consumer program should subscribe to `broker`'s outputTable.l.newWorkerReady to obtain lifted RxController
+   * to dispatch or observe actions directly to or from worker threads
+   */
+  setLiftUpActions(action$: rx.Observable<Action<any>>): void;
 };
 
 export type ForkWorkerOutput = {
@@ -26,7 +32,7 @@ export type ForkWorkerOutput = {
   forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort | MessagePort): void;
 };
 
-export const workerInputTableFor = ['exit'] as const;
+export const workerInputTableFor = ['setLiftUpActions', 'exit'] as const;
 export const workerOutputTableFor = ['workerInited', 'log', 'warn'] as const;
 
 export type WorkerControl<

@@ -4,14 +4,14 @@ import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {arrayBuffer2str} from '@wfh/reactivizer';
 // import {markdownToHtml} from './markdown-util';
-import {markdownProcessor, broker} from './markdown-processor-main';
+import {markdownProcessor, setupBroker} from './markdown-processor-main';
 // require('node:inspector').open(9222, 'localhost', true);
 
 const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
   const cb = this.async();
   const importCode = [] as string[];
   let imgIdx = 0;
-
+  const broker = setupBroker(false);
   // const logger = this.getLogger('markdown-loader');
   // debugger;
 
@@ -22,6 +22,16 @@ const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
         const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
         importCode.push(`import imgSrc${imgIdx} from '${url}';`);
         workerInput.dpf.imageResolved(m, 'imgSrc' + (imgIdx++));
+      })
+    ))
+  ));
+
+  r('resolve links', broker.outputTable.l.newWorkerReady.pipe(
+    rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => workerOutput.pt.linkToBeResolved.pipe(
+      rx.tap(([m, href, _file]) => {
+        // const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
+        // importCode.push(`import imgSrc${imgIdx} from '${url}';`);
+        workerInput.dpf.linkResolved(m, href);
       })
     ))
   ));

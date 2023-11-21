@@ -12,7 +12,8 @@ initProcess('none');
 logConfig(initConfig({})());
 
 describe('markdown-processor', () => {
-  const {markdownProcessor, broker} = require('../dist/markdown-processor-main') as typeof markdownProcessorModule;
+  const {markdownProcessor, setupBroker} = require('../dist/markdown-processor-main') as typeof markdownProcessorModule;
+  const broker = setupBroker(true);
   const file = Path.resolve(__dirname, 'sample-markdown.md');
   const raw = fs.readFileSync(file, 'utf8');
 
@@ -20,6 +21,7 @@ describe('markdown-processor', () => {
     const {i, o, r} = markdownProcessor;
 
     const imgResolver = jest.fn();
+    const linkResolver = jest.fn();
     r('test spec, imageToBeResolved -> imageResolved',
       broker.outputTable.l.newWorkerReady.pipe(
         rx.mergeMap(([, workerNo, workerOutput, workerInput]) => workerOutput.pt.imageToBeResolved.pipe(
@@ -31,6 +33,17 @@ describe('markdown-processor', () => {
         ))
       )
     );
+    r('test spec, linkToBeResolved -> linkResolved',
+      broker.outputTable.l.newWorkerReady.pipe(
+        rx.mergeMap(([, workerNo, workerOutput, workerInput]) => workerOutput.pt.linkToBeResolved.pipe(
+          rx.tap(([m, url, file]) => {
+            linkResolver(url, file);
+            console.log('resolve link for', workerNo, url, file);
+            workerInput.dpf.linkResolved(m, url);
+          })
+        ))
+      )
+    );
     const [, {resultHtml, toc, mermaid}] = await rx.firstValueFrom(i.do.forkProcessFile(o.at.processFileDone, raw, file));
     console.log(arrayBuffer2str(resultHtml).toString(), toc);
     expect(mermaid.length).toBeGreaterThan(0);
@@ -38,12 +51,14 @@ describe('markdown-processor', () => {
     console.log('mermaid', mermaidCode);
     expect(mermaidCode.slice(0, 'flowchart LR'.length)).toEqual('flowchart LR');
     expect(imgResolver.mock.calls.length).toBe(1);
+    broker.i.dp.letAllWorkerExit();
   }, 20000);
 
   it('2 markdown files being processed simultaneously in worker thread', async () => {
     const {i, o, r} = markdownProcessor;
 
     const imgResolver = jest.fn();
+    const linkResolver = jest.fn();
 
     r('test spec, imageToBeResolved -> imageResolved',
       broker.outputTable.l.newWorkerReady.pipe(
@@ -52,6 +67,17 @@ describe('markdown-processor', () => {
             imgResolver(url, file);
             console.log('resolve image for', workerNo, url, file);
             workerInput.dpf.imageResolved(m, url);
+          })
+        ))
+      )
+    );
+    r('test spec, linkToBeResolved -> linkResolved',
+      broker.outputTable.l.newWorkerReady.pipe(
+        rx.mergeMap(([, workerNo, workerOutput, workerInput]) => workerOutput.pt.linkToBeResolved.pipe(
+          rx.tap(([m, url, file]) => {
+            linkResolver(url, file);
+            console.log('resolve link for', workerNo, url, file);
+            workerInput.dpf.linkResolved(m, url);
           })
         ))
       )
@@ -65,6 +91,7 @@ describe('markdown-processor', () => {
     console.log(arrayBuffer2str(a.mermaid[0]));
     console.log(arrayBuffer2str(b.mermaid[0]));
     expect(imgResolver.mock.calls.length).toBe(2);
+    expect(linkResolver.mock.calls.length).toBe(2);
     broker.i.dp.letAllWorkerExit();
 
   }, 50000);

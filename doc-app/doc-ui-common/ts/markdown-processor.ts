@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import {log4File} from '@wfh/plink';
 import {createWorkerControl, fork, WorkerControl} from '@wfh/reactivizer/dist/fork-join/node-worker';
-import {ActionMeta, serializeAction, str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
+import {timeoutLog, ActionMeta, str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
 import md5 from 'md5';
 import MarkdownIt from 'markdown-it';
 import highlight from 'highlight.js';
@@ -17,6 +17,7 @@ type MdInputActions = {
   processFileDone(res: {resultHtml: ArrayBuffer; toc: TOC[]; mermaid: ArrayBuffer[]; transferList: ArrayBuffer[]}): void;
   /** Consumer should dispatach to be related to "resolveImage" event */
   imageResolved(resultUrl: string): void;
+  linkResolved(resultUrl: string): void;
   /** Consumer should dispatch */
   anchorLinkResolved(url: string): void;
 };
@@ -25,6 +26,8 @@ export type MdOutputEvents = {
   processFileDone: MdInputActions['processFileDone'];
   /** Consumer program should react on this event */
   imageToBeResolved(imgSrc: string, mdFilePath: string): void;
+  /** Consumer program should react on this event */
+  linkToBeResolved(urlSrc: string, mdFilePath: string): void;
   /** Consumer should react and dispatach "anchorLinkResolved" */
   anchorLinkToBeResolved(linkSrc: string, mdFilePath: string): void;
 
@@ -49,13 +52,14 @@ const md = new MarkdownIt({
 export type MarkdownProcessor = WorkerControl<MdInputActions, MdOutputEvents>;
 
 export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions, MdOutputEvents>({
-  name: 'markdownProcessor', debug: true,
+  name: 'markdownProcessor',
+  debug: true,
   log(...msg) {
     log.info(...msg);
   }
 });
 
-const {r, i, o, outputTable} = markdownProcessor;
+const {r, i, o} = markdownProcessor;
 
 r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.pipe(
   rx.mergeMap(async ([m, content, file]) => {
@@ -88,14 +92,9 @@ r('processFile -> processFileDone', i.pt.processFile.pipe(
   })
 ));
 
-r('imageToBeResolved -> main thread port postMessage', o.at.imageToBeResolved.pipe(
-  rx.withLatestFrom(outputTable.l.workerInited),
-  rx.tap(([resolveAction, [, , , port]]) => {
-    if (port) {
-      o.dp.log('pass imageToBeResolved action to main thread');
-      port.postMessage(serializeAction(resolveAction));
-    }
-  })
+i.dp.setLiftUpActions(rx.merge(
+  o.at.imageToBeResolved,
+  o.at.linkToBeResolved
 ));
 
 function dfsAccessElement(
@@ -168,6 +167,23 @@ function dfsAccessElement(
           text: lookupTextNodeIn(el),
           id: hash
         });
+      } else if (nodeName === 'a') {
+        const hrefAttr = el.attrs.find(attr => attr.name === 'href');
+        if (hrefAttr?.value && hrefAttr.value.startsWith('.')) {
+          output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.href!.startOffset + 'href="'.length));
+          htmlOffset = el.sourceCodeLocation!.attrs!.href!.endOffset - 1;
+          return output.push(rx.merge(
+            new rx.Observable<never>(() => {
+              o.dp.wait();
+            }),
+            o.do.linkToBeResolved(i.at.linkResolved, hrefAttr?.value, file)
+          ).pipe(
+            rx.take(1),
+            timeoutLog(3000, () => log.warn('link resolve timeout')),
+            rx.map(([, url]) => url),
+            rx.finalize(() => o.dp.stopWaiting())
+          ));
+        }
       } else if (el.childNodes) {
         chr.next(el.childNodes);
       }

@@ -28,12 +28,13 @@ const md = new markdown_it_1.default({
     }
 });
 exports.markdownProcessor = (0, node_worker_1.createWorkerControl)({
-    name: 'markdownProcessor', debug: true,
+    name: 'markdownProcessor',
+    debug: true,
     log(...msg) {
         log.info(...msg);
     }
 });
-const { r, i, o, outputTable } = exports.markdownProcessor;
+const { r, i, o } = exports.markdownProcessor;
 r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.pipe(rx.mergeMap(async ([m, content, file]) => {
     const resultDone = (0, node_worker_1.fork)(exports.markdownProcessor, 'processFile', [(0, reactivizer_1.str2ArrayBuffer)(content, true), file], 'processFileDone', m);
     o.dp.wait();
@@ -55,12 +56,7 @@ r('processFile -> processFileDone', i.pt.processFile.pipe(rx.combineLatestWith(i
     // o.dpf.processFileDone({toc: [], content: (err as Error).toString()});
     return rx.EMPTY;
 })));
-r('imageToBeResolved -> main thread port postMessage', o.at.imageToBeResolved.pipe(rx.withLatestFrom(outputTable.l.workerInited), rx.tap(([resolveAction, [, , , port]]) => {
-    if (port) {
-        o.dp.log('pass imageToBeResolved action to main thread');
-        port.postMessage((0, reactivizer_1.serializeAction)(resolveAction));
-    }
-})));
+i.dp.setLiftUpActions(rx.merge(o.at.imageToBeResolved, o.at.linkToBeResolved));
 function dfsAccessElement(processFileActionMeta, sourceHtml, file, root
 // transpileCode?: (language: string, sourceCode: string) => Promise<string> | rx.Observable<string> | void,
 ) {
@@ -116,6 +112,16 @@ function dfsAccessElement(processFileActionMeta, sourceHtml, file, root
                 text: (0, markdown_processor_helper_1.lookupTextNodeIn)(el),
                 id: hash
             });
+        }
+        else if (nodeName === 'a') {
+            const hrefAttr = el.attrs.find(attr => attr.name === 'href');
+            if ((hrefAttr === null || hrefAttr === void 0 ? void 0 : hrefAttr.value) && hrefAttr.value.startsWith('.')) {
+                output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation.attrs.href.startOffset + 'href="'.length));
+                htmlOffset = el.sourceCodeLocation.attrs.href.endOffset - 1;
+                return output.push(rx.merge(new rx.Observable(() => {
+                    o.dp.wait();
+                }), o.do.linkToBeResolved(i.at.linkResolved, hrefAttr === null || hrefAttr === void 0 ? void 0 : hrefAttr.value, file)).pipe(rx.take(1), (0, reactivizer_1.timeoutLog)(3000, () => log.warn('link resolve timeout')), rx.map(([, url]) => url), rx.finalize(() => o.dp.stopWaiting())));
+            }
         }
         else if (el.childNodes) {
             chr.next(el.childNodes);

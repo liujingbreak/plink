@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import type { Worker as NodeWorker, MessagePort as NodeMessagePort } from 'worker_threads';
+import * as rx from 'rxjs';
 import { ReactorComposite } from '../epic';
 import { Action, ActionFunctions } from '../control';
 export declare const brokerOutputTableFor: readonly ["newWorkerReady", "workerInputs", "assignWorker", "portOfWorker"];
@@ -7,6 +8,11 @@ export type Broker<W extends WorkerControl<any, any, any, any> = WorkerControl> 
 export type ForkWorkerInput = {
     exit(): void;
     onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): void;
+    /** set actions which are supposed to be sent to parent main thread by "messagePort.postMessage()",
+     * consumer program should subscribe to `broker`'s outputTable.l.newWorkerReady to obtain lifted RxController
+     * to dispatch or observe actions directly to or from worker threads
+     */
+    setLiftUpActions(action$: rx.Observable<Action<any>>): void;
 };
 export type ForkWorkerOutput = {
     workerInited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): void;
@@ -21,7 +27,7 @@ export type ForkWorkerOutput = {
     /** broker implementation should react to this event*/
     forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort | MessagePort): void;
 };
-export declare const workerInputTableFor: readonly ["exit"];
+export declare const workerInputTableFor: readonly ["setLiftUpActions", "exit"];
 export declare const workerOutputTableFor: readonly ["workerInited", "log", "warn"];
 export type WorkerControl<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>, LI extends ReadonlyArray<keyof I> = readonly [], LO extends ReadonlyArray<keyof O> = readonly []> = ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, ReadonlyArray<typeof workerInputTableFor[number] | LI[number]>, ReadonlyArray<typeof workerOutputTableFor[number] | LO[number]>>;
 export type BrokerInput = {

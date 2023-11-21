@@ -6,4 +6,4 @@ export declare function applyScheduler<W extends WorkerControl<any, any, any, an
     /** Default `false`, in which case the current thread (main) will also be assigned for tasks */
     excludeCurrentThead?: boolean;
     workerFactory(): Worker | NodeWorker;
-}): Map<number, [worker: "main" | Worker | NodeWorker, rank: number]>;
+}): Map<number, [worker: Worker | NodeWorker | "main", rank: number]>;
