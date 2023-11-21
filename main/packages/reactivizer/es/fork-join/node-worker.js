@@ -6,10 +6,12 @@ import { workerInputTableFor as inputTableFor, workerOutputTableFor as outputTab
 export { fork } from './common';
 // import {createBroker} from './node-worker-broker';
 export function createWorkerControl(opts) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     let mainPort; // parent thread port
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...inputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...outputTableFor], name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : '') + ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...inputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...outputTableFor], name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        debugExcludeTypes: ['log', 'warn', ...((_d = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _d !== void 0 ? _d : [])], logStyle: 'noParam' }));
     let broker;
     const { r, i, o, outputTable, inputTable } = comp;
     const lo = comp.outputTable.l;
@@ -21,7 +23,7 @@ export function createWorkerControl(opts) {
                 msg.mainPort.postMessage({ type: 'WORKER_READY' });
                 mainPort = msg.mainPort;
                 const workerNo = msg.workerNo;
-                const logPrefix = ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + '[Worker:' + workerNo + ']';
+                const logPrefix = ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + '(W/' + workerNo + ')';
                 o.dp.workerInited(workerNo, logPrefix, msg.mainPort);
                 comp.setName(logPrefix);
             }

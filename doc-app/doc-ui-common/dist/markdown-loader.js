@@ -21,8 +21,11 @@ const markdownLoader = function (source, sourceMap) {
         workerInput.dpf.imageResolved(m, 'imgSrc' + (imgIdx++));
     })))));
     r('resolve links', broker.outputTable.l.newWorkerReady.pipe(rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => workerOutput.pt.linkToBeResolved.pipe(rx.tap(([m, href, _file]) => {
-        // const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
-        // importCode.push(`import imgSrc${imgIdx} from '${url}';`);
+        const matched = /([^/]+)\.md$/.exec(href);
+        if (matched === null || matched === void 0 ? void 0 : matched[1]) {
+            workerInput.dpf.linkResolved(m, matched[1]);
+            return;
+        }
         workerInput.dpf.linkResolved(m, href);
     })))));
     r('processFileDone -> ...', i.do.forkProcessFile(o.at.processFileDone, source, this.resourcePath).pipe(rx.take(1), rx.tap(([, { resultHtml, toc, mermaid }]) => {

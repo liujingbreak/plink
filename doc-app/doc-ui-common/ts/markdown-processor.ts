@@ -5,7 +5,7 @@ import {timeoutLog, ActionMeta, str2ArrayBuffer, arrayBuffer2str} from '@wfh/rea
 import md5 from 'md5';
 import MarkdownIt from 'markdown-it';
 import highlight from 'highlight.js';
-import type {DefaultTreeAdapterMap} from 'parse5';
+import {parse as parseHtml, DefaultTreeAdapterMap} from 'parse5';
 import {TOC} from '../isom/md-types';
 import {ChildNode, Element, lookupTextNodeIn, createTocTree} from './markdown-processor-helper';
 
@@ -54,6 +54,7 @@ export type MarkdownProcessor = WorkerControl<MdInputActions, MdOutputEvents>;
 export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions, MdOutputEvents>({
   name: 'markdownProcessor',
   debug: true,
+  debugExcludeTypes: ['wait', 'stopWaiting'],
   log(...msg) {
     log.info(...msg);
   }
@@ -72,10 +73,10 @@ r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.p
 ));
 
 r('processFile -> processFileDone', i.pt.processFile.pipe(
-  rx.combineLatestWith(import('parse5')),
-  rx.mergeMap(([[m, content, file], parse5]) => {
+  rx.tap(() => {o.dp.log('react to processFile'); }),
+  rx.mergeMap(([m, content, file]) => {
     const html = md.render(arrayBuffer2str(content));
-    const doc = parse5.parse(html, {sourceCodeLocationInfo: true});
+    const doc = parseHtml(html, {sourceCodeLocationInfo: true});
     const content$ = dfsAccessElement(m, html, file, doc);
     return content$.pipe(
       rx.map(([content, toc, mermaidCodes]) => {
@@ -87,6 +88,7 @@ r('processFile -> processFileDone', i.pt.processFile.pipe(
   }),
   rx.catchError(err => {
     log.error(err);
+    o.dp.log(err);
     // o.dpf.processFileDone({toc: [], content: (err as Error).toString()});
     return rx.EMPTY;
   })
@@ -98,7 +100,7 @@ i.dp.setLiftUpActions(rx.merge(
 ));
 
 function dfsAccessElement(
-  processFileActionMeta: ActionMeta,
+  _processFileActionMeta: ActionMeta,
   sourceHtml: string,
   file: string,
   root: DefaultTreeAdapterMap['document']

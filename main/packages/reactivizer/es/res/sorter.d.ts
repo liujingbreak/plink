@@ -28,4 +28,4 @@ export declare function createSorter<D extends WritableArray>(comparator?: ForkS
     sortAllInWorkerCompleted: () => void;
     sortCompleted: () => void;
     mergeCompleted: () => void;
-} & ForkWorkerOutput & Record<string, never>, readonly ("setLiftUpActions" | "exit")[], readonly ("workerInited" | "log" | "warn")[]>;
+} & ForkWorkerOutput & Record<string, never>, readonly ("exit" | "setLiftUpActions")[], readonly ("workerInited" | "log" | "warn")[]>;

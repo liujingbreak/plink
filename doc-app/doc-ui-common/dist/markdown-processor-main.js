@@ -10,11 +10,11 @@ const plink_1 = require("@wfh/plink");
 const markdown_processor_1 = require("./markdown-processor");
 Object.defineProperty(exports, "markdownProcessor", { enumerable: true, get: function () { return markdown_processor_1.markdownProcessor; } });
 const log = (0, plink_1.log4File)(__filename);
-function setupBroker(excludeCurrentThead = false) {
+function setupBroker(excludeCurrentThead = false, maxNumOfWorker) {
     const broker = (0, node_worker_broker_1.setupForMainWorker)(markdown_processor_1.markdownProcessor, {
         name: 'broker',
-        maxNumOfWorker: os_1.default.availableParallelism(),
-        debug: true,
+        maxNumOfWorker: maxNumOfWorker !== null && maxNumOfWorker !== void 0 ? maxNumOfWorker : os_1.default.availableParallelism(),
+        debug: false,
         excludeCurrentThead,
         log(...args) {
             log.info(...args);

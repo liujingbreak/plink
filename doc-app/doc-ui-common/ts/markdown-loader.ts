@@ -29,9 +29,12 @@ const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
   r('resolve links', broker.outputTable.l.newWorkerReady.pipe(
     rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => workerOutput.pt.linkToBeResolved.pipe(
       rx.tap(([m, href, _file]) => {
-        // const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
-        // importCode.push(`import imgSrc${imgIdx} from '${url}';`);
-        workerInput.dpf.linkResolved(m, href);
+        const matched = /([^/]+)\.md$/.exec(href);
+        if (matched?.[1]) {
+          workerInput.dpf.linkResolved(m, JSON.stringify(matched[1]));
+          return;
+        }
+        workerInput.dpf.linkResolved(m, JSON.stringify(href));
       })
     ))
   ));

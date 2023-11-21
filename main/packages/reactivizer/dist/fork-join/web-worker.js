@@ -33,9 +33,11 @@ var common_1 = require("./common");
 Object.defineProperty(exports, "fork", { enumerable: true, get: function () { return common_1.fork; } });
 // import {createBroker} from './node-worker-broker';
 function createWorkerControl(isInWorker, opts) {
-    var _a, _b;
+    var _a, _b, _c;
     let mainPort; // parent thread port
-    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...types_1.workerInputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...types_1.workerOutputTableFor], name: 'unknown worker No', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), debugExcludeTypes: ['log', 'warn'], logStyle: 'noParam' }));
+    const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...types_1.workerInputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...types_1.workerOutputTableFor], name: 'unknown worker No', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        debugExcludeTypes: ['log', 'warn', ...((_c = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _c !== void 0 ? _c : [])], logStyle: 'noParam' }));
     let broker;
     const { r, i, o, outputTable, inputTable } = comp;
     const lo = comp.outputTable.l;
@@ -46,8 +48,8 @@ function createWorkerControl(isInWorker, opts) {
             if (msg.type === 'ASSIGN_WORKER_NO') {
                 msg.mainPort.postMessage({ type: 'WORKER_READY' });
                 mainPort = msg.mainPort;
-                const { workerNo } = msg;
-                const logPrefix = ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + '[Worker:' + workerNo + ']';
+                const workerNo = msg.workerNo;
+                const logPrefix = ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + '(W/' + workerNo + ')';
                 o.dp.workerInited(workerNo, logPrefix, msg.mainPort);
                 comp.setName(logPrefix);
             }

@@ -19,7 +19,7 @@ export function createWorkerControl<
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
 >(
-  opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I & O>
+  opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I, ForkWorkerOutput & O>
 ) {
   let mainPort: MessagePort | undefined; // parent thread port
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -27,10 +27,11 @@ export function createWorkerControl<
     ...(opts ?? {}),
     inputTableFor: [...(opts?.inputTableFor ?? []), ...inputTableFor],
     outputTableFor: [...(opts?.outputTableFor ?? []), ...outputTableFor],
-    name: (opts?.name ?? '') + ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')),
+    name: (opts?.name ?? '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')),
     debug: opts?.debug,
     log: isMainThread ? opts?.log : (...args) => mainPort?.postMessage({type: 'log', p: args}),
-    debugExcludeTypes: ['log', 'warn'],
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)],
     logStyle: 'noParam'
   });
   let broker: Broker | undefined;
@@ -45,7 +46,7 @@ export function createWorkerControl<
         msg.mainPort.postMessage({type: 'WORKER_READY'});
         mainPort = msg.mainPort;
         const workerNo = msg.workerNo;
-        const logPrefix = (opts?.name ?? '') + '[Worker:' + workerNo + ']';
+        const logPrefix = (opts?.name ?? '') + '(W/' + workerNo + ')';
         o.dp.workerInited(workerNo, logPrefix, msg.mainPort);
         comp.setName(logPrefix);
       }

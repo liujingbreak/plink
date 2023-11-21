@@ -35,7 +35,7 @@ class ControllerCore {
         this.actionUpstream = new rx.Subject();
         this.interceptor$ = new rx.BehaviorSubject(a => a);
         this.typePrefix = '#' + SEQ++ + ' ';
-        this.logPrefix = this.typePrefix;
+        this.logPrefix = ''; // TODO: a better identity to distinguish threads
         this.dispatcher = {};
         this.dispatcherFor = {};
         this.actionSubDispatcher = new rx.Subject();
@@ -95,7 +95,7 @@ class ControllerCore {
     }
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name) {
-        this.logPrefix = name ? `[${this.typePrefix}${name}] ` : this.typePrefix;
+        this.logPrefix = name !== null && name !== void 0 ? name : this.typePrefix;
     }
     dispatchFactory(type) {
         if (exports.has.call(this.dispatcher, type)) {

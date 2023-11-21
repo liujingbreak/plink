@@ -7,11 +7,11 @@ import {markdownProcessor} from './markdown-processor';
 
 const log = log4File(__filename);
 
-export function setupBroker(excludeCurrentThead = false) {
+export function setupBroker(excludeCurrentThead = false, maxNumOfWorker?: number) {
   const broker: Broker<typeof markdownProcessor> = setupForMainWorker(markdownProcessor, {
     name: 'broker',
-    maxNumOfWorker: os.availableParallelism(),
-    debug: true,
+    maxNumOfWorker: maxNumOfWorker ?? os.availableParallelism(),
+    debug: false,
     excludeCurrentThead,
     log(...args: [any]) {
       log.info(...args);

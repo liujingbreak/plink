@@ -8,9 +8,9 @@ OOP stands on ground of [Imperative programming paradigm](https://en.wikipedia.o
 
 Reactive programming is member of [declarative programming paradigm](https://en.wikipedia.org/wiki/Declarative_programming) family
 
-@wfh/reativizer is a library to help you to program anything like a hibrid of OOP and Reactive programming.
-So that it can have some level of power from both of them,
-- OOP's design thoughts: encapsulation, inheritance  
+@wfh/reativizer is a library to help you to program things in reactive style at low level source code, while we can still keep some high level OOP concepts with it.
+
+- OOP's design thoughts: encapsulation, inheritance
 - Reactive's event-driven design thoughts.
 - Reactive's asynchronous stream process ability
 

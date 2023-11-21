@@ -17,7 +17,7 @@ export function createWorkerControl<
   LO extends ReadonlyArray<keyof O> = readonly []
 >(
   isInWorker: boolean,
-  opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I & O>
+  opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I, ForkWorkerOutput & O>
 ) {
   let mainPort: MessagePort | undefined; // parent thread port
   const comp = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>({
@@ -27,7 +27,8 @@ export function createWorkerControl<
     name: 'unknown worker No',
     debug: opts?.debug,
     log: !isInWorker ? opts?.log : (...args) => mainPort?.postMessage({type: 'log', p: args}),
-    debugExcludeTypes: ['log', 'warn'],
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    debugExcludeTypes: ['log', 'warn', ...(opts?.debugExcludeTypes ?? [] as any)],
     logStyle: 'noParam'
   });
   let broker: Broker | undefined;
@@ -41,8 +42,8 @@ export function createWorkerControl<
       if (msg.type === 'ASSIGN_WORKER_NO') {
         msg.mainPort.postMessage({type: 'WORKER_READY'});
         mainPort = msg.mainPort;
-        const {workerNo} = msg;
-        const logPrefix = (opts?.name ?? '') + '[Worker:' + workerNo + ']';
+        const workerNo = msg.workerNo;
+        const logPrefix = (opts?.name ?? '') + '(W/' + workerNo + ')';
         o.dp.workerInited(workerNo, logPrefix, msg.mainPort);
         comp.setName(logPrefix);
       }

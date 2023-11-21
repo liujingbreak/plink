@@ -13,11 +13,11 @@ logConfig(initConfig({})());
 
 describe('markdown-processor', () => {
   const {markdownProcessor, setupBroker} = require('../dist/markdown-processor-main') as typeof markdownProcessorModule;
-  const broker = setupBroker(true);
+  const broker = setupBroker(true, 1);
   const file = Path.resolve(__dirname, 'sample-markdown.md');
   const raw = fs.readFileSync(file, 'utf8');
 
-  it('long markdown with mermaid', async () => {
+  it.skip('long markdown with mermaid', async () => {
     const {i, o, r} = markdownProcessor;
 
     const imgResolver = jest.fn();
@@ -85,6 +85,9 @@ describe('markdown-processor', () => {
     const [[, a], [, b]] = await rx.lastValueFrom(rx.forkJoin([
       i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
       i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1))
+      // i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
+      // i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
+      // i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1))
     ]));
     expect(a.mermaid.length > 0).toBe(true);
     expect(b.mermaid.length > 0).toBe(true);

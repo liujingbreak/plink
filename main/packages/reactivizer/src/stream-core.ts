@@ -50,7 +50,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
   actionUpstream = new rx.Subject<Action<I>>();
   interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>>(a => a);
   typePrefix = '#' + SEQ++ + ' ';
-  logPrefix: string = this.typePrefix;
+  logPrefix = ''; // TODO: a better identity to distinguish threads
   action$: rx.Observable<Action<I>>;
   debugExcludeSet: Set<string>;
 
@@ -136,7 +136,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
 
   /** change the "name" as previous specified in CoreOptions of constructor */
   setName(name: string | null | undefined) {
-    this.logPrefix = name ? `[${this.typePrefix}${name}] ` : this.typePrefix;
+    this.logPrefix = name ?? this.typePrefix;
   }
 
   dispatchFactory<K extends string & keyof I>(type: K): Dispatch<I, K> {
