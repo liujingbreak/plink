@@ -5,6 +5,9 @@
 - New method "setName" on RxController, ReactorComposite
 - Refactor API functions of "fork join" feature for more convenient usage
 - Break changes to action filter operators: actionRelatedToAction, payloadRelatedToAction
+- New worker method `setLiftUpActions`: set actions which are supposed to be sent to parent main thread by "messagePort.postMessage()",
+  consumer program should subscribe to `broker`'s outputTable.l.newWorkerReady to obtain lifted RxController
+  to dispatch or observe actions directly to or from worker threads
 
 ## @wfh/reactivizer 0.1.1
 - RxController supports new methods: groupControllerBy(), connect()

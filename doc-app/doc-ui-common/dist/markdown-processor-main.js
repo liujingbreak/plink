@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.broker = exports.markdownProcessor = void 0;
+exports.markdownProcessor = exports.setupBroker = void 0;
 const tslib_1 = require("tslib");
 const worker_threads_1 = require("worker_threads");
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -10,17 +10,21 @@ const plink_1 = require("@wfh/plink");
 const markdown_processor_1 = require("./markdown-processor");
 Object.defineProperty(exports, "markdownProcessor", { enumerable: true, get: function () { return markdown_processor_1.markdownProcessor; } });
 const log = (0, plink_1.log4File)(__filename);
-const broker = (0, node_worker_broker_1.setupForMainWorker)(markdown_processor_1.markdownProcessor, {
-    name: 'broker',
-    maxNumOfWorker: os_1.default.availableParallelism(),
-    debug: false,
-    log(...args) {
-        log.info(...args);
-    },
-    logStyle: 'noParam',
-    workerFactory() {
-        return new worker_threads_1.Worker(path_1.default.resolve(__dirname, '../dist/markdown-processor-worker.js'));
-    }
-});
-exports.broker = broker;
+function setupBroker(excludeCurrentThead = false, maxNumOfWorker) {
+    const broker = (0, node_worker_broker_1.setupForMainWorker)(markdown_processor_1.markdownProcessor, {
+        name: 'broker',
+        maxNumOfWorker: maxNumOfWorker !== null && maxNumOfWorker !== void 0 ? maxNumOfWorker : os_1.default.availableParallelism(),
+        debug: false,
+        excludeCurrentThead,
+        log(...args) {
+            log.info(...args);
+        },
+        logStyle: 'noParam',
+        workerFactory() {
+            return new worker_threads_1.Worker(path_1.default.resolve(__dirname, '../dist/markdown-processor-worker.js'));
+        }
+    });
+    return broker;
+}
+exports.setupBroker = setupBroker;
 //# sourceMappingURL=markdown-processor-main.js.map

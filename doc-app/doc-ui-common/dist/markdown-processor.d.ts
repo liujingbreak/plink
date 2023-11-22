@@ -11,6 +11,7 @@ type MdInputActions = {
     }): void;
     /** Consumer should dispatach to be related to "resolveImage" event */
     imageResolved(resultUrl: string): void;
+    linkResolved(resultUrl: string): void;
     /** Consumer should dispatch */
     anchorLinkResolved(url: string): void;
 };
@@ -18,6 +19,8 @@ export type MdOutputEvents = {
     processFileDone: MdInputActions['processFileDone'];
     /** Consumer program should react on this event */
     imageToBeResolved(imgSrc: string, mdFilePath: string): void;
+    /** Consumer program should react on this event */
+    linkToBeResolved(urlSrc: string, mdFilePath: string): void;
     /** Consumer should react and dispatach "anchorLinkResolved" */
     anchorLinkToBeResolved(linkSrc: string, mdFilePath: string): void;
     htmlRendered(file: string, html: string): void;

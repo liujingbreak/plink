@@ -1,10 +1,10 @@
 import type {promises as fsPromises} from 'node:fs';
 import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
-import {parentPort, MessageChannel as NodeMessagechannel, threadId, isMainThread, MessagePort} from 'worker_threads';
+import {parentPort, MessageChannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, deserializeAction, serializeAction,
-  actionRelatedToAction} from '../control';
+  actionRelatedToAction, nameOfAction} from '../control';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
   workerOutputTableFor as outputTableFor, WorkerControl} from './types';
@@ -19,7 +19,7 @@ export function createWorkerControl<
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
 >(
-  opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I & O>
+  opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I, ForkWorkerOutput & O>
 ) {
   let mainPort: MessagePort | undefined; // parent thread port
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -27,15 +27,16 @@ export function createWorkerControl<
     ...(opts ?? {}),
     inputTableFor: [...(opts?.inputTableFor ?? []), ...inputTableFor],
     outputTableFor: [...(opts?.outputTableFor ?? []), ...outputTableFor],
-    name: (opts?.name ?? '') + ('[Thread:' + (isMainThread ? 'main]' : threadId + ']')),
+    name: (opts?.name ?? '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')),
     debug: opts?.debug,
     log: isMainThread ? opts?.log : (...args) => mainPort?.postMessage({type: 'log', p: args}),
-    debugExcludeTypes: ['log', 'warn'],
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)],
     logStyle: 'noParam'
   });
   let broker: Broker | undefined;
 
-  const {r, i, o, outputTable} = comp;
+  const {r, i, o, outputTable, inputTable} = comp;
   const lo = comp.outputTable.l;
 
   r('-> workerInited', new rx.Observable(() => {
@@ -45,7 +46,7 @@ export function createWorkerControl<
         msg.mainPort.postMessage({type: 'WORKER_READY'});
         mainPort = msg.mainPort;
         const workerNo = msg.workerNo;
-        const logPrefix = (opts?.name ?? '') + '[Worker:' + workerNo + ']';
+        const logPrefix = (opts?.name ?? '') + '(W/' + workerNo + ')';
         o.dp.workerInited(workerNo, logPrefix, msg.mainPort);
         comp.setName(logPrefix);
       }
@@ -120,7 +121,7 @@ export function createWorkerControl<
     rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b] as const), rx.take(1))),
     rx.mergeMap(([act, [, , , mainPort]]) => {
       const {p: [wrappedAct]} = act;
-      const chan = new NodeMessagechannel();
+      const chan = new MessageChannel();
       const error$ = rx.fromEventPattern(
         h => chan.port1.on('messageerror', h),
         h => chan.port1.off('messageerror', h)
@@ -194,6 +195,18 @@ export function createWorkerControl<
       }
     })
   ));
+
+  r('setLiftUpActions -> postMessage to main thread',
+    inputTable.l.setLiftUpActions.pipe(
+      rx.mergeMap(([, action$]) => action$),
+      rx.withLatestFrom(outputTable.l.workerInited),
+      rx.tap(([action, [, , , port]]) => {
+        if (port) {
+          o.dp.log(`pass action ${nameOfAction(action)} to main thread`);
+          port.postMessage(serializeAction(action));
+        }
+      })
+    ));
 
   return comp as unknown as WorkerControl<I, O, LI, LO>;
 }

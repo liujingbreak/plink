@@ -13,10 +13,10 @@ export function applyScheduler(broker, opts) {
     const { RedBlackTree } = algo;
     const workerRankTree = new RedBlackTree();
     const ranksByWorkerNo = new Map();
-    let { maxNumOfWorker } = opts;
-    if (opts.excludeCurrentThead === true) {
-        maxNumOfWorker--;
-    }
+    const { maxNumOfWorker } = opts;
+    // if (opts.excludeCurrentThead === true) {
+    //   maxNumOfWorker--;
+    // }
     r('assignWorker -> workerAssigned', outputTable.l.assignWorker.pipe(rx.map(([m]) => {
         if (ranksByWorkerNo.size < maxNumOfWorker) {
             const newWorker = (ranksByWorkerNo.size === 0 && opts.excludeCurrentThead !== true) ? 'main' : opts.workerFactory();
@@ -45,7 +45,7 @@ export function applyScheduler(broker, opts) {
     r('workerAssigned -> changeWorkerRank()', i.pt.workerAssigned.pipe(rx.map(([, workerNo]) => {
         changeWorkerRank(workerNo, 1);
     })));
-    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', outputTable.l.newWorkerReady.pipe(rx.mergeMap(([, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1))), rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(rx.tap(() => changeWorkerRank(workerNo, -1)))))));
+    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', outputTable.l.newWorkerReady.pipe(rx.mergeMap(([, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError('stopWaiting -> ...')), rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError('returned -> ...'))))));
     // r(rx.merge(i.pt.onWorkerWait, i.pt.onWorkerReturned).pipe(
     //   rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))
     // ));

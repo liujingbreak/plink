@@ -12,13 +12,13 @@ export class DuplexController<I extends ActionFunctions, O extends ActionFunctio
 
   constructor(opts?: DuplexOptions<I & O>) {
     const name = opts?.name ?? '';
-    this.inputControl = this.i = new RxController<I>({...opts, debug: opts?.debug, name: name + '.input', log: opts?.log});
-    this.outputControl = this.o = new RxController<O>({...opts, debug: opts?.debug, name: name + '.output', log: opts?.log});
+    this.inputControl = this.i = new RxController<I>({...opts, debug: opts?.debug, name: name + '.i ', log: opts?.log});
+    this.outputControl = this.o = new RxController<O>({...opts, debug: opts?.debug, name: name + '.o ', log: opts?.log});
   }
 
   /** Invoke `setName` on RxController */
   setName(value: string) {
-    this.i.setName(value + '.input');
-    this.o.setName(value + '.output');
+    this.i.setName(value + '.i ');
+    this.o.setName(value + '.o ');
   }
 }

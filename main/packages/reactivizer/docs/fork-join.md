@@ -49,6 +49,7 @@ const heavyWorkService = {
 const reactivzed = (await createWorkerControl({name: 'heavyWork'})).reativizeRecursiveFuncs(heavyWorkService);
 const {o} = reactivzed;
 const broker = createBroker(reactivzed);
+```
 
 A **broker** is the coordinator to pass "fork" and "rejoin" message between main thread and thread workers.
 It is also a ReactorComposite, you can pass log options as second parameters to `createBroker` and observe actions of it.

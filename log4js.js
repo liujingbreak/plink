@@ -25,7 +25,7 @@ if (isPm2) {
 } else if (cluster.isWorker) {
   fileName = 'cluster worker should not log file';
 } else if (!isMainThread) { // this is a forked process, should use a different file name
-  fileName = `plink.(${process.pid}).log`;
+  fileName = 'plink.log';
   patterns.colorfulOutput = 'pid:%z %[[%p]%c%] - %m';
 }
 
@@ -79,7 +79,7 @@ module.exports.setup = function(options) {
     delete config.appenders.file.backups;
   }
   if (logger.onlyFileOut) {
-    for (let cat of Object.values(config.categories)) {
+    for (const cat of Object.values(config.categories)) {
       cat.appenders = ['file'];
     }
     console.log('[log4js.js] only file out');

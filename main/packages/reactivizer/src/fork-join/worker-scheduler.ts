@@ -22,10 +22,10 @@ export function applyScheduler<W extends WorkerControl<any, any, any, any>>(brok
   const workerRankTree = new RedBlackTree<number, number[]>();
   const ranksByWorkerNo = new Map<number, [worker: Worker | NodeWorker | 'main', rank: number]>();
 
-  let {maxNumOfWorker} = opts;
-  if (opts.excludeCurrentThead === true) {
-    maxNumOfWorker--;
-  }
+  const {maxNumOfWorker} = opts;
+  // if (opts.excludeCurrentThead === true) {
+  //   maxNumOfWorker--;
+  // }
 
   r('assignWorker -> workerAssigned', outputTable.l.assignWorker.pipe(
     rx.map(([m]) => {
@@ -63,10 +63,12 @@ export function applyScheduler<W extends WorkerControl<any, any, any, any>>(brok
     outputTable.l.newWorkerReady.pipe(
       rx.mergeMap(([, workerNo, workerOutputCtl]) => rx.merge(
         workerOutputCtl.pt.stopWaiting.pipe(
-          rx.tap(() => changeWorkerRank(workerNo, 1))
+          rx.tap(() => changeWorkerRank(workerNo, 1)),
+          broker.labelError('stopWaiting -> ...')
         ),
         rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(
-          rx.tap(() => changeWorkerRank(workerNo, -1))
+          rx.tap(() => changeWorkerRank(workerNo, -1)),
+          broker.labelError('returned -> ...')
         )
       ))
     ));

@@ -67,18 +67,18 @@ r('group markdown by key -> htmlDone', inputForHasKey.groupControllerBy(action =
       ]).pipe(
         rx.map(([[, _key, containerDom], [, , data], [, mermaidClassName]]) => {
           containerDom!.innerHTML = data.html;
-          return [containerDom!, mermaidClassName] as const;
+          return [containerDom!, data.mermaids, mermaidClassName] as const;
         }),
         rx.delay(50),
-        rx.tap(([containerDom, mermaidClassName]) => {
+        rx.tap(([containerDom, mermaidTexts, mermaidClassName]) => {
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          containerDom.querySelectorAll('.language-mermaid').forEach(async el => {
+          containerDom.querySelectorAll('.language-mermaid').forEach(async (el, idx) => {
             el.id = 'mermaid-diagram-' + mermaidIdSeed++;
             const container = document.createElement('div');
             container.className = mermaidClassName;
             el.parentElement!.insertBefore(container, el);
             // Can not be moved to a Worker, mermaid relies on DOM
-            const svgStr = await drawMermaidDiagram(el.id, unescape((el as HTMLPreElement).innerText));
+            const svgStr = await drawMermaidDiagram(el.id, mermaidTexts[idx]);
             container.innerHTML = svgStr;
           });
         }),

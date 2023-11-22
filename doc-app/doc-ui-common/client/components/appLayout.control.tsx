@@ -93,8 +93,7 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
     ))
   ));
 
-  r(
-    'showTopLoadingReqsCount -> loadingVisible',
+  r('showTopLoadingReqsCount -> loadingVisible',
     outputTable.l.showTopLoadingReqsCount.pipe(
       rx.tap(([m, count]) => {
         if (count > 0) {

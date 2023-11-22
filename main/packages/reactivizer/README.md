@@ -32,7 +32,7 @@ Some of the concepts and conventions are inspired by Apache kafka, Redux-observa
 - Taking care of error handling by default.
 - `table`s, message's state management, which is a queriable snapshot of `Observable` messages.
 - Message, tracing and tracking which can help to debug and locate problems of from big amount of Observable messages.
-- A **recursive forkjoin** API for Node.js **thread_workers** and browser's **web worker**, and on top of it, an implementation of multithread **merge sort** algorithm.
+- A [**recursive forkjoin**](./docs/reactivizerForkJoin.md) API for Node.js **thread_workers** and browser's **web worker**, and on top of it, an implementation of multithread **merge sort** algorithm.
 - RxJS is the only required (peer) dependency, another optional dependency [@wfh/algorithms](../algorithms/README.md) is only needed in case of using **forkjoin** module
 
 ### 1.2. Quick view of what it looks like
@@ -51,7 +51,7 @@ type InputActions = {
 };
 
 // output message
-type OutputEvent = {
+type OutputEvents = {
   replyGreeting(word: string): void;
   answerQuestion(content: string): void;
 };

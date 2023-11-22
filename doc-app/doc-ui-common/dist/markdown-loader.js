@@ -11,13 +11,22 @@ const markdownLoader = function (source, sourceMap) {
     const cb = this.async();
     const importCode = [];
     let imgIdx = 0;
+    const broker = (0, markdown_processor_main_1.setupBroker)(false);
     // const logger = this.getLogger('markdown-loader');
     // debugger;
     const { i, o, r } = markdown_processor_main_1.markdownProcessor;
-    r('resolve images', markdown_processor_main_1.broker.outputTable.l.newWorkerReady.pipe(rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => workerOutput.pt.imageToBeResolved.pipe(rx.tap(([m, imgSrc, _file]) => {
+    r('resolve images', broker.outputTable.l.newWorkerReady.pipe(rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => workerOutput.pt.imageToBeResolved.pipe(rx.tap(([m, imgSrc, _file]) => {
         const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
         importCode.push(`import imgSrc${imgIdx} from '${url}';`);
         workerInput.dpf.imageResolved(m, 'imgSrc' + (imgIdx++));
+    })))));
+    r('resolve links', broker.outputTable.l.newWorkerReady.pipe(rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => workerOutput.pt.linkToBeResolved.pipe(rx.tap(([m, href, _file]) => {
+        const matched = /([^/]+)\.md$/.exec(href);
+        if (matched === null || matched === void 0 ? void 0 : matched[1]) {
+            workerInput.dpf.linkResolved(m, matched[1]);
+            return;
+        }
+        workerInput.dpf.linkResolved(m, href);
     })))));
     r('processFileDone -> ...', i.do.forkProcessFile(o.at.processFileDone, source, this.resourcePath).pipe(rx.take(1), rx.tap(([, { resultHtml, toc, mermaid }]) => {
         cb(null, importCode.join('\n') + '\nconst html = ' + (0, reactivizer_1.arrayBuffer2str)(resultHtml) +

@@ -15,7 +15,10 @@ export declare function createSorter<D extends WritableArray>(comparator?: ForkS
     /**
      * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread
      */
-    sort(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold?: number): Promise<[number, number]>;
+    sort(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold?: number): Promise<[
+        number,
+        number
+    ]>;
     merge(buf: SharedArrayBuffer, offset1: number, len1: number, offset2: number, len2: number, noForkThreshold?: number, targetBuffer?: SharedArrayBuffer, targetOffset?: number): Promise<null | ForkTransferablePayload<ArrayBuffer | null>>;
 }, {
     sortAllInWorkerResolved: (p: [p: [number, number]]) => void;
@@ -25,4 +28,4 @@ export declare function createSorter<D extends WritableArray>(comparator?: ForkS
     sortAllInWorkerCompleted: () => void;
     sortCompleted: () => void;
     mergeCompleted: () => void;
-} & ForkWorkerOutput & Record<string, never>, readonly "exit"[], readonly ("workerInited" | "log" | "warn")[]>;
+} & ForkWorkerOutput & Record<string, never>, readonly ("exit" | "setLiftUpActions")[], readonly ("workerInited" | "log" | "warn")[]>;
