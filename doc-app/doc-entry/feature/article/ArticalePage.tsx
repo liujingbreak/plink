@@ -65,13 +65,6 @@ const ArticalePage = React.memo<ArticalePageProps>(function() {
     }
   }, [layout, matchedParams?.mdKey]);
 
-  React.useEffect(() => {
-    console.log('............. new Articale');
-    return () => {
-      console.log('....... unmount Article');
-    };
-  }, []);
-
   // mdc-layout-grid provides proper margin or padding space for page element
   return (
     <div className={cls('articale-page', 'mdc-layout-grid')}> {/* CSS class mdc-layout-grid provides proper margin or padding space for page element */}
