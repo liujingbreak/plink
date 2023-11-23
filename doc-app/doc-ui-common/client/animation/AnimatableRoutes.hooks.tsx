@@ -8,6 +8,8 @@ import * as op from 'rxjs/operators';
 type RouteActions = {
   /** @param relativePath the path relative to "basenameOrParent" */
   navigateTo(relativePath: string): void;
+  /** @param relativePath the path relative to current "matchedRoute.location.pathname" */
+  navigateToRel(relativePath: string): void;
   setRoutes(r: RouteObject[]): void;
   /** Redirect another path */
   replaceUrl(relativePath: string): void;
@@ -22,7 +24,9 @@ const routeOutputTableFor = ['routeCompiled', 'routeMatched'] as const;
 type RouteEvents = {
   onBrowserHistoryPopstate(): void;
   routeCompiled(routeObjs: CompiledRouteObject[]): void;
-  matchingUrl(pathWithQueryAndHash: {pathname: string; hash: string; search: string; searchParams: URLSearchParams}): void;
+  matchingUrl(pathWithQueryAndHash: {
+    pathname: string; hash: string; search: string; searchParams: URLSearchParams
+  }, isPopState?: boolean): void;
   routeMatched(r: MatchedRouteObject): void;
 };
 
@@ -47,6 +51,7 @@ type CompiledRouteObject = RouteObject & {
 
 export type MatchedRouteObject = CompiledRouteObject & {
   matchedParams: Record<string, string>;
+  isPopState: boolean;
   /** The original location being navigated to */
   location: PathWithQueryAndHash;
 };
@@ -75,6 +80,39 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       }
     }));
 
+    r('navigateToRel -> matchingUrl', i.pt.navigateToRel.pipe(
+      op.withLatestFrom(outputTable.l.routeMatched),
+      op.map(([[, toPath], [, matchedRoute]]) => {
+        const {pathname, search} = new URL(toPath, new URL(matchedRoute.location.pathname, 'http://w.g.c'));
+        if (typeof window !== 'undefined') {
+          window.history.pushState({}, '', new URL(pathname + search, window.location.href));
+        }
+        const tempURL = new URL(pathname + search, 'http://w.g.c');
+        o.dp.matchingUrl(tempURL);
+      })
+    ));
+
+    r('navigateTo -> matchingUrl', i.pt.navigateTo.pipe(
+      op.withLatestFrom(inputTable.l.setBasenameOrParent),
+      op.map(([[, toPath], [, basenameOrParent]]) => {
+        if (typeof window !== 'undefined') {
+          window.history.pushState({}, '', resolvePath(basenameOrParent, toPath));
+        }
+        const tempURL = new URL(toPath, 'http://w.g.c');
+        o.dp.matchingUrl(tempURL);
+      })
+    ));
+
+    r('replaceUrl -> matchingUrl', i.pt.replaceUrl.pipe(
+      op.withLatestFrom(inputTable.l.setBasenameOrParent),
+      op.map(([[, toPath], [, basenameOrParent]]) => {
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, '', resolvePath(basenameOrParent, toPath));
+        }
+        o.dp.matchingUrl(new URL(toPath, 'http://w.g.c'));
+      })
+    ));
+
     r('setRoutes', i.pt.setRoutes.pipe(
       op.map(([, routes]) => {
         if (routes)
@@ -83,15 +121,15 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
     ));
 
     r('matchingUrl -> call matchRoute, dispatch routeMatched', o.pt.matchingUrl.pipe(
-      op.switchMap(([m, url]) => outputTable.l.routeCompiled.pipe(
+      op.switchMap(([m, url, isPopState]) => outputTable.l.routeCompiled.pipe(
         op.take(1),
         op.map(([, compiledRoutes]) => {
         // eslint-disable-next-line no-console
           console.log('Route to', url);
           const matched = matchRoute(compiledRoutes, url);
           if (matched) {
+            matched.isPopState = !!isPopState;
             o.dpf.routeMatched(m, matched);
-            // setRouter(s => ({...s, matchedRoute: matched}));
           }
 
           return matched?.redirect;
@@ -102,41 +140,13 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       op.map(redirect => i.dp.replaceUrl(redirect))
     ));
 
-    r('Handle navigations -> matchingUrl', rx.merge(
-      o.at.onBrowserHistoryPopstate.pipe(
-        op.withLatestFrom(inputTable.l.setBasenameOrParent),
-        op.concatMap(([, [, basenameOrParent]]) => rx.timer(16).pipe(op.map(() => basenameOrParent))),
-        op.map(basenameOrParent => {
-          const temp = new URL((subPathOf(basenameOrParent, window.location.pathname) ?? window.location.pathname) + window.location.search + window.location.hash, window.location.href);
-          o.dp.matchingUrl(temp);
-        })
-      ),
-      i.pt.navigateTo.pipe(
-        op.withLatestFrom(inputTable.l.setBasenameOrParent),
-        op.map(([[, toPath], [, basenameOrParent]]) => {
-          if (typeof window !== 'undefined') {
-            window.history.pushState({}, '', resolvePath(basenameOrParent, toPath));
-          }
-          const tempURL = new URL(toPath, 'http://w.g.c');
-          o.dp.matchingUrl(tempURL);
-        })
-      ),
-      i.pt.replaceUrl.pipe(
-        op.withLatestFrom(inputTable.l.setBasenameOrParent),
-        op.map(([[, toPath], [, basenameOrParent]]) => {
-          if (typeof window !== 'undefined') {
-            window.history.replaceState({}, '', resolvePath(basenameOrParent, toPath));
-          }
-          o.dp.matchingUrl(new URL(toPath, 'http://w.g.c'));
-        })
-      ),
-      rx.of(typeof window !== 'undefined' ? window.location.pathname : '').pipe(
-        op.filter(url => !!url),
-        op.withLatestFrom(inputTable.l.setBasenameOrParent),
-        op.map(([pathname, [, basenameOrParent]]) => {
-          o.dp.matchingUrl(new URL((subPathOf(basenameOrParent, pathname) ?? pathname) + window.location.search + window.location.hash, window.location.href));
-        })
-      )
+    r('onBrowserHistoryPopstate -> matchingUrl', o.at.onBrowserHistoryPopstate.pipe(
+      op.withLatestFrom(inputTable.l.setBasenameOrParent),
+      op.concatMap(([, [, basenameOrParent]]) => rx.timer(16).pipe(op.map(() => basenameOrParent))),
+      op.map(basenameOrParent => {
+        const temp = new URL((subPathOf(basenameOrParent, window.location.pathname) ?? window.location.pathname) + window.location.search + window.location.hash, window.location.href);
+        o.dp.matchingUrl(temp, true);
+      })
     ));
 
     r('sync setRootElement to setRouter', inputTable.l.setRootElement.pipe(
@@ -144,9 +154,21 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       rx.tap(([, rootElement]) => setRouter(s => ({...s, rootElement: rootElement!})))
     ));
 
-    r('sync outputTable to setRouter', outputTable.l.routeMatched.pipe(
+    r('routeMatched -> sync outputTable to setRouter', outputTable.l.routeMatched.pipe(
       rx.tap(([, matchedRoute]) => setRouter(s => ({...s, matchedRoute})))
     ));
+
+    // must be place after "matchingUrl" reactor
+    r('initial window.location -> matchingUrl',
+      rx.of(typeof window !== 'undefined' ? window.location.pathname : '').pipe(
+        op.filter(url => !!url),
+        op.withLatestFrom(inputTable.l.setBasenameOrParent),
+        op.map(([pathname, [, basenameOrParent]]) => {
+          o.dp.matchingUrl(new URL((subPathOf(basenameOrParent, pathname) ?? pathname) + window.location.search + window.location.hash, window.location.href));
+        })
+      )
+    );
+
 
     i.dp.setRoutes(routes);
     setRouter(s => ({...s, control: composite.i}));
@@ -172,7 +194,7 @@ export function useRouter() {
   return React.useContext(RouterContext);
 }
 
-export function useNavigateHandler<C extends(...args: any[]) => void>(path: string) {
+export function useNavigateHandler<C extends(...args: any[]) => void>(path: string): C {
   const router = useRouter();
   return React.useCallback(() => {
     router?.control?.dispatcher.navigateTo(path);

@@ -37,7 +37,6 @@ type TocUIEvents = {
   loadRawItem(toc: TOC, levelDecrement?: number): void;
   itemById(map: Map<string, ItemState>): void;
   togglePopupClassName(cln: string): void;
-  scrollToItem(id: string): void;
   mdHtmlScanned(done: boolean, key?: string): void;
 };
 
@@ -76,11 +75,10 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   r('setDataKey -> loadRowItem, reset mdHtmlScanned', i.pt.setDataKey.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.tap(() => o.dp.mdHtmlScanned(false)),
-    rx.switchMap(([m, key]) => markdownsControl.outputTable.l.htmlDone.pipe(
-      rx.filter(([, key0]) => key0 === key),
-      op.map(([, , contents]) => contents),
+    rx.switchMap(([m, key]) => markdownsControl.outputTable.l.htmlByKey.pipe(
+      rx.map(([, map]) => map.get(key)),
+      rx.filter((data): data is NonNullable<typeof data> => data != null),
       op.distinctUntilChanged(),
-      op.filter(data => data != null),
       op.take(1),
       op.map(data => {
         if (data.toc.length === 0) {
@@ -153,40 +151,40 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
         rx.filter(([, done, key]) => done)
       )),
     rx.filter(([, id]) => id != null),
-    rx.switchMap(([[, scrollable], id]) => {
-      o.dp.scrollToItem(id!);
+    rx.switchMap(([setFrontLayerRef, hash]) => {
       return rx.combineLatest([
         outputTable.l.mdHtmlScanned.pipe(rx.filter(([, done]) => done)),
         outputTable.l.itemById
       ]).pipe(
         rx.take(1),
-        rx.switchMap(([, [, map]]) => {
-          const itemState = map.get(id!);
-          const rect = itemState?.textDom!.getBoundingClientRect();
-          const [, toggleIcon] = composite.inputTable.getData().togglePopup;
-          if (toggleIcon) {
-            // change icon button
-            toggleIcon(false);
-            // close TOC popup
-            i.dp.togglePopup(false, toggleIcon);
-          }
-          if (rect) {
-            let targetY = Math.floor(rect.y - scrollable!.getBoundingClientRect().y + scrollable!.scrollTop);
-            if (targetY > 64)
-              targetY -= 64;
-            return rx.timer(250).pipe(
-              rx.tap(() => scrollable!.scrollTo({
-                left: 0,
-                top: targetY,
-                behavior: 'smooth'
-              }))
-            );
-          } else {
-            console.error(`Can not find item of ${id!} to be scrolled to, client rectangle is`, rect);
-            return rx.EMPTY;
-          }
-        })
+        rx.map(b => [setFrontLayerRef, hash, b[1]] as const)
       );
+    }),
+    rx.switchMap(([[, scrollable], id, [, map]]) => {
+      const itemState = map.get(id!);
+      const rect = itemState?.textDom!.getBoundingClientRect();
+      const [, toggleIcon] = composite.inputTable.getData().togglePopup;
+      if (toggleIcon) {
+        // change icon button
+        toggleIcon(false);
+        // close TOC popup
+        i.dp.togglePopup(false, toggleIcon);
+      }
+      if (rect) {
+        let targetY = Math.floor(rect.y - scrollable!.getBoundingClientRect().y + scrollable!.scrollTop);
+        if (targetY > 64)
+          targetY -= 64;
+        return rx.timer(250).pipe(
+          rx.tap(() => scrollable!.scrollTo({
+            left: 0,
+            top: targetY,
+            behavior: 'smooth'
+          }))
+        );
+      } else {
+        console.error(`Can not find item of ${id!} to be scrolled to, client rectangle is`, rect);
+        return rx.EMPTY;
+      }
     })
   ));
 

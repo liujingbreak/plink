@@ -17,6 +17,7 @@ export type InputActions = {
   scrollTo(...args: [left: number, top: number] | [ScrollToOptions]): void;
   setLoadingBarRef(dom: HTMLDivElement | null): void;
   setTopAppBarRef(mdc: Promise<MDCTopAppBar> | null): void;
+  // setTopEdgeRef(dom: HTMLDivElement | null): void;
   setTopAppBarDomRef(dom: HTMLHeadElement): void;
   setFrontLayerRef(div: HTMLDivElement | null): void;
   setDeviceSize(size: Size): void;
@@ -28,8 +29,8 @@ export const inputTableFor = ['setFrontLayerRef', 'setLoadingVisible', 'updateBa
   'setLoadingBarRef', 'setTopAppBarRef', 'setTopAppBarDomRef', 'setDeviceSize', 'setHeaderVisibilityDetectDom'] as const;
 
 export type OutputEvents = {
+  topBarVisible(isVisible: boolean): void;
   showTopLoadingReqsCount(count: number): void;
-  topBarRef(): void;
   frontLayerClassName(className: string): void;
   topLoadingBarRef(dom: HTMLDivElement | null): void;
   topbarType(type: TopAppBarProps['type']): void;
@@ -44,6 +45,7 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
   const comp = new ReactorComposite<InputActions, OutputEvents, typeof inputTableFor, typeof outputTableFor>({
     name: 'AppLayout',
     debug: process.env.NODE_ENV === 'development',
+    debugExcludeTypes: ['onScroll'],
     inputTableFor,
     outputTableFor
   });
@@ -60,17 +62,21 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
     })
   ));
 
+  // TODO: replace with IntersectionObserver
   r('onScroll -> frontLayerClassName', i.pt.onScroll.pipe(
     rx.switchMap(([m, event]) => rx.combineLatest([
       inputTable.l.setTopAppBarDomRef,
-      inputTable.l.setFrontLayerRef.pipe(rx.filter(([, dom]) => dom != null))
+      inputTable.l.setFrontLayerRef.pipe(rx.filter(([, dom]) => dom != null)),
+      outputTable.l.frontLayerClassName
     ]).pipe(
       rx.take(1),
-      rx.tap(([[, topAppBarDomRef], [, frontLayerRef]]) => {
+      rx.tap(([[, topAppBarDomRef], [, frontLayerRef], [, prevClassname]]) => {
         if (frontLayerRef!.scrollTop + topAppBarDomRef.getBoundingClientRect().top > 1) {
-          o.dpf.frontLayerClassName(m, 'withShadow');
+          if (prevClassname !== 'withShadow')
+            o.dpf.frontLayerClassName(m, 'withShadow');
         } else {
-          o.dpf.frontLayerClassName(m, '');
+          if (prevClassname !== '')
+            o.dpf.frontLayerClassName(m, '');
         }
       })
     ))
@@ -104,7 +110,7 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
       })
     ));
 
-  r('mdc setScrollTarget', rx.combineLatest([
+  r('- > mdc setScrollTarget, topBarVisible', rx.combineLatest([
     inputTable.l.setFrontLayerRef.pipe(
       rx.map(([, v]) => v),
       rx.distinctUntilChanged(),
@@ -119,8 +125,33 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
     rx.switchMap(async ([dom, ref]) => {
       const mdc = await ref!;
       mdc.setScrollTarget(dom!);
-    })
+      const ob = new IntersectionObserver(entries => {
+        o.dp.topBarVisible(entries[0].isIntersecting);
+      }, {threshold: 0});
+      ob.observe(mdc.root);
+      return () => ob.unobserve(mdc.root);
+    }),
+    rx.switchMap(unsub => new rx.Observable<never>(() => unsub))
   ));
+
+  // r('setTopEdgeRef -> frontLayerClassName', i.pt.setTopEdgeRef.pipe(
+  //   rx.filter(([, el]) => el != null),
+  //   rx.switchMap(a => rx.combineLatest([
+  //     inputTable.l.setTopAppBarDomRef,
+  //     inputTable.l.setFrontLayerRef.pipe(rx.filter(([, dom]) => dom != null))
+  //   ]).pipe(rx.take(1), rx.map(b => [a, ...b] as const))),
+  //   rx.switchMap(([[, el], [, topAppBarDomRef], [, frontLayerRef]]) => {
+  //     const ob = new IntersectionObserver(entities => {
+  //       if (frontLayerRef!.scrollTop + topAppBarDomRef.getBoundingClientRect().top > 1) {
+  //         o.dp.frontLayerClassName('withShadow');
+  //       } else {
+  //         o.dp.frontLayerClassName('');
+  //       }
+  //     }, {threshold: 0});
+  //     ob.observe(el!);
+  //     return new rx.Observable(() => () => ob.unobserve(el!));
+  //   })
+  // ));
 
   r('setTopAppBarDomRef -> onTopAppBarScrollChange', i.pt.setHeaderVisibilityDetectDom.pipe(
     rx.filter(([, dom]) => dom != null),

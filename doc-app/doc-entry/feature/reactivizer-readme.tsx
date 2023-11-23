@@ -6,7 +6,7 @@ import {ShowTopLoading} from '@wfh/doc-ui-common/client/components/ShowTopLoadin
 
 bootstrapRoutesWith(() => {
   const LazyDocComponent = loadable(async () => {
-    return (await import('../article/ArticalePage')).ArticalePage;
+    return (await import('./article/ArticalePage')).ArticalePage;
   }, {fallback: <ShowTopLoading/>});
 
   markdownsControl.i.dp.registerFiles({

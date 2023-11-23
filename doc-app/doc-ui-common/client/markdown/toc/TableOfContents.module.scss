@@ -3,7 +3,7 @@
 .toc{
   &Body {
     flex-grow: 0;
-    flex-shrink: 1;
+    flex-shrink: 0;
     padding-left: 1rem;
     background-color: white;
     left: 0;
@@ -94,6 +94,9 @@ $level-indent-unit: 12px;
     right: auto;
     width: 28vw;
     max-width: 400px;
-    padding-top: 1rem;
+    padding-top: 0;
+    &.fixed {
+      padding-top: 24px;
+    }
   }
 }

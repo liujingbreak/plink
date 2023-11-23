@@ -45,10 +45,8 @@ r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.p
     o.dpf.processFileDone(m, result);
 })));
 r('processFile -> processFileDone', i.pt.processFile.pipe(rx.tap(() => { o.dp.log('react to processFile'); }), rx.mergeMap(([m, content, file]) => {
-    o.dp.log('inside processFile');
     const html = md.render((0, reactivizer_1.arrayBuffer2str)(content));
     const doc = (0, parse5_1.parse)(html, { sourceCodeLocationInfo: true });
-    o.dp.log('parsed html');
     const content$ = dfsAccessElement(m, html, file, doc);
     return content$.pipe(rx.map(([content, toc, mermaidCodes]) => {
         const buf = (0, reactivizer_1.str2ArrayBuffer)(content);

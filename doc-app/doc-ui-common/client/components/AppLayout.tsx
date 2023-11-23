@@ -77,7 +77,9 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
         </div>
         <div ref={inputControl.dp.setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
           onScroll={onScrollRaw}>
-          <div ref={inputControl.dp.setHeaderVisibilityDetectDom} className={styles.headerVisDetect}></div>
+          {// <div className={styles.scrollableTopEdge} ref={inputControl.dp.setTopEdgeRef}></div>
+          }
+          <div ref={inputControl.dp.setHeaderVisibilityDetectDom}></div>
           {props.children}
           {uiState.updateFooter[0]
             ? <footer className={styles.footer}>

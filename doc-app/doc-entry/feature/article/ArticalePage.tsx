@@ -49,9 +49,9 @@ const ArticalePage = React.memo<ArticalePageProps>(function() {
 
   React.useEffect(() => {
     if (matchedParams?.mdKey) {
-      const sub = markdownsControl.outputTable.l.htmlDone.pipe(
-        rx.filter(([, key]) => key === matchedParams.mdKey),
-        rx.map(([, , contents]) => contents),
+      const sub = markdownsControl.outputTable.l.htmlByKey.pipe(
+        rx.map(([, map]) => map.get(matchedParams.mdKey)),
+        rx.filter((data): data is NonNullable<typeof data> => data != null),
         rx.distinctUntilChanged(),
         rx.filter(md => {
           if (md && layout) {

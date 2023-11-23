@@ -6,28 +6,27 @@ type FileRegister = {[key: string]: () => Promise<LoaderRecivedData> | LoaderRec
 
 type Actions = {
   registerFiles(payload: FileRegister): void;
-  setMermaidClassName(n: string): void;
-  setMarkdownBodyRef(key: string, div: HTMLDivElement | null): void;
   getHtml(key: string): void;
 };
 
-const inputTableFor = ['registerFiles', 'setMermaidClassName'] as const;
+const inputTableFor = ['registerFiles'] as const;
 
 type Events = {
   filesRegistered(loader: {[key: string]: () => Promise<LoaderRecivedData> | LoaderRecivedData}): void;
   htmlDone(key: string, data: LoaderRecivedData): void;
+  htmlByKey(byKey: Map<string, LoaderRecivedData>): void;
 };
 
-const outputTableFor = ['filesRegistered', 'htmlDone'] as const;
+const outputTableFor = ['filesRegistered', 'htmlByKey'] as const;
 
 const composite = new ReactorComposite<Actions, Events, typeof inputTableFor, typeof outputTableFor>({
-  name: 'Markdown',
+  name: 'MarkdownSlice',
   outputTableFor,
   inputTableFor,
   debug: process.env.NODE_ENV === 'development'
 });
 
-const {i, o, r, outputTable, inputTable} = composite;
+const {i, o, r, outputTable} = composite;
 
 r('registerFiles -> filesRegistered', i.pt.registerFiles.pipe(
   rx.scan((acc, [m, value]) => {
@@ -40,75 +39,24 @@ r('registerFiles -> filesRegistered', i.pt.registerFiles.pipe(
   })
 ));
 
-let mermaidIdSeed = 0;
-const inputForHasKey = i.subForTypes(['getHtml', 'setMarkdownBodyRef']);
-r('group markdown by key -> htmlDone', inputForHasKey.groupControllerBy(action => action.p[0]).pipe(
-  rx.mergeMap(([ctl]) => {
-    return rx.merge(
-      ctl.pt.getHtml.pipe(
-        rx.mergeMap(([m, key]) => outputTable.l.filesRegistered.pipe(
-          rx.take(1),
-          rx.mergeMap(async ([, files]) => {
-            const res = files[key]();
-            return await Promise.resolve(res);
-          }),
-          rx.tap(data => {
-            o.dpf.htmlDone(m, key, data);
-          }),
-          composite.labelError(`For key: ${key} getHtml -> htmlDone`)
-        ))
-      ),
-      rx.combineLatest([
-        ctl.pt.setMarkdownBodyRef.pipe( rx.filter(([, , dom]) => dom != null)),
-        outputTable.l.htmlDone.pipe(
-          rx.filter(([, key]) => ctl.key === key)
-        ),
-        inputTable.l.setMermaidClassName
-      ]).pipe(
-        rx.map(([[, _key, containerDom], [, , data], [, mermaidClassName]]) => {
-          containerDom!.innerHTML = data.html;
-          return [containerDom!, data.mermaids, mermaidClassName] as const;
-        }),
-        rx.delay(50),
-        rx.tap(([containerDom, mermaidTexts, mermaidClassName]) => {
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          containerDom.querySelectorAll('.language-mermaid').forEach(async (el, idx) => {
-            el.id = 'mermaid-diagram-' + mermaidIdSeed++;
-            const container = document.createElement('div');
-            container.className = mermaidClassName;
-            el.parentElement!.insertBefore(container, el);
-            // Can not be moved to a Worker, mermaid relies on DOM
-            const svgStr = await drawMermaidDiagram(el.id, mermaidTexts[idx]);
-            container.innerHTML = svgStr;
-          });
-        }),
-        composite.labelError('setMarkdownBodyRef -> render mermaid')
-      )
-    );
-  })
+r('getHtml -> htmlDone, htmlByKey', i.pt.getHtml.pipe(
+  rx.mergeMap(([m, key]) => outputTable.l.filesRegistered.pipe(
+    rx.take(1),
+    rx.mergeMap(async ([, files]) => {
+      const res = files[key]();
+      return await Promise.resolve(res);
+    }),
+    rx.tap(data => {
+      o.dpf.htmlDone(m, key, data);
+      const map = outputTable.getData().htmlByKey[0]!;
+      map.set(key, data);
+      o.dpf.htmlByKey(m, map);
+    })
+  ))
 ));
 
-const mermaidInited = false;
+o.dp.htmlByKey(new Map());
 
-async function drawMermaidDiagram(id: string, mermaidStr: string | null): Promise<string> {
-  const mermaid = (await import('mermaid')).default;
-  if (mermaidStr == null)
-    return Promise.resolve('');
-  if (!mermaidInited) {
-    mermaid.initialize({
-      securityLevel: 'loose',
-      startOnLoad: false
-    });
-  }
-
-  try {
-    const {svg} = await mermaid.render(id, mermaidStr);
-    return svg;
-  } catch (err) {
-    console.error('Failed to draw mermaid diagram', err);
-    return '';
-  }
-}
 export {composite as markdownsControl};
 
 if (module.hot) {

@@ -213,7 +213,7 @@ export class RxController<I extends ActionFunctions> {
   }
 
   /**
-   * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+   * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
    */
   subForTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
     const sub = new RxController<Pick<I, KS[number]>>(opts);

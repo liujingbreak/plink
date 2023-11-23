@@ -32,12 +32,19 @@
   height: 100%;
 }
 .backLayer {
+  position: relative;
+  z-index: 1;
   height: 100%;
   flex-direction: column;
   display: flex;
   justify-content: stretch;
 }
+.scrollableTopEdge {
+  position: absolute;
+  top: 0;
+}
 .frontLayer {
+  position: relative;
   flex-grow: 1;
   // padding: appLayout.$frontLayer-padding;
   display: flex;

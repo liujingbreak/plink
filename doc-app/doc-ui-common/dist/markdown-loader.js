@@ -23,10 +23,10 @@ const markdownLoader = function (source, sourceMap) {
     r('resolve links', broker.outputTable.l.newWorkerReady.pipe(rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => workerOutput.pt.linkToBeResolved.pipe(rx.tap(([m, href, _file]) => {
         const matched = /([^/]+)\.md$/.exec(href);
         if (matched === null || matched === void 0 ? void 0 : matched[1]) {
-            workerInput.dpf.linkResolved(m, matched[1]);
+            workerInput.dpf.linkResolved(m, JSON.stringify(matched[1]));
             return;
         }
-        workerInput.dpf.linkResolved(m, href);
+        workerInput.dpf.linkResolved(m, JSON.stringify(href));
     })))));
     r('processFileDone -> ...', i.do.forkProcessFile(o.at.processFileDone, source, this.resourcePath).pipe(rx.take(1), rx.tap(([, { resultHtml, toc, mermaid }]) => {
         cb(null, importCode.join('\n') + '\nconst html = ' + (0, reactivizer_1.arrayBuffer2str)(resultHtml) +
