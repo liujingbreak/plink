@@ -111,6 +111,9 @@ function default_1(webpackEnv) {
         (0, webpack_lib_1.default)(cmdOption.buildTargets[0].pkg, config);
     }
     else if (cmdOption.buildType === 'dll') {
+        if (cmdOption.refDllManifest) {
+            (0, webpack_dll_1.setupDllReferencePlugin)(cmdOption.refDllManifest, config);
+        }
         (0, webpack_dll_1.setupDllPlugin)(cmdOption.buildTargets, config, getPluginConstructor);
     }
     else {

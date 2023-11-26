@@ -125,6 +125,9 @@ export default function(webpackEnv: 'production' | 'development') {
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTargets[0].pkg!, config);
   } else if (cmdOption.buildType === 'dll') {
+    if (cmdOption.refDllManifest) {
+      setupDllReferencePlugin(cmdOption.refDllManifest, config);
+    }
     setupDllPlugin(cmdOption.buildTargets, config, getPluginConstructor);
   } else {
     let dllJsFiles = [] as string[];

@@ -37,6 +37,7 @@ export class ReactorComposite<
   /** All catched error goes here */
   error$ = this.errorSubject.asObservable();
   destory$: rx.Subject<void> = new rx.ReplaySubject(1);
+  dispose: () => void;
 
   get inputTable(): ActionTable<I, LI> {
     if (this.iTable)
@@ -84,13 +85,18 @@ export class ReactorComposite<
         return src;
       })
     ).subscribe();
+    this.dispose = () => {
+      this.o.core.actionUpstream.next(this.o.core.createAction('Reactors finalized'));
+      this.destory$.next();
+    };
   }
 
   /** @deprecated no longer needed, always start automatically after being contructed */
   startAll() {}
 
+  /** @deprecated call dispose() instead */
   destory() {
-    this.destory$.next();
+    this.dispose();
   }
 
   // eslint-disable-next-line space-before-function-paren

@@ -4,11 +4,11 @@ import clsBinder from 'classnames/bind';
 // import {Drawer} from '@wfh/material-components-react/client/Drawer';
 // import {useParams} from 'react-router-dom';
 import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client/markdown/MarkdownViewComp';
-import {markdownsControl} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
+// import {markdownsControl} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 // import {DocListComponents} from './DocListComponents';
 import {useRouter} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
-import * as rx from 'rxjs';
-import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.control';
+// import * as rx from 'rxjs';
+// import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.control';
 import {renderByMdKey} from './articaleComponents';
 import styles from './ArticalePage.module.scss';
 
@@ -44,26 +44,6 @@ const ArticalePage = React.memo<ArticalePageProps>(function() {
       setPortals(els);
     }
   }, [matchedParams?.mdKey]);
-
-  const layout = useAppLayout();
-
-  React.useEffect(() => {
-    if (matchedParams?.mdKey) {
-      const sub = markdownsControl.outputTable.l.htmlByKey.pipe(
-        rx.map(([, map]) => map.get(matchedParams.mdKey)),
-        rx.filter((data): data is NonNullable<typeof data> => data != null),
-        rx.distinctUntilChanged(),
-        rx.filter(md => {
-          if (md && layout) {
-            layout.i.dp.updateBarTitle(md.toc[0]?.text || 'Document (untitled)');
-            return true;
-          }
-          return false;
-        })
-      ).subscribe();
-      return () => sub.unsubscribe();
-    }
-  }, [layout, matchedParams?.mdKey]);
 
   // mdc-layout-grid provides proper margin or padding space for page element
   return (

@@ -1,16 +1,16 @@
 import React from 'react';
-import * as rx from 'rxjs';
 import classnames from 'classnames/bind';
 import cln from 'classnames';
 import 'github-markdown-css/github-markdown.css';
-import {IconButton, IconButtonProps} from '@wfh/material-components-react/client/IconButton';
+import {IconButton} from '@wfh/material-components-react/client/IconButton';
 import {useRouter} from '../animation/AnimatableRoutes.hooks';
 import {SwitchAnim} from '../animation/SwitchAnim';
 import {useAppLayout} from '../components/appLayout.control';
 import {markdownsControl} from './markdownSlice';
-import {markdownViewControl} from './markdownViewComp.control';
+import {createMarkdownViewControl} from './markdownViewComp.control';
 import styles from './MarkdownViewComp.module.scss';
 import {TableOfContents} from './toc/TableOfContents';
+import {FileInput} from '../components/file-widgets/file-input';
 
 const cls = classnames.bind(styles);
 
@@ -20,70 +20,78 @@ export type MarkdownViewCompProps = {
   onContent?: (dom: HTMLElement) => void;
 };
 
-const {inputTable, outputTable, i} = markdownViewControl;
-i.dp.setMermaidClassName(styles.mermaidDiagram);
-
 export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props) {
+  const [, touchState] = React.useState<unknown>(null); // enable React reconcilation/dirty-check
+  const viewControl = React.useMemo(() => {
+    const control = createMarkdownViewControl(touchState);
+    control.i.dp.setMermaidClassName(styles.mermaidDiagram);
+    return control;
+  }, []);
+  const {outputTable, i, dispose} = viewControl;
+
   const router = useRouter();
   React.useEffect(() => {
     if (router)
       i.dp.setRouter(router);
-  }, [router]);
+  }, [i.dp, router]);
 
   const layout = useAppLayout();
   React.useEffect(() => {
     if (layout) {
+      i.dp.setLayoutControl(layout);
       i.dp.setScrollTopHandler(() => layout.i.dp.scrollTo(0, 0));
     }
-  }, [layout]);
-
-  React.useEffect(() => {
-    if (props.mdKey)
-      markdownsControl.i.dp.getHtml(props.mdKey);
-  }, [props.mdKey]);
-
-  React.useEffect(() => () => markdownViewControl.destory(), []);
-
-  const [, touchState] = React.useState<unknown>(null); // enable React reconcilation/dirty-check
-  React.useEffect(() => {
-    if (props.mdKey == null)
-      return;
-    const sub = rx.merge(outputTable.dataChange$, inputTable.dataChange$).pipe(
-      rx.tap(() => touchState({}))
-    ).subscribe();
-    return () => sub.unsubscribe();
-  }, [props.mdKey]);
-
-  // const [containerDom, setContainerDom] = React.useState<HTMLDivElement | null>();
-  const onbodyRef = React.useCallback((el: HTMLDivElement | null) => {
-    if (el) {
-      i.dp.setMarkdownBodyRef(el);
-    }
-  }, []);
+  }, [i.dp, layout]);
 
   React.useEffect(() => {
     if (props.mdKey) {
       i.dp.setMarkdownKey(props.mdKey);
+      markdownsControl.i.dp.getHtml(props.mdKey);
     }
-  }, [props.mdKey]);
+  }, [i.dp, props.mdKey]);
 
-  const tocDp = inputTable.getData().setTocDispatcher[0];
-  const tocPopupIconCb = React.useCallback<NonNullable<IconButtonProps['onToggle']>>((isOn, toggleIcon) => {
-    if (tocDp)
-      tocDp.togglePopup(isOn, toggleIcon);
-  }, [tocDp]);
+  // React.useEffect(() => {
+  //   const sub = rx.merge(outputTable.dataChange$, inputTable.dataChange$).pipe(
+  //     rx.tap(data => console.log('------------------touched', data)),
+  //     rx.tap(() => touchState({}))
+  //   ).subscribe();
 
-  return (
-    <SwitchAnim debug={false} className={cls('switchAnim')} innerClassName={styles.container} contentHash={props.mdKey}>
-      <>
-        <div ref={onbodyRef} className={cln(styles.markdownContent, 'markdown-body')}></div>
-        {props.mdKey ? <TableOfContents getDispatcher={i.dp.setTocDispatcher} className={styles.toc} markdownKey={props.mdKey} /> : '...'}
-        <IconButton className={styles.tocPopBtn}
-          onToggle={tocPopupIconCb}
-          materialIcon="toc"
-          materialIconToggleOn="close"/>
-      </>
-    </SwitchAnim>
-  );
+  //   return () => sub.unsubscribe();
+  // }, [inputTable.dataChange$, outputTable.dataChange$]);
+
+  React.useEffect(() => () => dispose(), [dispose]);
+
+  const switchAnimDataByKey = React.useMemo(() => new Map<string, {mdKey: string; onBodyRef(ref: HTMLDivElement | null): void}>(), []);
+  React.useEffect(() => {
+    if (props.mdKey && !switchAnimDataByKey.has(props.mdKey)) {
+      switchAnimDataByKey.set(props.mdKey, {
+        mdKey: props.mdKey,
+        onBodyRef(ref) {
+          if (ref && props.mdKey)
+            i.dp.setMarkdownBodyRef(ref, props.mdKey);
+        }
+      });
+    }
+  }, [i.dp, props.mdKey, switchAnimDataByKey]);
+
+  function templateRenderer({mdKey, onBodyRef}: typeof switchAnimDataByKey extends Map<string, infer V> ? V : unknown) {
+    return <>
+      <div ref={onBodyRef} className={cln(styles.markdownContent, 'markdown-body')}></div>
+      {mdKey ? <TableOfContents className={styles.toc} markdownKey={mdKey} markdownViewCtl={viewControl}/> : '...'}
+      <IconButton className={styles.tocPopBtn}
+        onToggle={i.dp.handleTogglePopup}
+        materialIcon="toc"
+        materialIconToggleOn="close"/>
+    </>;
+  }
+
+  const tempalteData = props.mdKey ? switchAnimDataByKey.get(props.mdKey) : null;
+  return <>
+    {outputTable.getData().setFileInputVisible[0] ? <div><FileInput>Select markdown file</FileInput></div> : null}
+    {props.mdKey && tempalteData ?
+      <SwitchAnim type="translateY" debug={true} className={cls('switchAnim')} innerClassName={styles.container}
+        templateData={tempalteData} switchOnDistinct={props.mdKey} templateRenderer={templateRenderer} /> :
+      null}
+  </>;
 });
 

@@ -1,12 +1,11 @@
 import React from 'react';
 
 import cls from 'classnames';
-// import clsddp from 'classnames/dedupe';
+import {useRtk} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {IconButton} from '@wfh/material-components-react/client/IconButton';
 import styles from './Dialog.module.scss';
 import './Dialog.scss';
-import {useRtk} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
 import {sliceOptionFactory, epicFactory, DialogProps as Props, DialogSliceHelper as _DialogSliceHelper} from './dialogSlice';
-import {IconButton} from '@wfh/doc-ui-common/client/material/IconButton';
 
 export type DialogProps = Props;
 export type DialogSliceHelper = _DialogSliceHelper;

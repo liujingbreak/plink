@@ -81,14 +81,14 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
     }));
 
     r('navigateToRel -> matchingUrl', i.pt.navigateToRel.pipe(
-      op.withLatestFrom(outputTable.l.routeMatched),
-      op.map(([[, toPath], [, matchedRoute]]) => {
-        const {pathname, search} = new URL(toPath, new URL(matchedRoute.location.pathname, 'http://w.g.c'));
+      op.withLatestFrom(outputTable.l.routeMatched, inputTable.l.setBasenameOrParent),
+      op.map(([[, toPath], [, matchedRoute], [, basenameOrParent]]) => {
+        const matchingUrl = new URL(toPath, new URL(matchedRoute.location.pathname, 'http://w.g.c'));
+        const {pathname, search} = matchingUrl;
         if (typeof window !== 'undefined') {
-          window.history.pushState({}, '', new URL(pathname + search, window.location.href));
+          window.history.pushState({}, '', resolvePath(basenameOrParent, pathname + search));
         }
-        const tempURL = new URL(pathname + search, 'http://w.g.c');
-        o.dp.matchingUrl(tempURL);
+        o.dp.matchingUrl(matchingUrl);
       })
     ));
 

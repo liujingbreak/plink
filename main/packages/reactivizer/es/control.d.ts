@@ -63,7 +63,7 @@ export declare class RxController<I extends ActionFunctions> {
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
     /**
-     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
      */
     subForTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
     /**

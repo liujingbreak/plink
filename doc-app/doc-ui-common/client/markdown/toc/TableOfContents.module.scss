@@ -4,7 +4,6 @@
   &Body {
     flex-grow: 0;
     flex-shrink: 0;
-    padding-left: 1rem;
     background-color: white;
     left: 0;
     right: 0;
@@ -41,6 +40,7 @@
     h3 {
       margin-bottom: 1rem;
       color: theme.$primary;
+      padding-left: 10px;
     }
   }
   &-item {
@@ -60,28 +60,30 @@
   }
 }
 
-$level-indent-unit: 12px;
-
-.level-1 {
+$level-indent-unit: 10px;
+.level-0 {
   padding-left: 1 * $level-indent-unit;
 }
-.level-2 {
+.level-1 {
   padding-left: 2 * $level-indent-unit;
 }
-.level-3 {
+.level-2 {
   padding-left: 3 * $level-indent-unit;
 }
+.level-3 {
+  padding-left: 4 * $level-indent-unit;
+}
 .level-4 {
-  padding-left: 1 * $level-indent-unit;
+  padding-left: 5 * $level-indent-unit;
 }
 .level-5 {
-  padding-left: 1 * $level-indent-unit;
+  padding-left: 6 * $level-indent-unit;
 }
 .level-6 {
-  padding-left: 1 * $level-indent-unit;
+  padding-left: 7 * $level-indent-unit;
 }
 .level-7 {
-  padding-left: 7 * $level-indent-unit;
+  padding-left: 8 * $level-indent-unit;
 }
 
 :global(.mdc-layout-size-desktop) {

@@ -35,10 +35,14 @@ export type OutputEvents = {
   topLoadingBarRef(dom: HTMLDivElement | null): void;
   topbarType(type: TopAppBarProps['type']): void;
   loadingVisible(visible: boolean): void;
+  /** When scrolling, the top bar placeholder area is changed from being visible and invisible */
   onTopAppBarScrollChange(outOfViewPort: boolean): void;
+  /** When scrolling up but yet not reaching the top edge of "frontLayer",
+  * top bar is shown with "raised (with shawdow)" style */
+  onTopAppBarRaisedShown(raised: boolean): void;
 };
 
-export const outputTableFor = ['frontLayerClassName', 'showTopLoadingReqsCount', 'topLoadingBarRef',
+export const outputTableFor = ['frontLayerClassName', 'onTopAppBarRaisedShown', 'showTopLoadingReqsCount', 'topLoadingBarRef',
   'topbarType', 'loadingVisible', 'onTopAppBarScrollChange'] as const;
 
 export function createControl(setUiState: (s: ActionTableDataType<InputActions, typeof inputTableFor> & ActionTableDataType<OutputEvents, typeof outputTableFor>) => void) {
@@ -63,20 +67,24 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
   ));
 
   // TODO: replace with IntersectionObserver
-  r('onScroll -> frontLayerClassName', i.pt.onScroll.pipe(
-    rx.switchMap(([m, event]) => rx.combineLatest([
+  r('onScroll -> frontLayerClassName, onTopAppBarRaisedShown', i.pt.onScroll.pipe(
+    rx.switchMap(([m]) => rx.combineLatest([
       inputTable.l.setTopAppBarDomRef,
       inputTable.l.setFrontLayerRef.pipe(rx.filter(([, dom]) => dom != null)),
-      outputTable.l.frontLayerClassName
+      outputTable.l.onTopAppBarRaisedShown
     ]).pipe(
       rx.take(1),
-      rx.tap(([[, topAppBarDomRef], [, frontLayerRef], [, prevClassname]]) => {
+      rx.tap(([[, topAppBarDomRef], [, frontLayerRef], [, raised]]) => {
         if (frontLayerRef!.scrollTop + topAppBarDomRef.getBoundingClientRect().top > 1) {
-          if (prevClassname !== 'withShadow')
+          if (!raised) {
+            o.dpf.onTopAppBarRaisedShown(m, true);
             o.dpf.frontLayerClassName(m, 'withShadow');
+          }
         } else {
-          if (prevClassname !== '')
+          if (raised) {
+            o.dpf.onTopAppBarRaisedShown(m, false);
             o.dpf.frontLayerClassName(m, '');
+          }
         }
       })
     ))
@@ -173,6 +181,7 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
   ));
 
   i.dp.setLoadingVisible(false);
+  o.dp.onTopAppBarRaisedShown(false);
   o.dp.showTopLoadingReqsCount(0);
   o.dp.frontLayerClassName('');
   i.dp.setDeviceSize('phone');

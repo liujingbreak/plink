@@ -19,6 +19,7 @@ export declare class ReactorComposite<I extends ActionFunctions = Record<string,
     /** All catched error goes here */
     error$: rx.Observable<[lable: string, originError: any]>;
     destory$: rx.Subject<void>;
+    dispose: () => void;
     get inputTable(): ActionTable<I, LI>;
     get outputTable(): ActionTable<O, LO>;
     private iTable;
@@ -27,6 +28,7 @@ export declare class ReactorComposite<I extends ActionFunctions = Record<string,
     constructor(opts?: ReactorCompositeOpt<I, O, LI, LO> | undefined);
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll(): void;
+    /** @deprecated call dispose() instead */
     destory(): void;
     reactivize<F extends ActionFunctions>(fObject: F): ReactorComposite<I & F, { [K in keyof F as `${K & string}Resolved`]: (p: ReturnType<F[K]> extends PromiseLike<infer P> ? P : ReturnType<F[K]> extends rx.Observable<infer OB> ? OB : ReturnType<F[K]>) => void; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => void; } & O, LI, LO>;
     reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F): ReactorComposite<{ [K in keyof F as `${K & string}Resolved`]: (p: ReturnType<F[K]> extends PromiseLike<infer P> ? P : ReturnType<F[K]> extends rx.Observable<infer OB> ? OB : ReturnType<F[K]>) => void; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => void; } & I & F, { [K in keyof F as `${K & string}Resolved`]: (p: ReturnType<F[K]> extends PromiseLike<infer P> ? P : ReturnType<F[K]> extends rx.Observable<infer OB> ? OB : ReturnType<F[K]>) => void; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => void; } & O, LI, LO>;

@@ -1,7 +1,3 @@
-import {AppLayoutState as AppLayoutState_} from './appLayout.state';
-
+export {createControl as createAppLayoutControl, useAppLayout} from './appLayout.control';
 export {Surface} from './Surface';
 
-export {useAppLayout} from './appLayout.control';
-
-export type AppLayoutState = AppLayoutState_;

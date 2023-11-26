@@ -38,7 +38,7 @@ function createWorkerControl(opts) {
     // eslint-disable-next-line @typescript-eslint/ban-types
     const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...types_1.workerInputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...types_1.workerOutputTableFor], name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : '') + ('(W/' + (worker_threads_1.isMainThread ? 'main)' : worker_threads_1.threadId + '?)')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: worker_threads_1.isMainThread ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        debugExcludeTypes: ['log', 'warn', ...((_d = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _d !== void 0 ? _d : [])], logStyle: 'noParam' }));
+        debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...((_d = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _d !== void 0 ? _d : [])], logStyle: 'noParam' }));
     let broker;
     const { r, i, o, outputTable, inputTable } = comp;
     const lo = comp.outputTable.l;

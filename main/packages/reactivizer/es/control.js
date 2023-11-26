@@ -141,7 +141,7 @@ export class RxController {
         }, [null, new Map()]));
     }
     /**
-     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
      */
     subForTypes(actionTypes, opts) {
         const sub = new RxController(opts);

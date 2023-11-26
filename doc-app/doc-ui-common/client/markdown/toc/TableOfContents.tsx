@@ -4,6 +4,7 @@ import {RxController} from '@wfh/reactivizer';
 import {Ripple} from '@wfh/material-components-react/client/Ripple';
 import {useAppLayout} from '../../components/appLayout.control';
 import {useRouter} from '../../animation/AnimatableRoutes.hooks';
+import {createMarkdownViewControl} from '../markdownViewComp.control';
 import styles from './TableOfContents.module.scss';
 // import {TOC} from '../../../isom/md-types';
 import {createControl, TocUIActions, TocUIEventTable} from './TableOfContents.control';
@@ -11,7 +12,7 @@ import {createControl, TocUIActions, TocUIEventTable} from './TableOfContents.co
 export interface TableOfContentsProps {
   markdownKey: string;
   className?: string;
-  getDispatcher?(dispatcher: TocInputDispatcher): void;
+  markdownViewCtl: ReturnType<typeof createMarkdownViewControl>;
 }
 
 export type TocInputDispatcher = RxController<TocUIActions>['dp'];
@@ -29,15 +30,12 @@ export const TableOfContents = React.memo<TableOfContentsProps>(props => {
   }, [dp, router]);
 
   React.useEffect(() => {
-    dp.setDataKey(props.markdownKey);
-  }, [dp, props.markdownKey]);
-
+    dp.setMarkdownViewCtl(props.markdownViewCtl);
+  }, [dp, props.markdownViewCtl]);
 
   React.useEffect(() => {
-    if (props.getDispatcher && dp) {
-      props.getDispatcher(dp);
-    }
-  }, [dp, props, props.getDispatcher]);
+    dp.setDataKey(props.markdownKey);
+  }, [dp, props.markdownKey]);
 
   const clickHandlers = React.useMemo(() => {
     const handlers = new Map<string, React.MouseEventHandler<HTMLDivElement>>();

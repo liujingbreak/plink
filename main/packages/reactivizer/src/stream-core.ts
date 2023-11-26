@@ -82,7 +82,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
               const type = nameOfAction(action);
               if (!this.debugExcludeSet.has(type)) {
                 // eslint-disable-next-line no-console
-                console.log(`%c ${this.logPrefix}rx:action`, 'color: white; background: #8c61ff;',
+                console.log(`%c ${this.logPrefix}rx:action`, 'color: black; background: #8c61ff;',
                   type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
               }
             }) :

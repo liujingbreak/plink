@@ -20,12 +20,16 @@ interface BaseOptions {
   logName?: string;
 }
 
-export type SwitchAnimProps = React.PropsWithChildren<BaseOptions & {
+export type SwitchAnimProps<D = unknown> = BaseOptions & {
   parentDom?: {className: string} | null;
-  contentHash: any;
-}>;
+  /** changing this property will only rerender content, no switch animation will be triggered */
+  templateData: D;
+  /** changing this property will trigger switch animation */
+  switchOnDistinct: any;
+  templateRenderer?: (data: D) => React.ReactNode;
+};
 
-const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
+const SwitchAnim = React.memo<SwitchAnimProps<any>>(function(props) {
   const [data, setData] = React.useState<SwitchAnimOutputData>();
   const composite = React.useMemo(() => {
     const composite = createControl(setData, props.debug);
@@ -33,7 +37,18 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  composite.i.dp.syncFromProps(props.contentHash, props.children);
+  const {i} = composite;
+  React.useEffect(() => {
+    i.dp.setSwitchOnDistinct(props.switchOnDistinct);
+  }, [i.dp, props.switchOnDistinct]);
+  React.useEffect(() => {
+    if (props.templateRenderer)
+      i.dp.setTemplateRenderer(props.templateRenderer);
+  }, [i.dp, props.templateRenderer]);
+
+  React.useEffect(() => {
+    i.dp.setTemplateData(props.templateData);
+  }, [i.dp, props.templateData]);
 
   React.useEffect(() => {
     if (props.logName)
@@ -41,7 +56,7 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
   }, [composite, props.logName]);
 
   React.useEffect(() => {
-    composite.i.dp.setBaseOptions(props);
+    i.dp.setBaseOptions(props);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.animFirstContent, props.size, props.type, props.className]);
 
@@ -55,7 +70,8 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
 
   const content = (displayKeys ?? []).map(key => {
     const item = displayContentByKey!.get(key)!;
-    return <div key={key} className={cls(props.innerClassName ?? '', styles.movingBox, item.clsName)} ref={item.onContainerReady}>{item.renderable}</div>;
+    return <div key={key} className={cls(props.innerClassName ?? '', styles.movingBox, item.clsName)}
+      ref={item.onContainerReady}>{data?.setTemplateRenderer[0]!(item.templateData)}</div>;
   });
   const rootCls = cls( props.className || '', cx(
     props.size == null ? 'fit' : props.size,
@@ -66,9 +82,7 @@ const SwitchAnim: React.FC<SwitchAnimProps> = function(props) {
   return props.parentDom != null ?
     <>{content}</> :
     <div className={rootCls}>{ content }</div>;
-};
+});
 
 export {SwitchAnim};
-
-
 

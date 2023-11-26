@@ -1,8 +1,6 @@
 import React from 'react';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-// import cls from 'classnames';
-// import clsddp from 'classnames/dedupe';
 import styles from './MediaMatch.module.scss';
 
 export type Size = 'desktop' | 'tablet' | 'phone';
@@ -12,9 +10,6 @@ export type MediaMatchProps = React.PropsWithChildren<{
 }>;
 
 const MediaMatch: React.FC<MediaMatchProps> = function(props) {
-  // React.useEffect(() => {
-  //   console.log(styleText);
-  // }, []);
   const detectorRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -26,7 +21,6 @@ const MediaMatch: React.FC<MediaMatchProps> = function(props) {
         if (detectorRef.current) {
           const content = window.getComputedStyle(detectorRef.current, '::before').content;
           props.onChange(content.replace(/^["']|["']$/g, '') as Size);
-          // console.log(window.getComputedStyle(detectorRef.current, '::before').content);
         }
       })
     ).subscribe();
@@ -44,7 +38,6 @@ const MediaMatch: React.FC<MediaMatchProps> = function(props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.onChange]);
   return <div ref={detectorRef} className={styles.MediaMatch}></div>;
-  // return <></>;
 };
 
 

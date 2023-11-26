@@ -9,6 +9,9 @@ bootstrapRoutesWith(() => {
     return (await import('./article/ArticalePage')).ArticalePage;
   }, {fallback: <ShowTopLoading/>});
 
+  const SurfaceDemo = loadable(async () => {
+    return (await import('./demo/SurfaceBackgroundDemo')).SurfaceBackgroundDemo;
+  });
   markdownsControl.i.dp.registerFiles({
     reactivizer: () => import('@wfh/reactivizer/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/README.md').then(res => res.default),
     'compare-with-OOP': () => import('@wfh/reactivizer/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/docs/compare-with-OOP.md').then(res => res.default),
@@ -18,6 +21,8 @@ bootstrapRoutesWith(() => {
   });
   return [
     {path: '/readme/:mdKey', element: <LazyDocComponent/>},
+    {path: '/markdown/open', element: <LazyDocComponent/>},
+    {path: '/demo/surface', element: <SurfaceDemo/>},
     {path: '/*', redirect: '/readme/reactivizer'}
   ];
 });
