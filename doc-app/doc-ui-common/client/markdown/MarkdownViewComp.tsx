@@ -44,6 +44,13 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   }, [i.dp, layout]);
 
   React.useEffect(() => {
+    if (layout) {
+      const sub = layout.inputTable.dataChange$.subscribe((v) => touchState(v));
+      return () => sub.unsubscribe();
+    }
+  }, [layout]);
+
+  React.useEffect(() => {
     if (props.mdKey) {
       i.dp.setMarkdownKey(props.mdKey);
       markdownsControl.i.dp.getHtml(props.mdKey);
@@ -76,8 +83,8 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
 
   function templateRenderer({mdKey, onBodyRef}: typeof switchAnimDataByKey extends Map<string, infer V> ? V : unknown) {
     return <>
-      <div ref={onBodyRef} className={cln(styles.markdownContent, 'markdown-body')}></div>
-      {mdKey ? <TableOfContents className={styles.toc} markdownKey={mdKey} markdownViewCtl={viewControl}/> : '...'}
+      <div ref={onBodyRef} className={cln(styles.markdownContent, 'markdown-body', 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-8-desktop', 'mdc-layout-grid__cell--span-8')}></div>
+      {mdKey ? <TableOfContents className={cln(styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-4-desktop', {'mdc-layout-grid': layout?.inputTable.getData().setDeviceSize[0] !== 'desktop'}) } markdownKey={mdKey} markdownViewCtl={viewControl}/> : '...'}
       <IconButton className={styles.tocPopBtn}
         onToggle={i.dp.handleTogglePopup}
         materialIcon="toc"
@@ -89,7 +96,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   return <>
     {outputTable.getData().setFileInputVisible[0] ? <div><FileInput>Select markdown file</FileInput></div> : null}
     {props.mdKey && tempalteData ?
-      <SwitchAnim type="translateY" debug={true} className={cls('switchAnim')} innerClassName={styles.container}
+      <SwitchAnim type="translateY" debug={true} className={cls('switchAnim')} innerClassName={cln(styles.container, 'mdc-layout-grid__inner')}
         templateData={tempalteData} switchOnDistinct={props.mdKey} templateRenderer={templateRenderer} /> :
       null}
   </>;

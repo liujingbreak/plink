@@ -9,7 +9,7 @@
     right: 0;
     top: 0;
     bottom: 0;
-    width: auto;
+    // width: auto;
     position: fixed;
     transform: none;
     display: none;
@@ -61,6 +61,23 @@
   }
 }
 
+:global(.mdc-layout-size-desktop) {
+  .tocBody {
+    display: block;
+    transform: none;
+    position: static;
+    overflow: visible;
+    bottom: auto;
+    right: auto;
+    // width: 28vw;
+    // max-width: 400px;
+    padding-top: 0;
+    &.fixed {
+      padding-top: 24px;
+    }
+  }
+}
+
 $level-indent-unit: 10px;
 .level-0 {
   padding-left: 1 * $level-indent-unit;
@@ -87,19 +104,3 @@ $level-indent-unit: 10px;
   padding-left: 8 * $level-indent-unit;
 }
 
-:global(.mdc-layout-size-desktop) {
-  .tocBody {
-    display: block;
-    transform: none;
-    position: static;
-    overflow: visible;
-    bottom: auto;
-    right: auto;
-    width: 28vw;
-    max-width: 400px;
-    padding-top: 0;
-    &.fixed {
-      padding-top: 24px;
-    }
-  }
-}

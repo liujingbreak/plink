@@ -1,11 +1,11 @@
 import * as rx from 'rxjs';
 import {ActionMeta, ActionFunctions, RxController,
-  payloadRelatedToAction, InferPayload} from '../control';
+  actionRelatedToAction, InferPayload} from '../control';
 import {ReactorComposite} from '../epic';
 import {ForkWorkerOutput} from './types';
 
-export function fork<I extends ActionFunctions, O extends ForkWorkerOutput, K extends string & keyof I, R extends string & keyof I = `${K}Resolved`>(
-  comp: ReactorComposite<I, O, any, any>,
+export function fork<I extends ActionFunctions, K extends string & keyof I, R extends string & keyof I = `${K}Resolved`>(
+  comp: ReactorComposite<I, any, any, any>,
   actionName: K & string,
   params: InferPayload<I[K]>,
   returnedActionName?: R,
@@ -15,9 +15,9 @@ export function fork<I extends ActionFunctions, O extends ForkWorkerOutput, K ex
   if (relatedToAction)
     forkedAction.r = relatedToAction.i;
 
-  const forkDone = rx.firstValueFrom((returnedActionName ? comp.i.pt[returnedActionName] : comp.i.pt[actionName + 'Resolved']).pipe(
-    payloadRelatedToAction(forkedAction),
-    rx.map(([, ...p]) => p)
+  const forkDone = rx.firstValueFrom((returnedActionName ? comp.i.at[returnedActionName] : comp.i.at[actionName + 'Resolved']).pipe(
+    actionRelatedToAction(forkedAction),
+    rx.map(a => a.p)
   ));
   if (relatedToAction)
     (comp.o as unknown as RxController<ForkWorkerOutput>).dpf.fork(relatedToAction, forkedAction);

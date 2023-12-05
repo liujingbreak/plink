@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {createWorkerControl, fork} from '../dist/fork-join/node-worker';
+import {createWorkerControl, fork} from '@wfh/reactivizer/dist/fork-join/node-worker';
 // For browser environment web worker, import from "@wfh/reactivize/es/fork-join/forkJoin-web-worker" instead
 
 export function createMyParallelService() {
