@@ -30,7 +30,8 @@
 
     &.fixed {
       .tocContent {
-        top: 24px;
+        top: 0;
+        padding-top: 24px; // ArticalePage uses class name "mdc-layout-grid" which gives a padding size 24px for desktop screen size device
         position: fixed;
       }
     }

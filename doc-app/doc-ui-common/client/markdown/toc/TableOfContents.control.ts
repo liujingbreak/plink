@@ -282,6 +282,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     op.switchMap(([[m, fixed], placeHolderRef, contentRef]) => {
       if (fixed) {
         if (placeHolderRef.clientWidth < 0.05) {
+          // The window is probably resized or direction of it is rotated, clientWidth is incorrect, give it a chance to reflow and repaint
           return rx.timer(1).pipe(
             rx.tap(() => {
               o.dpf.changeFixedPosition(m, false);
