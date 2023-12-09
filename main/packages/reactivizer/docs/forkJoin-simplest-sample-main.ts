@@ -6,6 +6,7 @@ import {createMyParallelService} from './forkJoin-simplest-sample';
 setupForMainWorker(createMyParallelService(), {
   name: 'heavyWork',
   maxNumOfWorker: os.availableParallelism(),
+  threadMaxIdleTime: 3000,
   workerFactory() {
     return new Worker(Path.resolve(__dirname, '../dist/samples/myParallelService-worker.js'));
   }

@@ -13,14 +13,14 @@ import {applyScheduler} from '../fork-join/worker-scheduler';
 const log = log4File(__filename);
 
 export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker' | 'excludeMainThread',
-  workerNum?: number) {
+  workerNum?: number, autoExpirated?: number) {
   const num = 30;
   const testArr = createSharedArryForTest(0, num);
   const sorter = createSorter(null, {
     name: 'sorter',
     debug: false,
     log(...msg) {
-      log.info(...msg);
+      log.info('[sorter]', ...msg);
     }
   });
   let workerIsAssigned = false;
@@ -32,9 +32,9 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
     name: 'broker',
     debug: true,
     log(...msg) {
-      log.info(...msg);
+      log.info('[broker]', ...msg);
     },
-    debugExcludeTypes: ['workerInited', 'ensureInitWorker'],
+    debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting'],
     logStyle: 'noParam'
   });
 
@@ -50,6 +50,7 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
     ranksByWorkerNo = applyScheduler(broker, {
       maxNumOfWorker: numOfWorkers,
       excludeCurrentThead: false,
+      threadMaxIdleTime: autoExpirated,
       workerFactory() {
         return new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
       }
@@ -58,6 +59,7 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
     ranksByWorkerNo = applyScheduler(broker, {
       maxNumOfWorker: numOfWorkers,
       excludeCurrentThead: true,
+      threadMaxIdleTime: autoExpirated,
       workerFactory() {
         return new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
       }
@@ -145,9 +147,8 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
 
   const latestBrokerEvents = broker.outputTable.addActions('onWorkerExit').l;
   if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
-    await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
-    broker.destory();
-    sorter.destory();
+    if (autoExpirated == null)
+      await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
   } else if (threadMode !== 'mainOnly') {
     for (const worker of workers)
       i.dp.letWorkerExit(worker);

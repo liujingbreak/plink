@@ -1,4 +1,14 @@
 # Changelog
+## @wfh/reactivizer 0.2.1
+- new feature in fork join functionality: new option `threadMaxIdleTime` for `setupForMainWorker` function of broker
+```ts
+  /** Once forked thread has become idle for specific milliseconds,
+  * let worker thread (or web worker) "exit" (unsubscribed from parent port),
+  * value of `undefined` stands for "never expired"
+  */
+  threadExpirationTime?: number;
+```
+
 ## @wfh/reactivizer 0.2.0
 - RxController supports new methods `subForTypes`, `subForExcludeTypes`
 - Remove type definition `PayloadStream`, since it contains too deep type inference which Typescript language server does not show complete resolved type information for it

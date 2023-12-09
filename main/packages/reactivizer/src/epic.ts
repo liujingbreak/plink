@@ -17,8 +17,8 @@ export type InferFuncReturnEvents<I extends ActionFunctions> = {
 };
 
 export interface ReactorCompositeOpt<
-  I extends ActionFunctions = Record<string, never>,
-  O extends ActionFunctions = Record<string, never>,
+  I extends ActionFunctions = Record<never, never>,
+  O extends ActionFunctions = Record<never, never>,
   LI extends readonly (keyof I)[] = readonly [],
   LO extends readonly (keyof O)[] = readonly []
 > extends DuplexOptions<I & O> {
@@ -28,8 +28,8 @@ export interface ReactorCompositeOpt<
 }
 
 export class ReactorComposite<
-  I extends ActionFunctions = Record<string, never>,
-  O extends ActionFunctions = Record<string, never>,
+  I extends ActionFunctions = Record<never, never>,
+  O extends ActionFunctions = Record<never, never>,
   LI extends readonly (keyof I)[] = readonly [],
   LO extends readonly (keyof O)[] = readonly []
 > extends DuplexController<I, O> {

@@ -36,8 +36,8 @@ export const workerInputTableFor = ['setLiftUpActions', 'exit'] as const;
 export const workerOutputTableFor = ['workerInited', 'log', 'warn'] as const;
 
 export type WorkerControl<
-  I extends ActionFunctions = Record<string, never>,
-  O extends ActionFunctions = Record<string, never>,
+  I extends ActionFunctions = Record<never, never>,
+  O extends ActionFunctions = Record<never, never>,
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
 > = ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O,
@@ -65,4 +65,9 @@ export type BrokerEvent<W extends WorkerControl<any, any, any, any> = WorkerCont
   onAllWorkerExit(): void;
   assignWorker(): void;
   portOfWorker(map: Map<Worker | NodeWorker, MessagePort | NodeMessagePort>): void;
+};
+
+export type ThreadExpirationEvents = {
+  startExpirationTimer(workerNo: number): void;
+  clearExpirationTimer(workerNo: number): void;
 };

@@ -40,9 +40,6 @@ function applyScheduler(broker, opts) {
     const workerRankTree = new RedBlackTree();
     const ranksByWorkerNo = new Map();
     const { maxNumOfWorker } = opts;
-    // if (opts.excludeCurrentThead === true) {
-    //   maxNumOfWorker--;
-    // }
     r('assignWorker -> workerAssigned', outputTable.l.assignWorker.pipe(rx.map(([m]) => {
         if (ranksByWorkerNo.size < maxNumOfWorker) {
             const newWorker = (ranksByWorkerNo.size === 0 && opts.excludeCurrentThead !== true) ? 'main' : opts.workerFactory();
@@ -68,13 +65,10 @@ function applyScheduler(broker, opts) {
             i.dpf.workerAssigned(m, treeNode.value[0], worker);
         }
     })));
-    r('workerAssigned -> changeWorkerRank()', i.pt.workerAssigned.pipe(rx.map(([, workerNo]) => {
-        changeWorkerRank(workerNo, 1);
+    r('workerAssigned -> changeWorkerRank()', i.pt.workerAssigned.pipe(rx.map(([m, workerNo]) => {
+        changeWorkerRank(m, workerNo, 1);
     })));
-    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', outputTable.l.newWorkerReady.pipe(rx.mergeMap(([, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError('stopWaiting -> ...')), rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError('returned -> ...'))))));
-    // r(rx.merge(i.pt.onWorkerWait, i.pt.onWorkerReturned).pipe(
-    //   rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))
-    // ));
+    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', outputTable.l.newWorkerReady.pipe(rx.mergeMap(([m, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(m, workerNo, 1)), broker.labelError('stopWaiting -> ...')), rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(rx.tap(() => changeWorkerRank(m, workerNo, -1)), broker.labelError('returned -> ...'))))));
     r('onWorkerExit', o.pt.onWorkerExit.pipe(rx.tap(([, workerNo]) => {
         if (ranksByWorkerNo.has(workerNo)) {
             const [, rank] = ranksByWorkerNo.get(workerNo);
@@ -99,7 +93,13 @@ function applyScheduler(broker, opts) {
             sub.complete();
         }));
     })));
-    function changeWorkerRank(workerNo, changeValue) {
+    r('', o.subForTypes(['startExpirationTimer', 'clearExpirationTimer']).groupControllerBy(({ p: [workerNo] }) => workerNo).pipe(rx.mergeMap(([grouped]) => grouped.pt.startExpirationTimer.pipe(rx.switchMap(([m, workerNo]) => rx.timer(opts.threadMaxIdleTime).pipe(rx.takeUntil(grouped.at.clearExpirationTimer), rx.tap(() => {
+        const [worker] = ranksByWorkerNo.get(workerNo);
+        if (worker !== 'main') {
+            i.dpf.letWorkerExit(m, worker);
+        }
+    })))))));
+    function changeWorkerRank(actionMeta, workerNo, changeValue) {
         const entry = ranksByWorkerNo.get(workerNo);
         const [, rank] = entry;
         const newRank = rank + changeValue;
@@ -115,6 +115,12 @@ function applyScheduler(broker, opts) {
                 tnode.value.push(workerNo);
             else
                 tnode.value = [workerNo];
+        }
+        if (opts.threadMaxIdleTime != null) {
+            if (newRank === 0)
+                o.dpf.startExpirationTimer(actionMeta, workerNo);
+            else
+                o.dpf.clearExpirationTimer(actionMeta, workerNo);
         }
     }
     return ranksByWorkerNo;

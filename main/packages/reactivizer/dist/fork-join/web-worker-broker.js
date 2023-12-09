@@ -57,9 +57,19 @@ function createBroker(workerController, opts) {
         const chan = new MessageChannel();
         portOfWorker.set(worker, chan.port1);
         o.dp.portOfWorker(portOfWorker);
-        const wo = new control_1.RxController({ name: '#' + workerNo + ' worker output', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
+        const wo = new control_1.RxController({
+            name: '#' + workerNo + ' worker output',
+            debug: opts === null || opts === void 0 ? void 0 : opts.debug,
+            log: opts === null || opts === void 0 ? void 0 : opts.log,
+            debugExcludeTypes: opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes
+        });
         workerOutputs.set(workerNo, wo);
-        const wi = new control_1.RxController({ name: '#' + workerNo + ' worker input', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
+        const wi = new control_1.RxController({
+            name: '#' + workerNo + ' worker input',
+            debug: opts === null || opts === void 0 ? void 0 : opts.debug,
+            log: opts === null || opts === void 0 ? void 0 : opts.log,
+            debugExcludeTypes: opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes
+        });
         wiByWorkerNo.set(workerNo, wi);
         o.dp.workerInputs(wiByWorkerNo);
         chan.port1.onmessage = ({ data: event }) => {

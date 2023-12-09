@@ -5,5 +5,10 @@ export declare function applyScheduler<W extends WorkerControl<any, any, any, an
     maxNumOfWorker: number;
     /** Default `false`, in which case the current thread (main) will also be assigned for tasks */
     excludeCurrentThead?: boolean;
+    /** Once forked thread has become idle for specific milliseconds,
+    * let worker thread (or web worker) "exit" (unsubscribed from parent port),
+    * value of `undefined` stands for "never expired"
+    */
+    threadMaxIdleTime?: number;
     workerFactory(): Worker | NodeWorker;
-}): Map<number, [worker: "main" | Worker | NodeWorker, rank: number]>;
+}): Map<number, [worker: NodeWorker | Worker | "main", rank: number]>;

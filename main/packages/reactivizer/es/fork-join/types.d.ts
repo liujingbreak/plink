@@ -29,7 +29,7 @@ export type ForkWorkerOutput = {
 };
 export declare const workerInputTableFor: readonly ["setLiftUpActions", "exit"];
 export declare const workerOutputTableFor: readonly ["workerInited", "log", "warn"];
-export type WorkerControl<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>, LI extends ReadonlyArray<keyof I> = readonly [], LO extends ReadonlyArray<keyof O> = readonly []> = ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, ReadonlyArray<typeof workerInputTableFor[number] | LI[number]>, ReadonlyArray<typeof workerOutputTableFor[number] | LO[number]>>;
+export type WorkerControl<I extends ActionFunctions = Record<never, never>, O extends ActionFunctions = Record<never, never>, LI extends ReadonlyArray<keyof I> = readonly [], LO extends ReadonlyArray<keyof O> = readonly []> = ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, ReadonlyArray<typeof workerInputTableFor[number] | LI[number]>, ReadonlyArray<typeof workerOutputTableFor[number] | LO[number]>>;
 export type BrokerInput = {
     ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): void;
     /** Send message to worker to stop all event listerners on it */
@@ -49,4 +49,8 @@ export type BrokerEvent<W extends WorkerControl<any, any, any, any> = WorkerCont
     onAllWorkerExit(): void;
     assignWorker(): void;
     portOfWorker(map: Map<Worker | NodeWorker, MessagePort | NodeMessagePort>): void;
+};
+export type ThreadExpirationEvents = {
+    startExpirationTimer(workerNo: number): void;
+    clearExpirationTimer(workerNo: number): void;
 };

@@ -8,12 +8,12 @@ export type InferFuncReturnEvents<I extends ActionFunctions> = {
 } & {
     [K in keyof I as `${K & string}Completed`]: () => void;
 };
-export interface ReactorCompositeOpt<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexOptions<I & O> {
+export interface ReactorCompositeOpt<I extends ActionFunctions = Record<never, never>, O extends ActionFunctions = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexOptions<I & O> {
     name: string;
     inputTableFor?: LI;
     outputTableFor?: LO;
 }
-export declare class ReactorComposite<I extends ActionFunctions = Record<string, never>, O extends ActionFunctions = Record<string, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexController<I, O> {
+export declare class ReactorComposite<I extends ActionFunctions = Record<never, never>, O extends ActionFunctions = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexController<I, O> {
     private opts?;
     protected errorSubject: rx.Subject<[lable: string, originError: any]>;
     /** All catched error goes here */

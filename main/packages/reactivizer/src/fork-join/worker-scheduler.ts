@@ -1,16 +1,28 @@
 import type {Worker as NodeWorker} from 'node:worker_threads';
 import * as algorithms from '@wfh/algorithms';
 import * as rx from 'rxjs';
-import {Broker, WorkerControl} from './types';
+import {ReactorComposite, ActionMeta} from '..';
+import {Broker, WorkerControl, BrokerInput, BrokerEvent, brokerOutputTableFor, ThreadExpirationEvents} from './types';
 
 export function applyScheduler<W extends WorkerControl<any, any, any, any>>(broker: Broker<W>, opts: {
   maxNumOfWorker: number;
   /** Default `false`, in which case the current thread (main) will also be assigned for tasks */
   excludeCurrentThead?: boolean;
+  /** Once forked thread has become idle for specific milliseconds,
+  * let worker thread (or web worker) "exit" (unsubscribed from parent port),
+  * value of `undefined` stands for "never expired"
+  */
+  threadMaxIdleTime?: number;
   workerFactory(): Worker | NodeWorker;
 }) {
   let WORKER_NO_SEQ = 0;
-  const {r, o, i, outputTable} = broker as unknown as Broker;
+
+  const {r, o, i, outputTable} = broker as unknown as ReactorComposite<
+  BrokerInput,
+  BrokerEvent<WorkerControl<any, any, any, any>> & ThreadExpirationEvents,
+  [],
+  typeof brokerOutputTableFor>;
+
   let algo: typeof algorithms;
   try {
     algo = require('@wfh/algorithms') as typeof algorithms;
@@ -23,9 +35,6 @@ export function applyScheduler<W extends WorkerControl<any, any, any, any>>(brok
   const ranksByWorkerNo = new Map<number, [worker: Worker | NodeWorker | 'main', rank: number]>();
 
   const {maxNumOfWorker} = opts;
-  // if (opts.excludeCurrentThead === true) {
-  //   maxNumOfWorker--;
-  // }
 
   r('assignWorker -> workerAssigned', outputTable.l.assignWorker.pipe(
     rx.map(([m]) => {
@@ -54,28 +63,24 @@ export function applyScheduler<W extends WorkerControl<any, any, any, any>>(brok
   ));
 
   r('workerAssigned -> changeWorkerRank()', i.pt.workerAssigned.pipe(
-    rx.map(([, workerNo]) => {
-      changeWorkerRank(workerNo, 1);
+    rx.map(([m, workerNo]) => {
+      changeWorkerRank(m, workerNo, 1);
     })
   ));
 
   r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()',
     outputTable.l.newWorkerReady.pipe(
-      rx.mergeMap(([, workerNo, workerOutputCtl]) => rx.merge(
+      rx.mergeMap(([m, workerNo, workerOutputCtl]) => rx.merge(
         workerOutputCtl.pt.stopWaiting.pipe(
-          rx.tap(() => changeWorkerRank(workerNo, 1)),
+          rx.tap(() => changeWorkerRank(m, workerNo, 1)),
           broker.labelError('stopWaiting -> ...')
         ),
         rx.merge(workerOutputCtl.pt.wait, workerOutputCtl.pt.returned).pipe(
-          rx.tap(() => changeWorkerRank(workerNo, -1)),
+          rx.tap(() => changeWorkerRank(m, workerNo, -1)),
           broker.labelError('returned -> ...')
         )
       ))
     ));
-
-  // r(rx.merge(i.pt.onWorkerWait, i.pt.onWorkerReturned).pipe(
-  //   rx.map(([, workerNo]) => changeWorkerRank(workerNo, -1))
-  // ));
 
   r('onWorkerExit', o.pt.onWorkerExit.pipe(
     rx.tap(([, workerNo]) => {
@@ -112,7 +117,21 @@ export function applyScheduler<W extends WorkerControl<any, any, any, any>>(brok
     })
   ));
 
-  function changeWorkerRank(workerNo: number, changeValue: number) {
+  r('', o.subForTypes(['startExpirationTimer', 'clearExpirationTimer'] as const).groupControllerBy(({p: [workerNo]}) => workerNo).pipe(
+    rx.mergeMap(([grouped]) => grouped.pt.startExpirationTimer.pipe(
+      rx.switchMap(([m, workerNo]) => rx.timer(opts.threadMaxIdleTime!).pipe(
+        rx.takeUntil(grouped.at.clearExpirationTimer),
+        rx.tap(() => {
+          const [worker] = ranksByWorkerNo.get(workerNo)!;
+          if (worker !== 'main') {
+            i.dpf.letWorkerExit(m, worker);
+          }
+        })
+      ))
+    ))
+  ));
+
+  function changeWorkerRank(actionMeta: ActionMeta, workerNo: number, changeValue: number) {
     const entry = ranksByWorkerNo.get(workerNo)!;
     const [, rank] = entry;
     const newRank = rank + changeValue;
@@ -129,6 +148,12 @@ export function applyScheduler<W extends WorkerControl<any, any, any, any>>(brok
         tnode.value.push(workerNo);
       else
         tnode.value = [workerNo];
+    }
+    if (opts.threadMaxIdleTime != null) {
+      if (newRank === 0)
+        o.dpf.startExpirationTimer(actionMeta, workerNo);
+      else
+        o.dpf.clearExpirationTimer(actionMeta, workerNo);
     }
   }
 

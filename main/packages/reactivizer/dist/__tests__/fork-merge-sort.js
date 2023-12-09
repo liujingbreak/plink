@@ -39,14 +39,14 @@ const sorter_1 = require("../res/sorter");
 const node_worker_broker_1 = require("../fork-join/node-worker-broker");
 const worker_scheduler_1 = require("../fork-join/worker-scheduler");
 const log = (0, plink_1.log4File)(__filename);
-async function forkMergeSort(threadMode, workerNum) {
+async function forkMergeSort(threadMode, workerNum, autoExpirated) {
     const num = 30;
     const testArr = createSharedArryForTest(0, num);
     const sorter = (0, sorter_1.createSorter)(null, {
         name: 'sorter',
         debug: false,
         log(...msg) {
-            log.info(...msg);
+            log.info('[sorter]', ...msg);
         }
     });
     let workerIsAssigned = false;
@@ -56,9 +56,9 @@ async function forkMergeSort(threadMode, workerNum) {
         name: 'broker',
         debug: true,
         log(...msg) {
-            log.info(...msg);
+            log.info('[broker]', ...msg);
         },
-        debugExcludeTypes: ['workerInited', 'ensureInitWorker'],
+        debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting'],
         logStyle: 'noParam'
     });
     broker.o.pt.onWorkerError.pipe(rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))).subscribe();
@@ -69,6 +69,7 @@ async function forkMergeSort(threadMode, workerNum) {
         ranksByWorkerNo = (0, worker_scheduler_1.applyScheduler)(broker, {
             maxNumOfWorker: numOfWorkers,
             excludeCurrentThead: false,
+            threadMaxIdleTime: autoExpirated,
             workerFactory() {
                 return new worker_threads_1.Worker(node_path_1.default.resolve(__dirname, '../../dist/res/sort-worker.js'));
             }
@@ -78,6 +79,7 @@ async function forkMergeSort(threadMode, workerNum) {
         ranksByWorkerNo = (0, worker_scheduler_1.applyScheduler)(broker, {
             maxNumOfWorker: numOfWorkers,
             excludeCurrentThead: true,
+            threadMaxIdleTime: autoExpirated,
             workerFactory() {
                 return new worker_threads_1.Worker(node_path_1.default.resolve(__dirname, '../../dist/res/sort-worker.js'));
             }
@@ -152,9 +154,8 @@ async function forkMergeSort(threadMode, workerNum) {
     }
     const latestBrokerEvents = broker.outputTable.addActions('onWorkerExit').l;
     if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
-        await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
-        broker.destory();
-        sorter.destory();
+        if (autoExpirated == null)
+            await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
     }
     else if (threadMode !== 'mainOnly') {
         for (const worker of workers)

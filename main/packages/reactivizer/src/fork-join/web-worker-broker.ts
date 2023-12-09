@@ -2,20 +2,20 @@ import * as rx from 'rxjs';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 // import {timeoutLog} from '../utils';
 import {Action, ActionFunctions, serializeAction, deserializeAction, RxController} from '../control';
-import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as outputTableFor, ForkWorkerInput, ForkWorkerOutput, WorkerControl} from './types';
+import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as outputTableFor, ForkWorkerInput, ForkWorkerOutput, WorkerControl, ThreadExpirationEvents} from './types';
 import {applyScheduler} from './worker-scheduler';
 export * from './types';
 
 /** Broker manages worker threads, create message channels between child worker threads and main thread, transmits actions
 */
 export function createBroker<
-  I extends ActionFunctions = Record<string, never>,
-  O extends ActionFunctions = Record<string, never>,
+  I extends ActionFunctions = Record<never, never>,
+  O extends ActionFunctions = Record<never, never>,
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
 >(
-  workerController: ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, LI, LO>,
-  opts?: ReactorCompositeOpt<BrokerInput & O & BrokerEvent<ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, any, any>> & ForkWorkerOutput>
+  workerController: WorkerControl<I, O, LI, LO>,
+  opts?: ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<WorkerControl<I, O, LI, LO>> & ForkWorkerOutput & ThreadExpirationEvents>
 ) {
   const options = opts ? {...opts, outputTableFor} : {outputTableFor};
   const mainWorkerComp = workerController as unknown as ReactorComposite<ForkWorkerInput, ForkWorkerOutput>;
@@ -62,9 +62,19 @@ export function createBroker<
       const chan = new MessageChannel();
       portOfWorker.set(worker, chan.port1);
       o.dp.portOfWorker(portOfWorker);
-      const wo = new RxController<ForkWorkerOutput & O>({name: '#' + workerNo + ' worker output', debug: opts?.debug, log: opts?.log});
+      const wo = new RxController<ForkWorkerOutput & O>({
+        name: '#' + workerNo + ' worker output',
+        debug: opts?.debug,
+        log: opts?.log,
+        debugExcludeTypes: (opts as ReactorCompositeOpt<ForkWorkerOutput> | undefined)?.debugExcludeTypes
+      });
       workerOutputs.set(workerNo, wo);
-      const wi = new RxController<ForkWorkerInput & I>({name: '#' + workerNo + ' worker input', debug: opts?.debug, log: opts?.log});
+      const wi = new RxController<ForkWorkerInput & I>({
+        name: '#' + workerNo + ' worker input',
+        debug: opts?.debug,
+        log: opts?.log,
+        debugExcludeTypes: (opts as ReactorCompositeOpt<ForkWorkerInput> | undefined)?.debugExcludeTypes
+      });
       wiByWorkerNo.set(workerNo, wi);
       o.dp.workerInputs(wiByWorkerNo);
 
@@ -148,15 +158,13 @@ export function createBroker<
 type ScheduleOptions = typeof applyScheduler extends (c: any, o: infer O) => any ? O : unknown;
 
 export function setupForMainWorker<
-  I extends ActionFunctions = Record<string, never>,
-  O extends ActionFunctions = Record<string, never>,
+  I extends ActionFunctions = Record<never, never>,
+  O extends ActionFunctions = Record<never, never>,
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
 >(workerContoller: WorkerControl<I, O, LI, LO>,
-  opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & O &
-    BrokerEvent<ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, any, any>> &
-    ForkWorkerInput & ForkWorkerOutput>
- ): Broker<WorkerControl<I, O, LI, LO>> {
+  opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<WorkerControl<I, O, LI, LO>> & ForkWorkerOutput & ThreadExpirationEvents>
+): Broker<WorkerControl<I, O, LI, LO>> {
 
   const broker = createBroker(workerContoller, opts);
   applyScheduler(broker, opts);

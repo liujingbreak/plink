@@ -86,9 +86,57 @@ export function createMyParallelService() {
 
 ```
 
-##### Sample B, hand-written forkable ReactorComposite
+##### Sample B, hand-written forkable service in form of a ReactorComposite
+```ts
+type MyParallelServiceInput = {
+  compute(data: SharedArrayBuffer, offset: number, length: number): void;
+  computeAllInWorker(data: SharedArrayBuffer, offset: number, length: number): void;
+};
 
+type MyParallelServiceOutput = {
+  /** recursively dispatch "compute" back to self */
+  compute: MyParallelServiceInput['compute'];
+  computeReturned(): void;
+  computeAllInWorkerReturned(): void;
+};
 
+export function createHandMadeParallelService() {
+  const myParallelService = createWorkerControl<MyParallelServiceInput, MyParallelServiceOutput>({
+    name: 'myParallelService',
+    debug: true
+  });
+  const {i, o, r} = myParallelService;
+  r('compute -> fork or compute recursively', i.pt.compute.pipe(
+    rx.mergeMap(async ([m, data, offset, length]) => {
+      if (length < 1000) {
+        // calcuate directly, return result as a transferable data structure `ForkTransferablePayload`
+        // or you may consider return "void" type and write result to SharedArrayBuffer "data" instead (by Atomics operations optionally)
+      } else {
+        // Split data to one half to be processed in a forked thread or web worker
+        const forkDone = fork(myParallelService, 'compute', [data, offset, length >> 1]);
+        // another half fo data to be recursively processed in current thread
+        await rx.firstValueFrom(myParallelService.o.do.compute(
+          myParallelService.o.at.computeReturned, data,  offset + (length >> 1), length - (length >> 1)
+        ));
+        // Inform the forkJoin scheduler that current worker is about to waiting
+        // for Forked function returns and join, so that it can accept other task at same time.
+        o.dp.wait();
+        await forkDone;
+        o.dp.stopWaiting();
+        o.dpf.computeReturned(m);
+      }
+    })
+  ));
+
+  r('computeAllInWorker', i.pt.computeAllInWorker.pipe(
+    rx.mergeMap(async ([m, data, offset, length]) => {
+      await fork(myParallelService, 'compute', [data, offset, length]);
+      o.dpf.computeAllInWorkerReturned(m);
+    })
+  ));
+  return myParallelService;
+}
+```
 
 #### 2. Create "main module" file which runs in main thread
 > Here "main thread" doesn't have to be an actual main thread in Node.js or Browser's window rendering thread, it can be any thread logically acting main thread
@@ -102,13 +150,14 @@ import {createMyParallelService} from './forkJoin-simplest-sample';
 setupForMainWorker(createMyParallelService(), {
   name: 'heavyWork',
   maxNumOfWorker: os.availableParallelism(),
+  threadMaxIdleTime: 3000,
   workerFactory() {
     return new Worker(Path.resolve(__dirname, '../dist/samples/myParallelService-worker.js'));
   }
 });
 ```
 
-#### 3. Create "worker module"
+#### 3. Create "worker module" which runs in forked worker threads (or web workers)
 ```ts
 import {createMyParallelService} from './forkJoin-simplest-sample';
 createMyParallelService();
