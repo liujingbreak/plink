@@ -1,6 +1,6 @@
-## How to "forkJoin" on Node.js thread worker and Web worker
+# How to "forkJoin" on Node.js thread worker and Web worker
 
-### Overview
+## Overview
 ```mermaid
 flowchart TB
 
@@ -25,7 +25,7 @@ classDef yours stroke-width: 3px;
 class main,worker,service yours;
 ```
 
-#### Explained
+### Explained
 
 **node-worker** or **web-worker** is base ReactorComposite that our business multithreaded service needs to extend.
 It provides functions(input action) to **fork** dispatching other action message to a forked thread.
@@ -40,15 +40,15 @@ To support both Node.js **worker_threads** and browser side **Web worker**, API 
 | @wfh/reactivizer/dist/fork-join/node-worker | @wfh/reactivizer/es/fork-join/web-worker
 | @wfh/reactivizer/dist/fork-join/node-worker-broker | @wfh/reactivizer/es/fork-join/web-worker-broker
 
-### Usage
+## Usage
 
-#### 1. Create "Your multithreaded service" file
+### 1. Create "Your multithreaded service" file
 e.g. "my-multithreaded-services.ts" to define service
 
 Create a ReactorComposite as core computational service for your business or calcuation logic,
 which can split data and recursively fork itself to process data
 
-##### Sample A, forkable service in form of a plain object, and is **reactivized** to a ReactorComposite
+#### Sample A, forkable service in form of a plain object, and is **reactivized** to a ReactorComposite
 
 ```ts
 import * as rx from 'rxjs';
@@ -86,7 +86,7 @@ export function createMyParallelService() {
 
 ```
 
-##### Sample B, hand-written forkable service in form of a ReactorComposite
+#### Sample B, hand-written forkable service in form of a ReactorComposite
 ```ts
 type MyParallelServiceInput = {
   compute(data: SharedArrayBuffer, offset: number, length: number): void;
@@ -138,7 +138,32 @@ export function createHandMadeParallelService() {
 }
 ```
 
-#### 2. Create "main module" file which runs in main thread
+#### Using ArrayBuffer and SharedArrayBuffer as parameter type and returned type
+For these `fork`ed actions e.g. `compute` and `computeReturned`, they are transmited via [port.postMessage](https://nodejs.org/docs/latest/api/worker_threads.html#portpostmessagevalue-transferlist).
+Thus the message parameters are transferred in a way which is compatible with the HTML structured clone algorithm, it's better to use `SharedArrayBuffer` or `ArrayBuffer`
+to carry large size of data, since they don't need to be `cloned` between threads.
+
+To use `ArrayBuffer` inside parameters, the type of parameter (or return type of functions of the plain object) must be sub-type extends `ForkTransferablePayload`:
+```ts
+export type ForkTransferablePayload<T = unknown> = {
+  content: T;
+  transferList: (ArrayBuffer | MessagePort | fsPromises.FileHandle | X509Certificate | Blob)[];
+};
+```
+
+##### Utilities helps to transform values to SharedArrayBuffer or ArrayBuffer
+
+```ts
+import {str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
+
+const transformedSharedArrayBuffer = str2ArrayBuffer<SharedArrayBuffer>('string value', isSharedArrayBuffer);
+// ...
+const stringValue = arrayBuffer2str(transformedSharedArrayBuffer, offset, length);
+
+```
+
+
+### 2. Create "main module" file which runs in main thread
 > Here "main thread" doesn't have to be an actual main thread in Node.js or Browser's window rendering thread, it can be any thread logically acting main thread
 
 ```ts
@@ -157,12 +182,12 @@ setupForMainWorker(createMyParallelService(), {
 });
 ```
 
-#### 3. Create "worker module" which runs in forked worker threads (or web workers)
+### 3. Create "worker module" which runs in forked worker threads (or web workers)
 ```ts
 import {createMyParallelService} from './forkJoin-simplest-sample';
 createMyParallelService();
 ```
 
-#### Direct communication between main worker and forked worker
+### Direct communication between main worker and forked worker
 
-#### Shutdown forked thread workers (Node.js)
+### Shutdown forked thread workers (Node.js)
