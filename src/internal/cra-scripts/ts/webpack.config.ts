@@ -166,23 +166,13 @@ export default function(webpackEnv: 'production' | 'development') {
   config.plugins?.push( new TermuxWebpackPlugin());
 
   if (cmdOption.cmd === 'cra-build' && !cmdOption.watch) {
-    let buildIdentifier = typeof config.entry! === 'string' ?
-      config.entry : Array.isArray(config.entry) ?
-        config.entry[0] :
-        typeof config.entry === 'object' ? Object.values(config.entry)[0] : null;
-    if (typeof buildIdentifier === 'string') {
-      const pkg = getPkgOfFile(buildIdentifier);
-      if (pkg) {
-         buildIdentifier = pkg.name + '_' + buildIdentifier.replace(/[\\/]/g, '_').replace(/\.[^.]*$/, '')
-      }
-    }
-
+    const buildIdentifier = nameFromConfigEntry(config);
     config.plugins?.push(
       new TermuxWebpackPlugin(),
       new BundleAnalyzerPlugin({
         analyzerMode: 'disabled',
         generateStatsFile: true,
-        statsFilename: Path.join(plinkEnv.distDir, `webpack-bundle-analyzer.stats-${typeof buildIdentifier === 'string' ? buildIdentifier : timeStr}.json`)
+        statsFilename: Path.join(plinkEnv.distDir, `webpack-bundle-analyzer.stats.${typeof buildIdentifier === 'string' ? buildIdentifier : timeStr}.json`)
       })
     );
   }
@@ -388,3 +378,24 @@ function changeForkTsCheckerOptions(
   void fs.promises.writeFile(tsconfigReport, JSON.stringify(tsconfig, null, '  '));
 }
 
+function nameFromConfigEntry(config: Configuration) {
+  let entryFile = typeof config.entry! === 'string' ?
+    config.entry : Array.isArray(config.entry) ?
+      config.entry[0] :
+      typeof config.entry === 'object' ? Object.values(config.entry)[0] : null;
+
+  if (Array.isArray(entryFile))
+    entryFile = entryFile[0]
+
+  let buildIdentifier: undefined | string;
+  if (typeof entryFile === 'string') {
+    const {getPkgOfFile} = packageOfFileFactory();
+    const pkg = getPkgOfFile(entryFile);
+    if (pkg) {
+      const path = Path.relative(config.resolve?.symlinks !== false ? pkg.realPath : pkg.path, entryFile);
+      buildIdentifier = pkg.shortName + '_' + path.replace(/[\\/]/g, '_').replace(/\.[^.]*$/, '');
+    }
+  }
+  log.info('entry', config.entry, 'buildIdentifier', buildIdentifier);
+  return buildIdentifier;
+}
