@@ -1,10 +1,10 @@
 import * as rx from 'rxjs';
-import { Action, ActionFunctions, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions } from './stream-core';
+import { Action, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions } from './stream-core';
 export * from './stream-core';
-export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
-type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
-type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
-export declare class RxController<I extends ActionFunctions> {
+export type InferMapParam<I, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
+type DispatchAndObserveRes<I, K extends keyof I> = <O, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
+type DispatchForAndObserveRes<I, K extends keyof I> = <O, R extends keyof O>(waitForAction$: rx.Observable<Action<O, R>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<O, R>>;
+export declare class RxController<I> {
     opts?: (CoreOptions<I> & {
         debugTableAction?: boolean | undefined;
     }) | undefined;
@@ -59,17 +59,17 @@ export declare class RxController<I extends ActionFunctions> {
     * belongs to
     */
     setName(value: string): void;
-    createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;
+    createAction<J = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J, K>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<I>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
     /**
      * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
      */
-    subForTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
+    subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
     /**
      * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
      */
-    subForExcludeTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
+    subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
     /**
      * Delegate to `this.core.action$.connect()`
      * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
@@ -81,7 +81,7 @@ export declare class RxController<I extends ActionFunctions> {
      */
     connect(): void;
 }
-export declare class GroupedRxController<I extends ActionFunctions, K> extends RxController<I> {
+export declare class GroupedRxController<I, K> extends RxController<I> {
     key: K;
     constructor(key: K, opts?: CoreOptions<I>);
 }
@@ -94,10 +94,10 @@ export declare class GroupedRxController<I extends ActionFunctions, K> extends R
  * defines exactly data structure of it.
  *
  */
-export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
+export type ActionTableDataType<I, KS extends ReadonlyArray<keyof I>> = {
     [P in KS[number]]: InferPayload<I[P]> | [];
 };
-export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
+export declare class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
     #private;
     private streamCtl;
     actionNames: KS;
@@ -116,7 +116,7 @@ export declare class ActionTable<I extends ActionFunctions, KS extends ReadonlyA
     addActions<M extends Array<keyof I>>(...actionNames: M): ActionTable<I, (KS[number] | M[number])[]>;
     private onAddActions;
     getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I, K> | undefined;
-    protected debugLogLatestActionOperator<K extends string & keyof I, P extends InferMapParam<I, K>>(type: K): rx.OperatorFunction<P, P>;
+    protected debugLogLatestActionOperator<K extends keyof I, P extends InferMapParam<I, K>>(type: K): rx.OperatorFunction<P, P>;
 }
 /** Rx operator function */
 export declare function actionRelatedToAction<T extends Action<any>>(actionOrMeta: {
@@ -126,7 +126,7 @@ export declare function actionRelatedToAction<T extends Action<any>>(actionOrMet
 export declare function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: {
     i: ActionMeta['i'];
 }): (up: rx.Observable<T>) => rx.Observable<T>;
-export declare function serializeAction<I extends ActionFunctions = any, K extends keyof I = string>(action: Action<I, K>): {
+export declare function serializeAction<I = any, K extends keyof I = any>(action: Action<I, K>): {
     t: string;
     p: InferPayload<I[K]>;
     i: number;
@@ -137,4 +137,4 @@ export declare function serializeAction<I extends ActionFunctions = any, K exten
  * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
-export declare function deserializeAction<I extends ActionFunctions>(actionObj: any, toController: RxController<I>): Action<I, keyof I>;
+export declare function deserializeAction<I>(actionObj: any, toController: RxController<I>): Action<I, keyof I>;

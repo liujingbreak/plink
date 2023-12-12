@@ -3,7 +3,7 @@ import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, deserializeAction, serializeAction,
+import {Action, deserializeAction, serializeAction,
   actionRelatedToAction, nameOfAction} from '../control';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
@@ -14,8 +14,8 @@ export {WorkerControl} from './types';
 // import {createBroker} from './node-worker-broker';
 
 export function createWorkerControl<
-  I extends ActionFunctions = Record<string, never>,
-  O extends ActionFunctions = Record<string, never>,
+  I = Record<string, never>,
+  O = Record<string, never>,
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
 >(
@@ -202,7 +202,7 @@ export function createWorkerControl<
       rx.withLatestFrom(outputTable.l.workerInited),
       rx.tap(([action, [, , , port]]) => {
         if (port) {
-          o.dp.log(`pass action ${nameOfAction(action)} to main thread`);
+          o.dp.log(`pass action ${nameOfAction(action) as string} to main thread`);
           port.postMessage(serializeAction(action));
         }
       })

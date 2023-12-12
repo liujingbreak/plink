@@ -1,23 +1,23 @@
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, InferPayload, ActionMeta,
+import {Action, InferPayload, ActionMeta,
   ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions,
   has, nameOfAction, actionMetaToStr
 } from './stream-core';
 
 export * from './stream-core';
 
-export type InferMapParam<I extends ActionFunctions, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
-type DispatchAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
+export type InferMapParam<I, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
+type DispatchAndObserveRes<I, K extends keyof I> = <O, R extends keyof O>(
   waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
 
-type DispatchForAndObserveRes<I extends ActionFunctions, K extends keyof I> = <O extends ActionFunctions, R extends keyof O>(
+type DispatchForAndObserveRes<I, K extends keyof I> = <O, R extends keyof O>(
   waitForAction$: rx.Observable<Action<O, R>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
 
 const EMPTY_ARRY = [] as [];
 
-export class RxController<I extends ActionFunctions> {
+export class RxController<I> {
   core: ControllerCore<I>;
   dispatcher: {[K in keyof I]: Dispatch<I, K & string>};
   dispatcherFor: {[K in keyof I]: DispatchFor<I, K & string>};
@@ -45,7 +45,7 @@ export class RxController<I extends ActionFunctions> {
 
     this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I, K & string>}, {
       get(_target, key, _rec) {
-        return core.dispatchFactory(key as string & keyof I);
+        return core.dispatchFactory(key as keyof I);
       },
       has(_target, _key) {
         return true;
@@ -56,7 +56,7 @@ export class RxController<I extends ActionFunctions> {
     });
     this.dispatcherFor = this.dpf = new Proxy({} as {[K in keyof I]: DispatchFor<I, K & string>}, {
       get(_target, key, _rec) {
-        return core.dispatchForFactory(key as string & keyof I);
+        return core.dispatchForFactory(key as keyof I);
       },
       has(_target, key) {
         return true;
@@ -72,7 +72,7 @@ export class RxController<I extends ActionFunctions> {
       get(_target, key, _rec) {
 
         return <R extends keyof I>(action$: rx.Observable<Action<I, R>>, referActions: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: any[]) => {
-          const action = self.core.createAction(key as string, params as InferPayload<I[string]>);
+          const action = self.core.createAction(key as keyof I, params as InferPayload<I[keyof I]>);
           if (referActions)
             action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : (referActions as ActionMeta).i;
           const r$ = new rx.ReplaySubject<InferMapParam<I, R>>(1);
@@ -169,7 +169,7 @@ export class RxController<I extends ActionFunctions> {
     this.core.setName(value);
   }
 
-  createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>) {
+  createAction<J = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>) {
     return this.core.createAction(type, params);
   }
 
@@ -215,7 +215,7 @@ export class RxController<I extends ActionFunctions> {
   /**
    * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
    */
-  subForTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
+  subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
     const sub = new RxController<Pick<I, KS[number]>>(opts);
     const typeSet = new Set(actionTypes);
     this.core.action$.pipe(
@@ -230,7 +230,7 @@ export class RxController<I extends ActionFunctions> {
   /**
    * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
    */
-  subForExcludeTypes<KS extends Array<keyof I & string> | ReadonlyArray<keyof I & string>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
+  subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
     const sub = new RxController<Pick<I, KS[number]>>(opts);
     const typeSet = new Set(excludeActionTypes);
     this.core.action$.pipe(
@@ -255,7 +255,7 @@ export class RxController<I extends ActionFunctions> {
   }
 }
 
-export class GroupedRxController<I extends ActionFunctions, K> extends RxController<I> {
+export class GroupedRxController<I, K> extends RxController<I> {
   constructor(public key: K, opts?: CoreOptions<I>) {
     super(opts);
   }
@@ -270,11 +270,11 @@ export class GroupedRxController<I extends ActionFunctions, K> extends RxControl
  * defines exactly data structure of it.
  * 
  */
-export type ActionTableDataType<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> = {
+export type ActionTableDataType<I, KS extends ReadonlyArray<keyof I>> = {
   [P in KS[number]]: InferPayload<I[P]> | []
 };
 
-export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<keyof I>> {
+export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
   actionNames: KS;
 
   latestPayloads = {} as {[K in KS[number]]: rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>};
@@ -301,17 +301,6 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
   }
 
   private data: ActionTableDataType<I, KS> = {} as ActionTableDataType<I, KS>;
-
-  // get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
-  //   if (this.#latestPayloadsSnapshot$)
-  //     return this.#latestPayloadsSnapshot$;
-
-  //   this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
-  //     rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
-  //     rx.map(() => this.actionSnapshot)
-  //   );
-  //   return this.#latestPayloadsSnapshot$;
-  // }
 
   actionSnapshot = new Map<keyof I, InferMapParam<I, keyof I>>();
 
@@ -361,7 +350,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
 
       this.latestPayloads[type] = this.streamCtl.opts?.debugTableAction ?
         a$.pipe(
-          this.debugLogLatestActionOperator(type as string)
+          this.debugLogLatestActionOperator(type)
         ) :
         a$.asObservable();
     }
@@ -371,7 +360,7 @@ export class ActionTable<I extends ActionFunctions, KS extends ReadonlyArray<key
     return this.actionSnapshot.get(actionName) as InferMapParam<I, K> | undefined;
   }
 
-  protected debugLogLatestActionOperator<K extends string & keyof I, P extends InferMapParam<I, K>>(type: K) {
+  protected debugLogLatestActionOperator<K extends keyof I, P extends InferMapParam<I, K>>(type: K) {
     const core = this.streamCtl.core;
     return this.streamCtl.opts?.log ?
       rx.map<P, P>((action, idx) => {
@@ -424,7 +413,7 @@ export function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionO
   };
 }
 
-export function serializeAction<I extends ActionFunctions = any, K extends keyof I = string>(action: Action<I, K>) {
+export function serializeAction<I = any, K extends keyof I = any>(action: Action<I, K>) {
   const a = {...action, t: nameOfAction(action)};
   // if (a.r instanceof Set) {
   //   a.r = [...a.r.values()];
@@ -437,8 +426,8 @@ export function serializeAction<I extends ActionFunctions = any, K extends keyof
  * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
-export function deserializeAction<I extends ActionFunctions>(actionObj: any, toController: RxController<I>) {
-  const newAction = toController.core.createAction(nameOfAction(actionObj) as keyof I, (actionObj as Action<I>).p);
+export function deserializeAction<I>(actionObj: any, toController: RxController<I>) {
+  const newAction = toController.core.createAction(nameOfAction(actionObj) as unknown as keyof I, (actionObj as Action<I>).p);
   newAction.i = (actionObj as Action<any>).i;
   if ((actionObj as Action<any>).r)
     newAction.r = (actionObj as Action<any>).r;
@@ -447,7 +436,7 @@ export function deserializeAction<I extends ActionFunctions>(actionObj: any, toC
   return newAction;
 }
 
-function mapActionToPayload<I extends ActionFunctions, K extends keyof I>() {
+function mapActionToPayload<I, K extends keyof I>() {
   return (up: rx.Observable<Action<I, K>>) => up.pipe(
     rx.map(a => [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I, keyof I>)
   );

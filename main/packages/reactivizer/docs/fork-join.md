@@ -9,15 +9,20 @@ workerBase[node-worker]
 broker[node-worker-broker]
 service("Your multithreaded <br>service")
 worker["forked worker module<br>(runs in<br>thread/web worker)"]
+scheduler[worker-scheduler]
 
 main-->|createService| service
 service -->|uses API:<br>createWorkerControl,<br>fork, setLiftUpActions| workerBase
 main -->|setupForMainWorker| broker
 main -.->|new Worker|worker
+scheduler --> |subscribe:<br>wait, stopWaiting|broker
+broker --> |assignWorker|broker
+scheduler --> |rank worker's<br>workload|scheduler
 
 subgraph "@wfh/reactivizer/dist/fork-join/..."
   workerBase
   broker
+  scheduler
 end
 
 worker -->|createService| service
@@ -48,7 +53,7 @@ e.g. "my-multithreaded-services.ts" to define service
 Create a ReactorComposite as core computational service for your business or calcuation logic,
 which can split data and recursively fork itself to process data
 
-#### Sample A, forkable service in form of a plain object, and is **reactivized** to a ReactorComposite
+#### 1.1 Forkable service in form of a plain object, and then **reactivize** to a ReactorComposite
 
 ```ts
 import * as rx from 'rxjs';
@@ -86,7 +91,7 @@ export function createMyParallelService() {
 
 ```
 
-#### Sample B, hand-written forkable service in form of a ReactorComposite
+#### 1.2 Or in form of a hand-written forkable service in form of a ReactorComposite
 ```ts
 type MyParallelServiceInput = {
   compute(data: SharedArrayBuffer, offset: number, length: number): void;
@@ -137,8 +142,14 @@ export function createHandMadeParallelService() {
   return myParallelService;
 }
 ```
+#### 1.3 Using wait(), stopWaiting() to rank workload of current thread
+A thread or web worker can process multiple **fork**ed message at same time, the worker-scheduler's job is balancing and assigning new task to the worker thread which has minimum workload at the moment
 
-#### Using ArrayBuffer and SharedArrayBuffer as parameter type and returned type
+Call `o.dp.wait()` before `await` for any forked task message returning "resolved" message, or any place might have asynchronous waiting logic, like I/O operation.
+
+Call `o.dp.stopWaiting()` after a forked task message is replied with a "resolved" message, this tells worker-scheduler current workload is reduced by 1.
+
+#### 1.4 Using ArrayBuffer and SharedArrayBuffer as parameter type and returned type
 For these `fork`ed actions e.g. `compute` and `computeReturned`, they are transmited via [port.postMessage](https://nodejs.org/docs/latest/api/worker_threads.html#portpostmessagevalue-transferlist).
 Thus the message parameters are transferred in a way which is compatible with the HTML structured clone algorithm, it's better to use `SharedArrayBuffer` or `ArrayBuffer`
 to carry large size of data, since they don't need to be `cloned` between threads.
@@ -151,7 +162,7 @@ export type ForkTransferablePayload<T = unknown> = {
 };
 ```
 
-##### Utilities helps to transform values to SharedArrayBuffer or ArrayBuffer
+##### 1.4.1 Utilities helps to transform values to SharedArrayBuffer or ArrayBuffer
 
 ```ts
 import {str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
@@ -188,6 +199,6 @@ import {createMyParallelService} from './forkJoin-simplest-sample';
 createMyParallelService();
 ```
 
-### Direct communication between main worker and forked worker
+### 4. Direct communication between main worker and forked worker
 
-### Shutdown forked thread workers (Node.js)
+### 5. Shutdown forked thread workers (Node.js)

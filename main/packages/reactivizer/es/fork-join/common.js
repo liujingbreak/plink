@@ -1,5 +1,8 @@
 import * as rx from 'rxjs';
 import { actionRelatedToAction } from '../control';
+/**
+ * @param returnedActionName the name of action that is observed as "returned" message from forked worker, default is `${actionName}Resolved`
+ */
 export function fork(comp, actionName, params, returnedActionName, relatedToAction) {
     const forkedAction = comp.o.createAction(actionName, ...params);
     if (relatedToAction)

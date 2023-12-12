@@ -192,7 +192,7 @@ export function createWorkerControl<
       rx.withLatestFrom(outputTable.l.workerInited),
       rx.tap(([action, [, , , port]]) => {
         if (port) {
-          o.dp.log(`pass action ${nameOfAction(action)} to main thread`);
+          o.dp.log(`pass action ${nameOfAction(action) as string} to main thread`);
           port.postMessage(serializeAction(action));
         }
       })

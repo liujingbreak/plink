@@ -137,4 +137,12 @@ export class ReactorComposite extends DuplexController {
         }));
     }
 }
+// export function mergeReactorComposite<
+// I, O,
+// LI extends ReadonlyArray<keyof I>, LO extends ReadonlyArray<keyof O>,
+// I2, O2,
+// LI2 extends ReadonlyArray<keyof I2>,
+// LO2 extends ReadonlyArray<keyof O2>
+// >(origin: ReactorComposite<I, O, LI, LO>) {
+// }
 //# sourceMappingURL=epic.js.map

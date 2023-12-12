@@ -2,9 +2,9 @@ import type {Worker as NodeWorker} from 'node:worker_threads';
 import * as algorithms from '@wfh/algorithms';
 import * as rx from 'rxjs';
 import {ReactorComposite, ActionMeta} from '..';
-import {Broker, WorkerControl, BrokerInput, BrokerEvent, brokerOutputTableFor, ThreadExpirationEvents} from './types';
+import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor, ThreadExpirationEvents} from './types';
 
-export function applyScheduler<W extends WorkerControl<any, any, any, any>>(broker: Broker<W>, opts: {
+export function applyScheduler(broker: Broker<any, any>, opts: {
   maxNumOfWorker: number;
   /** Default `false`, in which case the current thread (main) will also be assigned for tasks */
   excludeCurrentThead?: boolean;
@@ -19,7 +19,7 @@ export function applyScheduler<W extends WorkerControl<any, any, any, any>>(brok
 
   const {r, o, i, outputTable} = broker as unknown as ReactorComposite<
   BrokerInput,
-  BrokerEvent<WorkerControl<any, any, any, any>> & ThreadExpirationEvents,
+  BrokerEvent & ThreadExpirationEvents,
   [],
   typeof brokerOutputTableFor>;
 

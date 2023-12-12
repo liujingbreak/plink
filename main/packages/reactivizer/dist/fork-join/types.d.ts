@@ -1,10 +1,10 @@
 /// <reference types="node" />
 import type { Worker as NodeWorker, MessagePort as NodeMessagePort } from 'worker_threads';
 import * as rx from 'rxjs';
-import { ReactorComposite } from '../epic';
-import { Action, ActionFunctions } from '../control';
+import { ReactorComposite, ReactorCompositeMergeType } from '../epic';
+import { Action } from '../control';
 export declare const brokerOutputTableFor: readonly ["newWorkerReady", "workerInputs", "assignWorker", "portOfWorker"];
-export type Broker<W extends WorkerControl<any, any, any, any> = WorkerControl> = ReactorComposite<BrokerInput, BrokerEvent<W>, [], typeof brokerOutputTableFor>;
+export type Broker<WI = Record<never, never>, WO = Record<never, never>> = ReactorComposite<BrokerInput, BrokerEvent<WI, WO>, [], typeof brokerOutputTableFor>;
 export type ForkWorkerInput = {
     exit(): void;
     onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): void;
@@ -29,7 +29,7 @@ export type ForkWorkerOutput = {
 };
 export declare const workerInputTableFor: readonly ["setLiftUpActions", "exit"];
 export declare const workerOutputTableFor: readonly ["workerInited", "log", "warn"];
-export type WorkerControl<I extends ActionFunctions = Record<never, never>, O extends ActionFunctions = Record<never, never>, LI extends ReadonlyArray<keyof I> = readonly [], LO extends ReadonlyArray<keyof O> = readonly []> = ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O, ReadonlyArray<typeof workerInputTableFor[number] | LI[number]>, ReadonlyArray<typeof workerOutputTableFor[number] | LO[number]>>;
+export type WorkerControl<I = Record<never, never>, O = Record<never, never>, LI extends ReadonlyArray<keyof I> = readonly [], LO extends ReadonlyArray<keyof O> = readonly []> = ReactorCompositeMergeType<ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof workerInputTableFor, typeof workerOutputTableFor>, I, O, LI, LO>;
 export type BrokerInput = {
     ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): void;
     /** Send message to worker to stop all event listerners on it */
@@ -40,10 +40,10 @@ export type BrokerInput = {
     letAllWorkerExit(): void;
     workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): void;
 };
-export type BrokerEvent<W extends WorkerControl<any, any, any, any> = WorkerControl> = {
-    workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, action$FromWorker: W['o'], skipped: boolean): void;
-    newWorkerReady(workerNo: number, action$FromWorker: W['o'], workerInput: W['i']): void;
-    workerInputs(byWorkerNo: Map<number, W['i']>): void;
+export type BrokerEvent<I = Record<never, never>, O = Record<never, never>> = {
+    workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, action$FromWorker: WorkerControl<I, O>['o'], skipped: boolean): void;
+    newWorkerReady(workerNo: number, action$FromWorker: WorkerControl<I, O>['o'], workerInput: WorkerControl<I, O>['i']): void;
+    workerInputs(byWorkerNo: Map<number, WorkerControl<I, O>['i']>): void;
     onWorkerError(workerNo: number, error: unknown, type?: string): void;
     onWorkerExit(workerNo: number, exitCode: number): void;
     onAllWorkerExit(): void;

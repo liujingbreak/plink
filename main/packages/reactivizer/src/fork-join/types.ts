@@ -1,10 +1,13 @@
 import type {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {ReactorComposite} from '../epic';
-import {Action, ActionFunctions} from '../control';
+import {ReactorComposite, ReactorCompositeMergeType} from '../epic';
+import {Action} from '../control';
 
 export const brokerOutputTableFor = ['newWorkerReady', 'workerInputs', 'assignWorker', 'portOfWorker'] as const;
-export type Broker<W extends WorkerControl<any, any, any, any> = WorkerControl> = ReactorComposite<BrokerInput, BrokerEvent<W>, [], typeof brokerOutputTableFor>;
+export type Broker<
+  WI = Record<never, never>,
+  WO = Record<never, never>
+> = ReactorComposite<BrokerInput, BrokerEvent<WI, WO>, [], typeof brokerOutputTableFor>;
 
 export type ForkWorkerInput = {
   exit(): void;
@@ -36,14 +39,13 @@ export const workerInputTableFor = ['setLiftUpActions', 'exit'] as const;
 export const workerOutputTableFor = ['workerInited', 'log', 'warn'] as const;
 
 export type WorkerControl<
-  I extends ActionFunctions = Record<never, never>,
-  O extends ActionFunctions = Record<never, never>,
+  I = Record<never, never>,
+  O = Record<never, never>,
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
-> = ReactorComposite<ForkWorkerInput & I, ForkWorkerOutput & O,
-ReadonlyArray<typeof workerInputTableFor[number] | LI[number]>,
-ReadonlyArray<typeof workerOutputTableFor[number] | LO[number]>
->;
+> = ReactorCompositeMergeType<
+ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof workerInputTableFor, typeof workerOutputTableFor>,
+I, O, LI, LO>;
 
 export type BrokerInput = {
   ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): void;
@@ -56,10 +58,10 @@ export type BrokerInput = {
   workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): void;
 };
 
-export type BrokerEvent<W extends WorkerControl<any, any, any, any> = WorkerControl> = {
-  workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, action$FromWorker: W['o'], skipped: boolean): void;
-  newWorkerReady(workerNo: number, action$FromWorker: W['o'], workerInput: W['i']): void;
-  workerInputs(byWorkerNo: Map<number, W['i']>): void;
+export type BrokerEvent<I = Record<never, never>, O = Record<never, never>> = {
+  workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, action$FromWorker: WorkerControl<I, O>['o'], skipped: boolean): void;
+  newWorkerReady(workerNo: number, action$FromWorker: WorkerControl<I, O>['o'], workerInput: WorkerControl<I, O>['i']): void;
+  workerInputs(byWorkerNo: Map<number, WorkerControl<I, O>['i']>): void;
   onWorkerError(workerNo: number, error: unknown, type?: string): void;
   onWorkerExit(workerNo: number, exitCode: number): void;
   onAllWorkerExit(): void;

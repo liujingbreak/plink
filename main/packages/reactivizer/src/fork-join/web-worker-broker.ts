@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 // import {timeoutLog} from '../utils';
-import {Action, ActionFunctions, serializeAction, deserializeAction, RxController} from '../control';
+import {Action, serializeAction, deserializeAction, RxController} from '../control';
 import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as outputTableFor, ForkWorkerInput, ForkWorkerOutput, WorkerControl, ThreadExpirationEvents} from './types';
 import {applyScheduler} from './worker-scheduler';
 export * from './types';
@@ -9,20 +9,18 @@ export * from './types';
 /** Broker manages worker threads, create message channels between child worker threads and main thread, transmits actions
 */
 export function createBroker<
-  I extends ActionFunctions = Record<never, never>,
-  O extends ActionFunctions = Record<never, never>,
-  LI extends ReadonlyArray<keyof I> = readonly [],
-  LO extends ReadonlyArray<keyof O> = readonly []
+  I = Record<never, never>,
+  O = Record<never, never>
 >(
-  workerController: WorkerControl<I, O, LI, LO>,
-  opts?: ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<WorkerControl<I, O, LI, LO>> & ForkWorkerOutput & ThreadExpirationEvents>
+  workerController: WorkerControl<I, O, any, any>,
+  opts?: ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
 ) {
   const options = opts ? {...opts, outputTableFor} : {outputTableFor};
   const mainWorkerComp = workerController as unknown as ReactorComposite<ForkWorkerInput, ForkWorkerOutput>;
 
   const broker = new ReactorComposite<
   BrokerInput & ForkWorkerOutput,
-  BrokerEvent<WorkerControl<I, O, LI, LO>>,
+  BrokerEvent<I, O>,
   [],
     typeof outputTableFor
   >(options as any);
@@ -152,20 +150,17 @@ export function createBroker<
   workerInputMap.set(0, workerController.i);
   o.dp.workerInputs(workerInputMap);
   o.dp.newWorkerReady(0, workerController.o, workerController.i);
-  return broker as unknown as Broker<WorkerControl<I, O, LI, LO>>;
+  return broker as unknown as Broker<I, O>;
 }
 
 type ScheduleOptions = typeof applyScheduler extends (c: any, o: infer O) => any ? O : unknown;
 
 export function setupForMainWorker<
-  I extends ActionFunctions = Record<never, never>,
-  O extends ActionFunctions = Record<never, never>,
-  LI extends ReadonlyArray<keyof I> = readonly [],
-  LO extends ReadonlyArray<keyof O> = readonly []
->(workerContoller: WorkerControl<I, O, LI, LO>,
-  opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<WorkerControl<I, O, LI, LO>> & ForkWorkerOutput & ThreadExpirationEvents>
-): Broker<WorkerControl<I, O, LI, LO>> {
-
+  I = Record<never, never>,
+  O = Record<never, never>
+>(workerContoller: WorkerControl<I, O, any, any>,
+  opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
+): Broker<I, O> {
   const broker = createBroker(workerContoller, opts);
   applyScheduler(broker, opts);
   return broker;

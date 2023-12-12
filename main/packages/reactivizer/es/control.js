@@ -199,15 +199,6 @@ export class ActionTable {
         this.streamCtl = streamCtl;
         this.latestPayloads = {};
         this.data = {};
-        // get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
-        //   if (this.#latestPayloadsSnapshot$)
-        //     return this.#latestPayloadsSnapshot$;
-        //   this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
-        //     rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
-        //     rx.map(() => this.actionSnapshot)
-        //   );
-        //   return this.#latestPayloadsSnapshot$;
-        // }
         this.actionSnapshot = new Map();
         // private
         _ActionTable_latestPayloadsByName$.set(this, void 0);

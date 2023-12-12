@@ -18,5 +18,5 @@ declare const sorter: import("..").ReactorComposite<{
     sortAllInWorkerCompleted: () => void;
     sortCompleted: () => void;
     mergeCompleted: () => void;
-} & import("../fork-join/types").ForkWorkerOutput & Record<never, never>, readonly ("setLiftUpActions" | "exit")[], readonly ("workerInited" | "log" | "warn")[]>;
+} & import("../fork-join/types").ForkWorkerOutput & Record<never, never>, readonly ("exit" | "setLiftUpActions")[], readonly ("log" | "workerInited" | "warn")[]>;
 export { sorter };

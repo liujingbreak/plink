@@ -14,7 +14,8 @@ function setupBroker(excludeCurrentThead = false, maxNumOfWorker) {
     const broker = (0, node_worker_broker_1.setupForMainWorker)(markdown_processor_1.markdownProcessor, {
         name: 'broker',
         maxNumOfWorker: maxNumOfWorker !== null && maxNumOfWorker !== void 0 ? maxNumOfWorker : os_1.default.availableParallelism(),
-        debug: false,
+        threadMaxIdleTime: 4000,
+        debug: true,
         excludeCurrentThead,
         log(...args) {
             log.info(...args);

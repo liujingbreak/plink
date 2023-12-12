@@ -1,6 +1,6 @@
-import { CoreOptions, RxController, ActionFunctions } from './control';
-export type DuplexOptions<I extends ActionFunctions = Record<string, never>> = CoreOptions<I>;
-export declare class DuplexController<I extends ActionFunctions, O extends ActionFunctions> {
+import { CoreOptions, RxController } from './control';
+export type DuplexOptions<I = Record<string, never>> = CoreOptions<I>;
+export declare class DuplexController<I, O> {
     /** input actions controller, abbrevation name of "inputControl" */
     i: RxController<I>;
     inputControl: RxController<I>;

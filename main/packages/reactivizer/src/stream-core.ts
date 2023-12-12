@@ -14,7 +14,7 @@ export type ActionMeta = {
 
 export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
 
-export type Action<I extends ActionFunctions, K extends keyof I = keyof I & string> = {
+export type Action<I, K extends keyof I = keyof I> = {
   /** type */
   t: string;
   /** payload **/
@@ -23,11 +23,11 @@ export type Action<I extends ActionFunctions, K extends keyof I = keyof I & stri
 
 // export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
 
-export type Dispatch<I extends ActionFunctions, K extends string & keyof I> = (...params: InferPayload<I[K]>) => Action<I, K>;
-export type DispatchFor<I extends ActionFunctions, K extends string & keyof I> =
+export type Dispatch<I, K extends keyof I> = (...params: InferPayload<I[K]>) => Action<I, K>;
+export type DispatchFor<I, K extends keyof I> =
   (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<I[K]>) => Action<I, K>;
 
-export type CoreOptions<I extends ActionFunctions> = {
+export type CoreOptions<I> = {
   name?: string;
   /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not 
   * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
@@ -36,7 +36,7 @@ export type CoreOptions<I extends ActionFunctions> = {
   * */
   autoConnect?: boolean;
   debug?: boolean;
-  debugExcludeTypes?: (keyof I & string)[];
+  debugExcludeTypes?: (keyof I)[];
   logStyle?: 'full' | 'noParam';
   log?: (msg: string, ...objs: any[]) => unknown;
 };
@@ -46,20 +46,20 @@ let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 
 export const has = Object.prototype.hasOwnProperty;
 
-export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
+export class ControllerCore<I> {
   actionUpstream = new rx.Subject<Action<I>>();
   interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>>(a => a);
   typePrefix = '#' + SEQ++ + ' ';
   logPrefix = ''; // TODO: a better identity to distinguish threads
   action$: rx.Observable<Action<I>>;
-  debugExcludeSet: Set<string>;
+  debugExcludeSet: Set<string | number | symbol>;
 
   /** Event when `action$` is first time subscribed */
   actionSubscribed$: rx.Observable<void>;
   /** Event when `action$` is entirely unsubscribed by all observers */
   actionUnsubscribed$: rx.Observable<void>;
-  protected dispatcher = {} as {[K in keyof I]: Dispatch<I, K & string>};
-  protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I, K & string>};
+  protected dispatcher = {} as {[K in keyof I]: Dispatch<I, K>};
+  protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I, K>};
   protected actionSubDispatcher = new rx.Subject<void>();
   protected actionUnsubDispatcher = new rx.Subject<void>();
   private connectableAction$: rx.Connectable<Action<I>>;
@@ -125,7 +125,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
     this.actionUnsubscribed$ = this.actionUnsubDispatcher.asObservable();
   }
 
-  createAction<J extends ActionFunctions = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>) {
+  createAction<J = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>) {
     return {
       t: this.typePrefix + (type as string),
       i: ACTION_SEQ++,
@@ -139,7 +139,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
     this.logPrefix = name ?? this.typePrefix;
   }
 
-  dispatchFactory<K extends string & keyof I>(type: K): Dispatch<I, K> {
+  dispatchFactory<K extends keyof I>(type: K): Dispatch<I, K> {
     if (has.call(this.dispatcher, type)) {
       return this.dispatcher[type];
     }
@@ -152,7 +152,7 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
     return dispatch;
   }
 
-  dispatchForFactory<K extends string & keyof I>(type: K): DispatchFor<I, K> {
+  dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I, K> {
     if (has.call(this.dispatcherFor, type)) {
       return this.dispatcherFor[type];
     }
@@ -206,11 +206,11 @@ export class ControllerCore<I extends ActionFunctions = {[k: string]: never}> {
  * @return undefined if current action doesn't have a valid "type" field
  */
 // eslint-disable-next-line space-before-function-paren
-export function nameOfAction<I extends ActionFunctions>(
+export function nameOfAction<I = ActionFunctions>(
   action: Pick<Action<I>, 't'>
-): keyof I & string {
+): keyof I {
   const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
-  return (match ? match[1] : action.t) as keyof I & string;
+  return (match ? match[1] : action.t) as keyof I;
 }
 
 export function actionMetaToStr(action: ActionMeta) {
