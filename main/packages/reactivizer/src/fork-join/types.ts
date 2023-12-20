@@ -3,7 +3,7 @@ import * as rx from 'rxjs';
 import {ReactorComposite, ReactorCompositeMergeType} from '../epic';
 import {Action} from '../control';
 
-export const brokerOutputTableFor = ['newWorkerReady', 'workerInputs', 'assignWorker', 'portOfWorker'] as const;
+export const brokerOutputTableFor = ['newWorkerReady', 'assignWorker'] as const;
 export type Broker<
   WI = Record<never, never>,
   WO = Record<never, never>
@@ -50,7 +50,7 @@ I, O, LI, LO>;
 export type BrokerInput = {
   ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): void;
   /** Send message to worker to stop all event listerners on it */
-  letWorkerExit(worker: Worker | NodeWorker): void;
+  letWorkerExit(workerNo: number): void;
   /** Since Web worker doesn't have "close" event, there is no way currently this ca
    * work in web browser
    */
@@ -61,12 +61,11 @@ export type BrokerInput = {
 export type BrokerEvent<I = Record<never, never>, O = Record<never, never>> = {
   workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, action$FromWorker: WorkerControl<I, O>['o'], skipped: boolean): void;
   newWorkerReady(workerNo: number, action$FromWorker: WorkerControl<I, O>['o'], workerInput: WorkerControl<I, O>['i']): void;
-  workerInputs(byWorkerNo: Map<number, WorkerControl<I, O>['i']>): void;
   onWorkerError(workerNo: number, error: unknown, type?: string): void;
   onWorkerExit(workerNo: number, exitCode: number): void;
   onAllWorkerExit(): void;
   assignWorker(): void;
-  portOfWorker(map: Map<Worker | NodeWorker, MessagePort | NodeMessagePort>): void;
+  workerRankChanged(workerNo: number, value: number): void;
 };
 
 export type ThreadExpirationEvents = {

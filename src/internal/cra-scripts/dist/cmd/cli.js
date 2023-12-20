@@ -128,6 +128,7 @@ function runReactScripts(cmdName, opts, type, entries) {
             return { file };
         }
     });
+    (0, plink_1.logConfig)(cfg());
     (0, utils_1.saveCmdOptionsToEnv)(cmdName, opts, type, targetEntries);
     if (process.env.PORT == null && cfg().port)
         process.env.PORT = cfg().port + '';

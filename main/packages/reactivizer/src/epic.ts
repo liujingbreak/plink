@@ -1,6 +1,7 @@
 // import inspector from 'node:inspector';
 import * as rx from 'rxjs';
-import {RxController, ActionTable, ActionFunctions} from './control';
+import {RxController, Action, ArrayOrTuple, ActionTable, ActionFunctions, ActionMeta, DispatchForAndObserveRes,
+  InferPayload, InferMapParam, mapActionToPayload, actionRelatedToAction} from './control';
 import {DuplexController, DuplexOptions} from './duplex';
 // inspector.open(9222, 'localhost', true);
 
@@ -27,13 +28,23 @@ export interface ReactorCompositeOpt<
   outputTableFor?: LO;
 }
 
+interface BaseEvents {
+  _onErrorFor(err: any): void;
+}
+
+type LOE<LI extends readonly any[]> = readonly (LI[number] | '_onErrorFor')[];
+
 export class ReactorComposite<
   I = Record<never, never>,
   O = Record<never, never>,
   LI extends readonly (keyof I)[] = readonly [],
   LO extends readonly (keyof O)[] = readonly []
-> extends DuplexController<I, O> {
-  protected errorSubject: rx.Subject<[lable: string, originError: any]> = new rx.ReplaySubject(20);
+> extends DuplexController<I, O & BaseEvents> {
+
+  protected errorSubject: rx.Subject<
+  [lable: string, originError: any] |
+  [lable: string, originError: any, relevantActions: ActionMeta[]
+  ]> = new rx.ReplaySubject(20);
   /** All catched error goes here */
   error$ = this.errorSubject.asObservable();
   destory$: rx.Subject<void> = new rx.ReplaySubject(1);
@@ -46,28 +57,40 @@ export class ReactorComposite<
     return this.iTable;
   }
 
-  get outputTable(): ActionTable<O, LO> {
+  get outputTable(): ActionTable<O & BaseEvents, LOE<LO>> {
     if (this.oTable)
       return this.oTable;
-    this.oTable = new ActionTable<O, LO>(this.o, [] as unknown as LO);
+    this.oTable = new ActionTable<O & BaseEvents, LOE<LO>>(this.o, ['_onErrorFor'] as unknown as LOE<LO>);
     return this.oTable;
   }
 
   private iTable: ActionTable<I, LI> | undefined;
-  private oTable: ActionTable<O, LO> | undefined;
+  private oTable: ActionTable<O & BaseEvents, LOE<LO>> | undefined;
   // protected static logSubj: rx.Subject<[level: string, ...msg: any[]]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
 
   constructor(private opts?: ReactorCompositeOpt<I, O, LI, LO>) {
     super(opts);
     this.reactorSubj = new rx.ReplaySubject();
+    this.createDispatchAndObserveProxy(this.i);
+    this.createDispatchAndObserveProxy(this.o);
 
     if (opts?.inputTableFor && opts?.inputTableFor.length > 0) {
       this.iTable = new ActionTable(this.i, opts.inputTableFor);
     }
     if (opts?.outputTableFor && opts?.outputTableFor.length > 0) {
-      this.oTable = new ActionTable(this.o, opts.outputTableFor);
+      this.oTable = new ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
     }
+    this.o.pt._onErrorFor.pipe(
+      rx.takeUntil(this.destory$),
+      rx.catchError((err, src) => {
+        if (this.opts?.log)
+          this.opts.log(err);
+        else
+          console.error(err);
+        return src;
+      })
+    );
     // this.logSubj = new rx.ReplaySubject(50);
     this.reactorSubj.pipe(
       rx.mergeMap(([label, downStream, noError]) => {
@@ -86,7 +109,7 @@ export class ReactorComposite<
       })
     ).subscribe();
     this.dispose = () => {
-      this.o.core.actionUpstream.next(this.o.core.createAction('Reactors finalized' as keyof O));
+      this.o.core.actionUpstream.next(this.o.core.createAction('Reactors finalized' as any));
       this.destory$.next();
     };
   }
@@ -98,6 +121,7 @@ export class ReactorComposite<
   destory() {
     this.dispose();
   }
+
 
   // eslint-disable-next-line space-before-function-paren
   reactivize<F extends ActionFunctions>(fObject: F) {
@@ -116,7 +140,7 @@ export class ReactorComposite<
     return this as unknown as ReactorComposite<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O, LI, LO>;
   }
 
-  /** 
+  /**
    * It is just a declaration of mergeMap() operator, which merge an observable to the main stream
    * which will be or has already been observed by `startAll()`.
    * This is where we can add `side effect`s
@@ -149,6 +173,58 @@ export class ReactorComposite<
     );
   }
 
+  catchErrorFor<T>(...actionMetas: ActionMeta[]): (upStream: rx.Observable<T>) => rx.Observable<T> {
+    return (upStream: rx.Observable<T>): rx.Observable<T> => upStream.pipe(
+      rx.catchError((err, src) => {
+        (this.o as unknown as RxController<BaseEvents>).dpf._onErrorFor(actionMetas, err);
+        // this.errorSubject.next(['', err instanceof Error ? err : new Error(err), actionMetas]);
+        return rx.EMPTY;
+      })
+    );
+  }
+
+  dispatchErrorFor(err: any, actionMetas: ActionMeta | ActionMeta[]) {
+    (this.o as unknown as RxController<BaseEvents>).dpf._onErrorFor(actionMetas, err);
+  }
+
+  protected createDispatchAndObserveProxy<I>(streamCtl: RxController<I>) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const composite = this;
+    streamCtl.dispatchForAndObserveRes = streamCtl.dfo = new Proxy({} as {[K in keyof I]: DispatchForAndObserveRes<I, K>}, {
+      get(_target, key, _rec) {
+        return <R extends keyof I>(observedAction$: rx.Observable<Action<I, R>>, referActions: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: any[]) => {
+          const action = streamCtl.core.createAction(key as keyof I, params as InferPayload<I[keyof I]>);
+          if (referActions)
+            action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : (referActions as ActionMeta).i;
+          const r$ = new rx.ReplaySubject<InferMapParam<I, R>>(1);
+          rx.merge(
+            observedAction$.pipe(
+              actionRelatedToAction(action),
+              mapActionToPayload()
+            ),
+            composite.o.pt._onErrorFor.pipe(
+              actionRelatedToAction(action),
+              rx.map(([, err, ...metas]) => {
+                throw err;
+              })
+            ),
+            new rx.Observable<never>(sub => {
+              streamCtl.core.actionUpstream.next(action);
+              sub.complete();
+            })
+          ).subscribe(r$);
+          return r$.asObservable();
+        };
+      },
+      has(_target, key) {
+        return true;
+      },
+      ownKeys() {
+        return [] as string[];
+      }
+    });
+  }
+
   protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {
     const resolveFuncKey = key + 'Resolved';
     const finishFuncKey = key + 'Completed';
@@ -162,17 +238,23 @@ export class ReactorComposite<
         if (rx.isObservable(res)) {
           return res.pipe(
             rx.map(res => dispatchResolved(meta, res)),
+            this.catchErrorFor(meta),
             rx.finalize(() => dispatchCompleted(meta))
           );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         } else if (res?.then != null && res?.catch != null) {
           return rx.defer(() => (res as PromiseLike<unknown>)).pipe(
             rx.map(res => dispatchResolved(meta, res)),
+            this.catchErrorFor(meta),
             rx.finalize(() => dispatchCompleted(meta))
           );
         } else {
-          dispatchResolved(meta, res);
-          dispatchCompleted(meta);
+          try {
+            dispatchResolved(meta, res);
+            dispatchCompleted(meta);
+          } catch (e) {
+            this.dispatchErrorFor(e as Error, meta);
+          }
           return rx.EMPTY;
         }
       })
@@ -183,7 +265,7 @@ export class ReactorComposite<
 
   protected logError(label: string, err: any) {
     const message = '@' + (this.opts?.name ? this.opts.name + '::' : '') + label;
-    (this as unknown as ReactorComposite).errorSubject.next([err, message]);
+    this.errorSubject.next([err, message]);
     if (this.opts?.log)
       this.opts.log(message, err);
     else
@@ -222,11 +304,3 @@ readonly (InferLatestActionType<R> | ExtractTupleElement<ELI>)[],
 readonly (InferLatestEventsType<R> | ExtractTupleElement<ELO>)[]
 >;
 
-// export function mergeReactorComposite<
-// I, O,
-// LI extends ReadonlyArray<keyof I>, LO extends ReadonlyArray<keyof O>,
-// I2, O2,
-// LI2 extends ReadonlyArray<keyof I2>,
-// LO2 extends ReadonlyArray<keyof O2>
-// >(origin: ReactorComposite<I, O, LI, LO>) {
-// }

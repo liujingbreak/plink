@@ -1,3 +1,4 @@
+import {inspect} from 'node:util';
 import type {promises as fsPromises} from 'node:fs';
 import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
@@ -9,10 +10,14 @@ import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
   workerOutputTableFor as outputTableFor, WorkerControl} from './types';
 
-export {fork} from './common';
+export {fork, setIdleDuring} from './common';
 export {WorkerControl} from './types';
 // import {createBroker} from './node-worker-broker';
 
+/**
+ * @param opts.log if value is `undefined` and current createWorkerControl() is for creating instance in a forked thread, by default log messages will
+ * be transfered to main worker thread, but message will be trimmed by `util.inspect(..., {depth: 1, showHidden: false})`.
+ */
 export function createWorkerControl<
   I = Record<string, never>,
   O = Record<string, never>,
@@ -29,10 +34,18 @@ export function createWorkerControl<
     outputTableFor: [...(opts?.outputTableFor ?? []), ...outputTableFor],
     name: (opts?.name ?? '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')),
     debug: opts?.debug,
-    log: isMainThread ? opts?.log : (...args) => mainPort?.postMessage({type: 'log', p: args}),
+    log: isMainThread ?
+      opts?.log :
+      (...args) => mainPort?.postMessage({
+        type: 'log',
+        p: args.map(arg => {
+          const type = typeof arg;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          return (type === 'string' || type === 'number' || type === 'boolean') ? arg : inspect(arg, {depth: 0, showHidden: false, compact: true, maxStringLength: 20});
+        })}),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)],
-    logStyle: 'noParam'
+    debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)]
+    // logStyle: 'noParam'
   });
   let broker: Broker | undefined;
 
@@ -60,7 +73,7 @@ export function createWorkerControl<
     return () => parentPort?.off('message', handler);
   }));
 
-  r('workerInited -> main worker message port listener', outputTable.l.workerInited.pipe(
+  r('workerInited -> main worker message port listener', o.pt.workerInited.pipe(
     rx.filter(([, , , port]) => port != null),
     rx.switchMap(([, , , port]) => new rx.Observable(() => {
       function handler(event: unknown) {
@@ -80,7 +93,7 @@ export function createWorkerControl<
       rx.switchMap(() => lo.workerInited),
       rx.take(1),
       rx.map(() => {
-        comp.destory();
+        comp.dispose();
       })
     ));
 
@@ -119,8 +132,8 @@ export function createWorkerControl<
 
   r('"fork" -> mainPort.postMessage, forkByBroker', o.at.fork.pipe(
     rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b] as const), rx.take(1))),
-    rx.mergeMap(([act, [, , , mainPort]]) => {
-      const {p: [wrappedAct]} = act;
+    rx.mergeMap(([forkAction, [, , , mainPort]]) => {
+      const {p: [wrappedAct]} = forkAction;
       const chan = new MessageChannel();
       const error$ = rx.fromEventPattern(
         h => chan.port1.on('messageerror', h),
@@ -142,12 +155,15 @@ export function createWorkerControl<
           rx.take(1),
           rx.takeUntil(rx.merge(error$, close$))
         ),
+        error$.pipe(
+          rx.tap(err => o.dpf._onErrorFor(wrappedAct, err))
+        ),
         new rx.Observable<void>(_sub => {
           if (mainPort) {
             const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
             mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
           } else {
-            o.dpf.forkByBroker(act, wrappedAct, chan.port2);
+            o.dpf.forkByBroker(forkAction, wrappedAct, chan.port2);
           }
         })
       );

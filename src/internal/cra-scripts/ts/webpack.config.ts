@@ -68,7 +68,7 @@ export default function(webpackEnv: 'production' | 'development') {
     config.output!.filename = 'static/js/[name].js';
     config.output!.chunkFilename = 'static/js/[name].chunk.js';
   }
-  config.stats = 'normal';
+  // config.stats = 'normal';
   addResolveAlias(config);
 
   const reportDir = getReportDir();

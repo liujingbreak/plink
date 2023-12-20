@@ -13,7 +13,7 @@ logConfig(initConfig({})());
 
 describe('markdown-processor', () => {
   const {markdownProcessor, setupBroker} = require('../dist/markdown-processor-main') as typeof markdownProcessorModule;
-  const broker = setupBroker(true, 1);
+  const broker = setupBroker(false, 2);
   const file = Path.resolve(__dirname, 'sample-markdown.md');
   const raw = fs.readFileSync(file, 'utf8');
 
@@ -84,6 +84,7 @@ describe('markdown-processor', () => {
     );
     const [[, a], [, b]] = await rx.lastValueFrom(rx.forkJoin([
       i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
+      i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
       i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1))
       // i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
       // i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
@@ -93,9 +94,16 @@ describe('markdown-processor', () => {
     expect(b.mermaid.length > 0).toBe(true);
     console.log(arrayBuffer2str(a.mermaid[0]));
     console.log(arrayBuffer2str(b.mermaid[0]));
-    expect(imgResolver.mock.calls.length).toBe(2);
-    expect(linkResolver.mock.calls.length).toBe(2);
-    broker.i.dp.letAllWorkerExit();
+    expect(imgResolver.mock.calls.length).toBe(3);
+    expect(linkResolver.mock.calls.length).toBe(3);
+    // broker.i.dp.letAllWorkerExit();
+    await rx.firstValueFrom(
+      rx.timer(6000).pipe(
+        rx.mergeMap(() => i.do.forkProcessFile(o.at.processFileDone, raw, file))
+      )
+    );
+    expect(imgResolver.mock.calls.length).toBe(4);
+    expect(linkResolver.mock.calls.length).toBe(4);
 
   }, 50000);
 

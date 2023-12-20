@@ -1,5 +1,5 @@
 import binarySearch from 'lodash/sortedIndex';
-import {createWorkerControl, ForkTransferablePayload, fork} from '../fork-join/node-worker';
+import {createWorkerControl, ForkTransferablePayload, fork, setIdleDuring} from '../fork-join/node-worker';
 import type {ReactorCompositeOpt} from '../epic';
 import {ForkWorkerInput, ForkWorkerOutput} from '../fork-join/types';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
@@ -28,9 +28,8 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
 
         // o.dp.log('sort another half in current worker', leftPartOffset, leftPartLen);
         await sortActions.sort(buf, offset, leftPartLen, noForkThreshold);
-        o.dp.wait();
-        await forkDone;
-        o.dp.stopWaiting();
+        await setIdleDuring.asPromise(sorter, forkDone);
+
         const mergeRes = await sortActions.merge(buf, offset, leftPartLen, rightPartOffset, rightpartLen, noForkThreshold, buf, offset);
         const mergedBuf = mergeRes?.content;
         if (mergedBuf != null) {
@@ -86,10 +85,8 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
 
         const forkDone = fork(sorter, 'merge', [buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold]);
         const leftMerged = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))?.content;
-        o.dp.wait();
-        const [forkResult] = await forkDone;
+        const [forkResult] = await setIdleDuring.asPromise(sorter, forkDone);
         const rightMerged = forkResult?.content;
-        o.dp.stopWaiting();
 
         const destArr = targetBuffer ? cmp.createTypedArray(targetBuffer, targetOffset, len1 + len2) : cmp.createTypedArray(destBuf);
         let i = 0;
@@ -132,7 +129,6 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
   };
 
   const sorter = createWorkerControl(opts).reativizeRecursiveFuncs(sortActions);
-  const {o} = sorter;
   return sorter;
 }
 

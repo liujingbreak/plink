@@ -29,33 +29,35 @@ const md = new markdown_it_1.default({
 function setupReacting(markdownProcessor) {
     const { r, i, o } = markdownProcessor;
     r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.pipe(rx.mergeMap(async ([m, content, file]) => {
-        const resultDone = (0, node_worker_1.fork)(markdownProcessor, 'processFile', [(0, reactivizer_1.str2ArrayBuffer)(content, true), file], 'processFileDone', m);
-        o.dp.wait();
-        const [result] = await resultDone;
-        o.dp.stopWaiting();
-        o.dpf.processFileDone(m, result);
+        try {
+            const resultDone = (0, node_worker_1.fork)(markdownProcessor, 'processFile', [(0, reactivizer_1.str2ArrayBuffer)(content, true), file], 'processFileDone', m);
+            const [result] = await node_worker_1.setIdleDuring.asPromise(markdownProcessor, resultDone);
+            o.dpf.processFileDone(m, result);
+        }
+        catch (e) {
+            markdownProcessor.dispatchErrorFor(e, m);
+        }
     })));
-    r('processFile -> processFileDone', i.pt.processFile.pipe(rx.tap(() => { o.dp.log('react to processFile'); }), rx.mergeMap(([m, content, file]) => {
-        const html = md.render((0, reactivizer_1.arrayBuffer2str)(content));
-        const doc = (0, parse5_1.parse)(html, { sourceCodeLocationInfo: true });
-        const content$ = dfsAccessElement(markdownProcessor, m, html, file, doc);
-        return content$.pipe(rx.map(([content, toc, mermaidCodes]) => {
+    r('processFile -> processFileDone', i.pt.processFile.pipe(rx.mergeMap(([m, content, file]) => {
+        o.dp.log('react to processFile', file);
+        return rx.defer(() => {
+            const html = md.render((0, reactivizer_1.arrayBuffer2str)(content));
+            const doc = (0, parse5_1.parse)(html, { sourceCodeLocationInfo: true });
+            const content$ = dfsAccessElement(markdownProcessor, m, html, file, doc);
+            return content$;
+        }).pipe(rx.map(([content, toc, mermaidCodes]) => {
             const buf = (0, reactivizer_1.str2ArrayBuffer)(content);
             const mermaidBufs = mermaidCodes.map(code => (0, reactivizer_1.str2ArrayBuffer)(code));
             o.dpf.processFileDone(m, { resultHtml: buf, toc: (0, markdown_processor_helper_1.createTocTree)(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs] });
-        }));
-    }), rx.catchError(err => {
-        console.error(err);
-        o.dp.log(err);
-        // o.dpf.processFileDone({toc: [], content: (err as Error).toString()});
-        return rx.EMPTY;
+        }), markdownProcessor.catchErrorFor(m));
     })));
     i.dp.setLiftUpActions(rx.merge(o.at.imageToBeResolved, o.at.linkToBeResolved));
 }
 exports.setupReacting = setupReacting;
-function dfsAccessElement({ i, o }, _processFileActionMeta, sourceHtml, file, root
+function dfsAccessElement(processor, _processFileActionMeta, sourceHtml, file, root
 // transpileCode?: (language: string, sourceCode: string) => Promise<string> | rx.Observable<string> | void,
 ) {
+    const { i, o } = processor;
     const toc = [];
     const mermaidCode = [];
     const chr = new rx.BehaviorSubject(root.childNodes || []);
@@ -124,13 +126,11 @@ function dfsAccessElement({ i, o }, _processFileActionMeta, sourceHtml, file, ro
         }
     })).subscribe();
     output.push(sourceHtml.slice(htmlOffset));
-    o.dp.wait();
-    return rx.from(output).pipe(rx.concatMap(item => typeof item === 'string' ? rx.of(JSON.stringify(item)) : item == null ? ' + img + ' : item), rx.reduce((acc, item) => {
+    return (0, node_worker_1.setIdleDuring)(processor, rx.from(output).pipe(rx.concatMap(item => typeof item === 'string' ? rx.of(JSON.stringify(item)) : item == null ? ' + img + ' : item), rx.reduce((acc, item) => {
         acc.push(item);
         return acc;
     }, []), rx.map(frags => {
-        o.dp.stopWaiting();
         return [frags.join(' + '), toc, mermaidCode];
-    }));
+    })));
 }
 //# sourceMappingURL=markdown-process-common.js.map

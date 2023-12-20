@@ -176,7 +176,7 @@ export class ControllerCore<I> {
   }
 
   // eslint-disable-next-line space-before-function-paren
-  ofType<T extends (keyof I)[]>(...types: T) {
+  ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any, any>>) => rx.Observable<Action<I, T[number]>> {
     return (up: rx.Observable<Action<any, any>>) => {
       const matchTypes = types.map(type => this.typePrefix + (type as string));
       return up.pipe(

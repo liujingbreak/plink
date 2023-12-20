@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { RxController, ActionTable, ActionFunctions } from './control';
+import { RxController, ActionTable, ActionFunctions, ActionMeta } from './control';
 import { DuplexController, DuplexOptions } from './duplex';
 export type Reactor<I> = (ctl: RxController<I>) => rx.Observable<any>;
 export type DuplexReactor<I, O> = (ctl: DuplexController<I, O>) => rx.Observable<any>;
@@ -13,15 +13,26 @@ export interface ReactorCompositeOpt<I = Record<never, never>, O = Record<never,
     inputTableFor?: LI;
     outputTableFor?: LO;
 }
-export declare class ReactorComposite<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexController<I, O> {
+interface BaseEvents {
+    _onErrorFor(err: any): void;
+}
+type LOE<LI extends readonly any[]> = readonly (LI[number] | '_onErrorFor')[];
+export declare class ReactorComposite<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexController<I, O & BaseEvents> {
     private opts?;
-    protected errorSubject: rx.Subject<[lable: string, originError: any]>;
+    protected errorSubject: rx.Subject<[
+        lable: string,
+        originError: any
+    ] | [
+        lable: string,
+        originError: any,
+        relevantActions: ActionMeta[]
+    ]>;
     /** All catched error goes here */
-    error$: rx.Observable<[lable: string, originError: any]>;
+    error$: rx.Observable<[lable: string, originError: any] | [lable: string, originError: any, relevantActions: ActionMeta[]]>;
     destory$: rx.Subject<void>;
     dispose: () => void;
     get inputTable(): ActionTable<I, LI>;
-    get outputTable(): ActionTable<O, LO>;
+    get outputTable(): ActionTable<O & BaseEvents, LOE<LO>>;
     private iTable;
     private oTable;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
@@ -48,6 +59,9 @@ export declare class ReactorComposite<I = Record<never, never>, O = Record<never
      * `addReaction(lable, ...)` uses this op internally.
      */
     labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T>;
+    catchErrorFor<T>(...actionMetas: ActionMeta[]): (upStream: rx.Observable<T>) => rx.Observable<T>;
+    dispatchErrorFor(err: any, actionMetas: ActionMeta | ActionMeta[]): void;
+    protected createDispatchAndObserveProxy<I>(streamCtl: RxController<I>): void;
     protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     protected logError(label: string, err: any): void;
     protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;

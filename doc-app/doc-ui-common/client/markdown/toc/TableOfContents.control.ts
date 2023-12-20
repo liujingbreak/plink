@@ -321,7 +321,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  return [i, () => composite.destory(), () => state] as const;
+  return [i, () => composite.dispose(), () => state] as const;
 }
 
 export type TocControl = ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>;

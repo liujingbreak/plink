@@ -1,6 +1,6 @@
 // import inspector from 'node:inspector';
 import * as rx from 'rxjs';
-import { ActionTable } from './control';
+import { ActionTable, mapActionToPayload, actionRelatedToAction } from './control';
 import { DuplexController } from './duplex';
 export class ReactorComposite extends DuplexController {
     get inputTable() {
@@ -12,7 +12,7 @@ export class ReactorComposite extends DuplexController {
     get outputTable() {
         if (this.oTable)
             return this.oTable;
-        this.oTable = new ActionTable(this.o, []);
+        this.oTable = new ActionTable(this.o, ['_onErrorFor']);
         return this.oTable;
     }
     constructor(opts) {
@@ -30,12 +30,22 @@ export class ReactorComposite extends DuplexController {
                 this.reactorSubj.next(['', ...params]);
         };
         this.reactorSubj = new rx.ReplaySubject();
+        this.createDispatchAndObserveProxy(this.i);
+        this.createDispatchAndObserveProxy(this.o);
         if ((opts === null || opts === void 0 ? void 0 : opts.inputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.inputTableFor.length) > 0) {
             this.iTable = new ActionTable(this.i, opts.inputTableFor);
         }
         if ((opts === null || opts === void 0 ? void 0 : opts.outputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.outputTableFor.length) > 0) {
-            this.oTable = new ActionTable(this.o, opts.outputTableFor);
+            this.oTable = new ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
         }
+        this.o.pt._onErrorFor.pipe(rx.takeUntil(this.destory$), rx.catchError((err, src) => {
+            var _a;
+            if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
+                this.opts.log(err);
+            else
+                console.error(err);
+            return src;
+        }));
         // this.logSubj = new rx.ReplaySubject(50);
         this.reactorSubj.pipe(rx.mergeMap(([label, downStream, noError]) => {
             if (noError == null || !noError) {
@@ -96,6 +106,43 @@ export class ReactorComposite extends DuplexController {
             return rx.throwError(() => err instanceof Error ? err : new Error(err));
         }));
     }
+    catchErrorFor(...actionMetas) {
+        return (upStream) => upStream.pipe(rx.catchError((err, src) => {
+            this.o.dpf._onErrorFor(actionMetas, err);
+            // this.errorSubject.next(['', err instanceof Error ? err : new Error(err), actionMetas]);
+            return rx.EMPTY;
+        }));
+    }
+    dispatchErrorFor(err, actionMetas) {
+        this.o.dpf._onErrorFor(actionMetas, err);
+    }
+    createDispatchAndObserveProxy(streamCtl) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const composite = this;
+        streamCtl.dispatchForAndObserveRes = streamCtl.dfo = new Proxy({}, {
+            get(_target, key, _rec) {
+                return (observedAction$, referActions, ...params) => {
+                    const action = streamCtl.core.createAction(key, params);
+                    if (referActions)
+                        action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
+                    const r$ = new rx.ReplaySubject(1);
+                    rx.merge(observedAction$.pipe(actionRelatedToAction(action), mapActionToPayload()), composite.o.pt._onErrorFor.pipe(actionRelatedToAction(action), rx.map(([, err, ...metas]) => {
+                        throw err;
+                    })), new rx.Observable(sub => {
+                        streamCtl.core.actionUpstream.next(action);
+                        sub.complete();
+                    })).subscribe(r$);
+                    return r$.asObservable();
+                };
+            },
+            has(_target, key) {
+                return true;
+            },
+            ownKeys() {
+                return [];
+            }
+        });
+    }
     reactivizeFunction(key, func, funcThisRef) {
         const resolveFuncKey = key + 'Resolved';
         const finishFuncKey = key + 'Completed';
@@ -105,15 +152,20 @@ export class ReactorComposite extends DuplexController {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const res = func.apply(funcThisRef, params);
             if (rx.isObservable(res)) {
-                return res.pipe(rx.map(res => dispatchResolved(meta, res)), rx.finalize(() => dispatchCompleted(meta)));
+                return res.pipe(rx.map(res => dispatchResolved(meta, res)), this.catchErrorFor(meta), rx.finalize(() => dispatchCompleted(meta)));
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             }
             else if ((res === null || res === void 0 ? void 0 : res.then) != null && (res === null || res === void 0 ? void 0 : res.catch) != null) {
-                return rx.defer(() => res).pipe(rx.map(res => dispatchResolved(meta, res)), rx.finalize(() => dispatchCompleted(meta)));
+                return rx.defer(() => res).pipe(rx.map(res => dispatchResolved(meta, res)), this.catchErrorFor(meta), rx.finalize(() => dispatchCompleted(meta)));
             }
             else {
-                dispatchResolved(meta, res);
-                dispatchCompleted(meta);
+                try {
+                    dispatchResolved(meta, res);
+                    dispatchCompleted(meta);
+                }
+                catch (e) {
+                    this.dispatchErrorFor(e, meta);
+                }
                 return rx.EMPTY;
             }
         })));
@@ -137,12 +189,4 @@ export class ReactorComposite extends DuplexController {
         }));
     }
 }
-// export function mergeReactorComposite<
-// I, O,
-// LI extends ReadonlyArray<keyof I>, LO extends ReadonlyArray<keyof O>,
-// I2, O2,
-// LI2 extends ReadonlyArray<keyof I2>,
-// LO2 extends ReadonlyArray<keyof O2>
-// >(origin: ReactorComposite<I, O, LI, LO>) {
-// }
 //# sourceMappingURL=epic.js.map

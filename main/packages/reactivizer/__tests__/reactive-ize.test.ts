@@ -334,7 +334,31 @@ describe('reactivizer', () => {
   });
 
   it.skip('Extend ReactorComposite', () => {
-    const c: ExtReactorComp | undefined;
-    console.log(c);
+    // const c: ExtReactorComp | undefined;
+    // console.log(c);
+  });
+
+  it('RxController dispatchAndObserveRes in case of error', async () => {
+    const comp = new ReactorComposite<TestMessages, TestMessages>();
+    comp.r('test error', comp.i.pt.msg1.pipe(
+      rx.mergeMap(([m]) => {
+        return new rx.Observable(() => {
+          console.log('handle test error');
+          throw new Error('test error');
+        }).pipe(
+          comp.catchErrorFor(m)
+        );
+      })
+    ));
+
+    const mock = jest.fn();
+    try {
+      await rx.firstValueFrom(comp.i.do.msg1(comp.o.at.msg2));
+    } catch (e) {
+      mock(e);
+    }
+
+    expect(mock.mock.calls.length).toBe(1);
+    expect((mock.mock.calls[0][0] as Error).message).toBe('test error');
   });
 });

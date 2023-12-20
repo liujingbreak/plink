@@ -38,7 +38,7 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
 };
 var _ActionTable_latestPayloadsByName$;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.actionRelatedToAction = exports.ActionTable = exports.GroupedRxController = exports.RxController = void 0;
+exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.actionRelatedToAction = exports.ActionTable = exports.GroupedRxController = exports.RxController = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 __exportStar(require("./stream-core"), exports);
@@ -246,7 +246,9 @@ class ActionTable {
     getData() {
         return this.data;
     }
-    /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
+    /** Add actions to be recoreded in table map,
+     * by creating `ReplaySubject(1)` for each action payload stream respectively
+     */
     addActions(...actionNames) {
         this.actionNames = this.actionNames.concat(actionNames);
         this.actionNamesAdded$.next(actionNames);
@@ -305,17 +307,32 @@ _ActionTable_latestPayloadsByName$ = new WeakMap();
 /** Rx operator function */
 function actionRelatedToAction(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(m => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
+        let isPayload;
+        return up.pipe(rx.filter(a => {
+            if (isPayload == null)
+                isPayload = Array.isArray(a);
+            const m = isPayload ? a[0] : a;
+            return (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i));
+        }));
     };
 }
 exports.actionRelatedToAction = actionRelatedToAction;
-/** Rx operator function */
-function payloadRelatedToAction(actionOrMeta) {
+function throwErrorOnRelated(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
+        return up.pipe(rx.map(actionOrPayload => {
+            const isPayload = Array.isArray(actionOrPayload);
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+            const m = isPayload ? actionOrPayload[0] : actionOrPayload;
+            if ((m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))) {
+                throw isPayload ? actionOrPayload[1] : actionOrPayload.p[0];
+            }
+            return actionOrPayload;
+        }));
     };
 }
-exports.payloadRelatedToAction = payloadRelatedToAction;
+exports.throwErrorOnRelated = throwErrorOnRelated;
+/** @deprecated use actionRelatedToAction instead */
+exports.payloadRelatedToAction = actionRelatedToAction;
 function serializeAction(action) {
     const a = Object.assign(Object.assign({}, action), { t: (0, stream_core_1.nameOfAction)(action) });
     // if (a.r instanceof Set) {
@@ -342,4 +359,5 @@ exports.deserializeAction = deserializeAction;
 function mapActionToPayload() {
     return (up) => up.pipe(rx.map(a => [{ i: a.i, r: a.r }, ...a.p]));
 }
+exports.mapActionToPayload = mapActionToPayload;
 //# sourceMappingURL=control.js.map

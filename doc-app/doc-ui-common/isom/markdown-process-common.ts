@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {fork, WorkerControl} from '@wfh/reactivizer/dist/fork-join/node-worker';
+import {fork, WorkerControl, setIdleDuring} from '@wfh/reactivizer/dist/fork-join/node-worker';
 import {ActionMeta, str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
 import md5 from 'md5';
 import MarkdownIt from 'markdown-it';
@@ -52,33 +52,32 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
   const {r, i, o} = markdownProcessor;
   r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.pipe(
     rx.mergeMap(async ([m, content, file]) => {
-      const resultDone = fork(markdownProcessor, 'processFile', [str2ArrayBuffer<SharedArrayBuffer>(content, true), file], 'processFileDone', m);
-      o.dp.wait();
-      const [result] = await resultDone;
-      o.dp.stopWaiting();
-      o.dpf.processFileDone(m, result);
+      try {
+        const resultDone = fork(markdownProcessor, 'processFile', [str2ArrayBuffer<SharedArrayBuffer>(content, true), file], 'processFileDone', m);
+        const [result] = await setIdleDuring.asPromise(markdownProcessor, resultDone);
+        o.dpf.processFileDone(m, result);
+      } catch (e) {
+        markdownProcessor.dispatchErrorFor(e, m);
+      }
     })
   ));
 
   r('processFile -> processFileDone', i.pt.processFile.pipe(
-    rx.tap(() => {o.dp.log('react to processFile'); }),
     rx.mergeMap(([m, content, file]) => {
-      const html = md.render(arrayBuffer2str(content));
-      const doc = parseHtml(html, {sourceCodeLocationInfo: true});
-      const content$ = dfsAccessElement(markdownProcessor, m, html, file, doc);
-      return content$.pipe(
+      o.dp.log('react to processFile', file);
+      return rx.defer(() => {
+        const html = md.render(arrayBuffer2str(content));
+        const doc = parseHtml(html, {sourceCodeLocationInfo: true});
+        const content$ = dfsAccessElement(markdownProcessor, m, html, file, doc);
+        return content$;
+      }).pipe(
         rx.map(([content, toc, mermaidCodes]) => {
           const buf = str2ArrayBuffer<ArrayBuffer>(content);
           const mermaidBufs = mermaidCodes.map(code => str2ArrayBuffer<ArrayBuffer>(code));
           o.dpf.processFileDone(m, {resultHtml: buf, toc: createTocTree(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs]});
-        })
+        }),
+        markdownProcessor.catchErrorFor(m)
       );
-    }),
-    rx.catchError(err => {
-      console.error(err);
-      o.dp.log(err);
-      // o.dpf.processFileDone({toc: [], content: (err as Error).toString()});
-      return rx.EMPTY;
     })
   ));
 
@@ -89,13 +88,14 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
 }
 
 function dfsAccessElement(
-  {i, o}: MarkdownProcessor,
+  processor: MarkdownProcessor,
   _processFileActionMeta: ActionMeta,
   sourceHtml: string,
   file: string,
   root: DefaultTreeAdapterMap['document']
   // transpileCode?: (language: string, sourceCode: string) => Promise<string> | rx.Observable<string> | void,
 ) {
+  const {i, o} = processor;
   const toc: TOC[] = [];
   const mermaidCode = [] as string[];
   const chr = new rx.BehaviorSubject<ChildNode[]>(root.childNodes || []);
@@ -179,16 +179,14 @@ function dfsAccessElement(
 
   output.push(sourceHtml.slice(htmlOffset));
 
-  o.dp.wait();
-  return rx.from(output).pipe(
+  return setIdleDuring(processor, rx.from(output).pipe(
     rx.concatMap(item => typeof item === 'string' ? rx.of(JSON.stringify(item)) : item == null ? ' + img + ' : item),
     rx.reduce<string, string[]>((acc, item) => {
       acc.push(item);
       return acc;
     }, []),
     rx.map(frags => {
-      o.dp.stopWaiting();
       return [frags.join(' + '), toc, mermaidCode] as const;
     })
-  );
+  ));
 }

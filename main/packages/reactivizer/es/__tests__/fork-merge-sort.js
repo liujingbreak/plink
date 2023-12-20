@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import Path from 'node:path';
+import { inspect } from 'node:util';
 import { Worker } from 'worker_threads';
 import { performance } from 'node:perf_hooks';
 import os from 'node:os';
@@ -15,9 +16,9 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
     const testArr = createSharedArryForTest(0, num);
     const sorter = createSorter(null, {
         name: 'sorter',
-        debug: false,
+        debug: true,
         log(...msg) {
-            log.info('[sorter]', ...msg);
+            log.info('[sorter]', ...msg.map(item => inspect(item, { showHidden: false, depth: 0, compact: true })));
         }
     });
     let workerIsAssigned = false;
@@ -28,16 +29,16 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         debug: true,
         log(...msg) {
             log.info('[broker]', ...msg);
-        },
-        debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting'],
-        logStyle: 'noParam'
+        }
+        // debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting'],
+        // logStyle: 'noParam'
     });
     broker.o.pt.onWorkerError.pipe(rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))).subscribe();
     const { i, o } = broker;
     const numOfWorkers = workerNum !== null && workerNum !== void 0 ? workerNum : os.availableParallelism();
-    let ranksByWorkerNo;
+    let scheduleState;
     if (threadMode === 'scheduler') {
-        ranksByWorkerNo = applyScheduler(broker, {
+        scheduleState = applyScheduler(broker, {
             maxNumOfWorker: numOfWorkers,
             excludeCurrentThead: false,
             threadMaxIdleTime: autoExpirated,
@@ -47,7 +48,7 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         });
     }
     else if (threadMode === 'excludeMainThread') {
-        ranksByWorkerNo = applyScheduler(broker, {
+        scheduleState = applyScheduler(broker, {
             maxNumOfWorker: numOfWorkers,
             excludeCurrentThead: true,
             threadMaxIdleTime: autoExpirated,
@@ -61,50 +62,53 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         // Mimic a thread pool's job
         o.pt.assignWorker.pipe(rx.map(([m], idx) => {
             if (threadMode === 'mainOnly')
-                i.dpf.workerAssigned(m, -1, 'main');
+                i.dpf.workerAssigned(m, 0, 'main');
             else if (threadMode === 'singleWorker') {
                 let worker;
+                let workerNo = 1;
                 if (workers.length > 0) {
-                    worker = workers[0];
+                    worker = workers[0][0];
                 }
                 else {
                     worker = new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
-                    workers.push(worker);
+                    workerNo = workers.length + 1;
+                    workers.push([worker, workerNo]);
                 }
-                i.dpf.workerAssigned(m, workers.length, worker);
+                i.dpf.workerAssigned(m, workerNo, worker);
             }
             else if (threadMode === 'newWorker') {
                 const worker = new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
-                workers.push(worker);
+                workers.push([worker, idx]);
                 i.dpf.workerAssigned(m, idx++, worker);
             }
             else {
                 let worker;
+                const workerNo = workers.length + 1;
                 if (Math.random() <= 0.5) {
                     if (workers.length > 0) {
-                        worker = workers[0];
+                        worker = workers[0][0];
                     }
                     else {
                         worker = new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
-                        workers.push(worker);
+                        workers.push([worker, workerNo]);
                     }
-                    i.dpf.workerAssigned(m, workers.length, worker);
+                    i.dpf.workerAssigned(m, workerNo, worker);
                 }
                 else
-                    i.dpf.workerAssigned(m, -1, 'main');
+                    i.dpf.workerAssigned(m, 0, 'main');
             }
             workerIsAssigned = true;
         }), rx.ignoreElements()), rx.merge(broker.error$.pipe(rx.map(([label, err]) => console.error('Broker', label, 'on error', err))), o.pt.onWorkerError.pipe(rx.map(([, workNo, err, type]) => console.error('Worker', workNo, 'on', type !== null && type !== void 0 ? type : 'error', err)))).pipe(rx.take(1), rx.map(() => {
-            sorter.destory();
-            for (const worker of workers)
-                i.dp.letWorkerExit(worker);
-            workers.splice(0);
+            sorter.dispose();
+            // for (const worker of workers)
+            //   i.dp.letWorkerExit(worker);
+            // workers.splice(0);
         }))));
     }
     sorter.o.dp.log('Initial test array', testArr);
     performance.mark(threadMode + '/sort start');
     // call main sort function
-    await rx.firstValueFrom(sorter.i.do.sortAllInWorker(sorter.o.at.sortAllInWorkerResolved, testArr.buffer, 0, num, num / numOfWorkers / 2));
+    await rx.firstValueFrom(sorter.i.do.sortAllInWorker(sorter.o.at.sortAllInWorkerResolved, testArr.buffer, 0, num, Math.round(num / numOfWorkers / 2)));
     performance.measure(`measure ${numOfWorkers}`, threadMode + '/sort start');
     const performanceEntry = performance.getEntriesByName(`measure ${numOfWorkers}`)[0];
     // eslint-disable-next-line no-console
@@ -117,9 +121,12 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
     sorter.o.dp.log('-----------------------------\nsorted:', testArr);
     if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
         await new Promise(r => setTimeout(r, 500));
-        console.log('Ranks of workers:', [...ranksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
-        for (const [, [, rank]] of ranksByWorkerNo.entries()) {
-            // console.log('Rank of worker ' + workerKey + `: ${rank}`);
+        console.log('Ranks of workers:', [...scheduleState.ranksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
+        console.log('Num of tasks of workers:', [...scheduleState.tasksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
+        for (const [, [, rank]] of scheduleState.tasksByWorkerNo.entries()) {
+            expect(rank).toBe(0);
+        }
+        for (const [, [, rank]] of scheduleState.ranksByWorkerNo.entries()) {
             expect(rank).toBe(0);
         }
     }
@@ -129,8 +136,8 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
             await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
     }
     else if (threadMode !== 'mainOnly') {
-        for (const worker of workers)
-            i.dp.letWorkerExit(worker);
+        for (const [, workerNo] of workers)
+            i.dp.letWorkerExit(workerNo);
         await rx.lastValueFrom(latestBrokerEvents.onWorkerExit.pipe(rx.take(workers.length)));
     }
 }

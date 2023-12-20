@@ -6,7 +6,7 @@ import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
   workerOutputTableFor as outputTableFor, WorkerControl} from './types';
 
-export {fork} from './common';
+export {fork, setIdleDuring} from './common';
 export {WorkerControl} from './types';
 // import {createBroker} from './node-worker-broker';
 
@@ -28,8 +28,7 @@ export function createWorkerControl<
     debug: opts?.debug,
     log: !isInWorker ? opts?.log : (...args) => mainPort?.postMessage({type: 'log', p: args}),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    debugExcludeTypes: ['log', 'warn', ...(opts?.debugExcludeTypes ?? [] as any)],
-    logStyle: 'noParam'
+    debugExcludeTypes: ['log', 'warn', ...(opts?.debugExcludeTypes ?? [] as any)]
   });
   let broker: Broker | undefined;
 
@@ -57,7 +56,7 @@ export function createWorkerControl<
     return () => self.removeEventListener('message', handler);
   }));
 
-  r('workerInited -> main worker message port listener', outputTable.l.workerInited.pipe(
+  r('workerInited -> main worker message port listener', o.pt.workerInited.pipe(
     rx.filter(([, , , port]) => port != null),
     rx.switchMap(([, , , port]) => new rx.Observable(() => {
       function handler(event: MessageEvent) {
@@ -77,7 +76,7 @@ export function createWorkerControl<
       rx.switchMap(() => lo.workerInited),
       rx.take(1),
       rx.map(() => {
-        comp.destory();
+        comp.dispose();
       })
     ));
 
@@ -131,6 +130,9 @@ export function createWorkerControl<
           rx.map(event => deserializeAction(event, i)),
           rx.take(1),
           rx.takeUntil(rx.merge(error$, error$))
+        ),
+        error$.pipe(
+          rx.tap(err => o.dpf._onErrorFor(wrappedAct, err))
         ),
         new rx.Observable<void>(_sub => {
           if (mainPort) {

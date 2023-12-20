@@ -7,11 +7,11 @@ import {Action, InferPayload, ActionMeta,
 export * from './stream-core';
 
 export type InferMapParam<I, K extends keyof I> = [ActionMeta, ...InferPayload<I[K]>];
-type DispatchAndObserveRes<I, K extends keyof I> = <O, R extends keyof O>(
+export type DispatchAndObserveRes<I, K extends keyof I> = <O, R extends keyof O>(
   waitForAction$: rx.Observable<Action<O, R>>, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
 
-type DispatchForAndObserveRes<I, K extends keyof I> = <O, R extends keyof O>(
+export type DispatchForAndObserveRes<I, K extends keyof I> = <O, R extends keyof O>(
   waitForAction$: rx.Observable<Action<O, R>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<O, R>>;
 
@@ -325,7 +325,9 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
     return this.data;
   }
 
-  /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
+  /** Add actions to be recoreded in table map,
+   * by creating `ReplaySubject(1)` for each action payload stream respectively
+   */
   addActions<M extends Array<keyof I>>(...actionNames: M) {
     this.actionNames = this.actionNames.concat(actionNames) as unknown as KS;
     this.actionNamesAdded$.next(actionNames);
@@ -389,29 +391,44 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
 }
 
 /** Rx operator function */
-export function actionRelatedToAction<T extends Action<any>>(actionOrMeta: {i: ActionMeta['i']}) {
+export function actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i: ActionMeta['i']}) {
   return function(up: rx.Observable<T>) {
+    let isPayload: boolean | undefined;
     return up.pipe(
-      rx.filter(
-        m => (m.r != null && m.r === actionOrMeta.i) || (
-          Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i)
-        )
-      )
+      rx.filter(a => {
+        if (isPayload == null)
+          isPayload = Array.isArray(a);
+        const m = isPayload ? (a as [ActionMeta])[0] : a as Action<any>;
+        return (m.r != null && m.r === actionOrMeta.i) || (
+          Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i));
+      })
     );
   };
 }
-/** Rx operator function */
-export function payloadRelatedToAction<T extends [ActionMeta, ...any[]]>(actionOrMeta: {i: ActionMeta['i']}) {
+
+export function throwErrorOnRelated<T extends [ActionMeta, ...any[]] | Action<any>>(
+  actionOrMeta: {i: ActionMeta['i']}
+) {
   return function(up: rx.Observable<T>): rx.Observable<T> {
     return up.pipe(
-      rx.filter(
-        ([m]) => (m.r != null && m.r === actionOrMeta.i) || (
+      rx.map(actionOrPayload => {
+        const isPayload = Array.isArray(actionOrPayload);
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const m = isPayload ? actionOrPayload[0] : actionOrPayload as Action<any>;
+        if ((m.r != null && m.r === actionOrMeta.i) || (
           Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i)
-        )
-      )
+        )) {
+          throw isPayload ? actionOrPayload[1] : actionOrPayload.p[0];
+        }
+        return actionOrPayload;
+      })
     );
   };
+
 }
+
+/** @deprecated use actionRelatedToAction instead */
+export const payloadRelatedToAction = actionRelatedToAction;
 
 export function serializeAction<I = any, K extends keyof I = any>(action: Action<I, K>) {
   const a = {...action, t: nameOfAction(action)};
@@ -436,7 +453,7 @@ export function deserializeAction<I>(actionObj: any, toController: RxController<
   return newAction;
 }
 
-function mapActionToPayload<I, K extends keyof I>() {
+export function mapActionToPayload<I, K extends keyof I>() {
   return (up: rx.Observable<Action<I, K>>) => up.pipe(
     rx.map(a => [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I, keyof I>)
   );

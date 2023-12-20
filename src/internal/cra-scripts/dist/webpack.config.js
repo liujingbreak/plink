@@ -63,7 +63,7 @@ function default_1(webpackEnv) {
         config.output.filename = 'static/js/[name].js';
         config.output.chunkFilename = 'static/js/[name].chunk.js';
     }
-    config.stats = 'normal';
+    // config.stats = 'normal';
     addResolveAlias(config);
     const reportDir = (0, utils_1.getReportDir)();
     fs_extra_1.default.mkdirpSync(reportDir);

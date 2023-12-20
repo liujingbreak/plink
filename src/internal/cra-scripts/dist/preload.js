@@ -94,6 +94,6 @@ function poo() {
 exports.poo = poo;
 function noClearConsole() {
     // origClearConsole();
-    (0, utils_1.drawPuppy)('pooed on create-react-app');
+    (0, utils_1.drawPuppy)('create-react-app is tailored');
 }
 //# sourceMappingURL=preload.js.map

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import Path from 'path';
 import {fork} from 'child_process';
-import {CliExtension, findPackagesByNames, packageOfFileFactory} from '@wfh/plink';
+import {CliExtension, findPackagesByNames, packageOfFileFactory, logConfig} from '@wfh/plink';
 import {config, log4File, plinkEnv, commander, dispatcher as plinkStoreDispatcher} from '@wfh/plink';
 import {getSetting} from '../../isom/cra-scripts-setting';
 import {saveCmdOptionsToEnv, BuildCliOpts} from '../utils';
@@ -134,6 +134,7 @@ function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib
     }
 
   });
+  logConfig(cfg());
   saveCmdOptionsToEnv(cmdName, opts, type, targetEntries);
   if (process.env.PORT == null && cfg().port)
     process.env.PORT = cfg().port + '';

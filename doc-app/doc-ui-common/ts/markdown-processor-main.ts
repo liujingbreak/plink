@@ -1,3 +1,4 @@
+import {inspect} from 'node:util';
 import {Worker} from 'worker_threads';
 import Path from 'path';
 import os from 'os';
@@ -7,17 +8,24 @@ import {markdownProcessor} from './markdown-processor';
 
 const log = log4File(__filename);
 
-export function setupBroker(excludeCurrentThead = false, maxNumOfWorker?: number) {
+const PRIMITIVE_TYPES = {number: true, string: true, boolean: true};
+
+const has = Object.prototype.hasOwnProperty;
+function isPrimitiveValue(value: any): value is (string | number | boolean) {
+  return has.call(PRIMITIVE_TYPES, typeof value);
+}
+
+export function setupBroker(excludeCurrentThead = true, maxNumOfWorker?: number) {
   const broker = setupForMainWorker(markdownProcessor, {
     name: 'broker',
-    maxNumOfWorker: maxNumOfWorker ?? os.availableParallelism(),
+    maxNumOfWorker: maxNumOfWorker ?? os.availableParallelism() - 1,
     threadMaxIdleTime: 4000,
-    debug: true,
+    debug: false,
     excludeCurrentThead,
-    log(...args: [any]) {
-      log.info(...args);
+    log(msg, ...args) {
+      log.info(msg, ...args.map(item => isPrimitiveValue(item) ? item : inspect(item, {showHidden: false, depth: 0, compact: true})));
     },
-    logStyle: 'noParam',
+    debugExcludeTypes: ['workerInited'],
     workerFactory() {
       return new Worker(Path.resolve(__dirname, '../dist/markdown-processor-worker.js'));
     }

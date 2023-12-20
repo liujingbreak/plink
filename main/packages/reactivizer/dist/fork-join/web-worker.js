@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createWorkerControl = exports.fork = void 0;
+exports.createWorkerControl = exports.setIdleDuring = exports.fork = void 0;
 /* eslint-disable no-restricted-globals */
 const rx = __importStar(require("rxjs"));
 const control_1 = require("../control");
@@ -31,13 +31,14 @@ const epic_1 = require("../epic");
 const types_1 = require("./types");
 var common_1 = require("./common");
 Object.defineProperty(exports, "fork", { enumerable: true, get: function () { return common_1.fork; } });
+Object.defineProperty(exports, "setIdleDuring", { enumerable: true, get: function () { return common_1.setIdleDuring; } });
 // import {createBroker} from './node-worker-broker';
 function createWorkerControl(isInWorker, opts) {
     var _a, _b, _c;
     let mainPort; // parent thread port
     const comp = new epic_1.ReactorComposite(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { inputTableFor: [...((_a = opts === null || opts === void 0 ? void 0 : opts.inputTableFor) !== null && _a !== void 0 ? _a : []), ...types_1.workerInputTableFor], outputTableFor: [...((_b = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _b !== void 0 ? _b : []), ...types_1.workerOutputTableFor], name: 'unknown worker No', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        debugExcludeTypes: ['log', 'warn', ...((_c = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _c !== void 0 ? _c : [])], logStyle: 'noParam' }));
+        debugExcludeTypes: ['log', 'warn', ...((_c = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _c !== void 0 ? _c : [])] }));
     let broker;
     const { r, i, o, outputTable, inputTable } = comp;
     const lo = comp.outputTable.l;
@@ -63,7 +64,7 @@ function createWorkerControl(isInWorker, opts) {
         }
         return () => self.removeEventListener('message', handler);
     }));
-    r('workerInited -> main worker message port listener', outputTable.l.workerInited.pipe(rx.filter(([, , , port]) => port != null), rx.switchMap(([, , , port]) => new rx.Observable(() => {
+    r('workerInited -> main worker message port listener', o.pt.workerInited.pipe(rx.filter(([, , , port]) => port != null), rx.switchMap(([, , , port]) => new rx.Observable(() => {
         function handler(event) {
             const act = event.data;
             (0, control_1.deserializeAction)(act, i);
@@ -76,7 +77,7 @@ function createWorkerControl(isInWorker, opts) {
     }))));
     if (isInWorker) {
         r('exit', comp.inputTable.l.exit.pipe(rx.switchMap(() => lo.workerInited), rx.take(1), rx.map(() => {
-            comp.destory();
+            comp.dispose();
         })));
         r('postMessage wait, stopWaiting, returned message to broker', lo.workerInited.pipe(rx.filter(([, , , port]) => port != null), rx.take(1), rx.switchMap(([, , , port]) => rx.merge(o.at.wait, o.at.stopWaiting, o.at.returned).pipe(rx.map(action => {
             port.postMessage((0, control_1.serializeAction)(action));
@@ -101,7 +102,7 @@ function createWorkerControl(isInWorker, opts) {
         return rx.merge(new rx.Observable(sub => {
             chan.port1.onmessage = msg => sub.next(msg.data);
             return () => chan.port1.onmessage = null;
-        }).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, error$))), new rx.Observable(_sub => {
+        }).pipe(rx.map(event => (0, control_1.deserializeAction)(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, error$))), error$.pipe(rx.tap(err => o.dpf._onErrorFor(wrappedAct, err))), new rx.Observable(_sub => {
             if (mainPort) {
                 const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
                 mainPort.postMessage((0, control_1.serializeAction)(forkByBroker), [chan.port2]);
