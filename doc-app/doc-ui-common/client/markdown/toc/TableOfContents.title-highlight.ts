@@ -3,7 +3,8 @@ import {ReactorCompositeMergeType, InferMapParam} from '@wfh/reactivizer';
 import {getMinAndMax} from '@wfh/algorithms';
 import {TocControl} from './TableOfContents.control';
 
-interface TocHLActions {
+export interface TocHLActions {
+  onPosIndicatorRef(ref: HTMLDivElement | null): void;
   updateSectionRectangleIntervals(sections: Record<string, [top: number, bottom: number]>): void;
 }
 
@@ -12,7 +13,7 @@ interface TocHLEvents {
   gotHeadingByIds(mapById: Map<string, readonly [index: number, el: HTMLElement]>, byIndex: {item: (i: number) => Element}): void;
   onHeadingIntersecting(isIntersecting: boolean, el: Element): void;
   gotIntersectDirection(isDown: boolean): void;
-  _highlightTitle(id: string, el: HTMLElement): void;
+  scrolledOverTitle(id: string, el: HTMLElement): void;
   highlightTitle(id: string, el: HTMLElement): void;
   unhighlightTitle(id: string, el: HTMLElement): void;
 }
@@ -28,21 +29,22 @@ export function applyHighlightFeature(tocControl: TocControl) {
     rx.withLatestFrom(outputTable.l.gotHeadingByIds),
     rx.tap(([[m, , el], [, byIds, byIndex]]) => {
       if (intersectionsInId.size > 0) {
+        // console.log('intersectionsInId', [...intersectionsInId.values()], byIds);
         const [id] = getMinAndMax(intersectionsInId.values(), (a, b) => byIds.get(a)![0] - byIds.get(b)![0]);
         if (id == null)
           throw new Error('Head element of id found in viewport does not exist: ' + [...intersectionsInId.values()].join(', '));
-        o.dpf._highlightTitle(m, id, byIds.get(id)![1]);
+        o.dpf.scrolledOverTitle(m, id, byIds.get(id)![1]);
       } else {
         if (last2LeavingTitles[0] == null) {
-          o.dp._highlightTitle(el.id, el as HTMLElement);
+          o.dp.scrolledOverTitle(el.id, el as HTMLElement);
         } else {
           const [idx0] = byIds.get(last2LeavingTitles[0])!;
           const [idx1] = byIds.get(el.id)!;
           if (idx0 < idx1) {
-            o.dp._highlightTitle(el.id, el as HTMLElement);
+            o.dp.scrolledOverTitle(el.id, el as HTMLElement);
           } else {
-            const el = byIndex.item(idx1 - 1);
-            o.dp._highlightTitle(el.id, el as HTMLElement);
+            const el = byIndex.item(idx1 - 1 < 0 ? idx1 : idx1 - 1);
+            o.dp.scrolledOverTitle(el.id, el as HTMLElement);
           }
         }
       }
@@ -91,26 +93,31 @@ export function applyHighlightFeature(tocControl: TocControl) {
     ))
   ));
 
-  r('_highlightTitle -> itemUpdated', o.pt._highlightTitle.pipe(
+  r('scrolledOverTitle -> itemUpdated', o.pt.scrolledOverTitle.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.switchMap(a => outputTable.l.itemById.pipe(
       rx.take(1),
-      rx.map(([, byId]) => [...a, byId.get(a[1])] as const)
+      rx.map(([, byId]) => [...a, byId.get(contentHeadIdToTocTitleId(a[1]))] as const)
     )),
     rx.tap(([m, , , item]) => {
       if (item)
         o.dpf.itemUpdated(m, {...item, highlighted: true});
     }),
     rx.scan((prev, curr) => {
-      const [, id, el, item] = prev as typeof curr;
-      const [meta] = curr;
+      const [, id, el, pItem] = prev as typeof curr;
+      const [meta, cId] = curr;
       o.dpf.unhighlightTitle(meta, id, el);
       o.dpf.highlightTitle(...(curr as unknown as InferMapParam<TocHLEvents, 'highlightTitle'>));
-      if (item)
-        o.dpf.itemUpdated(meta, {...item, highlighted: false});
+      i.dpf.scrollTocToVisible(meta, contentHeadIdToTocTitleId(cId));
+      if (pItem) {
+        o.dpf.itemUpdated(meta, {...pItem, highlighted: false});
+      }
       return curr;
     })
   ));
   return tocTitleHighlight;
 }
 
+function contentHeadIdToTocTitleId(id: string) {
+  return id.slice('mdt-'.length);
+}

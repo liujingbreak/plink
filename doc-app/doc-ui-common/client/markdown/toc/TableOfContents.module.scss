@@ -1,10 +1,11 @@
 @use "@wfh/material-components-react/client/theme";
+$titleColor: change-color(theme.$primary, $alpha: 0.7);
+$dividerColor: change-color(theme.$primary, $alpha: 0.5);
 
 .toc{
   &Body {
     flex-grow: 0;
     flex-shrink: 0;
-    background-color: white;
     left: 0;
     right: 0;
     top: 0;
@@ -13,9 +14,9 @@
     position: fixed;
     transform: none;
     display: none;
-    overflow: auto;
     transition: opacity 0.3s ease-out,transform 0.3s ease-out;
     padding-top: 60px;
+    background: white;
 
     &.toggleOnBegin {
       display: block;
@@ -28,16 +29,6 @@
       opacity: 1;
     }
 
-    &.fixed {
-      .tocContent {
-        top: 0;
-        padding-top: 24px; // ArticalePage uses class name "mdc-layout-grid" which gives a padding size 24px for desktop screen size device
-        position: fixed;
-      }
-    }
-    .tocContent {
-      transition: translate ease-out 0.25s;
-    }
     h3 {
       margin-bottom: 1rem;
       color: theme.$primary;
@@ -47,21 +38,57 @@
   &-item {
     line-height: 1.5rem;
     position: relative;
+    transition: background-image 0.25s linear;
+    &.hl {
+      > .toc-title:first-child {
+        color: theme.$primary;
+      }
+    }
   }
   &-title {
     position: relative;
     white-space: nowrap;
-    color: change-color(theme.$primary, $alpha: 0.7);
+    color: $titleColor;
     text-overflow: ellipsis;
     overflow: hidden;
+    padding: 4px 0;
     transition: color 0.25s linear;
     &:hover {
       color: theme.$primary;
     }
   }
+  &Content {
+    transition: translate ease-out 0.25s;
+  }
+  &ContentInner {
+    margin-left: 5px;
+    border-left: 1px solid $dividerColor;
+    width: calc(100% - 6px);
+  }
+  &PlaceHolder {
+    min-width: 1px;
+  }
+  &ScrollDetector {
+    position: absolute; // this element is used for IntersectionObserver, "absolute" makes it more stable for position detection, avoiding being interfered by reflowing
+    top: 0;
+    min-width: 1px;
+    min-height: 1px;
+  }
 }
 
-:global(.mdc-layout-size-desktop) {
+.posIndicator {
+  position: absolute;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  border: 2px solid theme.$primary;
+  transition-property: top;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+
+:global(.mdc-layout-size-desktop), :global(.mdc-layout-size-tablet) {
   .tocBody {
     display: block;
     transform: none;
@@ -72,9 +99,15 @@
     // width: 28vw;
     // max-width: 400px;
     padding-top: 0;
+    background: transparent;
     &.fixed {
       padding-top: 24px;
     }
+  }
+  .tocContent {
+    position: fixed;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 }
 

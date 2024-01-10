@@ -291,7 +291,18 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
         this.data = {} as ActionTableDataType<I, KS>;
         for (const k of this.actionNames) {
           const v = this.actionSnapshot.get(k);
-          this.data[k] = v ? v.slice(1) as InferPayload<I[keyof I]> : EMPTY_ARRY;
+          const old = this.data[k];
+
+          if (old === EMPTY_ARRY || old == null)
+            this.data[k] = v ? v.slice(1) as InferPayload<I[keyof I]> : EMPTY_ARRY;
+          else {
+            if (v) {
+              old.splice(0);
+              for (let i = 1, l = v.length; i < l; i++)
+                (old as any[]).push(v[i]);
+            } else
+              this.data[k] = EMPTY_ARRY;
+          }
         }
         return this.data;
       }),
@@ -344,9 +355,16 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
       const a$ = new rx.ReplaySubject<InferMapParam<I, M[number]>>(1);
       this.streamCtl.actionByType[type].pipe(
         rx.map(a => {
-          const mapParam = [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I, M[number]>;
-          this.actionSnapshot.set(type, mapParam);
-          return mapParam;
+          const arr = this.actionSnapshot.get(type);
+          if (arr == null) {
+            const mapParam = [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I, M[number]>;
+            this.actionSnapshot.set(type, mapParam);
+            return mapParam;
+          } else {
+            arr[0] = {i: a.i, r: a.r};
+            arr.splice(1, arr.length - 1, ...a.p); // reuse old array
+            return arr;
+          }
         })
       ).subscribe(a$);
 

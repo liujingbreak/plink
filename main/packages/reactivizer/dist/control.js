@@ -220,7 +220,18 @@ class ActionTable {
             this.data = {};
             for (const k of this.actionNames) {
                 const v = this.actionSnapshot.get(k);
-                this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
+                const old = this.data[k];
+                if (old === EMPTY_ARRY || old == null)
+                    this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
+                else {
+                    if (v) {
+                        old.splice(0);
+                        for (let i = 1, l = v.length; i < l; i++)
+                            old.push(v[i]);
+                    }
+                    else
+                        this.data[k] = EMPTY_ARRY;
+                }
             }
             return this.data;
         }), rx.share()), "f");
@@ -263,9 +274,17 @@ class ActionTable {
                 continue;
             const a$ = new rx.ReplaySubject(1);
             this.streamCtl.actionByType[type].pipe(rx.map(a => {
-                const mapParam = [{ i: a.i, r: a.r }, ...a.p];
-                this.actionSnapshot.set(type, mapParam);
-                return mapParam;
+                const arr = this.actionSnapshot.get(type);
+                if (arr == null) {
+                    const mapParam = [{ i: a.i, r: a.r }, ...a.p];
+                    this.actionSnapshot.set(type, mapParam);
+                    return mapParam;
+                }
+                else {
+                    arr[0] = { i: a.i, r: a.r };
+                    arr.splice(1, arr.length - 1, ...a.p); // reuse old array
+                    return arr;
+                }
             })).subscribe(a$);
             this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debugTableAction) ?
                 a$.pipe(this.debugLogLatestActionOperator(type)) :

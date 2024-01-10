@@ -5,7 +5,7 @@ import {Router} from '../../animation/AnimatableRoutes.hooks';
 import {markdownsControl} from '../markdownSlice';
 import {createMarkdownViewControl} from '../markdownViewComp.control';
 import {TOC} from '../../../isom/md-types';
-import {applyHighlightFeature} from './TableOfContents.title-highlight';
+import {applyHighlightFeature, TocHLActions} from './TableOfContents.title-highlight';
 
 // const desktopAppTitleBarHeight = 64;
 export type ItemState = {
@@ -14,6 +14,7 @@ export type ItemState = {
   children?: string[]; // hashes
   textDom?: HTMLDivElement;
   level: number;
+  titleDom?: HTMLElement;
 } & Omit<TOC, 'children'>;
 
 export type TocUIActions = {
@@ -22,10 +23,12 @@ export type TocUIActions = {
   // expand(id: string, isExpand: boolean): void;
   setRouter(router: Router): void;
   clicked(id: string): void;
-  onPlaceHolderRef(ref: HTMLDivElement | null): void;
+  onScrollDetectorRef(ref: HTMLDivElement | null): void;
   onContentDomRef(ref: HTMLDivElement | null): void;
   onContentScroll(): void;
   setMarkdownViewCtl(viewControl: ReturnType<typeof createMarkdownViewControl>): void;
+  scrollTocToVisible(id: string): void;
+  setItemTitleElement(id: string, dom: HTMLElement): void;
 };
 
 export type TocUIEvents = {
@@ -33,41 +36,45 @@ export type TocUIEvents = {
   handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
   setMarkdownBodyRef(dom: HTMLDivElement): void;
 
-  topLevelItemIdsUpdated(ids: string[]): void;
+  /** @param allIds is immutable */
+  itemsIdUpdated(tocLevelIds: string[], allIds: string[]): void;
   itemUpdated(toc: ItemState): void;
 
   loadRawItem(toc: TOC, levelDecrement?: number): void;
+  /** mutable, do not rely on this field for dirty-check */
   itemById(map: Map<string, ItemState>): void;
   togglePopupClassName(cln: string): void;
   mdHtmlScanned(done: boolean, key?: string): void;
 };
 
-const tocInputTableFor = ['setDataKey', 'onPlaceHolderRef', 'onContentDomRef',
-  'setRouter'
+const tocInputTableFor = ['setDataKey', 'onContentDomRef',
+  'setRouter', 'onScrollDetectorRef', 'setLayoutControl'
 ] as const;
 
 export const tocOutputTableFor = [
-  'changeFixedPosition', 'topLevelItemIdsUpdated', 'itemById', 'setMarkdownBodyRef',
+  'changeFixedPosition', 'itemsIdUpdated', 'itemById', 'setMarkdownBodyRef',
   'handleTogglePopup', 'togglePopupClassName', 'mdHtmlScanned'
 ] as const;
 
 export type TocUIEventTable = ActionTableDataType<TocUIEvents, typeof tocOutputTableFor>;
 
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
-  const composite = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
+  const composite = new ReactorComposite<TocUIActions & TocHLActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
     name: 'markdown-toc',
     debug: process.env.NODE_ENV === 'development',
     inputTableFor: tocInputTableFor,
     outputTableFor: tocOutputTableFor
   });
-  applyHighlightFeature(composite);
+  applyHighlightFeature(composite as any);
   const {i, o, r, outputTable, inputTable, labelError} = composite;
   o.dp.changeFixedPosition(false);
   o.dp.itemById(new Map());
   o.dp.mdHtmlScanned(false);
+  let tocTitleIds = [] as string[];
 
   r('Recursively loadRowItem -> loadRowItem, itemUpdated', o.pt.loadRawItem.pipe(
     rx.tap(([m, toc, levelDecre]) => {
+      tocTitleIds.push(toc.id);
       o.dpf.itemUpdated(m, {
         ...toc,
         level: levelDecre != null ? toc.level - levelDecre : toc.level,
@@ -121,7 +128,8 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
       rx.take(1),
       rx.map(data => {
         if (data.toc.length === 0) {
-          o.dpf.topLevelItemIdsUpdated(m, []);
+          tocTitleIds = [];
+          o.dpf.itemsIdUpdated(m, [], []);
           return;
         }
         // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
@@ -134,9 +142,16 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
         for (const toc of items) {
           o.dpf.loadRawItem(m, toc, levelDecre);
         }
-        o.dpf.topLevelItemIdsUpdated(m, items.map(t => t.id));
+        o.dpf.itemsIdUpdated(m, items.map(t => t.id), tocTitleIds);
       })
     ))
+  ));
+
+  r('setItemTitleElement', i.pt.setItemTitleElement.pipe(
+    rx.withLatestFrom(outputTable.l.itemById),
+    rx.tap(([[, id, el], [, itemById]]) => {
+      itemById.get(id)!.titleDom = el;
+    })
   ));
 
   r('itemUpdated -> itemById, itemDomRefHandlers', o.pt.itemUpdated.pipe(
@@ -146,8 +161,8 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  r('setDataKey, onContentDomRef, topLevelItemIdsUpdated -> scan HTML for heads (itemById.textDom), mdHtmlScanned',
-    o.pt.topLevelItemIdsUpdated.pipe(
+  r('setDataKey, setMarkdownBodyRef, itemById, itemsIdUpdated -> scan HTML for heads (itemById.textDom), mdHtmlScanned',
+    o.pt.itemsIdUpdated.pipe(
       rx.switchMap(([m]) => rx.combineLatest([
         outputTable.l.setMarkdownBodyRef,
         outputTable.l.itemById,
@@ -230,28 +245,36 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ))
   ));
 
-  r('For desktop device: layout.onTopAppBarScrollChange -> changeFixedPosition', i.pt.setLayoutControl.pipe(
-    rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize.pipe(
-      rx.switchMap(([, size]) => {
-        if (size === 'desktop') {
-          return rx.merge(
-            layout.outputTable.l.onTopAppBarScrollChange.pipe(
-              rx.tap(([, outOfViewPort]) => {
-                o.dp.changeFixedPosition(outOfViewPort);
-              }),
-              composite.labelError('-> changeFixedPosition')
-            )
-          );
-        } else {
-          return rx.EMPTY;
-        }
-      })
-    ))
+  r('scrollTocToVisible', i.pt.scrollTocToVisible.pipe(
+    rx.withLatestFrom(
+      inputTable.l.onContentDomRef.pipe(
+        rx.filter(([, dom]) => dom != null)
+      ),
+      outputTable.l.itemById,
+      i.pt.onPosIndicatorRef.pipe(
+        rx.filter(([, ref]) => ref != null)
+      )
+    ),
+    rx.switchMap(([[, id], [, contentDom], [, items], [, posIndicator]]) => items.get(id)?.titleDom ?
+      rx.of([id, contentDom, items.get(id)?.titleDom, posIndicator] as const) :
+      rx.EMPTY
+    ),
+    rx.tap(([, contentDom, target, posIndicator]) => {
+      const scrollableInner = contentDom!;
+      // const {titleDom: target} = items.get(id)!;
+      const targetRect = target!.getBoundingClientRect();
+      const scrollableRect = scrollableInner.getBoundingClientRect();
+      const top = Math.round(targetRect.y - scrollableRect.y + scrollableInner.scrollTop);
+      posIndicator!.style.top = top + targetRect.height / 2 - 6 + 'px';
+      if (targetRect.y < scrollableRect.y || (targetRect.y + targetRect.height) > (scrollableRect.y + scrollableInner.clientHeight)) {
+        scrollableInner.scrollTo({top, behavior: 'smooth'});
+      }
+    })
   ));
 
   r('For non-desktop device, handleTogglePopup -> togglePopupClassName', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
-    rx.filter(([, size]) => size !== 'desktop'),
+    rx.filter(([, size]) => size === 'phone'),
     rx.switchMap(() => {
       o.dp.changeFixedPosition(false);
       return o.pt.handleTogglePopup;
@@ -272,42 +295,69 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ))
   ));
 
-  r('When changeFixedPosition', o.pt.changeFixedPosition.pipe(
+  r('onScrollDetectorRef -> changeFixedPosition', i.pt.setLayoutControl.pipe(
+    rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
+    rx.filter(([, size]) => size !== 'phone'),
+    rx.switchMap(() => inputTable.l.onScrollDetectorRef),
+    rx.filter(([, ref]) => ref != null),
+    rx.switchMap(([, el]) => new rx.Observable(() => {
+      const tocScrollDetector = new IntersectionObserver(entries => {
+        o.dp.changeFixedPosition(!entries[0].isIntersecting);
+      }, {threshold: 0});
+      const target = el!;
+      tocScrollDetector.observe(target);
+      return () => tocScrollDetector.unobserve(target);
+    }))
+  ));
+
+  let tocContentTopToScreenEdge = 0;
+
+  r('When changeFixedPosition', outputTable.l.changeFixedPosition.pipe(
     rx.withLatestFrom(
-      i.pt.onPlaceHolderRef.pipe(
-        rx.map(([, ref]) => ref),
-        rx.filter((ref): ref is NonNullable<typeof ref> => ref != null)
-      ),
       i.pt.onContentDomRef.pipe(
         rx.map(([, ref]) => ref),
         rx.filter((ref): ref is NonNullable<typeof ref> => ref != null)
+      ),
+      inputTable.l.setLayoutControl.pipe(
+        rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
+        rx.filter(([, el]) => el != null)
       )
     ),
-    rx.switchMap(([[m, fixed], placeHolderRef, contentRef]) => {
+    rx.switchMap(([[m, fixed], contentRef, [, scrollable]]) => {
       if (fixed) {
-        if (placeHolderRef.clientWidth < 0.05) {
-          // The window is probably resized or direction of it is rotated, clientWidth is incorrect, give it a chance to reflow and repaint
-          return rx.timer(1).pipe(
-            rx.tap(() => {
-              o.dpf.changeFixedPosition(m, false);
-            }),
-            rx.switchMap(() => rx.timer(320)),
-            rx.tap(() => o.dpf.changeFixedPosition(m, true))
-          );
+        // if (placeHolderRef.clientWidth < 0.05) {
+        //   // The window is probably resized or direction of it is rotated, clientWidth is incorrect, give it a chance to reflow and repaint
+        //   return rx.timer(1).pipe(
+        //     rx.tap(() => {
+        //       o.dpf.changeFixedPosition(m, false);
+        //     }),
+        //     rx.switchMap(() => rx.timer(320)),
+        //     rx.tap(() => o.dpf.changeFixedPosition(m, true))
+        //   );
+        // }
+        if (tocContentTopToScreenEdge > 0) {
+          contentRef.style.top = tocContentTopToScreenEdge + 'px';
+          contentRef.style.height = `calc(100vh - ${tocContentTopToScreenEdge}px)`;
         }
-        const w = placeHolderRef.clientWidth + 'px';
-        const h = placeHolderRef.clientHeight + 'px';
-        placeHolderRef.style.width = w;
-        placeHolderRef.style.height = h;
+        const w = contentRef.parentElement!.clientWidth + 'px';
         contentRef.style.width = w;
         return rx.EMPTY;
       } else {
-        contentRef.style.width = '';
+        contentRef.style.top = '';
+        contentRef.style.height = '';
         // In Safari, the flash is pretty abvious when "fixed" position change which causes browsr reflow
-        return rx.timer(2000).pipe(
-          rx.tap(() => {
-            placeHolderRef.style.width = '';
-          })
+        return rx.merge(
+          rx.timer(32).pipe(
+            rx.tap(() => {
+              contentRef.style.width = contentRef.parentElement!.clientWidth + 'px';
+              tocContentTopToScreenEdge = contentRef.parentElement!.getBoundingClientRect().y + scrollable!.scrollTop;
+            })
+          )
+          // rx.timer(2000).pipe(
+          //   rx.tap(() => {
+          //     placeHolderRef.style.width = '';
+          //   })
+          // )
         );
       }
     })

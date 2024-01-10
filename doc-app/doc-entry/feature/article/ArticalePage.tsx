@@ -47,7 +47,7 @@ const ArticalePage = React.memo<ArticalePageProps>(function() {
 
   // mdc-layout-grid provides proper margin or padding space for page element
   return (
-    <div className={cls('articale-page', 'mdc-layout-grid')}> {/* CSS class mdc-layout-grid provides proper margin or padding space for page element */}
+    <div className={cls('articale-page', 'mdc-layout-grid')}> {/* CSS class mdc-layout-grid provides proper margin or padding space for page element https://m2.material.io/develop/web/supporting/layout-grid*/}
       <MarkdownViewComp mdKey={matchedParams?.mdKey} onContent={onContentLoaded} />
       {portals}
     </div>
