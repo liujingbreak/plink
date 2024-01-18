@@ -1,10 +1,11 @@
 import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
-import {ReactorComposite, ActionTableDataType, payloadRelatedToAction} from '@wfh/reactivizer';
+import {ReactorComposite, ActionTableDataType} from '@wfh/reactivizer';
 import {useAppLayout} from '../../components/appLayout.control';
 import {Router} from '../../animation/AnimatableRoutes.hooks';
 import {markdownsControl} from '../markdownSlice';
+import {createMarkdownViewControl} from '../markdownViewComp.control';
 import {TOC} from '../../../isom/md-types';
+import {applyHighlightFeature, TocHLActions} from './TableOfContents.title-highlight';
 
 // const desktopAppTitleBarHeight = 64;
 export type ItemState = {
@@ -13,54 +14,67 @@ export type ItemState = {
   children?: string[]; // hashes
   textDom?: HTMLDivElement;
   level: number;
+  titleDom?: HTMLElement;
 } & Omit<TOC, 'children'>;
 
 export type TocUIActions = {
   setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): void;
   setDataKey(key: string): void;
-  setMarkdownBodyRef(key: string, dom: HTMLDivElement): void;
-  expand(id: string, isExpand: boolean): void;
+  // expand(id: string, isExpand: boolean): void;
   setRouter(router: Router): void;
   clicked(id: string): void;
-  onPlaceHolderRef(ref: HTMLDivElement | null): void;
+  onScrollDetectorRef(ref: HTMLDivElement | null): void;
   onContentDomRef(ref: HTMLDivElement | null): void;
   onContentScroll(): void;
-  togglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
+  setMarkdownViewCtl(viewControl: ReturnType<typeof createMarkdownViewControl>): void;
+  scrollTocToVisible(id: string): void;
+  setItemTitleElement(id: string, dom: HTMLElement): void;
 };
 
-type TocUIEvents = {
+export type TocUIEvents = {
   changeFixedPosition(fixed: boolean): void;
+  handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
+  setMarkdownBodyRef(dom: HTMLDivElement): void;
 
-  topLevelItemIdsUpdated(ids: string[]): void;
+  /** @param allIds is immutable */
+  itemsIdUpdated(tocLevelIds: string[], allIds: string[]): void;
   itemUpdated(toc: ItemState): void;
 
   loadRawItem(toc: TOC, levelDecrement?: number): void;
+  /** mutable, do not rely on this field for dirty-check */
   itemById(map: Map<string, ItemState>): void;
   togglePopupClassName(cln: string): void;
-  scrollToItem(id: string): void;
   mdHtmlScanned(done: boolean, key?: string): void;
 };
 
-const tocInputTableFor = ['expand', 'setDataKey', 'onPlaceHolderRef', 'onContentDomRef', 'togglePopup', 'setRouter'] as const;
-const tocOutputTableFor = ['changeFixedPosition', 'topLevelItemIdsUpdated', 'itemById',
-  'togglePopupClassName', 'mdHtmlScanned'] as const;
+const tocInputTableFor = ['setDataKey', 'onContentDomRef',
+  'setRouter', 'onScrollDetectorRef', 'setLayoutControl'
+] as const;
+
+export const tocOutputTableFor = [
+  'changeFixedPosition', 'itemsIdUpdated', 'itemById', 'setMarkdownBodyRef',
+  'handleTogglePopup', 'togglePopupClassName', 'mdHtmlScanned'
+] as const;
 
 export type TocUIEventTable = ActionTableDataType<TocUIEvents, typeof tocOutputTableFor>;
 
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
-  const composite = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
+  const composite = new ReactorComposite<TocUIActions & TocHLActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
     name: 'markdown-toc',
     debug: process.env.NODE_ENV === 'development',
     inputTableFor: tocInputTableFor,
     outputTableFor: tocOutputTableFor
   });
-  const {i, o, r, outputTable} = composite;
+  applyHighlightFeature(composite as any);
+  const {i, o, r, outputTable, inputTable, labelError} = composite;
   o.dp.changeFixedPosition(false);
   o.dp.itemById(new Map());
   o.dp.mdHtmlScanned(false);
+  let tocTitleIds = [] as string[];
 
   r('Recursively loadRowItem -> loadRowItem, itemUpdated', o.pt.loadRawItem.pipe(
     rx.tap(([m, toc, levelDecre]) => {
+      tocTitleIds.push(toc.id);
       o.dpf.itemUpdated(m, {
         ...toc,
         level: levelDecre != null ? toc.level - levelDecre : toc.level,
@@ -73,18 +87,49 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
+  // Sync handleTogglePopup, setMarkdownBodyRef from markdownViewControl
+  r('setMarkdownViewCtl, when markdownViewCtl::setMarkdownKey === setDataKey,' +
+    'markdownViewCtl::handleTogglePopup, htmlRenderredFor -> handleTogglePopup, setMarkdownBodyRef',
+  i.pt.setMarkdownViewCtl.pipe(
+    rx.switchMap(([, ctl]) => ctl.inputTable.l.setMarkdownKey.pipe(
+      rx.switchMap(([, key]) => inputTable.l.setDataKey.pipe(
+        rx.take(1),
+        rx.switchMap(([, tocMdKey]) => key === tocMdKey ?
+          rx.merge(
+            ctl.i.pt.handleTogglePopup.pipe(
+              rx.tap(all => o.dpf.handleTogglePopup(...all)),
+              labelError('handleTogglePopup -> handleTogglePopup')
+            ),
+            ctl.outputTable.l.htmlRenderredFor.pipe(
+              rx.filter(([, key]) => key === tocMdKey),
+              rx.take(1),
+              rx.switchMap(() => ctl.inputTable.l.setMarkdownBodyRef.pipe(
+                rx.take(1),
+                rx.tap(([m, dom]) => {
+                  if (dom)
+                    o.dpf.setMarkdownBodyRef(m, dom);
+                })
+              )),
+              labelError('setMarkdownBodyRef -> setMarkdownBodyRef')
+            )
+          ) :
+          rx.EMPTY)
+      ))
+    ))
+  ));
+
   r('setDataKey -> loadRowItem, reset mdHtmlScanned', i.pt.setDataKey.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
-    rx.tap(() => o.dp.mdHtmlScanned(false)),
-    rx.switchMap(([m, key]) => markdownsControl.outputTable.l.htmlDone.pipe(
-      rx.filter(([, key0]) => key0 === key),
-      op.map(([, , contents]) => contents),
-      op.distinctUntilChanged(),
-      op.filter(data => data != null),
-      op.take(1),
-      op.map(data => {
+    rx.tap(([m, key]) => o.dpf.mdHtmlScanned(m, false, key)),
+    rx.switchMap(([m, key]) => markdownsControl.outputTable.l.htmlByKey.pipe(
+      rx.map(([, map]) => map.get(key)),
+      rx.filter((data): data is NonNullable<typeof data> => data != null),
+      rx.distinctUntilChanged(),
+      rx.take(1),
+      rx.map(data => {
         if (data.toc.length === 0) {
-          o.dpf.topLevelItemIdsUpdated(m, []);
+          tocTitleIds = [];
+          o.dpf.itemsIdUpdated(m, [], []);
           return;
         }
         // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
@@ -97,9 +142,16 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
         for (const toc of items) {
           o.dpf.loadRawItem(m, toc, levelDecre);
         }
-        o.dpf.topLevelItemIdsUpdated(m, items.map(t => t.id));
+        o.dpf.itemsIdUpdated(m, items.map(t => t.id), tocTitleIds);
       })
     ))
+  ));
+
+  r('setItemTitleElement', i.pt.setItemTitleElement.pipe(
+    rx.withLatestFrom(outputTable.l.itemById),
+    rx.tap(([[, id, el], [, itemById]]) => {
+      itemById.get(id)!.titleDom = el;
+    })
   ));
 
   r('itemUpdated -> itemById, itemDomRefHandlers', o.pt.itemUpdated.pipe(
@@ -109,24 +161,27 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  r('setDataKey, onContentDomRef, topLevelItemIdsUpdated -> scan HTML for heads (itemById.textDom), mdHtmlScanned',
-    rx.combineLatest([
-      i.pt.setMarkdownBodyRef,
-      i.pt.setDataKey
-    ]).pipe(
-      rx.filter(([[, mdKey], [, key]]) => mdKey === key),
-      rx.switchMap(([[, , dom], [m, key]]) => outputTable.l.topLevelItemIdsUpdated.pipe(
-        payloadRelatedToAction(m),
+  r('setDataKey, setMarkdownBodyRef, itemById, itemsIdUpdated -> scan HTML for heads (itemById.textDom), mdHtmlScanned',
+    o.pt.itemsIdUpdated.pipe(
+      rx.switchMap(([m]) => rx.combineLatest([
+        outputTable.l.setMarkdownBodyRef,
+        outputTable.l.itemById,
+        inputTable.l.setDataKey
+      ]).pipe(
         rx.take(1),
-        rx.withLatestFrom(outputTable.l.itemById),
-        rx.tap(([[m2], [, itemById]]) => {
+        rx.tap(([[, dom], [m2, itemById], [, mdKey]]) => {
           for (const [id, item] of itemById.entries()) {
             const textDiv = dom.querySelector('[id="mdt-' + id + '"]');
             if (textDiv) {
               item.textDom = textDiv as HTMLDivElement;
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('Can not find element [id="mdt-' + id + '"]');
             }
           }
-          o.dpf.mdHtmlScanned([m, m2], true, key);
+          const r = [m, m2];
+          o.dpf.itemById(r, itemById);
+          o.dpf.mdHtmlScanned(r, true, mdKey);
         })
       ))
     ));
@@ -141,34 +196,34 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ))
   ));
 
-  r('matched route, mdHtmlScanned -> togglePopup(false), scroll to heads', i.pt.setLayoutControl.pipe(
+  r('matched route, mdHtmlScanned -> handleTogglePopup(false), scroll to heads', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
     rx.filter(([, ref]) => ref != null),
-    rx.combineLatestWith(
-      composite.inputTable.l.setRouter.pipe(
-        rx.map(([, {matchedRoute}]) => matchedRoute!.location.hash.length > 0 ? matchedRoute!.location.hash.slice(1) : null),
-        rx.distinctUntilChanged()
-      ),
+    rx.switchMap(([, scrollable]) => rx.combineLatest([
       outputTable.l.mdHtmlScanned.pipe(
-        rx.filter(([, done, key]) => done)
-      )),
-    rx.filter(([, id]) => id != null),
-    rx.switchMap(([[, scrollable], id]) => {
-      o.dp.scrollToItem(id!);
-      return rx.combineLatest([
-        outputTable.l.mdHtmlScanned.pipe(rx.filter(([, done]) => done)),
-        outputTable.l.itemById
-      ]).pipe(
+        rx.filter(([, done, key]) => done),
         rx.take(1),
-        rx.switchMap(([, [, map]]) => {
-          const itemState = map.get(id!);
-          const rect = itemState?.textDom!.getBoundingClientRect();
-          const [, toggleIcon] = composite.inputTable.getData().togglePopup;
+        rx.delay(50) // Give some time to waiting for rendering
+      ),
+      inputTable.l.setRouter,
+      inputTable.l.setDataKey
+    ]).pipe(
+      rx.filter(([[, , key], [, router], [, dataKey]]) => key === dataKey &&
+                router.matchedRoute?.matchedParams.mdKey === key &&
+               router.matchedRoute.location.hash.length > 0
+      ),
+      rx.switchMap(([, [, router]]) => outputTable.l.itemById.pipe(
+        rx.take(1),
+        rx.switchMap(([, map]) => {
+          const hash = router.matchedRoute!.location.hash.slice(1);
+          const itemState = map.get(hash);
+          const rect = itemState?.textDom?.getBoundingClientRect();
+          const [, toggleIcon] = composite.outputTable.getData().handleTogglePopup;
           if (toggleIcon) {
             // change icon button
             toggleIcon(false);
             // close TOC popup
-            i.dp.togglePopup(false, toggleIcon);
+            o.dp.handleTogglePopup(false, toggleIcon);
           }
           if (rect) {
             let targetY = Math.floor(rect.y - scrollable!.getBoundingClientRect().y + scrollable!.scrollTop);
@@ -182,45 +237,50 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
               }))
             );
           } else {
-            console.error(`Can not find item of ${id!} to be scrolled to, client rectangle is`, rect);
+            console.error(`Can not find item of ${hash} to be scrolled to, client rectangle is`, rect, 'element:', itemState?.textDom);
             return rx.EMPTY;
           }
         })
-      );
-    })
-  ));
-
-  r('For desktop device: layout.onTopAppBarScrollChange -> changeFixedPosition', i.pt.setLayoutControl.pipe(
-    rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize.pipe(
-      rx.switchMap(([, size]) => {
-        if (size === 'desktop') {
-          return rx.merge(
-            layout.outputTable.l.onTopAppBarScrollChange.pipe(
-              rx.tap(([, outOfViewPort]) => {
-                o.dp.changeFixedPosition(outOfViewPort);
-              }),
-              composite.labelError('-> changeFixedPosition')
-            )
-          );
-        } else {
-          return rx.EMPTY;
-        }
-      })
+      ))
     ))
   ));
 
-  r('For non-desktop device: -> togglePopup', i.pt.setLayoutControl.pipe(
+  r('scrollTocToVisible', i.pt.scrollTocToVisible.pipe(
+    rx.withLatestFrom(
+      inputTable.l.onContentDomRef.pipe(
+        rx.filter(([, dom]) => dom != null)
+      ),
+      outputTable.l.itemById,
+      i.pt.onPosIndicatorRef.pipe(
+        rx.filter(([, ref]) => ref != null)
+      )
+    ),
+    rx.switchMap(([[, id], [, contentDom], [, items], [, posIndicator]]) => items.get(id)?.titleDom ?
+      rx.of([id, contentDom, items.get(id)?.titleDom, posIndicator] as const) :
+      rx.EMPTY
+    ),
+    rx.tap(([, contentDom, target, posIndicator]) => {
+      const scrollableInner = contentDom!;
+      // const {titleDom: target} = items.get(id)!;
+      const targetRect = target!.getBoundingClientRect();
+      const scrollableRect = scrollableInner.getBoundingClientRect();
+      const top = Math.round(targetRect.y - scrollableRect.y + scrollableInner.scrollTop);
+      posIndicator!.style.top = top + targetRect.height / 2 - 6 + 'px';
+      if (targetRect.y < scrollableRect.y || (targetRect.y + targetRect.height) > (scrollableRect.y + scrollableInner.clientHeight)) {
+        scrollableInner.scrollTo({top, behavior: 'smooth'});
+      }
+    })
+  ));
+
+  r('For non-desktop device, handleTogglePopup -> togglePopupClassName', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
-    rx.filter(([, size]) => size !== 'desktop'),
+    rx.filter(([, size]) => size === 'phone'),
     rx.switchMap(() => {
       o.dp.changeFixedPosition(false);
-      return i.pt.togglePopup;
+      return o.pt.handleTogglePopup;
     }),
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
-    rx.map(([_m, on]) => {
-      // o.dpf.togglePopup(m, on);
-      return on;
-    }),
+    rx.map(([_m, on]) => on),
     // eslint-disable-next-line multiline-ternary
     rx.concatMap(on => on ? rx.concat(
       rx.defer(() => {o.dp.togglePopupClassName('toggleOnBegin'); return rx.EMPTY; }),
@@ -235,41 +295,69 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ))
   ));
 
-  r('When changeFixedPosition', o.pt.changeFixedPosition.pipe(
-    op.withLatestFrom(
-      i.pt.onPlaceHolderRef.pipe(
-        rx.map(([, ref]) => ref),
-        op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
-      ),
+  r('onScrollDetectorRef -> changeFixedPosition', i.pt.setLayoutControl.pipe(
+    rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
+    rx.filter(([, size]) => size !== 'phone'),
+    rx.switchMap(() => inputTable.l.onScrollDetectorRef),
+    rx.filter(([, ref]) => ref != null),
+    rx.switchMap(([, el]) => new rx.Observable(() => {
+      const tocScrollDetector = new IntersectionObserver(entries => {
+        o.dp.changeFixedPosition(!entries[0].isIntersecting);
+      }, {threshold: 0});
+      const target = el!;
+      tocScrollDetector.observe(target);
+      return () => tocScrollDetector.unobserve(target);
+    }))
+  ));
+
+  let tocContentTopToScreenEdge = 0;
+
+  r('When changeFixedPosition', outputTable.l.changeFixedPosition.pipe(
+    rx.withLatestFrom(
       i.pt.onContentDomRef.pipe(
         rx.map(([, ref]) => ref),
-        op.filter((ref): ref is NonNullable<typeof ref> => ref != null)
+        rx.filter((ref): ref is NonNullable<typeof ref> => ref != null)
+      ),
+      inputTable.l.setLayoutControl.pipe(
+        rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
+        rx.filter(([, el]) => el != null)
       )
     ),
-    op.switchMap(([[m, fixed], placeHolderRef, contentRef]) => {
+    rx.switchMap(([[m, fixed], contentRef, [, scrollable]]) => {
       if (fixed) {
-        if (placeHolderRef.clientWidth < 0.05) {
-          return rx.timer(1).pipe(
-            rx.tap(() => {
-              o.dpf.changeFixedPosition(m, false);
-            }),
-            rx.switchMap(() => rx.timer(320)),
-            rx.tap(() => o.dpf.changeFixedPosition(m, true))
-          );
+        // if (placeHolderRef.clientWidth < 0.05) {
+        //   // The window is probably resized or direction of it is rotated, clientWidth is incorrect, give it a chance to reflow and repaint
+        //   return rx.timer(1).pipe(
+        //     rx.tap(() => {
+        //       o.dpf.changeFixedPosition(m, false);
+        //     }),
+        //     rx.switchMap(() => rx.timer(320)),
+        //     rx.tap(() => o.dpf.changeFixedPosition(m, true))
+        //   );
+        // }
+        if (tocContentTopToScreenEdge > 0) {
+          contentRef.style.top = tocContentTopToScreenEdge + 'px';
+          contentRef.style.height = `calc(100vh - ${tocContentTopToScreenEdge}px)`;
         }
-        const w = placeHolderRef.clientWidth + 'px';
-        const h = placeHolderRef.clientHeight + 'px';
-        placeHolderRef.style.width = w;
-        placeHolderRef.style.height = h;
+        const w = contentRef.parentElement!.clientWidth + 'px';
         contentRef.style.width = w;
         return rx.EMPTY;
       } else {
-        contentRef.style.width = '';
+        contentRef.style.top = '';
+        contentRef.style.height = '';
         // In Safari, the flash is pretty abvious when "fixed" position change which causes browsr reflow
-        return rx.timer(2000).pipe(
-          rx.tap(() => {
-            placeHolderRef.style.width = '';
-          })
+        return rx.merge(
+          rx.timer(32).pipe(
+            rx.tap(() => {
+              contentRef.style.width = contentRef.parentElement!.clientWidth + 'px';
+              tocContentTopToScreenEdge = contentRef.parentElement!.getBoundingClientRect().y + scrollable!.scrollTop;
+            })
+          )
+          // rx.timer(2000).pipe(
+          //   rx.tap(() => {
+          //     placeHolderRef.style.width = '';
+          //   })
+          // )
         );
       }
     })
@@ -283,5 +371,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  return [i, () => composite.destory(), () => state] as const;
+  return [i, () => composite.dispose(), () => state] as const;
 }
+
+export type TocControl = ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>;

@@ -1,8 +1,8 @@
 import React from 'react';
 import {useReduxTookit} from '@wfh/redux-toolkit-observable/es/react-redux-helper';
+import {Surface} from '@wfh/doc-ui-common/client/components';
 import {sliceOptionFactory, epicFactory, SurfaceBackgroundDemoProps as Props} from './surfaceBackgroundDemoSlice';
 import styles from './SurfaceBackgroundDemo.module.scss';
-import {Surface} from '@wfh/doc-ui-common/client/components';
 
 // import cls from 'classnames';
 // CRA's babel plugin will remove statement "export {SurfaceBackgroundDemoProps}" in case there is only type definition, have to reassign and export it.

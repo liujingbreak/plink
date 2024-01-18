@@ -7,9 +7,9 @@
   min-width: 0;
 }
 .container {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  // display: flex;
+  // justify-content: center;
+  // align-items: flex-start;
 
   .tocPopBtn {
     position: fixed;
@@ -22,7 +22,7 @@
   }
 }
 
-:global(.mdc-layout-size-desktop) {
+:global(.mdc-layout-size-desktop), :global(.mdc-layout-size-tablet) {
   .markdownContent {
     flex-grow: 1;
   }

@@ -1,7 +1,7 @@
 import { createSorter } from './sorter';
 const sorter = createSorter(null, {
     name: 'sorter',
-    debug: false
+    debug: false // process.env.NODE_ENV === 'development'
 });
 export { sorter };
 //# sourceMappingURL=sort-worker.js.map

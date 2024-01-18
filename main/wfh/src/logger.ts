@@ -1,5 +1,5 @@
 import path from 'node:path';
-import {getLogger} from 'log4js';
+import {getLogger, Logger} from 'log4js';
 import {packageOfFileFactory} from './package-mgr/package-info-gathering';
 /**
  * Get log4js Logger for specific node.js file, the output log will have
@@ -18,7 +18,7 @@ import {packageOfFileFactory} from './package-mgr/package-info-gathering';
  * - EJS module (mjs): loggerForFile(new URL(import.meta.url).pathname)
  * @param file 
  */
-export function log4File(file: string, subName?: string) {
+export function log4File(file: string, subName?: string): Logger {
   const pkg = packageOfFileFactory().getPkgOfFile(file);
   if (pkg) {
     return getLogger(pkg.name + '.' + /^(.*?)\.[^.]*$/.exec(path.basename(file))![1] + (subName ? '.' + subName : ''));

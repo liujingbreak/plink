@@ -3,7 +3,7 @@
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
 import {RxController, ReactorComposite, payloadRelatedToAction,
-  ActionTable, nameOfAction} from '../src';
+  ActionTable, nameOfAction, ReactorCompositeMergeType} from '../src';
 
 type TestMessages = {
   msg1(): void;
@@ -29,6 +29,15 @@ type TestGroupBy = {
   foobar1(key: string, v: number): void;
   foobar2(key: string, v: string): void;
 };
+
+interface TestMessagesExtend {
+  msgEx(): void;
+}
+
+type ExtReactorComp = ReactorCompositeMergeType<
+ReactorComposite<TestMessages>,
+TestMessagesExtend
+>;
 
 describe('reactivizer', () => {
   describe('RxController basic features', () => {
@@ -322,5 +331,34 @@ describe('reactivizer', () => {
       expect(mock.mock.calls[0][0]).toEqual('msg2');
       expect(mock.mock.calls[1][0]).toEqual('msg3');
     });
+  });
+
+  it.skip('Extend ReactorComposite', () => {
+    // const c: ExtReactorComp | undefined;
+    // console.log(c);
+  });
+
+  it('RxController dispatchAndObserveRes in case of error', async () => {
+    const comp = new ReactorComposite<TestMessages, TestMessages>();
+    comp.r('test error', comp.i.pt.msg1.pipe(
+      rx.mergeMap(([m]) => {
+        return new rx.Observable(() => {
+          console.log('handle test error');
+          throw new Error('test error');
+        }).pipe(
+          comp.catchErrorFor(m)
+        );
+      })
+    ));
+
+    const mock = jest.fn();
+    try {
+      await rx.firstValueFrom(comp.i.do.msg1(comp.o.at.msg2));
+    } catch (e) {
+      mock(e);
+    }
+
+    expect(mock.mock.calls.length).toBe(1);
+    expect((mock.mock.calls[0][0] as Error).message).toBe('test error');
   });
 });

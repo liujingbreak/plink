@@ -22,7 +22,7 @@ type ExtendEvents = {
 const inputTableFor = ['setAuxiliaryEnabled'] as const;
 
 export function createHueCircle(root: Paintable, {animateMgr, canvasController}: ReactiveCanvas2Engine) {
-  const composite = createPaintable<ExtendActions, ExtendEvents, typeof inputTableFor>({debug: 'huePalette', inputTableFor});
+  const composite = createPaintable<ExtendActions, ExtendEvents, typeof inputTableFor>({name: 'huePalette', inputTableFor});
 
   const {i, o, r} = composite;
   const {dp} = i;
@@ -227,7 +227,7 @@ export function createHueCircle(root: Paintable, {animateMgr, canvasController}:
 const COMPLEMENT = Math.PI / 360; // make object a little bigger to conque T-edge issue
 
 function createPaintingObjects(ctrl: Paintable<ExtendActions, ExtendEvents, typeof inputTableFor>) {
-  const numOfColors = 5;
+  const numOfColors = 36;
   const fanShapes = [] as [color: Color, segsIt: Iterable<Segment>][];
 
   const init$ = rx.defer(() => {

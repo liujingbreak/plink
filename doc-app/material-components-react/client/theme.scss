@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use "@material/theme" with (
   $primary: #6750a4,
   $secondary: #255ea6,
@@ -16,5 +17,9 @@
 );
 
 @forward "@material/theme";
+// For Ripple
 $raised-btn-ripple-color: if(theme.contrast-tone(theme.$primary) == 'dark', black, white);
+// Refer to https://sass-lang.com/documentation/modules/color/
+$dark-ripple-color: color.adjust(theme.$secondary, $lightness: +20%, $saturation: -15%);
+$light-ripple-color: color.adjust(#6750a4, $lightness: -20%, $saturation: -15%);
 

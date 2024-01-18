@@ -68,7 +68,7 @@ export default function(webpackEnv: 'production' | 'development') {
     config.output!.filename = 'static/js/[name].js';
     config.output!.chunkFilename = 'static/js/[name].chunk.js';
   }
-  config.stats = 'normal';
+  // config.stats = 'normal';
   addResolveAlias(config);
 
   const reportDir = getReportDir();
@@ -125,6 +125,9 @@ export default function(webpackEnv: 'production' | 'development') {
   if (cmdOption.buildType === 'lib') {
     change4lib(cmdOption.buildTargets[0].pkg!, config);
   } else if (cmdOption.buildType === 'dll') {
+    if (cmdOption.refDllManifest) {
+      setupDllReferencePlugin(cmdOption.refDllManifest, config);
+    }
     setupDllPlugin(cmdOption.buildTargets, config, getPluginConstructor);
   } else {
     let dllJsFiles = [] as string[];
@@ -163,12 +166,13 @@ export default function(webpackEnv: 'production' | 'development') {
   config.plugins?.push( new TermuxWebpackPlugin());
 
   if (cmdOption.cmd === 'cra-build' && !cmdOption.watch) {
+    const buildIdentifier = nameFromConfigEntry(config);
     config.plugins?.push(
       new TermuxWebpackPlugin(),
       new BundleAnalyzerPlugin({
         analyzerMode: 'disabled',
         generateStatsFile: true,
-        statsFilename: Path.join(plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
+        statsFilename: Path.join(plinkEnv.distDir, `webpack-bundle-analyzer.stats.${typeof buildIdentifier === 'string' ? buildIdentifier : timeStr}.json`)
       })
     );
   }
@@ -374,3 +378,24 @@ function changeForkTsCheckerOptions(
   void fs.promises.writeFile(tsconfigReport, JSON.stringify(tsconfig, null, '  '));
 }
 
+function nameFromConfigEntry(config: Configuration) {
+  let entryFile = typeof config.entry! === 'string' ?
+    config.entry : Array.isArray(config.entry) ?
+      config.entry[0] :
+      typeof config.entry === 'object' ? Object.values(config.entry)[0] : null;
+
+  if (Array.isArray(entryFile))
+    entryFile = entryFile[0]
+
+  let buildIdentifier: undefined | string;
+  if (typeof entryFile === 'string') {
+    const {getPkgOfFile} = packageOfFileFactory();
+    const pkg = getPkgOfFile(entryFile);
+    if (pkg) {
+      const path = Path.relative(config.resolve?.symlinks !== false ? pkg.realPath : pkg.path, entryFile);
+      buildIdentifier = pkg.shortName + '_' + path.replace(/[\\/]/g, '_').replace(/\.[^.]*$/, '');
+    }
+  }
+  log.info('entry', config.entry, 'buildIdentifier', buildIdentifier);
+  return buildIdentifier;
+}

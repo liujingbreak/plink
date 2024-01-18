@@ -27,13 +27,13 @@ export interface ForkSortComparator<D extends WritableArray> {
   createTypedArray(buf: SharedArrayBuffer | ArrayBuffer, offset?: number, len?: number): D;
   createArrayBufferOfSize(numOfElement: number): ArrayBuffer;
 
-  input: RxController<ForkSortComparatorInput>;
-  output: RxController<ForkSortComparatorOutput>;
+  input: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput>['i'];
+  output: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput>['o'];
 }
 
 export class DefaultComparator implements ForkSortComparator<Uint32Array> {
   input: RxController<ForkSortComparatorInput>;
-  output: RxController<ForkSortComparatorOutput>;
+  output: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput>['o'];
   protected compositeCtrl = new ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput>();
 
   constructor() {

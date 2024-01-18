@@ -21,12 +21,12 @@ export interface ForkSortComparator<D extends WritableArray> {
     compare(a: D[number], b: D[number]): number;
     createTypedArray(buf: SharedArrayBuffer | ArrayBuffer, offset?: number, len?: number): D;
     createArrayBufferOfSize(numOfElement: number): ArrayBuffer;
-    input: RxController<ForkSortComparatorInput>;
-    output: RxController<ForkSortComparatorOutput>;
+    input: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput>['i'];
+    output: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput>['o'];
 }
 export declare class DefaultComparator implements ForkSortComparator<Uint32Array> {
     input: RxController<ForkSortComparatorInput>;
-    output: RxController<ForkSortComparatorOutput>;
+    output: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput>['o'];
     protected compositeCtrl: ReactorComposite<ForkSortComparatorInput, ForkSortComparatorOutput, readonly [], readonly []>;
     constructor();
     compare(a: number, b: number): number;

@@ -63,7 +63,7 @@ function default_1(webpackEnv) {
         config.output.filename = 'static/js/[name].js';
         config.output.chunkFilename = 'static/js/[name].chunk.js';
     }
-    config.stats = 'normal';
+    // config.stats = 'normal';
     addResolveAlias(config);
     const reportDir = (0, utils_1.getReportDir)();
     fs_extra_1.default.mkdirpSync(reportDir);
@@ -111,6 +111,9 @@ function default_1(webpackEnv) {
         (0, webpack_lib_1.default)(cmdOption.buildTargets[0].pkg, config);
     }
     else if (cmdOption.buildType === 'dll') {
+        if (cmdOption.refDllManifest) {
+            (0, webpack_dll_1.setupDllReferencePlugin)(cmdOption.refDllManifest, config);
+        }
         (0, webpack_dll_1.setupDllPlugin)(cmdOption.buildTargets, config, getPluginConstructor);
     }
     else {
@@ -148,10 +151,11 @@ function default_1(webpackEnv) {
     const timeStr = now.getDate() + '_' + now.getHours() + '-' + now.getMinutes() + '-' + now.getSeconds() + '-' + now.getMilliseconds();
     (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin());
     if (cmdOption.cmd === 'cra-build' && !cmdOption.watch) {
+        const buildIdentifier = nameFromConfigEntry(config);
         (_e = config.plugins) === null || _e === void 0 ? void 0 : _e.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin(), new webpack_bundle_analyzer_1.BundleAnalyzerPlugin({
             analyzerMode: 'disabled',
             generateStatsFile: true,
-            statsFilename: path_1.default.join(plink_1.plinkEnv.distDir, `webpack-bundle-analyzer.stats-${timeStr}.json`)
+            statsFilename: path_1.default.join(plink_1.plinkEnv.distDir, `webpack-bundle-analyzer.stats.${typeof buildIdentifier === 'string' ? buildIdentifier : timeStr}.json`)
         }));
     }
     function getPluginConstructor(pluginPkgName) {
@@ -336,5 +340,25 @@ function changeForkTsCheckerOptions(config, appIndexFile, pluginConstFinder, cmd
     const tsconfigReport = path_1.default.resolve((0, utils_1.getReportDir)(), 'tsconfig.json');
     log.info('tsconfig for forked-ts-checker', tsconfigReport);
     void fs_extra_1.default.promises.writeFile(tsconfigReport, JSON.stringify(tsconfig, null, '  '));
+}
+function nameFromConfigEntry(config) {
+    var _a;
+    let entryFile = typeof config.entry === 'string' ?
+        config.entry : Array.isArray(config.entry) ?
+        config.entry[0] :
+        typeof config.entry === 'object' ? Object.values(config.entry)[0] : null;
+    if (Array.isArray(entryFile))
+        entryFile = entryFile[0];
+    let buildIdentifier;
+    if (typeof entryFile === 'string') {
+        const { getPkgOfFile } = (0, plink_1.packageOfFileFactory)();
+        const pkg = getPkgOfFile(entryFile);
+        if (pkg) {
+            const path = path_1.default.relative(((_a = config.resolve) === null || _a === void 0 ? void 0 : _a.symlinks) !== false ? pkg.realPath : pkg.path, entryFile);
+            buildIdentifier = pkg.shortName + '_' + path.replace(/[\\/]/g, '_').replace(/\.[^.]*$/, '');
+        }
+    }
+    log.info('entry', config.entry, 'buildIdentifier', buildIdentifier);
+    return buildIdentifier;
 }
 //# sourceMappingURL=webpack.config.js.map

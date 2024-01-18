@@ -42,21 +42,17 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef.current, props.className]);
 
-  const title = React.useMemo(() => <SwitchAnim type="opacity"
-    innerClassName={styles.titleSwitchBox}
-    contentHash={uiState?.updateBarTitle[0]}>{uiState?.updateBarTitle[0]}</SwitchAnim>,
+  const title = React.useMemo(() => {
+    return <SwitchAnim debug={false} type="opacity" innerClassName={styles.titleSwitchBox}
+      templateData={uiState?.updateBarTitle[0]}
+      switchOnDistinct={uiState?.updateBarTitle[0]}
+    />;
+  },
   [uiState?.updateBarTitle]);
-
 
   const onScrollRaw = React.useCallback((event: React.UIEvent<HTMLDivElement, UIEvent>) => {
     scrollEvent$.next(event);
   }, [scrollEvent$]);
-
-  // const renderBelowHeader: TopAppBarProps['renderBelowHeader'] = (type) => {
-  //   return <div className={styles.progressBarContainer} ref={slice.actionDispatcher._setLoadingBarRef}>
-  //     <LinearProgress className={styles.routeProgressBar} determinate={false} open={state.showTopLoading}/>
-  //   </div>;
-  // };
 
   React.useEffect(() => {
     const sub = scrollEvent$.pipe(
@@ -77,7 +73,9 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
         </div>
         <div ref={inputControl.dp.setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
           onScroll={onScrollRaw}>
-          <div ref={inputControl.dp.setHeaderVisibilityDetectDom} className={styles.headerVisDetect}></div>
+          {// <div className={styles.scrollableTopEdge} ref={inputControl.dp.setTopEdgeRef}></div>
+          }
+          <div ref={inputControl.dp.setHeaderVisibilityDetectDom}></div>
           {props.children}
           {uiState.updateFooter[0]
             ? <footer className={styles.footer}>

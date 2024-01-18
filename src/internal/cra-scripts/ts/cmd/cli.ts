@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import Path from 'path';
 import {fork} from 'child_process';
-import {CliExtension, findPackagesByNames, packageOfFileFactory} from '@wfh/plink';
+import {CliExtension, findPackagesByNames, packageOfFileFactory, logConfig} from '@wfh/plink';
 import {config, log4File, plinkEnv, commander, dispatcher as plinkStoreDispatcher} from '@wfh/plink';
 import {getSetting} from '../../isom/cra-scripts-setting';
 import {saveCmdOptionsToEnv, BuildCliOpts} from '../utils';
@@ -17,7 +17,7 @@ const cli: CliExtension = (program) => {
     '"lib" stands for building a library')
     .argument('[packages_or_entries...]', '(multiple) target packages, the "scope" name part can be omitted, or entry file path (for DLL), or module name (for DLL)')
     .option('-w, --watch', 'when argument is "lib", watch file changes and compile', false)
-    .option('--ref-dll,--rd <manifest-file>', 'Reference to DLL manifest file, file can be absolute or relative path to "dist" directory', arrayOptionFn, [])
+    .option('--rd, --ref-dll <manifest-file>', 'Reference to DLL manifest file, file can be absolute or relative path to "dist" directory', arrayOptionFn, [])
     .option('-i, --include <module-path-regex>',
       '(multiple value), when argument is "lib", we will set "external" property of Webpack configuration for all request not begin with "." (not relative path), ' +
     'meaning all non-relative modules will not be included in the output bundle file, you need to explicitly provide a list in' +
@@ -134,6 +134,7 @@ function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib
     }
 
   });
+  logConfig(cfg());
   saveCmdOptionsToEnv(cmdName, opts, type, targetEntries);
   if (process.env.PORT == null && cfg().port)
     process.env.PORT = cfg().port + '';

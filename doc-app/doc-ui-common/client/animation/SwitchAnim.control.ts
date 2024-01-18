@@ -1,14 +1,16 @@
+import React from 'react';
 import {ReactorComposite, ActionTableDataType, payloadRelatedToAction} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import cln from 'classnames';
 import styles from './SwitchAnim.module.scss';
+import {switchWaitingMap} from './rx-anim-utils';
 
 const TRANSION_DURATION = 400;
 
 type RenderItem = {
   clsName: string;
-  renderable: React.ReactNode;
-  key: string;
+  templateData: any;
+  key: string | number;
   dom?: HTMLDivElement;
   onContainerReady(div: HTMLDivElement | null): void;
 };
@@ -25,28 +27,28 @@ interface BaseOptions {
 }
 
 export type SwitchActions = {
-  syncFromProps(hashKey: string, children: React.ReactNode): void;
+  // syncFromProps(hashKey: string, children: React.ReactNode): void;
   setBaseOptions(opts: BaseOptions): void;
-  updateContent(key: string, content: React.ReactNode): void;
-  switchContent(key: string, content: React.ReactNode): void;
-  contentRerendered(content: React.ReactNode): void;
+  setTemplateData(data: any): void;
+  setSwitchOnDistinct(value: any): void;
+  setTemplateRenderer(r: (data: any) => React.ReactNode): void;
 };
 
 type SwitchEvents = {
-  switchContentDone(): void;
-  entering(key: string | null): void;
-  leaving(key: string | null): void;
+  entering(key: number | string | null): void;
+  leaving(key: number | string | null): void;
   /** As React state */
-  changeContent(contentKeys: string[], contentByKey: Map<string, RenderItem>): void;
+  changeContent(contentKeys: (number | string)[], contentByKey: Map<string | number, RenderItem>): void;
 };
 
-const inputTableFor = ['setBaseOptions'] as const;
-const outputTableFor = ['entering', 'changeContent'] as const;
+const inputTableFor = ['setTemplateRenderer', 'setTemplateData', 'setBaseOptions'] as const;
+const outputTableFor = ['leaving', 'entering', 'changeContent'] as const;
 
 export function createControl(setState: (s: SwitchAnimOutputData) => void, debug?: boolean) {
   const composite = new ReactorComposite<SwitchActions, SwitchEvents, typeof inputTableFor, typeof outputTableFor>({
     name: 'switchAnim',
     debug,
+    debugExcludeTypes: ['changeContent'],
     inputTableFor, outputTableFor
   });
 
@@ -70,90 +72,72 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
     })
   ));
 
-  r('switchContent, wait for switchContentDone -> leaving, entering', i.pt.switchContent.pipe(
-    rx.switchMap(payload => outputTable.l.entering.pipe(rx.take(1), rx.map(act => [payload, act] as const))),
-    rx.switchMap(([payload, [, enteringKey]]) => {
-      if (enteringKey != null) {
-        return o.pt.switchContentDone.pipe(
-          rx.take(1),
-          rx.map(() => payload)
-        );
-      } else{
-        return rx.of(payload);
-      }
-    }),
-    rx.switchMap(([m, key, node]) => rx.combineLatest([outputTable.l.changeContent, inputTable.l.setBaseOptions]).pipe(
-      rx.take(1),
-      rx.concatMap(([[, contentKeys, contentByKey], [, opts]]) => {
-        if (contentByKey.has(key)) {
-          return rx.EMPTY;
-        }
-        const item: RenderItem = {
-          renderable: node,
-          key,
-          clsName: contentKeys.length > 0 || opts.animFirstContent ? styles.enterStart : '',
-          onContainerReady(div) {
-            if (div) {
-              item.dom = div;
+  r('setSwitchOnDistinct, setTemplateRenderer -> leaving, entering', i.pt.setSwitchOnDistinct.pipe(
+    switchWaitingMap(([m], idx) => {
+      return rx.combineLatest([
+        outputTable.l.changeContent,
+        inputTable.l.setBaseOptions,
+        inputTable.l.setTemplateData
+      ]).pipe(
+        rx.take(1),
+        rx.concatMap(([[, contentKeys, contentByKey], [, opts], [, data]]) => {
+          const item: RenderItem = {
+            key: idx,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            templateData: data,
+            clsName: contentKeys.length > 0 || opts.animFirstContent ? styles.enterStart : '',
+            onContainerReady(div) {
+              if (div) {
+                item.dom = div;
+              }
             }
+          };
+          contentByKey.set(idx, item);
+          contentKeys.push(idx);
+          o.dp.changeContent(contentKeys, contentByKey);
+          if (contentKeys.length > 1) {
+            // leaving animation
+            return o.dfo.leaving(o.at.leaving, m, contentKeys[0]).pipe(
+              rx.take(1),
+              rx.map(() => opts)
+            );
+          } else {
+            return opts.animFirstContent ? rx.of(opts) : /* skip all animations */ rx.EMPTY;
           }
-        };
-        contentByKey.set(key, item);
-        contentKeys.push(key);
-        o.dp.changeContent(contentKeys, contentByKey);
-        if (contentKeys.length > 1) {
-          return o.dfo.leaving(o.at.leaving, m, contentKeys[0]).pipe(
-            rx.take(1),
-            rx.map(() => [m, key, opts] as const)
+        }),
+        // entering animation
+        rx.switchMap(opts => {
+          return rx.timer(opts.type === 'translateY' || opts.type == null ? 200 : 20).pipe(
+            rx.tap(() => o.dpf.entering(m, idx)),
+            rx.switchMap(() => rx.timer(TRANSION_DURATION)),
+            rx.tap(() => {
+              o.dpf.entering(m, null);
+            })
           );
-        } else {
-          return opts.animFirstContent ? rx.of([m, key, opts] as const) : rx.EMPTY;
-        }
-      }),
-      composite.labelError(' -> leaving')
-    )),
-    rx.switchMap(([m, key, opts]) => {
-      return rx.timer(opts.type === 'translateY' || opts.type == null ? 200 : 20).pipe(
-        rx.tap(() => o.dpf.entering(m, key)),
-        rx.switchMap(() => rx.timer(TRANSION_DURATION)),
-        rx.tap(() => {
-          o.dpf.entering(m, null);
-          o.dpf.switchContentDone(m);
         })
       );
     })
   ));
 
-  r('updateContent -> changeContent', i.pt.updateContent.pipe(
-    rx.switchMap(([, key, content]) => outputTable.l.changeContent.pipe(
+  r('setTemplateData -> ', i.pt.setTemplateData.pipe(
+    rx.switchMap(([m, data]) => outputTable.l.changeContent.pipe(
+      rx.filter(([, keys]) => keys.length > 0),
       rx.take(1),
-      rx.tap(([, keys, contentByKey]) => {
-        contentByKey.get(key)!.renderable = content;
-        o.dp.changeContent(keys, contentByKey);
+      rx.tap(([, keys, contents]) => {
+        // only rerender last item, since the leading item will leave the scene
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        contents.get(keys[keys.length - 1])!.templateData = data;
       })
     ))
   ));
 
-  r('syncFromProps', i.pt.syncFromProps.pipe(
-    rx.map(([, ...all]) => all),
-    rx.scan(([pKey, pContent], curr) => {
-      const [cKey, cContent] = curr;
-      if (cKey == null)
-        return curr;
-      if (pKey !== cKey) {
-        i.dp.switchContent(cKey, cContent);
-      } else if (pContent !== cContent) {
-        i.dp.updateContent(cKey, cContent);
-      }
-      return curr;
-    }, [null, null] as [string | null, React.ReactNode | null])
-  ));
-
   r('leaving -> leaving(null), changeContent', o.pt.leaving.pipe(
-    rx.filter(([m, key]) => key != null),
+    rx.filter(([, key]) => key != null),
     rx.withLatestFrom(o.pt.changeContent),
     rx.concatMap(([[m, key], [, keys, contentByKey]]) => {
-      const content = contentByKey.get(key!)!;
+      const content = contentByKey.get(key!);
+      if (content == null)
+        return rx.EMPTY;
       content.clsName = styles.leaving;
       o.dpf.changeContent(m, keys, contentByKey);
       if (content.dom) {
@@ -173,9 +157,15 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
     })
   ));
 
-  r('Synce output table to UI state', outputTable.dataChange$.pipe(
-    rx.tap(data => setState(data))
+  r('Synce output table to UI state', rx.combineLatest([
+    inputTable.dataChange$,
+    outputTable.dataChange$
+  ]).pipe(
+    rx.tap(([data, data2]) => setState({...data, ...data2}))
   ));
+  i.dp.setTemplateRenderer((data: React.ReactNode) => {
+    return data;
+  });
   o.dp.changeContent([], new Map());
   o.dp.entering(null);
   o.dp.leaving(null);
@@ -183,4 +173,4 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
   return composite;
 }
 
-export type SwitchAnimOutputData = ActionTableDataType<SwitchEvents, typeof outputTableFor>;
+export type SwitchAnimOutputData = ActionTableDataType<SwitchEvents, typeof outputTableFor> & ActionTableDataType<SwitchActions, typeof inputTableFor>;

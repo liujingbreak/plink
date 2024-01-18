@@ -6,7 +6,7 @@
   $states-wash-duration: 15ms
 );
 @use "@material/ripple/styles";
-
+@forward "@material/ripple";
 
 .matRipple {
   @include ripple.surface;
@@ -15,14 +15,14 @@
   flex: 1;
 
   &.dark {
-    @include ripple.states-base-color(black);
+    @include ripple.states-base-color(theme.$dark-ripple-color);
     @include ripple.states-opacities((hover: .1, focus: .15, press: .15));
     &.raised-btn {
       @include ripple.states-base-color(theme.$raised-btn-ripple-color);
     }
   }
   &.light {
-    @include ripple.states-base-color(white);
+    @include ripple.states-base-color(theme.$light-ripple-color);
     @include ripple.states-opacities((hover: .1, focus: .15, press: .15));
     &.raised-btn {
       @include ripple.states-base-color(theme.$raised-btn-ripple-color);

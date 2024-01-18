@@ -27,9 +27,7 @@ function createSorter(comparator, opts) {
                 const forkDone = (0, node_worker_1.fork)(sorter, 'sort', [buf, rightPartOffset, rightpartLen, noForkThreshold]);
                 // o.dp.log('sort another half in current worker', leftPartOffset, leftPartLen);
                 await sortActions.sort(buf, offset, leftPartLen, noForkThreshold);
-                o.dp.wait();
-                await forkDone;
-                o.dp.stopWaiting();
+                await node_worker_1.setIdleDuring.asPromise(sorter, forkDone);
                 const mergeRes = await sortActions.merge(buf, offset, leftPartLen, rightPartOffset, rightpartLen, noForkThreshold, buf, offset);
                 const mergedBuf = mergeRes === null || mergeRes === void 0 ? void 0 : mergeRes.content;
                 if (mergedBuf != null) {
@@ -79,10 +77,8 @@ function createSorter(comparator, opts) {
                 //   '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
                 const forkDone = (0, node_worker_1.fork)(sorter, 'merge', [buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold]);
                 const leftMerged = (_a = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))) === null || _a === void 0 ? void 0 : _a.content;
-                o.dp.wait();
-                const [forkResult] = await forkDone;
+                const [forkResult] = await node_worker_1.setIdleDuring.asPromise(sorter, forkDone);
                 const rightMerged = forkResult === null || forkResult === void 0 ? void 0 : forkResult.content;
-                o.dp.stopWaiting();
                 const destArr = targetBuffer ? cmp.createTypedArray(targetBuffer, targetOffset, len1 + len2) : cmp.createTypedArray(destBuf);
                 let i = 0;
                 if (leftMerged) {
@@ -125,7 +121,6 @@ function createSorter(comparator, opts) {
         }
     };
     const sorter = (0, node_worker_1.createWorkerControl)(opts).reativizeRecursiveFuncs(sortActions);
-    const { o } = sorter;
     return sorter;
 }
 exports.createSorter = createSorter;

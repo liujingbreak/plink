@@ -98,5 +98,5 @@ export function poo() {
 
 function noClearConsole() {
   // origClearConsole();
-  drawPuppy('pooed on create-react-app');
+  drawPuppy('create-react-app is tailored');
 }

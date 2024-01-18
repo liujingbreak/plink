@@ -141,7 +141,7 @@ export class RxController {
         }, [null, new Map()]));
     }
     /**
-     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
      */
     subForTypes(actionTypes, opts) {
         const sub = new RxController(opts);
@@ -189,7 +189,18 @@ export class ActionTable {
             this.data = {};
             for (const k of this.actionNames) {
                 const v = this.actionSnapshot.get(k);
-                this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
+                const old = this.data[k];
+                if (old === EMPTY_ARRY || old == null)
+                    this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
+                else {
+                    if (v) {
+                        old.splice(0);
+                        for (let i = 1, l = v.length; i < l; i++)
+                            old.push(v[i]);
+                    }
+                    else
+                        this.data[k] = EMPTY_ARRY;
+                }
             }
             return this.data;
         }), rx.share()), "f");
@@ -199,15 +210,6 @@ export class ActionTable {
         this.streamCtl = streamCtl;
         this.latestPayloads = {};
         this.data = {};
-        // get latestPayloadsSnapshot$(): rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> {
-        //   if (this.#latestPayloadsSnapshot$)
-        //     return this.#latestPayloadsSnapshot$;
-        //   this.#latestPayloadsSnapshot$ = this.actionNamesAdded$.pipe(
-        //     rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
-        //     rx.map(() => this.actionSnapshot)
-        //   );
-        //   return this.#latestPayloadsSnapshot$;
-        // }
         this.actionSnapshot = new Map();
         // private
         _ActionTable_latestPayloadsByName$.set(this, void 0);
@@ -224,7 +226,9 @@ export class ActionTable {
     getData() {
         return this.data;
     }
-    /** Add actions to be recoreded in table map, by create `ReplaySubject(1)` for each action payload stream respectively */
+    /** Add actions to be recoreded in table map,
+     * by creating `ReplaySubject(1)` for each action payload stream respectively
+     */
     addActions(...actionNames) {
         this.actionNames = this.actionNames.concat(actionNames);
         this.actionNamesAdded$.next(actionNames);
@@ -239,9 +243,17 @@ export class ActionTable {
                 continue;
             const a$ = new rx.ReplaySubject(1);
             this.streamCtl.actionByType[type].pipe(rx.map(a => {
-                const mapParam = [{ i: a.i, r: a.r }, ...a.p];
-                this.actionSnapshot.set(type, mapParam);
-                return mapParam;
+                const arr = this.actionSnapshot.get(type);
+                if (arr == null) {
+                    const mapParam = [{ i: a.i, r: a.r }, ...a.p];
+                    this.actionSnapshot.set(type, mapParam);
+                    return mapParam;
+                }
+                else {
+                    arr[0] = { i: a.i, r: a.r };
+                    arr.splice(1, arr.length - 1, ...a.p); // reuse old array
+                    return arr;
+                }
             })).subscribe(a$);
             this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debugTableAction) ?
                 a$.pipe(this.debugLogLatestActionOperator(type)) :
@@ -282,15 +294,30 @@ _ActionTable_latestPayloadsByName$ = new WeakMap();
 /** Rx operator function */
 export function actionRelatedToAction(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(m => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
+        let isPayload;
+        return up.pipe(rx.filter(a => {
+            if (isPayload == null)
+                isPayload = Array.isArray(a);
+            const m = isPayload ? a[0] : a;
+            return (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i));
+        }));
     };
 }
-/** Rx operator function */
-export function payloadRelatedToAction(actionOrMeta) {
+export function throwErrorOnRelated(actionOrMeta) {
     return function (up) {
-        return up.pipe(rx.filter(([m]) => (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))));
+        return up.pipe(rx.map(actionOrPayload => {
+            const isPayload = Array.isArray(actionOrPayload);
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+            const m = isPayload ? actionOrPayload[0] : actionOrPayload;
+            if ((m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))) {
+                throw isPayload ? actionOrPayload[1] : actionOrPayload.p[0];
+            }
+            return actionOrPayload;
+        }));
     };
 }
+/** @deprecated use actionRelatedToAction instead */
+export const payloadRelatedToAction = actionRelatedToAction;
 export function serializeAction(action) {
     const a = Object.assign(Object.assign({}, action), { t: nameOfAction(action) });
     // if (a.r instanceof Set) {
@@ -312,7 +339,7 @@ export function deserializeAction(actionObj, toController) {
     toController.core.actionUpstream.next(newAction);
     return newAction;
 }
-function mapActionToPayload() {
+export function mapActionToPayload() {
     return (up) => up.pipe(rx.map(a => [{ i: a.i, r: a.r }, ...a.p]));
 }
 //# sourceMappingURL=control.js.map
