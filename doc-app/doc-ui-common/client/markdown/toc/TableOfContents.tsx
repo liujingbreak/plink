@@ -86,13 +86,13 @@ export const TableOfContents = React.memo<TableOfContentsProps>(props => {
     )}>
       <div className={styles.tocScrollDetector} ref={dp.onScrollDetectorRef}></div> { /* IntersectionObserver detector */ }
       <div className={styles.tocContent} ref={dp.onContentDomRef}>
+        <h3>ON THIS PAGE</h3>
         <div className={styles.tocContentInner}>
-          <h3>ON THIS PAGE</h3>
           {
             uiState.itemsIdUpdated[1] ? renderItems(uiState.itemsIdUpdated[1], clickHandlers, titleRefHandlers, uiState) : null
           }
         </div>
-        <div ref={dp.onPosIndicatorRef} className={styles.posIndicator}></div>
+        <div ref={dp.setPosIndicatorRef} className={styles.posIndicator}></div>
       </div>
     </div> :
     null;

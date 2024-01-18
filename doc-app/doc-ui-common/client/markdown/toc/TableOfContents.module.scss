@@ -32,7 +32,6 @@ $dividerColor: change-color(theme.$primary, $alpha: 0.5);
     h3 {
       margin-bottom: 1rem;
       color: theme.$primary;
-      padding-left: 10px;
     }
   }
   &-item {
@@ -58,6 +57,7 @@ $dividerColor: change-color(theme.$primary, $alpha: 0.5);
     }
   }
   &Content {
+    position: relative;
     transition: translate ease-out 0.25s;
   }
   &ContentInner {

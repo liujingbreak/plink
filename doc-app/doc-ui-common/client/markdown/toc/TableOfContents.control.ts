@@ -5,7 +5,7 @@ import {Router} from '../../animation/AnimatableRoutes.hooks';
 import {markdownsControl} from '../markdownSlice';
 import {createMarkdownViewControl} from '../markdownViewComp.control';
 import {TOC} from '../../../isom/md-types';
-import {applyHighlightFeature, TocHLActions} from './TableOfContents.title-highlight';
+import {applyHighlightFeature} from './TableOfContents.title-highlight';
 
 // const desktopAppTitleBarHeight = 64;
 export type ItemState = {
@@ -45,27 +45,28 @@ export type TocUIEvents = {
   itemById(map: Map<string, ItemState>): void;
   togglePopupClassName(cln: string): void;
   mdHtmlScanned(done: boolean, key?: string): void;
+  onTocLayoutChange(mode: 'aside' | 'popup'): void;
 };
 
 const tocInputTableFor = ['setDataKey', 'onContentDomRef',
-  'setRouter', 'onScrollDetectorRef', 'setLayoutControl'
+  'setRouter', 'onScrollDetectorRef', 'setLayoutControl', 'scrollTocToVisible'
 ] as const;
 
 export const tocOutputTableFor = [
   'changeFixedPosition', 'itemsIdUpdated', 'itemById', 'setMarkdownBodyRef',
-  'handleTogglePopup', 'togglePopupClassName', 'mdHtmlScanned'
+  'handleTogglePopup', 'togglePopupClassName', 'mdHtmlScanned', 'onTocLayoutChange'
 ] as const;
 
 export type TocUIEventTable = ActionTableDataType<TocUIEvents, typeof tocOutputTableFor>;
 
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
-  const composite = new ReactorComposite<TocUIActions & TocHLActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
+  const compositeBase = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
     name: 'markdown-toc',
     debug: process.env.NODE_ENV === 'development',
     inputTableFor: tocInputTableFor,
     outputTableFor: tocOutputTableFor
   });
-  applyHighlightFeature(composite as any);
+  const composite = applyHighlightFeature(compositeBase);
   const {i, o, r, outputTable, inputTable, labelError} = composite;
   o.dp.changeFixedPosition(false);
   o.dp.itemById(new Map());
@@ -245,122 +246,146 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ))
   ));
 
-  r('scrollTocToVisible', i.pt.scrollTocToVisible.pipe(
-    rx.withLatestFrom(
+  r('scrollTocToVisible', inputTable.l.scrollTocToVisible.pipe(
+    rx.switchMap(([, id]) => rx.combineLatest([
       inputTable.l.onContentDomRef.pipe(
         rx.filter(([, dom]) => dom != null)
       ),
+
       outputTable.l.itemById,
-      i.pt.onPosIndicatorRef.pipe(
+
+      inputTable.l.setPosIndicatorRef.pipe(
         rx.filter(([, ref]) => ref != null)
       )
-    ),
-    rx.switchMap(([[, id], [, contentDom], [, items], [, posIndicator]]) => items.get(id)?.titleDom ?
-      rx.of([id, contentDom, items.get(id)?.titleDom, posIndicator] as const) :
-      rx.EMPTY
-    ),
+    ]).pipe(
+      rx.filter(([[, contentDom], [, items], [, posIndicator]]) => items.get(id)?.titleDom != null),
+      rx.take(1),
+      rx.map(([[, contentDom], [, items], [, posIndicator]]) => [id, contentDom, items.get(id)?.titleDom, posIndicator] as const)
+    )),
     rx.tap(([, contentDom, target, posIndicator]) => {
-      const scrollableInner = contentDom!;
       // const {titleDom: target} = items.get(id)!;
       const targetRect = target!.getBoundingClientRect();
-      const scrollableRect = scrollableInner.getBoundingClientRect();
-      const top = Math.round(targetRect.y - scrollableRect.y + scrollableInner.scrollTop);
+      const scrollableRect = contentDom!.getBoundingClientRect();
+      const top = Math.round(targetRect.y - scrollableRect.y + contentDom!.scrollTop);
       posIndicator!.style.top = top + targetRect.height / 2 - 6 + 'px';
-      if (targetRect.y < scrollableRect.y || (targetRect.y + targetRect.height) > (scrollableRect.y + scrollableInner.clientHeight)) {
-        scrollableInner.scrollTo({top, behavior: 'smooth'});
+      if (targetRect.y < scrollableRect.y || (targetRect.y + targetRect.height) > (scrollableRect.y + contentDom!.clientHeight)) {
+        contentDom!.scrollTo({top, behavior: 'smooth'});
       }
     })
   ));
 
-  r('For non-desktop device, handleTogglePopup -> togglePopupClassName', i.pt.setLayoutControl.pipe(
+  r('layout setDeviceSize -> ', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
-    rx.filter(([, size]) => size === 'phone'),
-    rx.switchMap(() => {
-      o.dp.changeFixedPosition(false);
-      return o.pt.handleTogglePopup;
-    }),
-    rx.distinctUntilChanged(([, a], [, b]) => a === b),
-    rx.map(([_m, on]) => on),
-    // eslint-disable-next-line multiline-ternary
-    rx.concatMap(on => on ? rx.concat(
-      rx.defer(() => {o.dp.togglePopupClassName('toggleOnBegin'); return rx.EMPTY; }),
-      rx.timer(16),
-      rx.defer(() => {o.dp.togglePopupClassName('toggleOn'); return rx.EMPTY; }),
-      rx.timer(300)
-    ) : rx.concat(
-      rx.defer(() => {o.dp.togglePopupClassName('toggleOnBegin'); return rx.EMPTY; }),
-      rx.timer(300),
-      rx.defer(() => {o.dp.togglePopupClassName(''); return rx.EMPTY; }),
-      rx.timer(16)
-    ))
+    rx.tap(([m, size]) => {
+      o.dpf.onTocLayoutChange(m, size === 'phone' ? 'popup' : 'aside');
+    })
   ));
 
-  r('onScrollDetectorRef -> changeFixedPosition', i.pt.setLayoutControl.pipe(
-    rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
-    rx.filter(([, size]) => size !== 'phone'),
-    rx.switchMap(() => inputTable.l.onScrollDetectorRef),
-    rx.filter(([, ref]) => ref != null),
-    rx.switchMap(([, el]) => new rx.Observable(() => {
-      const tocScrollDetector = new IntersectionObserver(entries => {
-        o.dp.changeFixedPosition(!entries[0].isIntersecting);
-      }, {threshold: 0});
-      const target = el!;
-      tocScrollDetector.observe(target);
-      return () => tocScrollDetector.unobserve(target);
-    }))
+  r('onTocLayoutChange(popup), handleTogglePopup -> togglePopupClassName', outputTable.l.onTocLayoutChange.pipe(
+    rx.filter(([, mode]) => mode === 'popup'),
+    rx.switchMap(([, mode]) => {
+      if (mode === 'popup') {
+        o.dp.changeFixedPosition(false);
+        return rx.merge(
+          inputTable.l.onContentDomRef.pipe(
+            rx.filter(([, ref]) => ref != null),
+            rx.tap(([, contentDom]) => {
+              contentDom!.style.width = '';
+            })
+          ),
+          o.pt.handleTogglePopup.pipe(
+            rx.distinctUntilChanged(([, a], [, b]) => a === b),
+            rx.map(([_m, on]) => on),
+            // eslint-disable-next-line multiline-ternary
+            rx.concatMap(on => on ? rx.concat(
+              rx.defer(() => {o.dp.togglePopupClassName('toggleOnBegin'); return rx.EMPTY; }),
+              rx.timer(16),
+              rx.defer(() => {o.dp.togglePopupClassName('toggleOn'); return rx.EMPTY; }),
+              rx.timer(300)
+            ) : rx.concat(
+              rx.defer(() => {o.dp.togglePopupClassName('toggleOnBegin'); return rx.EMPTY; }),
+              rx.timer(300),
+              rx.defer(() => {o.dp.togglePopupClassName(''); return rx.EMPTY; }),
+              rx.timer(16)
+            ))
+          )
+        );
+      } else {
+        return rx.EMPTY;
+      }
+    })
+  ));
+
+  r('onTocLayoutChange(aside) -> changeFixedPosition', outputTable.l.onTocLayoutChange.pipe(
+    rx.switchMap(([, mode]) => mode === 'aside' ?
+      inputTable.l.onScrollDetectorRef.pipe(
+        rx.filter(([, ref]) => ref != null),
+        rx.switchMap(([, el]) => new rx.Observable(() => {
+          const tocScrollDetector = new IntersectionObserver(entries => {
+            o.dp.changeFixedPosition(!entries[0].isIntersecting);
+          }, {threshold: 0});
+          const target = el!;
+          tocScrollDetector.observe(target);
+          return () => tocScrollDetector.unobserve(target);
+        }))) :
+      rx.EMPTY)
   ));
 
   let tocContentTopToScreenEdge = 0;
 
-  r('When changeFixedPosition', outputTable.l.changeFixedPosition.pipe(
-    rx.withLatestFrom(
-      i.pt.onContentDomRef.pipe(
-        rx.map(([, ref]) => ref),
-        rx.filter((ref): ref is NonNullable<typeof ref> => ref != null)
-      ),
-      inputTable.l.setLayoutControl.pipe(
-        rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
-        rx.filter(([, el]) => el != null)
-      )
-    ),
-    rx.switchMap(([[m, fixed], contentRef, [, scrollable]]) => {
-      if (fixed) {
-        // if (placeHolderRef.clientWidth < 0.05) {
-        //   // The window is probably resized or direction of it is rotated, clientWidth is incorrect, give it a chance to reflow and repaint
-        //   return rx.timer(1).pipe(
-        //     rx.tap(() => {
-        //       o.dpf.changeFixedPosition(m, false);
-        //     }),
-        //     rx.switchMap(() => rx.timer(320)),
-        //     rx.tap(() => o.dpf.changeFixedPosition(m, true))
-        //   );
-        // }
-        if (tocContentTopToScreenEdge > 0) {
-          contentRef.style.top = tocContentTopToScreenEdge + 'px';
-          contentRef.style.height = `calc(100vh - ${tocContentTopToScreenEdge}px)`;
-        }
-        const w = contentRef.parentElement!.clientWidth + 'px';
-        contentRef.style.width = w;
-        return rx.EMPTY;
-      } else {
-        contentRef.style.top = '';
-        contentRef.style.height = '';
-        // In Safari, the flash is pretty abvious when "fixed" position change which causes browsr reflow
-        return rx.merge(
-          rx.timer(32).pipe(
-            rx.tap(() => {
-              contentRef.style.width = contentRef.parentElement!.clientWidth + 'px';
-              tocContentTopToScreenEdge = contentRef.parentElement!.getBoundingClientRect().y + scrollable!.scrollTop;
-            })
+  r('When changeFixedPosition', outputTable.l.onTocLayoutChange.pipe(
+    rx.switchMap(([, mode]) => mode === 'aside' ?
+      outputTable.l.changeFixedPosition.pipe(
+        rx.withLatestFrom(
+          inputTable.l.onContentDomRef.pipe(
+            rx.map(([, ref]) => ref),
+            rx.filter((ref): ref is NonNullable<typeof ref> => ref != null)
+          ),
+          inputTable.l.setLayoutControl.pipe(
+            rx.switchMap(([, layout]) => layout.inputTable.l.setFrontLayerRef),
+            rx.filter(([, el]) => el != null)
           )
-          // rx.timer(2000).pipe(
-          //   rx.tap(() => {
-          //     placeHolderRef.style.width = '';
-          //   })
-          // )
-        );
-      }
-    })
+        ),
+        rx.switchMap(([[m, fixed], contentRef, [, scrollable]]) => {
+          if (fixed) {
+          // if (placeHolderRef.clientWidth < 0.05) {
+          //   // The window is probably resized or direction of it is rotated, clientWidth is incorrect, give it a chance to reflow and repaint
+          //   return rx.timer(1).pipe(
+          //     rx.tap(() => {
+          //       o.dpf.changeFixedPosition(m, false);
+          //     }),
+          //     rx.switchMap(() => rx.timer(320)),
+          //     rx.tap(() => o.dpf.changeFixedPosition(m, true))
+          //   );
+          // }
+            if (tocContentTopToScreenEdge > 0) {
+              contentRef.style.top = tocContentTopToScreenEdge + 'px';
+              contentRef.style.height = `calc(100vh - ${tocContentTopToScreenEdge}px)`;
+            }
+            const w = contentRef.parentElement!.clientWidth + 'px';
+            contentRef.style.width = w;
+            return rx.EMPTY;
+          } else {
+            contentRef.style.top = '';
+            contentRef.style.height = '';
+            // In Safari, the flash is pretty abvious when "fixed" position change which causes browsr reflow
+            return rx.merge(
+              rx.timer(32).pipe(
+                rx.tap(() => {
+                  contentRef.style.width = contentRef.parentElement!.clientWidth + 'px';
+                  tocContentTopToScreenEdge = contentRef.parentElement!.getBoundingClientRect().y + scrollable!.scrollTop;
+                })
+              )
+            // rx.timer(2000).pipe(
+            //   rx.tap(() => {
+            //     placeHolderRef.style.width = '';
+            //   })
+            // )
+            );
+          }
+        })
+      ) :
+      rx.EMPTY)
   ));
 
   let state: TocUIEventTable | undefined;
