@@ -331,7 +331,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
       rx.EMPTY)
   ));
 
-  let tocContentTopToScreenEdge = 0;
+  // let tocContentTopToScreenEdge = 0;
 
   r('When changeFixedPosition', outputTable.l.onTocLayoutChange.pipe(
     rx.switchMap(([, mode]) => mode === 'aside' ?
@@ -348,22 +348,10 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
         ),
         rx.switchMap(([[m, fixed], contentRef, [, scrollable]]) => {
           if (fixed) {
-          // if (placeHolderRef.clientWidth < 0.05) {
-          //   // The window is probably resized or direction of it is rotated, clientWidth is incorrect, give it a chance to reflow and repaint
-          //   return rx.timer(1).pipe(
-          //     rx.tap(() => {
-          //       o.dpf.changeFixedPosition(m, false);
-          //     }),
-          //     rx.switchMap(() => rx.timer(320)),
-          //     rx.tap(() => o.dpf.changeFixedPosition(m, true))
-          //   );
-          // }
-            if (tocContentTopToScreenEdge > 0) {
-              contentRef.style.top = tocContentTopToScreenEdge + 'px';
-              contentRef.style.height = `calc(100vh - ${tocContentTopToScreenEdge}px)`;
-            }
             const w = contentRef.parentElement!.clientWidth + 'px';
             contentRef.style.width = w;
+            contentRef.style.top = '0';
+            contentRef.style.height = '100vh';
             return rx.EMPTY;
           } else {
             contentRef.style.top = '';
@@ -373,14 +361,9 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
               rx.timer(32).pipe(
                 rx.tap(() => {
                   contentRef.style.width = contentRef.parentElement!.clientWidth + 'px';
-                  tocContentTopToScreenEdge = contentRef.parentElement!.getBoundingClientRect().y + scrollable!.scrollTop;
+                  // tocContentTopToScreenEdge = contentRef.parentElement!.getBoundingClientRect().y + scrollable!.scrollTop;
                 })
               )
-            // rx.timer(2000).pipe(
-            //   rx.tap(() => {
-            //     placeHolderRef.style.width = '';
-            //   })
-            // )
             );
           }
         })

@@ -46,7 +46,7 @@ export function createDomControl() {
     })
   ));
 
-  r(i.pt.onDomChange.pipe(
+  r('onDomChange -> _createOffscreen, resizeViewport', i.pt.onDomChange.pipe(
     op.filter((p): p is [typeof p[0], NonNullable<typeof p[1]>] => p[1] != null),
     op.distinctUntilChanged(),
     op.map(([, canvas]) => {
@@ -82,13 +82,14 @@ export function createDomControl() {
   ));
 
   // Pass below actions to worker when worker is ready
-  r(rx.combineLatest([re.o.at._createOffscreen, re.o.pt.workerReady]).pipe(
+  r('_createOffscreen, workerReady -> worker.postMessage', rx.combineLatest([
+    o.at._createOffscreen,
+    o.pt.workerReady
+  ]).pipe(
     rx.map(([action, [, worker]]) => {
       worker.postMessage(serializeAction(action), action.p);
     })
   ));
-
-  re.startAll();
 
   return [
     re.i,

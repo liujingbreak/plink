@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
-import {ReactorCompositeMergeType} from '@wfh/reactivizer';
+import {ReactorCompositeMergeType, ActionMeta} from '@wfh/reactivizer';
 import {getMinAndMax} from '@wfh/algorithms';
-import {TocControl} from './TableOfContents.control';
+import {TocControl, ItemState} from './TableOfContents.control';
 
 export interface TocHLActions {
   setPosIndicatorRef(ref: HTMLDivElement | null): void;
@@ -23,9 +23,10 @@ export function applyHighlightFeature(tocControl: TocControl) {
   const outputTable = tocTitleHighlight.outputTable.addActions('gotHeadingByIds', 'highlightTitle');
   tocTitleHighlight.inputTable.addActions('setPosIndicatorRef');
   const {r, i, o} = tocTitleHighlight;
+  // Store Markdown head element ID which starts with "mdt-"
   const intersectionsInId = new Set<string>();
 
-  r('onHeadingIntersectChange', o.pt.onHeadingIntersectChange.pipe(
+  r('onHeadingIntersectChange -> scrolledOverTitle', o.pt.onHeadingIntersectChange.pipe(
     rx.withLatestFrom(outputTable.l.gotHeadingByIds),
     rx.tap(([[m, , el], [, byIds, byIndex]]) => {
       if (intersectionsInId.size > 0) {
@@ -33,15 +34,15 @@ export function applyHighlightFeature(tocControl: TocControl) {
         const [id] = getMinAndMax(intersectionsInId.values(), (a, b) => byIds.get(a)![0] - byIds.get(b)![0]);
         if (id == null)
           throw new Error('Head element of id found in viewport does not exist: ' + [...intersectionsInId.values()].join(', '));
-        o.dpf.scrolledOverTitle(m, id, byIds.get(id)![1], 0);
+        o.dpf.scrolledOverTitle(m, contentHeadIdToTocTitleId(id), byIds.get(id)![1], 0);
       } else {
         if (el.getBoundingClientRect().y < 0) {
           // In case of "user scrolls down"
-          o.dp.scrolledOverTitle(el.id, el as HTMLElement, 2);
+          o.dp.scrolledOverTitle(contentHeadIdToTocTitleId(el.id), el as HTMLElement, 1);
         } else {
           const [idx] = byIds.get(el.id)!;
           const prevTitle = byIndex.item(idx - 1);
-          o.dp.scrolledOverTitle(prevTitle.id, prevTitle as HTMLElement, 3);
+          o.dp.scrolledOverTitle(contentHeadIdToTocTitleId(prevTitle.id), prevTitle as HTMLElement, 2);
         }
       }
     })
@@ -81,25 +82,35 @@ export function applyHighlightFeature(tocControl: TocControl) {
 
   r('scrolledOverTitle -> itemUpdated', o.pt.scrolledOverTitle.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
-    rx.switchMap(a => outputTable.l.itemById.pipe(
+    rx.switchMap(([m, id]) => outputTable.l.itemById.pipe(
       rx.take(1),
-      rx.map(([, byId]) => [a, byId.get(contentHeadIdToTocTitleId(a[1]))] as const)
+      // rx.map(([, byId]) => [a, byId.get(contentHeadIdToTocTitleId(a[1]))] as const),
+      rx.concatMap(([, itemById]) => {
+        const item = itemById.get(id);
+        if (item) {
+          return rx.of([m, id, item] as const);
+        } else {
+          return outputTable.l.itemsIdUpdated.pipe(
+            rx.take(1),
+            rx.map(([, , byIndex]) => [m, byIndex[0], itemById.get(byIndex[0])!] as const)
+          );
+        }
+      })
     )),
-    rx.tap(([[m], item]) => {
-      if (item)
-        o.dpf.itemUpdated(m, {...item, highlighted: true});
-    }),
-    rx.scan((prev, curr) => {
-      const [[, id, el], pItem] = prev as typeof curr;
-      const [[meta, cId, cEl]] = curr;
-      o.dpf.unhighlightTitle(meta, id, el);
-      o.dpf.highlightTitle(meta, cId, cEl);
-      i.dpf.scrollTocToVisible(meta, contentHeadIdToTocTitleId(cId));
-      if (pItem) {
-        o.dpf.itemUpdated(meta, {...pItem, highlighted: false});
+    rx.scan<readonly [ActionMeta, string, ItemState], readonly[ActionMeta, string, ItemState], null>((prev, curr) => {
+      const [meta, cId, cItem] = curr;
+      if (prev != null) {
+        const [, id, pItem] = prev as typeof curr;
+        o.dpf.unhighlightTitle(meta, id, pItem.titleDom!);
+        if (pItem) {
+          o.dpf.itemUpdated(meta, {...pItem, highlighted: false});
+        }
       }
+      o.dpf.highlightTitle(meta, cId, cItem.titleDom!);
+      i.dpf.scrollTocToVisible(meta, contentHeadIdToTocTitleId(cId));
+      o.dpf.itemUpdated(meta, {...cItem, highlighted: true});
       return curr;
-    })
+    }, null)
   ));
 
   r('highlightTitle', o.pt.highlightTitle.pipe(
@@ -123,5 +134,5 @@ export function applyHighlightFeature(tocControl: TocControl) {
 }
 
 function contentHeadIdToTocTitleId(id: string) {
-  return id.slice('mdt-'.length);
+  return id.startsWith('mdt-') ? id.slice('mdt-'.length) : id;
 }
