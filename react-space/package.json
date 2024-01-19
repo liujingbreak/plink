@@ -53,7 +53,8 @@
     "@wfh/json-schema-gen": "1.0.18-0",
     "@wfh/tool-misc": "~1.1.1",
     "sass": "^1.38.1",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typedoc": "0.25.7"
   },
   "overrides": {
     "jest": "^29.1.2",
@@ -65,7 +66,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "sme": "sme",
-    "jest": "echo 'You need run environment setup: source set-jest-env.sh' && jest -c node_modules/@wfh/plink-test/dist/jest.config.js --runTestsByPath"
+    "jest": "echo 'You need run environment setup: source set-jest-env.sh' && jest -c node_modules/@wfh/plink-test/dist/jest.config.js --runTestsByPath",
+    "typedoc": "typedoc",
+    "typedoc:reactivizer": "npm run typedoc -- --out ../dist/static/reactivizer/typedoc --tsconfig ../main/packages/reactivizer/tsconfig-node.json ../main/packages/reactivizer/src/index.ts"
   },
   "eslintConfig": {
     "extends": [
