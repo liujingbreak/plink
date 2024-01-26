@@ -19,9 +19,10 @@ export type ForkWorkerInput = {
   setLiftUpActions(action$: rx.Observable<Action<any>>): void;
 };
 
-export type ForkWorkerOutput = {
+export interface ForkWorkerOutput {
   workerInited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): void;
   // inited(workerNo: number): void;
+  // forkAction<O, T extends keyof O>(targetActionName: T, ...params: InferPayload<O[T]>): void;
   fork(targetAction: Action<any>): void;
   /** Informs broker that current step is waiting on forked function returns*/
   wait(): void;
@@ -33,7 +34,7 @@ export type ForkWorkerOutput = {
 
   /** broker implementation should react to this event*/
   forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort | MessagePort): void;
-};
+}
 
 export const workerInputTableFor = ['setLiftUpActions', 'exit'] as const;
 export const workerOutputTableFor = ['workerInited', 'log', 'warn'] as const;

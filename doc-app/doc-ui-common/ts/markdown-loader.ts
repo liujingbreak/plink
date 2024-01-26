@@ -1,6 +1,5 @@
 import {LoaderDefinitionFunction} from 'webpack';
 import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {arrayBuffer2str} from '@wfh/reactivizer';
 // import {markdownToHtml} from './markdown-util';
@@ -8,15 +7,12 @@ import {markdownProcessor, setupBroker} from './markdown-processor-main';
 // require('node:inspector').open(9222, 'localhost', true);
 
 const broker = setupBroker(false);
+const {i, o} = markdownProcessor;
 
 const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
   const cb = this.async();
   const importCode = [] as string[];
   let imgIdx = 0;
-  // const logger = this.getLogger('markdown-loader');
-  // debugger;
-
-  const {i, o} = markdownProcessor;
 
   broker.outputTable.l.newWorkerReady.pipe(
     rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => rx.merge(
@@ -52,7 +48,7 @@ const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
         sourceMap
         );
       }),
-      op.catchError(err => {
+      rx.catchError(err => {
         cb(err, JSON.stringify(err), sourceMap);
         return rx.EMPTY;
       })

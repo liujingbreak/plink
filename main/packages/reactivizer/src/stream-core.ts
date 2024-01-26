@@ -4,6 +4,7 @@ export type ActionFunctions = Record<string, any>; // instead of A indexed acces
 export type EmptyActionFunctions = Record<string, never>;
 
 export type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
+export type InferMapParam<F> = [ActionMeta, ...InferPayload<F>];
 
 export type ActionMeta = {
   /** id */
@@ -14,18 +15,18 @@ export type ActionMeta = {
 
 export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
 
-export type Action<I, K extends keyof I = keyof I> = {
+export type Action<F> = {
   /** type */
   t: string;
   /** payload **/
-  p: InferPayload<I[K]>;
+  p: InferPayload<F>;
 } & ActionMeta;
 
 // export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
 
-export type Dispatch<I, K extends keyof I> = (...params: InferPayload<I[K]>) => Action<I, K>;
-export type DispatchFor<I, K extends keyof I> =
-  (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<I[K]>) => Action<I, K>;
+export type Dispatch<F> = (...params: InferPayload<F>) => Action<F>;
+export type DispatchFor<F> =
+  (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<F>;
 
 export type CoreOptions<I> = {
   name?: string;
@@ -47,22 +48,22 @@ let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 export const has = Object.prototype.hasOwnProperty;
 
 export class ControllerCore<I> {
-  actionUpstream = new rx.Subject<Action<I>>();
-  interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>>(a => a);
+  actionUpstream = new rx.Subject<Action<I[keyof I]>>();
+  interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>(a => a);
   typePrefix = '#' + SEQ++ + ' ';
   logPrefix = ''; // TODO: a better identity to distinguish threads
-  action$: rx.Observable<Action<I>>;
+  action$: rx.Observable<Action<I[keyof I]>>;
   debugExcludeSet: Set<string | number | symbol>;
 
   /** Event when `action$` is first time subscribed */
   actionSubscribed$: rx.Observable<void>;
   /** Event when `action$` is entirely unsubscribed by all observers */
   actionUnsubscribed$: rx.Observable<void>;
-  protected dispatcher = {} as {[K in keyof I]: Dispatch<I, K>};
-  protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I, K>};
+  protected dispatcher = {} as {[K in keyof I]: Dispatch<I[K]>};
+  protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[K]>};
   protected actionSubDispatcher = new rx.Subject<void>();
   protected actionUnsubDispatcher = new rx.Subject<void>();
-  private connectableAction$: rx.Connectable<Action<I>>;
+  private connectableAction$: rx.Connectable<Action<I[keyof I]>>;
 
   constructor(public opts?: CoreOptions<I>) {
     this.setName(opts?.name);
@@ -131,7 +132,7 @@ export class ControllerCore<I> {
       i: ACTION_SEQ++,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       p: params ?? []
-    } as Action<J, K>;
+    } as Action<J[K]>;
   }
 
   /** change the "name" as previous specified in CoreOptions of constructor */
@@ -139,7 +140,7 @@ export class ControllerCore<I> {
     this.logPrefix = name ?? this.typePrefix;
   }
 
-  dispatchFactory<K extends keyof I>(type: K): Dispatch<I, K> {
+  dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]> {
     if (has.call(this.dispatcher, type)) {
       return this.dispatcher[type];
     }
@@ -152,7 +153,7 @@ export class ControllerCore<I> {
     return dispatch;
   }
 
-  dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I, K> {
+  dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I[K]> {
     if (has.call(this.dispatcherFor, type)) {
       return this.dispatcherFor[type];
     }
@@ -168,29 +169,29 @@ export class ControllerCore<I> {
 
   updateInterceptor(
     factory: (
-      previous: (up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>
-    ) => (up: rx.Observable<Action<I>>) => rx.Observable<Action<I>>
+      previous: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
+    ) => (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
   ) {
     const newInterceptor = factory(this.interceptor$.getValue());
     this.interceptor$.next(newInterceptor);
   }
 
   // eslint-disable-next-line space-before-function-paren
-  ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any, any>>) => rx.Observable<Action<I, T[number]>> {
-    return (up: rx.Observable<Action<any, any>>) => {
+  ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[T[number]]>> {
+    return (up: rx.Observable<Action<any>>) => {
       const matchTypes = types.map(type => this.typePrefix + (type as string));
       return up.pipe(
-        rx.filter((a): a is Action<I, T[number]> => matchTypes.some(matchType => a.t === matchType))
+        rx.filter((a): a is Action<I[T[number]]> => matchTypes.some(matchType => a.t === matchType))
       );
     };
   }
 
   // eslint-disable-next-line space-before-function-paren
   notOfType<T extends (keyof I)[]>(...types: T) {
-    return (up: rx.Observable<Action<any, any>>) => {
+    return (up: rx.Observable<Action<any>>) => {
       const matchTypes = types.map(type => this.typePrefix + (type as string));
       return up.pipe(
-        rx.filter((a): a is Action<I, Exclude<(keyof I), T[number]>> => matchTypes.every(matchType => a.t !== matchType))
+        rx.filter((a): a is Action<I[Exclude<(keyof I), T[number]>]> => matchTypes.every(matchType => a.t !== matchType))
       );
     };
   }
@@ -207,7 +208,7 @@ export class ControllerCore<I> {
  */
 // eslint-disable-next-line space-before-function-paren
 export function nameOfAction<I = ActionFunctions>(
-  action: Pick<Action<I>, 't'>
+  action: Pick<Action<I[keyof I]>, 't'>
 ): keyof I {
   const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
   return (match ? match[1] : action.t) as keyof I;

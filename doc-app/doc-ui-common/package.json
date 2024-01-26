@@ -11,7 +11,9 @@
     "setting": {
       "value": "isom/doc-ui-common-setting.js#defaultSetting",
       "type": "isom/doc-ui-common-setting#DocUiCommonSetting"
-    }
+    },
+    "type": "server",
+    "serverEntry": "dist/server.js"
   },
   "repository": {
     "type": "git",

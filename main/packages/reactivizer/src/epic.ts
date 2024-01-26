@@ -1,8 +1,9 @@
 // import inspector from 'node:inspector';
 import * as rx from 'rxjs';
-import {RxController, Action, ArrayOrTuple, ActionTable, ActionFunctions, ActionMeta, DispatchForAndObserveRes,
+import {RxController, Action, ArrayOrTuple, ActionFunctions, ActionMeta, DispatchForAndObserveRes,
   InferPayload, InferMapParam, mapActionToPayload, actionRelatedToAction} from './control';
 import {DuplexController, DuplexOptions} from './duplex';
+import {ActionTable} from './action-table';
 // inspector.open(9222, 'localhost', true);
 
 export type Reactor<I> = (ctl: RxController<I>) => rx.Observable<any>;
@@ -192,11 +193,11 @@ export class ReactorComposite<
     const composite = this;
     streamCtl.dispatchForAndObserveRes = streamCtl.dfo = new Proxy({} as {[K in keyof I]: DispatchForAndObserveRes<I, K>}, {
       get(_target, key, _rec) {
-        return <R extends keyof I>(observedAction$: rx.Observable<Action<I, R>>, referActions: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: any[]) => {
+        return <R extends keyof I>(observedAction$: rx.Observable<Action<I[R]>>, referActions: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: any[]) => {
           const action = streamCtl.core.createAction(key as keyof I, params as InferPayload<I[keyof I]>);
           if (referActions)
             action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : (referActions as ActionMeta).i;
-          const r$ = new rx.ReplaySubject<InferMapParam<I, R>>(1);
+          const r$ = new rx.ReplaySubject<InferMapParam<I[R]>>(1);
           rx.merge(
             observedAction$.pipe(
               actionRelatedToAction(action),

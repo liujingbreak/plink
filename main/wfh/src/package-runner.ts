@@ -178,6 +178,7 @@ async function _runPackages(includePackages: Iterable<string>,
     packageNamesInOrder.push(pkInstance.name);
     const mod = pkInstance.name + ( fileToRun ? '/' + fileToRun : '');
     log.debug('require(%sf)', JSON.stringify(mod));
+    // TODO: Make `require` to static, so that we can use bundle tool
     const fileExports = require(Path.resolve(getWorkDir(), 'node_modules', mod));
     pkgExportsInDescendOrder.unshift({name: pkInstance.name, exp: fileExports});
     if (_.isFunction(fileExports[funcToRun])) {

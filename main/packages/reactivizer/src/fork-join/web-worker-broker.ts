@@ -86,7 +86,7 @@ export function createBroker<
             'customized error'
           );
         } else {
-          const data = event as MessageEvent<Action<any, keyof any>>;
+          const data = event as MessageEvent<Action<any>>;
           deserializeAction(data, wo);
         }
       };

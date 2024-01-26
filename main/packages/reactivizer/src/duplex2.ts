@@ -1,0 +1,29 @@
+import {CoreOptions} from './stream-core';
+import {RxController2, ActionFactory} from './control2';
+
+export type DuplexOptions<I = Record<string, never>> = CoreOptions<I>;
+
+let SEQ = new Date().getUTCMilliseconds();
+
+export class DuplexController<I extends ActionFactory, O extends ActionFactory> {
+  /** input actions controller, abbrevation name of "inputControl" */
+  i: RxController2<I>;
+  inputControl: RxController2<I>;
+  /** output actions controller abbrevation name of "outputControl" */
+  o: RxController2<O>;
+  outputControl: RxController2<O>;
+  private id = SEQ++;
+
+  constructor(opts?: DuplexOptions<I & O>) {
+    const name = opts?.name ?? '';
+    this.inputControl = this.i = new RxController2<I>({...opts as DuplexOptions<I>, debug: opts?.debug, name: name + `#${this.id}.i `, log: opts?.log});
+    this.outputControl = this.o = new RxController2<O>({...opts as DuplexOptions<O>, debug: opts?.debug, name: name + `#${this.id}.o `, log: opts?.log});
+  }
+
+  /** Invoke `setName` on RxController */
+  setName(value: string) {
+    this.i.setName(value + `#${this.id}.i `);
+    this.o.setName(value + `#${this.id}.o `);
+  }
+}
+

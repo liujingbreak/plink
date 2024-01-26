@@ -57,6 +57,7 @@ export function createHandMadeParallelService() {
         // calcuate directly, return result as a transferable data structure `ForkTransferablePayload`
         // or you may consider return "void" type and write result to SharedArrayBuffer "data" instead (by Atomics operations optionally)
       } else {
+        // o.dp.forkAction<MyParallelServiceInput, 'compute'>('compute', data, offset, true);
         // Split data to one half to be processed in a forked thread or web worker
         const forkDone = fork(myParallelService, 'compute', [data, offset, length >> 1]);
         // another half fo data to be recursively processed in current thread
