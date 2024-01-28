@@ -1,11 +1,11 @@
 import {CoreOptions} from './stream-core';
-import {RxController2, ActionFactory} from './control2';
+import {RxController2} from './control2';
 
 export type DuplexOptions<I = Record<string, never>> = CoreOptions<I>;
 
 let SEQ = new Date().getUTCMilliseconds();
 
-export class DuplexController<I extends ActionFactory, O extends ActionFactory> {
+export class DuplexController<I, O> {
   /** input actions controller, abbrevation name of "inputControl" */
   i: RxController2<I>;
   inputControl: RxController2<I>;

@@ -2,32 +2,13 @@
 import * as rx from 'rxjs';
 import {RxController, Action, ArrayOrTuple, ActionFunctions, ActionMeta, DispatchForAndObserveRes,
   InferPayload, InferMapParam, mapActionToPayload, actionRelatedToAction} from './control';
-import {DuplexController, DuplexOptions} from './duplex';
+import {DuplexController} from './duplex';
 import {ActionTable} from './action-table';
+import {ReactorCompositeOpt} from './reactor-base';
+import {InferFuncReturnEvents} from './inferred-types';
 // inspector.open(9222, 'localhost', true);
 
-export type Reactor<I> = (ctl: RxController<I>) => rx.Observable<any>;
-export type DuplexReactor<I, O> = (ctl: DuplexController<I, O>) => rx.Observable<any>;
-
-export type InferFuncReturnEvents<I> = {
-  [K in keyof I as `${K & string}Resolved`]: (
-    p: I[K] extends (...args: any) => PromiseLike<infer P> ?
-      P : I[K] extends (...args: any) =>  rx.Observable<infer OB> ?
-        OB : I[K] extends infer R ? R : unknown) => void
-} & {
-  [K in keyof I as `${K & string}Completed`]: () => void;
-};
-
-export interface ReactorCompositeOpt<
-  I = Record<never, never>,
-  O = Record<never, never>,
-  LI extends readonly (keyof I)[] = readonly [],
-  LO extends readonly (keyof O)[] = readonly []
-> extends DuplexOptions<I & O> {
-  name: string;
-  inputTableFor?: LI;
-  outputTableFor?: LO;
-}
+export {ReactorCompositeOpt} from './reactor-base';
 
 interface BaseEvents {
   _onErrorFor(err: any): void;
@@ -176,7 +157,7 @@ export class ReactorComposite<
 
   catchErrorFor<T>(...actionMetas: ActionMeta[]): (upStream: rx.Observable<T>) => rx.Observable<T> {
     return (upStream: rx.Observable<T>): rx.Observable<T> => upStream.pipe(
-      rx.catchError((err, src) => {
+      rx.catchError((err) => {
         (this.o as unknown as RxController<BaseEvents>).dpf._onErrorFor(actionMetas, err);
         // this.errorSubject.next(['', err instanceof Error ? err : new Error(err), actionMetas]);
         return rx.EMPTY;
@@ -205,7 +186,7 @@ export class ReactorComposite<
             ),
             composite.o.pt._onErrorFor.pipe(
               actionRelatedToAction(action),
-              rx.map(([, err, ...metas]) => {
+              rx.map(([, err]) => {
                 throw err;
               })
             ),
@@ -217,7 +198,7 @@ export class ReactorComposite<
           return r$.asObservable();
         };
       },
-      has(_target, key) {
+      has(_target, _key) {
         return true;
       },
       ownKeys() {
@@ -284,24 +265,4 @@ export class ReactorComposite<
     );
   }
 }
-
-type InferInputActionsType<R> = R extends ReactorComposite<infer I, any, any, any> ? I : Record<never, never>;
-type InferOutputEventsType<R> = R extends ReactorComposite<any, infer O, any, any> ? O : Record<never, never>;
-type ExtractTupleElement<T> = T extends readonly (infer R)[] ? R : never;
-type InferLatestActionType<R> = R extends ReactorComposite<any, any, infer LI, any> ? ExtractTupleElement<LI> : never;
-type InferLatestEventsType<R> = R extends ReactorComposite<any, any, any, infer LO> ? ExtractTupleElement<LO> : never;
-
-/** An utility type inference which helps to define a new ReactorComposite type based on extending an existing ReactorComposite type */
-export type ReactorCompositeMergeType<
-  R extends ReactorComposite<any, any, any, any>,
-  ExActions = Record<never, never>,
-  ExEvents = Record<never, never>,
-  ELI extends readonly (keyof ExActions | keyof InferInputActionsType<R>)[] = readonly [],
-  ELO extends readonly (keyof ExEvents | keyof InferOutputEventsType<R>)[] = readonly []
-> = ReactorComposite<
-(R extends ReactorComposite<infer I, any, any, any> ? I : Record<never, never>) & ExActions,
-(R extends ReactorComposite<any, infer O, any, any> ? O : Record<never, never>) & ExEvents,
-readonly (InferLatestActionType<R> | ExtractTupleElement<ELI>)[],
-readonly (InferLatestEventsType<R> | ExtractTupleElement<ELO>)[]
->;
 

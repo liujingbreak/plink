@@ -49,6 +49,7 @@ export const has = Object.prototype.hasOwnProperty;
 
 export class ControllerCore<I> {
   actionUpstream = new rx.Subject<Action<I[keyof I]>>();
+  /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
   interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>(a => a);
   typePrefix = '#' + SEQ++ + ' ';
   logPrefix = ''; // TODO: a better identity to distinguish threads
@@ -167,14 +168,14 @@ export class ControllerCore<I> {
     return dispatch;
   }
 
-  updateInterceptor(
-    factory: (
-      previous: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
-    ) => (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
-  ) {
-    const newInterceptor = factory(this.interceptor$.getValue());
-    this.interceptor$.next(newInterceptor);
-  }
+  // updateInterceptor(
+  //   factory: (
+  //     previous: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
+  //   ) => (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
+  // ) {
+  //   const newInterceptor = factory(this.interceptor$.getValue());
+  //   this.interceptor$.next(newInterceptor);
+  // }
 
   // eslint-disable-next-line space-before-function-paren
   ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[T[number]]>> {

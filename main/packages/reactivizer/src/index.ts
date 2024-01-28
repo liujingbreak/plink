@@ -5,3 +5,4 @@ export * from './duplex';
 export * from './epic';
 export * from './utils';
 export * from './inferred-types';
+export * from './reactor-composite';

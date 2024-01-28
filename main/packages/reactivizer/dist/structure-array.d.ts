@@ -5,20 +5,26 @@ interface TypedArrayConstructor<T extends TypedArrayType> {
 }
 export type StructureArrayEntryDef<T extends TypedArrayType> = {
     type: TypedArrayConstructor<T> | 'ref';
-    len: number;
+    len?: number;
 };
-export declare class ArrayBufferMgr<S extends SharedArrayBuffer | ArrayBuffer> {
-    protected definition: Record<string, StructureArrayEntryDef<TypedArrayType>>;
-    isSharedArrayBuffer: S extends SharedArrayBuffer ? true : false;
+export type StructureTypeOfDef<R extends {
+    [key: string]: StructureArrayEntryDef<TypedArrayType>;
+}> = {
+    [K in keyof R]: R[K]['len'] extends 1 ? number : R[K]['len'] extends number ? (R[K]['type'] extends TypedArrayConstructor<infer T> ? T : unknown) : number;
+};
+export declare class ArrayBufferMgr<R extends Record<string, StructureArrayEntryDef<TypedArrayType>>> {
+    protected definition: R;
     private metaByNumByte;
     private fieldMetas;
     private typedArrays;
-    constructor(definition: Record<string, StructureArrayEntryDef<TypedArrayType>>, isSharedArrayBuffer: S extends SharedArrayBuffer ? true : false);
-    allocate(length: number, isSharedArrayBuffer: S extends SharedArrayBuffer ? true : false): void;
-    fromArrayBuffers(buffers: Array<ArrayBuffer | SharedArrayBuffer>): void;
-    toArrayBuffers(): S[];
-    getStructureAt(index: number): {};
-    getFieldValue(index: number, field: string): number | bigint;
-    setFieldValue(index: number, field: string, ...value: any[]): void;
+    constructor(definition: R);
+    /** Create ArrayBuffer or SharedArrayBuffer for current instantce */
+    allocate(length: number, isSharedArrayBuffer: boolean): void;
+    /** load existing ArrayBuffer or SharedArrayBuffer to current instantce */
+    fromArrayBuffers(buffers: Array<ArrayBuffer | SharedArrayBuffer | undefined>): void;
+    toArrayBuffers(): (ArrayBuffer | SharedArrayBuffer | undefined)[];
+    getStructureAt(index: number): StructureTypeOfDef<R>;
+    getFieldValue<K extends keyof R>(index: number, field: K): StructureTypeOfDef<R>[K];
+    setFieldValue(index: number, field: string, value: number | bigint | ArrayLike<number | bigint>): void;
 }
 export {};

@@ -36,7 +36,7 @@ export class RxController<I> {
   /** abbrevation of actionByType */
   at: ActionByType<I>;
 
-  updateInterceptor: ControllerCore<I>['updateInterceptor'];
+  interceptor$: ControllerCore<I>['interceptor$'];
 
   constructor(public opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
     const core = this.core = new ControllerCore(opts);
@@ -56,7 +56,7 @@ export class RxController<I> {
       get(_target, key, _rec) {
         return core.dispatchForFactory(key as keyof I);
       },
-      has(_target, key) {
+      has(_target, _key) {
         return true;
       },
       ownKeys() {
@@ -87,7 +87,7 @@ export class RxController<I> {
           return r$.asObservable();
         };
       },
-      has(_target, key) {
+      has(_target, _key) {
         return true;
       },
       ownKeys() {
@@ -102,7 +102,7 @@ export class RxController<I> {
           return self.dfo[key as keyof I](action$, null, ...(params as any));
         };
       },
-      has(_target, key) {
+      has(_target, _key) {
         return true;
       },
       ownKeys() {
@@ -157,7 +157,7 @@ export class RxController<I> {
           return Object.keys(actionByTypeProxy);
         }
       });
-    this.updateInterceptor = core.updateInterceptor;
+    this.interceptor$ = core.interceptor$;
   }
 
   /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry

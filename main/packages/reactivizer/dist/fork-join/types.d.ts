@@ -1,8 +1,9 @@
 /// <reference types="node" />
 import type { Worker as NodeWorker, MessagePort as NodeMessagePort } from 'worker_threads';
 import * as rx from 'rxjs';
-import { ReactorComposite, ReactorCompositeMergeType } from '../epic';
+import { ReactorComposite } from '../epic';
 import { Action } from '../control';
+import { ReactorCompositeMergeType } from '../inferred-types';
 export declare const brokerOutputTableFor: readonly ["newWorkerReady", "assignWorker"];
 export type Broker<WI = Record<never, never>, WO = Record<never, never>> = ReactorComposite<BrokerInput, BrokerEvent<WI, WO>, [], typeof brokerOutputTableFor>;
 export type ForkWorkerInput = {
@@ -14,7 +15,7 @@ export type ForkWorkerInput = {
      */
     setLiftUpActions(action$: rx.Observable<Action<any>>): void;
 };
-export type ForkWorkerOutput = {
+export interface ForkWorkerOutput {
     workerInited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): void;
     fork(targetAction: Action<any>): void;
     /** Informs broker that current step is waiting on forked function returns*/
@@ -26,7 +27,7 @@ export type ForkWorkerOutput = {
     warn(...obj: any[]): void;
     /** broker implementation should react to this event*/
     forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort | MessagePort): void;
-};
+}
 export declare const workerInputTableFor: readonly ["setLiftUpActions", "exit"];
 export declare const workerOutputTableFor: readonly ["workerInited", "log", "warn"];
 export type WorkerControl<I = Record<never, never>, O = Record<never, never>, LI extends ReadonlyArray<keyof I> = readonly [], LO extends ReadonlyArray<keyof O> = readonly []> = ReactorCompositeMergeType<ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof workerInputTableFor, typeof workerOutputTableFor>, I, O, LI, LO>;

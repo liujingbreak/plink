@@ -28,17 +28,18 @@ exports.ReactorComposite = void 0;
 const rx = __importStar(require("rxjs"));
 const control_1 = require("./control");
 const duplex_1 = require("./duplex");
+const action_table_1 = require("./action-table");
 class ReactorComposite extends duplex_1.DuplexController {
     get inputTable() {
         if (this.iTable)
             return this.iTable;
-        this.iTable = new control_1.ActionTable(this.i, []);
+        this.iTable = new action_table_1.ActionTable(this.i, []);
         return this.iTable;
     }
     get outputTable() {
         if (this.oTable)
             return this.oTable;
-        this.oTable = new control_1.ActionTable(this.o, ['_onErrorFor']);
+        this.oTable = new action_table_1.ActionTable(this.o, ['_onErrorFor']);
         return this.oTable;
     }
     constructor(opts) {
@@ -59,10 +60,10 @@ class ReactorComposite extends duplex_1.DuplexController {
         this.createDispatchAndObserveProxy(this.i);
         this.createDispatchAndObserveProxy(this.o);
         if ((opts === null || opts === void 0 ? void 0 : opts.inputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.inputTableFor.length) > 0) {
-            this.iTable = new control_1.ActionTable(this.i, opts.inputTableFor);
+            this.iTable = new action_table_1.ActionTable(this.i, opts.inputTableFor);
         }
         if ((opts === null || opts === void 0 ? void 0 : opts.outputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.outputTableFor.length) > 0) {
-            this.oTable = new control_1.ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
+            this.oTable = new action_table_1.ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
         }
         this.o.pt._onErrorFor.pipe(rx.takeUntil(this.destory$), rx.catchError((err, src) => {
             var _a;
@@ -133,7 +134,7 @@ class ReactorComposite extends duplex_1.DuplexController {
         }));
     }
     catchErrorFor(...actionMetas) {
-        return (upStream) => upStream.pipe(rx.catchError((err, src) => {
+        return (upStream) => upStream.pipe(rx.catchError((err) => {
             this.o.dpf._onErrorFor(actionMetas, err);
             // this.errorSubject.next(['', err instanceof Error ? err : new Error(err), actionMetas]);
             return rx.EMPTY;
@@ -152,7 +153,7 @@ class ReactorComposite extends duplex_1.DuplexController {
                     if (referActions)
                         action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
                     const r$ = new rx.ReplaySubject(1);
-                    rx.merge(observedAction$.pipe((0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)()), composite.o.pt._onErrorFor.pipe((0, control_1.actionRelatedToAction)(action), rx.map(([, err, ...metas]) => {
+                    rx.merge(observedAction$.pipe((0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)()), composite.o.pt._onErrorFor.pipe((0, control_1.actionRelatedToAction)(action), rx.map(([, err]) => {
                         throw err;
                     })), new rx.Observable(sub => {
                         streamCtl.core.actionUpstream.next(action);
@@ -161,7 +162,7 @@ class ReactorComposite extends duplex_1.DuplexController {
                     return r$.asObservable();
                 };
             },
-            has(_target, key) {
+            has(_target, _key) {
                 return true;
             },
             ownKeys() {

@@ -25,24 +25,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
-var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-};
-var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
-};
-var _ActionTable_latestPayloadsByName$;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.actionRelatedToAction = exports.ActionTable = exports.GroupedRxController = exports.RxController = void 0;
+exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.actionRelatedToAction = exports.GroupedRxController = exports.RxController = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 __exportStar(require("./stream-core"), exports);
-const EMPTY_ARRY = [];
 class RxController {
     constructor(opts) {
         this.opts = opts;
@@ -62,7 +49,7 @@ class RxController {
             get(_target, key, _rec) {
                 return core.dispatchForFactory(key);
             },
-            has(_target, key) {
+            has(_target, _key) {
                 return true;
             },
             ownKeys() {
@@ -85,7 +72,7 @@ class RxController {
                     return r$.asObservable();
                 };
             },
-            has(_target, key) {
+            has(_target, _key) {
                 return true;
             },
             ownKeys() {
@@ -98,7 +85,7 @@ class RxController {
                     return self.dfo[key](action$, null, ...params);
                 };
             },
-            has(_target, key) {
+            has(_target, _key) {
                 return true;
             },
             ownKeys() {
@@ -140,7 +127,7 @@ class RxController {
                 return Object.keys(actionByTypeProxy);
             }
         });
-        this.updateInterceptor = core.updateInterceptor;
+        this.interceptor$ = core.interceptor$;
     }
     /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
     * belongs to
@@ -212,117 +199,6 @@ class GroupedRxController extends RxController {
     }
 }
 exports.GroupedRxController = GroupedRxController;
-class ActionTable {
-    get dataChange$() {
-        if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f"))
-            return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
-        __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => {
-            this.data = {};
-            for (const k of this.actionNames) {
-                const v = this.actionSnapshot.get(k);
-                const old = this.data[k];
-                if (old === EMPTY_ARRY || old == null)
-                    this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
-                else {
-                    if (v) {
-                        old.splice(0);
-                        for (let i = 1, l = v.length; i < l; i++)
-                            old.push(v[i]);
-                    }
-                    else
-                        this.data[k] = EMPTY_ARRY;
-                }
-            }
-            return this.data;
-        }), rx.share()), "f");
-        return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
-    }
-    constructor(streamCtl, actionNames) {
-        this.streamCtl = streamCtl;
-        this.latestPayloads = {};
-        this.data = {};
-        this.actionSnapshot = new Map();
-        // private
-        _ActionTable_latestPayloadsByName$.set(this, void 0);
-        // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
-        this.actionNamesAdded$ = new rx.ReplaySubject(1);
-        this.actionNames = [];
-        this.l = this.latestPayloads;
-        this.addActions(...actionNames);
-        this.actionNamesAdded$.pipe(rx.map(actionNames => {
-            this.onAddActions(actionNames);
-        })).subscribe();
-        this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
-    }
-    getData() {
-        return this.data;
-    }
-    /** Add actions to be recoreded in table map,
-     * by creating `ReplaySubject(1)` for each action payload stream respectively
-     */
-    addActions(...actionNames) {
-        this.actionNames = this.actionNames.concat(actionNames);
-        this.actionNamesAdded$.next(actionNames);
-        return this;
-    }
-    onAddActions(actionNames) {
-        var _a;
-        for (const type of actionNames) {
-            if (this.data[type] == null)
-                this.data[type] = EMPTY_ARRY;
-            if (stream_core_1.has.call(this.latestPayloads, type))
-                continue;
-            const a$ = new rx.ReplaySubject(1);
-            this.streamCtl.actionByType[type].pipe(rx.map(a => {
-                const arr = this.actionSnapshot.get(type);
-                if (arr == null) {
-                    const mapParam = [{ i: a.i, r: a.r }, ...a.p];
-                    this.actionSnapshot.set(type, mapParam);
-                    return mapParam;
-                }
-                else {
-                    arr[0] = { i: a.i, r: a.r };
-                    arr.splice(1, arr.length - 1, ...a.p); // reuse old array
-                    return arr;
-                }
-            })).subscribe(a$);
-            this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debugTableAction) ?
-                a$.pipe(this.debugLogLatestActionOperator(type)) :
-                a$.asObservable();
-        }
-    }
-    getLatestActionOf(actionName) {
-        return this.actionSnapshot.get(actionName);
-    }
-    debugLogLatestActionOperator(type) {
-        var _a;
-        const core = this.streamCtl.core;
-        return ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.log) ?
-            rx.map((action, idx) => {
-                if (idx === 0 && !core.debugExcludeSet.has(type)) {
-                    this.streamCtl.opts.log(core.logPrefix + 'rx:latest', type, (0, stream_core_1.actionMetaToStr)(action[0]));
-                }
-                return action;
-            }) :
-            (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                rx.map((p, idx) => {
-                    if (idx === 0 && !core.debugExcludeSet.has(type)) {
-                        // eslint-disable-next-line no-console
-                        console.log(`%c ${core.logPrefix}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, (0, stream_core_1.actionMetaToStr)(p[0]));
-                    }
-                    return p;
-                }) :
-                rx.map((p, idx) => {
-                    if (idx > 0 && !core.debugExcludeSet.has(type)) {
-                        // eslint-disable-next-line no-console
-                        console.log(core.logPrefix + 'latest:', type, (0, stream_core_1.actionMetaToStr)(p[0]));
-                    }
-                    return p;
-                });
-    }
-}
-exports.ActionTable = ActionTable;
-_ActionTable_latestPayloadsByName$ = new WeakMap();
 /** Rx operator function */
 function actionRelatedToAction(actionOrMeta) {
     return function (up) {

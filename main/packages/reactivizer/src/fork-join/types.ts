@@ -1,7 +1,8 @@
 import type {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {ReactorComposite, ReactorCompositeMergeType} from '../epic';
+import {ReactorComposite} from '../epic';
 import {Action} from '../control';
+import {ReactorCompositeMergeType} from '../inferred-types';
 
 export const brokerOutputTableFor = ['newWorkerReady', 'assignWorker'] as const;
 export type Broker<

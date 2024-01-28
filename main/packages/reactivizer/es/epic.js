@@ -1,7 +1,8 @@
 // import inspector from 'node:inspector';
 import * as rx from 'rxjs';
-import { ActionTable, mapActionToPayload, actionRelatedToAction } from './control';
+import { mapActionToPayload, actionRelatedToAction } from './control';
 import { DuplexController } from './duplex';
+import { ActionTable } from './action-table';
 export class ReactorComposite extends DuplexController {
     get inputTable() {
         if (this.iTable)
@@ -107,7 +108,7 @@ export class ReactorComposite extends DuplexController {
         }));
     }
     catchErrorFor(...actionMetas) {
-        return (upStream) => upStream.pipe(rx.catchError((err, src) => {
+        return (upStream) => upStream.pipe(rx.catchError((err) => {
             this.o.dpf._onErrorFor(actionMetas, err);
             // this.errorSubject.next(['', err instanceof Error ? err : new Error(err), actionMetas]);
             return rx.EMPTY;
@@ -126,7 +127,7 @@ export class ReactorComposite extends DuplexController {
                     if (referActions)
                         action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
                     const r$ = new rx.ReplaySubject(1);
-                    rx.merge(observedAction$.pipe(actionRelatedToAction(action), mapActionToPayload()), composite.o.pt._onErrorFor.pipe(actionRelatedToAction(action), rx.map(([, err, ...metas]) => {
+                    rx.merge(observedAction$.pipe(actionRelatedToAction(action), mapActionToPayload()), composite.o.pt._onErrorFor.pipe(actionRelatedToAction(action), rx.map(([, err]) => {
                         throw err;
                     })), new rx.Observable(sub => {
                         streamCtl.core.actionUpstream.next(action);
@@ -135,7 +136,7 @@ export class ReactorComposite extends DuplexController {
                     return r$.asObservable();
                 };
             },
-            has(_target, key) {
+            has(_target, _key) {
                 return true;
             },
             ownKeys() {

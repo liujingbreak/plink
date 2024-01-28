@@ -5,22 +5,27 @@ import {Action, InferPayload, ActionMeta,
 import {InferMapParam, mapActionToPayload, actionRelatedToAction} from './control';
 import {PayloadByType, ActionByType} from './inferred-types';
 
-export interface ActionFactory {
-  [k: string]: <P extends any[]>(...args: P) => SingleActionFactory;
-}
+export type ActionFactory = {
+  [k: string]: (...args: any[]) => SingleActionFactory;
+};
 
 export interface SingleActionFactory {
-  dp(origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): void;
+  dp(...origActionMeta: ArrayOrTuple<ActionMeta>): void;
   do<F>(waitForAction$: rx.Observable<Action<F>>,
     origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ): rx.Observable<InferMapParam<F>>;
 }
 
 class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFactory {
-  constructor(private type: K, private payload: InferPayload<I[K]>, private control: ControllerCore<I>) {}
 
-  dp(origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>) {
-    if (origActionMeta)
+  constructor(
+    private type: K,
+    private payload: InferPayload<I[K]>,
+    private control: RxController2<I>
+  ) {}
+
+  dp(...origActionMeta: ArrayOrTuple<ActionMeta>) {
+    if (origActionMeta.length > 0)
       return this.control.dispatchForFactory(this.type)(origActionMeta, ...this.payload);
     else
       return this.control.dispatchFactory(this.type)(...this.payload);
@@ -30,13 +35,18 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
     referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ) {
     const action = this.control.createAction(this.type, this.payload);
+
     if (referActionMeta)
       action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : (referActionMeta as ActionMeta).i;
     const r$ = new rx.ReplaySubject<InferMapParam<F>>(1);
     rx.merge(
-      waitForAction$.pipe(
-        actionRelatedToAction<Action<F>>(action),
-        mapActionToPayload()
+      this.control.doOperator$.pipe(
+        rx.take(1),
+        rx.switchMap(operator => waitForAction$.pipe(
+          operator(action),
+          actionRelatedToAction<Action<F>>(action),
+          mapActionToPayload()
+        ))
       ),
       new rx.Observable<never>(sub => {
         this.control.actionUpstream.next(action);
@@ -47,55 +57,63 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
   }
 }
 
-export class RxController2<I extends ActionFactory> extends ControllerCore<I> {
+export class RxController2<I> extends ControllerCore<I> {
   /** abbrevation of payloadByType */
   pt: PayloadByType<I>;
 
   /** abbrevation of actionByType */
   at: ActionByType<I>;
   ft: I;
+  /** Rx operator for `do()`, we can change it by emit new value to this observable,
+   * you don't need to use this Subject directory, it is meant to be extended by Reactivizer internally
+   * */
+  doOperator$ = new rx.BehaviorSubject<<A, F>(dispatchingAction: Action<A>) => (response$: rx.Observable<Action<F>>) => rx.Observable<Action<F>>>(
+    (_dispatchingAction) => input => input
+  );
 
   constructor(public opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
     super(opts);
-    const actionsByType = {} as {[K in keyof I]: rx.Observable<Action<I[K]>>};
+    const actionsByType = new Map<string | symbol, rx.Observable<Action<I[keyof I]>>>();
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     const actionByTypeProxy = new Proxy(
-      {} as typeof actionsByType,
+      {} as{[K in keyof I]: rx.Observable<Action<I[K]>>},
       {
         get(_target, type, _rec) {
-          let a$ = actionsByType[type as keyof I];
+          let a$ = actionsByType.get(type);
           if (a$ == null) {
             const matchType = self.typePrefix + (type as string);
-            a$ = actionsByType[type as keyof I] = self.action$.pipe(
+            a$ = self.action$.pipe(
               rx.filter(({t}) => t === matchType),
               rx.share()
             );
+            actionsByType.set(type, a$);
           }
           return a$;
         },
         has(_target, key) {
-          return Object.prototype.hasOwnProperty.call(actionsByType, key);
+          return actionsByType.has(key);
         },
         ownKeys() {
-          return Object.keys(actionsByType);
+          return [...actionsByType.keys()];
         }
       });
 
-    const payloadsByType = {} as {[K in keyof I]: rx.Observable<InferMapParam<I[K]>>};
+    const payloadsByType = new Map<string | symbol, rx.Observable<InferMapParam<I[keyof I]>>>();
     this.at = actionByTypeProxy;
 
     this.pt = new Proxy(
-      {} as typeof payloadsByType,
+      {} as {[K in keyof I]: rx.Observable<InferMapParam<I[K]>>},
       {
         get(_target, key, _rec) {
-          let p$ = payloadsByType[key as keyof I];
+          let p$ = payloadsByType.get(key);
           if (p$ == null) {
             const a$ = actionByTypeProxy[key as keyof I];
-            p$ = payloadsByType[key as keyof I] = a$.pipe(
+            p$ = a$.pipe(
               mapActionToPayload(),
               rx.share()
             );
+            payloadsByType.set(key, p$);
           }
           return p$;
         },
@@ -109,14 +127,13 @@ export class RxController2<I extends ActionFactory> extends ControllerCore<I> {
 
     const factories = new Map<string | symbol, (...args: any[]) => any>();
 
-    this.ft = new Proxy({} as I, {
+    this.ft = new Proxy({}, {
       get(_target, key, _rec) {
         if (factories.has(key)) {
           return factories.get(key);
         }
         const fn = (...args: InferPayload<I[keyof I]>): SingleActionFactory => {
-          const factory = new SingleActionFactoryImpl(key as keyof I, args, self);
-          return factory;
+          return new SingleActionFactoryImpl(key as keyof I, args, self);
         };
         factories.set(key, fn);
         return fn;
@@ -128,7 +145,7 @@ export class RxController2<I extends ActionFactory> extends ControllerCore<I> {
       ownKeys() {
         return Object.keys(actionByTypeProxy);
       }
-    });
+    }) as I;
   }
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
   groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
@@ -199,7 +216,7 @@ export class RxController2<I extends ActionFactory> extends ControllerCore<I> {
   }
 }
 
-export class GroupedRxController2<I extends ActionFactory, K> extends RxController2<I> {
+export class GroupedRxController2<I, K> extends RxController2<I> {
   constructor(public key: K, opts?: CoreOptions<I>) {
     super(opts);
   }
@@ -209,7 +226,7 @@ export class GroupedRxController2<I extends ActionFactory, K> extends RxControll
  * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
-export function deserializeAction2<I extends ActionFactory>(actionObj: any, toController: RxController2<I>) {
+export function deserializeAction2<I>(actionObj: any, toController: RxController2<I>) {
   const newAction = toController.createAction(nameOfAction(actionObj) as unknown as keyof I, (actionObj as Action<I[keyof I]>).p);
   newAction.i = (actionObj as Action<any>).i;
   if ((actionObj as Action<any>).r)

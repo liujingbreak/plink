@@ -33,6 +33,7 @@ class ControllerCore {
         var _a;
         this.opts = opts;
         this.actionUpstream = new rx.Subject();
+        /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
         this.interceptor$ = new rx.BehaviorSubject(a => a);
         this.typePrefix = '#' + SEQ++ + ' ';
         this.logPrefix = ''; // TODO: a better identity to distinguish threads
@@ -122,10 +123,14 @@ class ControllerCore {
         this.dispatcherFor[type] = dispatch;
         return dispatch;
     }
-    updateInterceptor(factory) {
-        const newInterceptor = factory(this.interceptor$.getValue());
-        this.interceptor$.next(newInterceptor);
-    }
+    // updateInterceptor(
+    //   factory: (
+    //     previous: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
+    //   ) => (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
+    // ) {
+    //   const newInterceptor = factory(this.interceptor$.getValue());
+    //   this.interceptor$.next(newInterceptor);
+    // }
     // eslint-disable-next-line space-before-function-paren
     ofType(...types) {
         return (up) => {

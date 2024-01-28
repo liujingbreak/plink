@@ -2,6 +2,7 @@ import * as rx from 'rxjs';
 import {InferPayload, InferMapParam,
   has, actionMetaToStr} from './stream-core';
 import {RxController} from './control';
+import {RxController2} from './control2';
 import {ActionTableDataType, PayloadByType} from './inferred-types';
 
 const EMPTY_ARRY = [] as [];
@@ -52,7 +53,7 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
   // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
   private actionNamesAdded$ = new rx.ReplaySubject<ReadonlyArray<keyof I>>(1);
 
-  constructor(private streamCtl: RxController<I>, actionNames: KS) {
+  constructor(private streamCtl: RxController<I> | RxController2<any>, actionNames: KS) {
     this.actionNames = [] as unknown as KS;
     this.l = this.latestPayloads;
     this.addActions(...actionNames);
@@ -85,7 +86,7 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
         continue;
 
       const a$ = new rx.ReplaySubject<InferMapParam<I[M[number]]>>(1);
-      this.streamCtl.actionByType[type].pipe(
+      (this.streamCtl as RxController<I>).at[type].pipe(
         rx.map(a => {
           const arr = this.actionSnapshot.get(type);
           if (arr == null) {
@@ -113,7 +114,7 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
   }
 
   protected debugLogLatestActionOperator<K extends keyof I, P extends InferMapParam<I[K]>>(type: K) {
-    const core = this.streamCtl.core;
+    const core = (this.streamCtl as RxController<I>).core ?? (this.streamCtl as RxController2<any>);
     return this.streamCtl.opts?.log ?
       rx.map<P, P>((action, idx) => {
         if (idx === 0 && !core.debugExcludeSet.has(type)) {
