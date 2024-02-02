@@ -1,6 +1,7 @@
 import * as rx from 'rxjs';
 import {InferPayload, ActionMeta, Action} from './stream-core';
 import {ReactorComposite} from './epic';
+import {ReactorComposite2} from './reactor-composite';
 /**
  * If we consider ActionTable a 2-dimentional data structure, this is the infer type of it.
  * Each row is latest action payload of an action type (or name),
@@ -38,6 +39,20 @@ export type ReactorCompositeMergeType<
 > = ReactorComposite<
 (R extends ReactorComposite<infer I, any, any, any> ? I : Record<never, never>) & ExActions,
 (R extends ReactorComposite<any, infer O, any, any> ? O : Record<never, never>) & ExEvents,
+readonly (InferLatestActionType<R> | ExtractTupleElement<ELI>)[],
+readonly (InferLatestEventsType<R> | ExtractTupleElement<ELO>)[]
+>;
+
+/** An utility type inference which helps to define a new ReactorComposite2 type based on extending an existing ReactorComposite type */
+export type ReactorCompositeMergeType2<
+  R extends ReactorComposite2<any, any, any, any>,
+  ExActions = Record<never, never>,
+  ExEvents = Record<never, never>,
+  ELI extends readonly (keyof ExActions | keyof InferInputActionsType<R>)[] = readonly [],
+  ELO extends readonly (keyof ExEvents | keyof InferOutputEventsType<R>)[] = readonly []
+> = ReactorComposite2<
+(R extends ReactorComposite2<infer I, any, any, any> ? I : Record<never, never>) & ExActions,
+(R extends ReactorComposite2<any, infer O, any, any> ? O : Record<never, never>) & ExEvents,
 readonly (InferLatestActionType<R> | ExtractTupleElement<ELI>)[],
 readonly (InferLatestEventsType<R> | ExtractTupleElement<ELO>)[]
 >;

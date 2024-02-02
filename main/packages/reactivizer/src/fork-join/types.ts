@@ -2,7 +2,9 @@ import type {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_
 import * as rx from 'rxjs';
 import {ReactorComposite} from '../epic';
 import {Action} from '../control';
-import {ReactorCompositeMergeType} from '../inferred-types';
+import {SingleActionFactory} from '../control2';
+import {ReactorCompositeMergeType2} from '../inferred-types';
+import {ReactorComposite2} from '../reactor-composite';
 
 export const brokerOutputTableFor = ['newWorkerReady', 'assignWorker'] as const;
 export type Broker<
@@ -11,30 +13,30 @@ export type Broker<
 > = ReactorComposite<BrokerInput, BrokerEvent<WI, WO>, [], typeof brokerOutputTableFor>;
 
 export type ForkWorkerInput = {
-  exit(): void;
-  onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): void;
+  exit(): SingleActionFactory;
+  onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): SingleActionFactory;
   /** set actions which are supposed to be sent to parent main thread by "messagePort.postMessage()",
    * consumer program should subscribe to `broker`'s outputTable.l.newWorkerReady to obtain lifted RxController
    * to dispatch or observe actions directly to or from worker threads
    */
-  setLiftUpActions(action$: rx.Observable<Action<any>>): void;
+  setLiftUpActions(action$: rx.Observable<Action<any>>): SingleActionFactory;
 };
 
 export interface ForkWorkerOutput {
-  workerInited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): void;
-  // inited(workerNo: number): void;
-  // forkAction<O, T extends keyof O>(targetActionName: T, ...params: InferPayload<O[T]>): void;
-  fork(targetAction: Action<any>): void;
+  workerInited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): SingleActionFactory;
+  // inited(workerNo: number): SingleActionFactory;
+  // forkAction<O, T extends keyof O>(targetActionName: T, ...params: InferPayload<O[T]>): SingleActionFactory;
+  fork(targetAction: Action<any>): SingleActionFactory;
   /** Informs broker that current step is waiting on forked function returns*/
-  wait(): void;
+  wait(): SingleActionFactory;
   /** Informs broker that current function step is be awake and continue on other instructions */
-  stopWaiting(): void;
-  returned(): void;
-  log(...obj: any[]): void;
-  warn(...obj: any[]): void;
+  stopWaiting(): SingleActionFactory;
+  returned(): SingleActionFactory;
+  log(...obj: any[]): SingleActionFactory;
+  warn(...obj: any[]): SingleActionFactory;
 
   /** broker implementation should react to this event*/
-  forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort | MessagePort): void;
+  forkByBroker(targetAction: Action<any>, messagePort: NodeMessagePort | MessagePort): SingleActionFactory;
 }
 
 export const workerInputTableFor = ['setLiftUpActions', 'exit'] as const;
@@ -45,8 +47,8 @@ export type WorkerControl<
   O = Record<never, never>,
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
-> = ReactorCompositeMergeType<
-ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof workerInputTableFor, typeof workerOutputTableFor>,
+> = ReactorCompositeMergeType2<
+ReactorComposite2<ForkWorkerInput, ForkWorkerOutput, typeof workerInputTableFor, typeof workerOutputTableFor>,
 I, O, LI, LO>;
 
 export type BrokerInput = {
@@ -61,16 +63,16 @@ export type BrokerInput = {
 };
 
 export type BrokerEvent<I = Record<never, never>, O = Record<never, never>> = {
-  workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, action$FromWorker: WorkerControl<I, O>['o'], skipped: boolean): void;
-  newWorkerReady(workerNo: number, action$FromWorker: WorkerControl<I, O>['o'], workerInput: WorkerControl<I, O>['i']): void;
-  onWorkerError(workerNo: number, error: unknown, type?: string): void;
-  onWorkerExit(workerNo: number, exitCode: number): void;
-  onAllWorkerExit(): void;
-  assignWorker(): void;
-  workerRankChanged(workerNo: number, value: number): void;
+  workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, action$FromWorker: WorkerControl<I, O>['o'], skipped: boolean): SingleActionFactory;
+  newWorkerReady(workerNo: number, action$FromWorker: WorkerControl<I, O>['o'], workerInput: WorkerControl<I, O>['i']): SingleActionFactory;
+  onWorkerError(workerNo: number, error: unknown, type?: string): SingleActionFactory;
+  onWorkerExit(workerNo: number, exitCode: number): SingleActionFactory;
+  onAllWorkerExit(): SingleActionFactory;
+  assignWorker(): SingleActionFactory;
+  workerRankChanged(workerNo: number, value: number): SingleActionFactory;
 };
 
 export type ThreadExpirationEvents = {
-  startExpirationTimer(workerNo: number): void;
-  clearExpirationTimer(workerNo: number): void;
+  startExpirationTimer(workerNo: number): SingleActionFactory;
+  clearExpirationTimer(workerNo: number): SingleActionFactory;
 };

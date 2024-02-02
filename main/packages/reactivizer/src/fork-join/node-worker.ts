@@ -4,9 +4,10 @@ import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {Action, deserializeAction, serializeAction,
-  actionRelatedToAction, nameOfAction} from '../control';
-import {ReactorComposite, ReactorCompositeOpt} from '../epic';
+import {Action, serializeAction, actionRelatedToAction, nameOfAction} from '../control';
+import {deserializeAction2} from '..';
+import {ReactorComposite2} from '../reactor-composite';
+import {ReactorCompositeOpt} from '../epic';
 import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
   workerOutputTableFor as outputTableFor, WorkerControl} from './types';
 
@@ -28,7 +29,7 @@ export function createWorkerControl<
 ) {
   let mainPort: MessagePort | undefined; // parent thread port
   // eslint-disable-next-line @typescript-eslint/ban-types
-  const comp = new ReactorComposite<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>({
+  const comp = new ReactorComposite2<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>({
     ...(opts ?? {}),
     inputTableFor: [...(opts?.inputTableFor ?? []), ...inputTableFor],
     outputTableFor: [...(opts?.outputTableFor ?? []), ...outputTableFor],
@@ -60,7 +61,7 @@ export function createWorkerControl<
         mainPort = msg.mainPort;
         const workerNo = msg.workerNo;
         const logPrefix = (opts?.name ?? '') + '(W/' + workerNo + ')';
-        o.dp.workerInited(workerNo, logPrefix, msg.mainPort);
+        o.ft.workerInited(workerNo, logPrefix, msg.mainPort).dp();
         comp.setName(logPrefix);
       }
     };
@@ -68,7 +69,7 @@ export function createWorkerControl<
       /* eslint-disable no-restricted-globals */
       parentPort.on('message', handler);
     } else {
-      o.dp.workerInited('main', '[main]', null);
+      o.ft.workerInited('main', '[main]', null).dp();
     }
     return () => parentPort?.off('message', handler);
   }));
@@ -78,7 +79,7 @@ export function createWorkerControl<
     rx.switchMap(([, , , port]) => new rx.Observable(() => {
       function handler(event: unknown) {
         const act = event as Action<any>;
-        deserializeAction(act, i);
+        deserializeAction2(act, i);
       }
       (port as MessagePort).on('message', handler);
       return () => {
@@ -151,19 +152,19 @@ export function createWorkerControl<
             chan.port1.close();
           }
         ).pipe(
-          rx.map(event => deserializeAction(event, i)),
+          rx.map(event => deserializeAction2(event, i)),
           rx.take(1),
           rx.takeUntil(rx.merge(error$, close$))
         ),
         error$.pipe(
-          rx.tap(err => o.dpf._onErrorFor(wrappedAct, err))
+          rx.tap(err => o.ft._onErrorFor(err).dp(wrappedAct))
         ),
         new rx.Observable<void>(_sub => {
           if (mainPort) {
-            const forkByBroker = o.createAction('forkByBroker', wrappedAct, chan.port2);
+            const forkByBroker = o.createAction('forkByBroker', [wrappedAct, chan.port2]);
             mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
           } else {
-            o.dpf.forkByBroker(forkAction, wrappedAct, chan.port2);
+            o.ft.forkByBroker(wrappedAct, chan.port2).dp(forkAction);
           }
         })
       );
@@ -173,7 +174,7 @@ export function createWorkerControl<
   r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(
     rx.mergeMap(([, origAct, port]) => {
       return rx.merge(
-        o.core.action$.pipe(
+        o.action$.pipe(
           actionRelatedToAction(origAct),
           rx.take(1),
           rx.map(action => {
@@ -186,11 +187,11 @@ export function createWorkerControl<
             } else {
               port.postMessage(serializeAction(action));
             }
-            o.dp.returned();
+            o.ft.returned().dp();
           })
         ),
         new rx.Observable(() => {
-          deserializeAction(origAct, i);
+          deserializeAction2(origAct, i);
         })
       );
     })
@@ -218,7 +219,7 @@ export function createWorkerControl<
       rx.withLatestFrom(outputTable.l.workerInited),
       rx.tap(([action, [, , , port]]) => {
         if (port) {
-          o.dp.log(`pass action ${nameOfAction(action) as string} to main thread`);
+          o.ft.log(`pass action ${nameOfAction(action) as string} to main thread`).dp();
           port.postMessage(serializeAction(action));
         }
       })
