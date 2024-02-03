@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/indent */
 import {Worker, MessagePort, MessageChannel} from 'worker_threads';
 import * as rx from 'rxjs';
-import {ReactorComposite, ReactorCompositeOpt} from '../epic';
+import {ReactorCompositeOpt} from '../epic';
 import {ReactorComposite2} from '../reactor-composite';
 // import {timeoutLog} from '../utils';
-import {Action, serializeAction, deserializeAction, RxController} from '../control';
+import {Action, serializeAction, RxController} from '../control';
 import {deserializeAction2, RxController2} from '../control2';
 import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as outputTableFor, ForkWorkerInput, ForkWorkerOutput, ThreadExpirationEvents, WorkerControl} from './types';
 import {applyScheduler} from './worker-scheduler';
@@ -28,7 +28,7 @@ export function createBroker<
   opts?: ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
 ) {
   const options = opts ? {...opts, outputTableFor} : {outputTableFor};
-  const mainWorkerComp = workerController as unknown as ReactorComposite<ForkWorkerInput, ForkWorkerOutput>;
+  const mainWorkerComp = workerController as unknown as ReactorComposite2<ForkWorkerInput, ForkWorkerOutput>;
 
   const broker = new ReactorComposite2<
     BrokerInput & ForkWorkerOutput,
@@ -66,7 +66,7 @@ export function createBroker<
       }
       const chan = new MessageChannel();
       props.port = chan.port1;
-      const wo = new RxController2<ReactorComposite<any, ForkWorkerOutput & O>['o'] extends RxController<infer T> ? T : unknown>({
+      const wo = new RxController2<ReactorComposite2<any, ForkWorkerOutput & O>['o'] extends RxController2<infer T> ? T : unknown>({
         name: '#' + workerNo + ' worker output',
         debugExcludeTypes: (opts as ReactorCompositeOpt<ForkWorkerOutput> | undefined)?.debugExcludeTypes
       });
@@ -121,26 +121,26 @@ export function createBroker<
 
   r('(newWorkerReady) forkByBroker, workerInited -> ensureInitWorker, worker chan postMessage()',
     o.pt.newWorkerReady.pipe(
-      rx.mergeMap(([, fromWorkerNo, workerOutput]) => (workerOutput as unknown as RxController<ForkWorkerOutput>).pt.forkByBroker.pipe(
+      rx.mergeMap(([, fromWorkerNo, workerOutput]) => (workerOutput as unknown as RxController2<ForkWorkerOutput>).pt.forkByBroker.pipe(
         rx.mergeMap(async ([, targetAction, port]) => {
           let assignedWorkerNo: number | undefined;
           try {
-            const [, assignedWorkerNo_, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned
+            const [, assignedWorkerNo_, worker] = await rx.firstValueFrom(o.ft.assignWorker().do(i.at.workerAssigned
               // timeoutLog<typeof i.at.workerAssigned extends rx.Observable<infer T> ? T : never>(3000, () => console.log('worker assignment timeout'))
             ));
             assignedWorkerNo = assignedWorkerNo_;
-            const fa = mainWorkerComp.i.createAction('onFork', targetAction, port);
+            const fa = mainWorkerComp.i.createAction('onFork', [targetAction, port]);
 
             if (worker === 'main') {
-              deserializeAction(fa, mainWorkerComp.i);
+              deserializeAction2(fa, mainWorkerComp.i);
             } else {
-              await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, assignedWorkerNo, worker));
+              await rx.firstValueFrom(i.ft.ensureInitWorker(assignedWorkerNo, worker).do(o.at.workerInited));
               workerProps.get(assignedWorkerNo)!.port.postMessage(serializeAction(fa), [port as MessagePort]);
             }
           } catch (e) {
             if (opts?.log)
               opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo ?? ''}`, e);
-            const errorFor = broker.o.createAction('_onErrorFor', e);
+            const errorFor = broker.o.createAction('_onErrorFor', [e]);
             errorFor.r = targetAction.i;
             port.postMessage(serializeAction(errorFor));
             throw e;

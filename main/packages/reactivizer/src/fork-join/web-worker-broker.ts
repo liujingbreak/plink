@@ -1,6 +1,8 @@
 import * as rx from 'rxjs';
 import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 // import {timeoutLog} from '../utils';
+import {ReactorComposite2} from '../reactor-composite';
+import {deserializeAction2, RxController2} from '../control2';
 import {Action, serializeAction, deserializeAction, RxController} from '../control';
 import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as outputTableFor, ForkWorkerInput, ForkWorkerOutput, WorkerControl, ThreadExpirationEvents} from './types';
 import {applyScheduler} from './worker-scheduler';
@@ -10,8 +12,8 @@ interface WorkerProperties {
   no: number;
   worker: Worker;
   port: MessagePort;
-  input: ReactorComposite<any, any, any, any>['i'];
-  output: ReactorComposite<any, any, any, any>['o'];
+  input: ReactorComposite2<any, any, any, any>['i'];
+  output: ReactorComposite2<any, any, any, any>['o'];
   state: 'inited' | 'init' | 'exit';
 }
 /** Broker manages worker threads, create message channels between child worker threads and main thread, transmits actions
@@ -26,7 +28,7 @@ export function createBroker<
   const options = opts ? {...opts, outputTableFor} : {outputTableFor};
   const mainWorkerComp = workerController as unknown as ReactorComposite<ForkWorkerInput, ForkWorkerOutput>;
 
-  const broker = new ReactorComposite<
+  const broker = new ReactorComposite2<
   BrokerInput & ForkWorkerOutput,
   BrokerEvent<I, O>,
   [],
@@ -39,20 +41,20 @@ export function createBroker<
 
   r('workerInited -> newWorkerReady', o.pt.workerInited.pipe(
     rx.filter(([, , , , skipped]) => !skipped),
-    rx.tap(([meta, workerNo, , outputCtrl]) => o.dpf.newWorkerReady(meta, workerNo, outputCtrl, workerProps.get(workerNo)!.input))
+    rx.tap(([meta, workerNo, , outputCtrl]) => o.ft.newWorkerReady(workerNo, outputCtrl, workerProps.get(workerNo)!.input).dp(meta))
   ));
 
   r('ensureInitWorker, message channel -> workerInited, onWorkerExit, onWorkerError', i.pt.ensureInitWorker.pipe(
     rx.mergeMap(([meta, workerNo, worker]) => {
       let props = workerProps.get(workerNo);
       if (props?.state === 'inited') {
-        o.dpf.workerInited(meta, workerNo, null, workerProps.get(workerNo)!.output, true);
+        o.ft.workerInited(workerNo, null, workerProps.get(workerNo)!.output, true).dp(meta);
         return rx.EMPTY;
       } else if (props?.state === 'init') {
         return o.pt.workerInited.pipe(
           rx.filter(() => props?.state === 'inited'),
           rx.take(1),
-          rx.tap(() => o.dpf.workerInited(meta, workerNo, null, workerProps.get(workerNo)!.output, true))
+          rx.tap(() => o.ft.workerInited(workerNo, null, workerProps.get(workerNo)!.output, true).dp(meta))
         );
       }
       if (props == null) {
@@ -61,11 +63,11 @@ export function createBroker<
       }
       const chan = new MessageChannel();
       props.port = chan.port1;
-      const wo = new RxController<ReactorComposite<any, ForkWorkerOutput & O>['o'] extends RxController<infer T> ? T : unknown>({
+      const wo = new RxController2<ReactorComposite2<any, ForkWorkerOutput & O>['o'] extends RxController2<infer T> ? T : unknown>({
         name: '#' + workerNo + ' worker output',
         debugExcludeTypes: (opts as ReactorCompositeOpt<ForkWorkerOutput> | undefined)?.debugExcludeTypes
       });
-      const wi = new RxController<ForkWorkerInput & I>({
+      const wi = new RxController2<ForkWorkerInput & I>({
         name: '#' + workerNo + ' worker input',
         debugExcludeTypes: (opts as ReactorCompositeOpt<ForkWorkerInput> | undefined)?.debugExcludeTypes
       });
@@ -75,28 +77,30 @@ export function createBroker<
       chan.port1.onmessage = ({data: event}: MessageEvent<Action<any> | {type: string}>) => {
         if ((event as {type: string}).type === 'WORKER_READY') {
           props!.state = 'inited';
-          o.dpf.workerInited(meta, workerNo, null, wo, false);
+          o.ft.workerInited(workerNo, null, wo, false).dp(meta);
         } else if ((event as {type: string}).type === 'log') {
           // eslint-disable-next-line no-console
           (opts?.log ?? console.log)(...(event as unknown as {p: [any, ...any[]]}).p);
         } else if ((event as {error?: any}).error) {
-          o.dp.onWorkerError(
+          o.ft.onWorkerError(
             workerNo,
             (event as {error?: any}).error,
             'customized error'
-          );
+          ).dp();
         } else {
           const data = event as MessageEvent<Action<any>>;
-          deserializeAction(data, wo);
+          deserializeAction2(data, wo);
         }
       };
 
       (worker as Worker).onerror = event => {
-        o.dp.onWorkerError(workerNo, event, 'web worker error');
+        o.ft.onWorkerError(workerNo, event, 'web worker error').dp();
+        o.ft._onErrorFor(event).dp(meta);
       };
 
       chan.port1.onmessageerror = event => {
-        o.dp.onWorkerError(workerNo, event, 'message error');
+        o.ft.onWorkerError(workerNo, event, 'message errror').dp();
+        o.ft._onErrorFor(event).dp(meta);
       };
 
       // TODO: web worker does not have 'close' event, I need
@@ -106,7 +110,7 @@ export function createBroker<
       // });
 
       (worker as Worker).postMessage({type: 'ASSIGN_WORKER_NO', workerNo, mainPort: chan.port2}, [chan.port2]);
-      return wi.core.action$.pipe(
+      return wi.action$.pipe(
         rx.tap(action => chan.port1.postMessage(serializeAction(action)))
       );
     })
@@ -118,7 +122,7 @@ export function createBroker<
       rx.mergeMap(async ([, targetAction, port]) => {
         let assignedWorkerNo: number | undefined;
         try {
-          const [, assignedWorkerNo_, worker] = await rx.firstValueFrom(o.do.assignWorker(i.at.workerAssigned
+          const [, assignedWorkerNo_, worker] = await rx.firstValueFrom(o.ft.assignWorker().do(i.at.workerAssigned
             // timeoutLog<typeof i.at.workerAssigned extends rx.Observable<infer T> ? T : never>(3000, () => console.log('worker assignment timeout'))
           ));
           assignedWorkerNo = assignedWorkerNo_;
@@ -127,13 +131,13 @@ export function createBroker<
           if (worker === 'main') {
             deserializeAction(fa, mainWorkerComp.i);
           } else {
-            await rx.firstValueFrom(i.do.ensureInitWorker(o.at.workerInited, assignedWorkerNo, worker));
+            await rx.firstValueFrom(i.ft.ensureInitWorker(assignedWorkerNo, worker).do(o.at.workerInited));
             workerProps.get(assignedWorkerNo)!.port.postMessage(serializeAction(fa), [port as MessagePort]);
           }
         } catch (e) {
           if (opts?.log)
             opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo ?? ''}`);
-          const errorFor = broker.o.createAction('_onErrorFor', e);
+          const errorFor = broker.o.createAction('_onErrorFor', [e]);
           errorFor.r = targetAction.i;
           port.postMessage(serializeAction(errorFor));
           throw e;
@@ -153,7 +157,7 @@ export function createBroker<
     })
   ));
 
-  o.dp.newWorkerReady(0, workerController.o, workerController.i);
+  o.ft.newWorkerReady(0, workerController.o, workerController.i).dp();
   return broker as unknown as Broker<I, O>;
 }
 

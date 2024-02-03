@@ -1,5 +1,6 @@
+import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
-import {createWorkerControl, ForkTransferablePayload, fork, setIdleDuring} from '../fork-join/node-worker';
+import {createWorkerControl, ForkTransferablePayload, setIdleDuring} from '../fork-join/node-worker';
 import type {ReactorCompositeOpt} from '../epic';
 import {ForkWorkerInput, ForkWorkerOutput} from '../fork-join/types';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
@@ -9,7 +10,10 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
 
   const sortActions = {
     async sortAllInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number) {
-      const forkDone = fork(sorter, 'sort', [buf, offset, len, noForkThreshold]);
+      const forkDone = await rx.firstValueFrom(
+        sorter.o.ft.fork('sort', [buf, offset, len, noForkThreshold])
+          .do(sorter.i.at.sortResolved)
+      );
       return forkDone;
     },
     /**

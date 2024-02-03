@@ -1,7 +1,7 @@
 import type {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
 import {ReactorComposite} from '../epic';
-import {Action} from '../control';
+import {Action, InferPayload} from '../control';
 import {SingleActionFactory} from '../control2';
 import {ReactorCompositeMergeType2} from '../inferred-types';
 import {ReactorComposite2} from '../reactor-composite';
@@ -26,7 +26,11 @@ export interface ForkWorkerOutput {
   workerInited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): SingleActionFactory;
   // inited(workerNo: number): SingleActionFactory;
   // forkAction<O, T extends keyof O>(targetActionName: T, ...params: InferPayload<O[T]>): SingleActionFactory;
-  fork(targetAction: Action<any>): SingleActionFactory;
+  // fork(targetAction: Action<any>): SingleActionFactory;
+  fork<I extends Record<string, any>, K extends string & keyof I>(
+    actionName: K & string,
+    ...params: InferPayload<I[K]>
+  ): SingleActionFactory;
   /** Informs broker that current step is waiting on forked function returns*/
   wait(): SingleActionFactory;
   /** Informs broker that current function step is be awake and continue on other instructions */
@@ -52,14 +56,14 @@ ReactorComposite2<ForkWorkerInput, ForkWorkerOutput, typeof workerInputTableFor,
 I, O, LI, LO>;
 
 export type BrokerInput = {
-  ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): void;
+  ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): SingleActionFactory;
   /** Send message to worker to stop all event listerners on it */
-  letWorkerExit(workerNo: number): void;
+  letWorkerExit(workerNo: number): SingleActionFactory;
   /** Since Web worker doesn't have "close" event, there is no way currently this ca
    * work in web browser
    */
-  letAllWorkerExit(): void;
-  workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): void;
+  letAllWorkerExit(): SingleActionFactory;
+  workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): SingleActionFactory;
 };
 
 export type BrokerEvent<I = Record<never, never>, O = Record<never, never>> = {

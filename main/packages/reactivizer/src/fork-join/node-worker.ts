@@ -4,16 +4,16 @@ import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {Action, serializeAction, actionRelatedToAction, nameOfAction} from '../control';
+import {Action, serializeAction} from '../control';
 import {deserializeAction2} from '..';
 import {ReactorComposite2} from '../reactor-composite';
 import {ReactorCompositeOpt} from '../epic';
-import {Broker, ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
+import {ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
   workerOutputTableFor as outputTableFor, WorkerControl} from './types';
+import {applySharedReactors} from './worker-common';
 
-export {fork, setIdleDuring} from './common';
+export {setIdleDuring} from './common';
 export {WorkerControl} from './types';
-// import {createBroker} from './node-worker-broker';
 
 /**
  * @param opts.log if value is `undefined` and current createWorkerControl() is for creating instance in a forked thread, by default log messages will
@@ -48,10 +48,8 @@ export function createWorkerControl<
     debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)]
     // logStyle: 'noParam'
   });
-  let broker: Broker | undefined;
 
-  const {r, i, o, outputTable, inputTable} = comp;
-  const lo = comp.outputTable.l;
+  const {r, i, o, outputTable} = comp;
 
   r('-> workerInited', new rx.Observable(() => {
     const handler = (event: {type?: string; workerNo: number; mainPort: MessagePort}) => {
@@ -89,56 +87,17 @@ export function createWorkerControl<
     }))
   ));
 
-  if (parentPort) {
-    r('exit', comp.inputTable.l.exit.pipe(
-      rx.switchMap(() => lo.workerInited),
-      rx.take(1),
-      rx.map(() => {
-        comp.dispose();
-      })
-    ));
+  // eslint-disable-next-line no-console
+  applySharedReactors(isMainThread, comp, opts?.log ?? console.log);
 
-    r('postMessage wait, stopWaiting, returned message to broker', lo.workerInited.pipe(
-      rx.filter(([, , , port]) => port != null),
-      rx.take(1),
-      rx.switchMap(([, , , port]) => rx.merge(
-        o.at.wait,
-        o.at.stopWaiting,
-        o.at.returned
-      ).pipe(
-        rx.map(action => {
-          port!.postMessage(serializeAction(action));
-        })
-      ))
-    ));
-
-    r('postMessage log to broker (parent thread)', lo.workerInited.pipe(
-      rx.filter(([, , , port]) => port != null),
-      rx.take(1),
-      rx.switchMap(([, , logPrefix, port]) => lo.log.pipe(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        rx.map(([, ...p]) => port?.postMessage({type: 'log', p: [logPrefix, ...p]}))
-      ))
-    ));
-  } else {
-    // main thread
-    r('log, warn > console.log', lo.workerInited.pipe(
-      rx.take(1),
-      rx.switchMap(([, , logPrefix]) => rx.merge(lo.log, lo.warn).pipe(
-        // eslint-disable-next-line no-console
-        rx.map(([, ...p]) => (opts?.log ?? console.log)(logPrefix, ...p))
-      ))
-    ));
-  }
-
-  r('"fork" -> mainPort.postMessage, forkByBroker', o.at.fork.pipe(
+  r('"fork" -> mainPort.postMessage, forkByBroker', o.pt.fork.pipe(
     rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b] as const), rx.take(1))),
-    rx.mergeMap(([forkAction, [, , , mainPort]]) => {
-      const {p: [wrappedAct]} = forkAction;
+    rx.mergeMap(([[m, forkActionName, ...forkActionParams], [, , , mainPort]]) => {
+      const wrappedAct = o.createAction(forkActionName as keyof ForkWorkerOutput, forkActionParams);
       const chan = new MessageChannel();
       const error$ = rx.fromEventPattern(
-        h => chan.port1.on('messageerror', h),
-        h => chan.port1.off('messageerror', h)
+        h => chan.port1.addListener('messageerror', h),
+        h => chan.port1.removeListener('messageerror', h)
       );
       const close$ = rx.fromEventPattern(
         h => chan.port1.on('close', h),
@@ -164,66 +123,12 @@ export function createWorkerControl<
             const forkByBroker = o.createAction('forkByBroker', [wrappedAct, chan.port2]);
             mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
           } else {
-            o.ft.forkByBroker(wrappedAct, chan.port2).dp(forkAction);
+            o.ft.forkByBroker(wrappedAct, chan.port2).dp(m);
           }
         })
       );
     })
   ));
-
-  r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(
-    rx.mergeMap(([, origAct, port]) => {
-      return rx.merge(
-        o.action$.pipe(
-          actionRelatedToAction(origAct),
-          rx.take(1),
-          rx.map(action => {
-            const {p} = action;
-            if (hasReturnTransferable(p)) {
-              const [{transferList}] = p;
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (p[0] as any).transferList = null;
-              port.postMessage(serializeAction(action), transferList);
-            } else {
-              port.postMessage(serializeAction(action));
-            }
-            o.ft.returned().dp();
-          })
-        ),
-        new rx.Observable(() => {
-          deserializeAction2(origAct, i);
-        })
-      );
-    })
-  ));
-
-  r('Pass error to broker', comp.error$.pipe(
-    rx.switchMap(a => outputTable.l.workerInited.pipe(
-      rx.map(b => [a, b] as const),
-      rx.take(1)
-    )),
-    rx.map(([[label, err], [, , , mainPort]]) => {
-      if (mainPort) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        (mainPort as MessagePort).postMessage({error: {label, detail: err}});
-      } else if (broker) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        broker.o.dp.onWorkerError(-1, {label, detail: err}, 'customized error');
-      }
-    })
-  ));
-
-  r('setLiftUpActions -> postMessage to main thread',
-    inputTable.l.setLiftUpActions.pipe(
-      rx.mergeMap(([, action$]) => action$),
-      rx.withLatestFrom(outputTable.l.workerInited),
-      rx.tap(([action, [, , , port]]) => {
-        if (port) {
-          o.ft.log(`pass action ${nameOfAction(action) as string} to main thread`).dp();
-          port.postMessage(serializeAction(action));
-        }
-      })
-    ));
 
   return comp as unknown as WorkerControl<I, O, LI, LO>;
 }
@@ -233,6 +138,4 @@ export type ForkTransferablePayload<T = unknown> = {
   transferList: (ArrayBuffer | MessagePort | fsPromises.FileHandle | X509Certificate | Blob)[];
 };
 
-function hasReturnTransferable(payload: Action<any>['p']): payload is [ForkTransferablePayload, ...unknown[]] {
-  return Array.isArray((payload[0] as ForkTransferablePayload | undefined)?.transferList);
-}
+
