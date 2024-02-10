@@ -4,10 +4,11 @@ import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {Action, serializeAction} from '../control';
-import {deserializeAction2} from '..';
+import {Action, serializeAction, ActionFunctions} from '../control';
+import {deserializeAction2, actionRelatedToAction, nameOfAction} from '..';
 import {ReactorComposite2} from '../reactor-composite';
 import {ReactorCompositeOpt} from '../epic';
+import {InferFuncReturnEvents, ActionFactoryOfPlainType} from '../inferred-types';
 import {ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
   workerOutputTableFor as outputTableFor, WorkerControl} from './types';
 import {applySharedReactors} from './worker-common';
@@ -42,7 +43,7 @@ export function createWorkerControl<
         p: args.map(arg => {
           const type = typeof arg;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return (type === 'string' || type === 'number' || type === 'boolean') ? arg : inspect(arg, {depth: 0, showHidden: false, compact: true, maxStringLength: 20});
+          return type === 'string' ? arg : inspect(arg, {depth: 0, showHidden: false, compact: true, maxStringLength: 20});
         })}),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)]
@@ -78,6 +79,7 @@ export function createWorkerControl<
       function handler(event: unknown) {
         const act = event as Action<any>;
         deserializeAction2(act, i);
+        // o.ft.log('message action.p=', act.p[0]).dp();
       }
       (port as MessagePort).on('message', handler);
       return () => {
@@ -118,6 +120,18 @@ export function createWorkerControl<
         error$.pipe(
           rx.tap(err => o.ft._onErrorFor(err).dp(wrappedAct))
         ),
+        i.action$.pipe(
+          actionRelatedToAction(wrappedAct),
+          rx.tap(retAction => {
+            const replyFork = i.createAction(
+              nameOfAction(retAction) as keyof ForkWorkerInput,
+              retAction.p
+            );
+            replyFork.r = m.i;
+            i.actionUpstream.next(replyFork);
+          }),
+          rx.take(1)
+        ),
         new rx.Observable<void>(_sub => {
           if (mainPort) {
             const forkByBroker = o.createAction('forkByBroker', [wrappedAct, chan.port2]);
@@ -138,4 +152,9 @@ export type ForkTransferablePayload<T = unknown> = {
   transferList: (ArrayBuffer | MessagePort | fsPromises.FileHandle | X509Certificate | Blob)[];
 };
 
-
+export function createWorkerControlOfFn<F extends ActionFunctions>(
+  recursiveFuncs: F,
+  opts?: ReactorCompositeOpt<any, any>) {
+  const ctl = createWorkerControl(opts).reativizeRecursiveFuncs(recursiveFuncs);
+  return ctl as WorkerControl<InferFuncReturnEvents<F> & ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F>>;
+}

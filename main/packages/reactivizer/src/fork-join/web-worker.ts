@@ -1,7 +1,8 @@
 /* eslint-disable no-restricted-globals */
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, serializeAction} from '../control';
-import {ReactorComposite2, ReactorCompositeOpt, deserializeAction2} from '..';
+import {ReactorComposite2, ReactorCompositeOpt, deserializeAction2, actionRelatedToAction} from '..';
+import {InferFuncReturnEvents, ActionFactoryOfPlainType} from '../inferred-types';
 import {ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
   workerOutputTableFor as outputTableFor, WorkerControl} from './types';
 import {applySharedReactors} from './worker-common';
@@ -93,6 +94,15 @@ export function createWorkerControl<
         error$.pipe(
           rx.tap(err => o.ft._onErrorFor(err).dp(wrappedAct))
         ),
+        i.action$.pipe(
+          actionRelatedToAction(wrappedAct),
+          rx.tap(retAction => {
+            const cloned = {...retAction};
+            cloned.r = m.i;
+            i.actionUpstream.next(cloned);
+          }),
+          rx.take(1)
+        ),
         new rx.Observable<void>(_sub => {
           if (mainPort) {
             const forkByBroker = o.createAction('forkByBroker', [wrappedAct, chan.port2]);
@@ -112,4 +122,12 @@ export type WebForkTransferablePayload<T = unknown> = {
   content: T;
   transferList: (ArrayBuffer | MessagePort)[];
 };
+
+export function createWorkerControlOfFn<F extends ActionFunctions>(
+  recursiveFuncs: F,
+  isInWorker: boolean,
+  opts?: ReactorCompositeOpt<any, any>) {
+  const ctl = createWorkerControl(isInWorker, opts).reativizeRecursiveFuncs(recursiveFuncs);
+  return ctl as WorkerControl<InferFuncReturnEvents<F> & ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F>>;
+}
 

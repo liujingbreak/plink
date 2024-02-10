@@ -12,32 +12,35 @@ import { createBroker } from '../fork-join/node-worker-broker';
 import { applyScheduler } from '../fork-join/worker-scheduler';
 const log = log4File(__filename);
 export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
-    const num = 30;
+    const num = 3000;
     const testArr = createSharedArryForTest(0, num);
     const sorter = createSorter(null, {
         name: 'sorter',
         debug: true,
         log(...msg) {
-            log.info('[sorter]', ...msg.map(item => inspect(item, { showHidden: false, depth: 0, compact: true })));
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            log.info('[sorter]', ...msg.map(item => typeof item !== 'string' ? inspect(item, { showHidden: false, depth: 0, compact: true }) : item));
         }
     });
     let workerIsAssigned = false;
-    sorter.o.dp.log('worker created');
+    sorter.o.ft.log('worker created').dp();
     const workers = [];
     const broker = createBroker(sorter, {
         name: 'broker',
         debug: true,
         log(...msg) {
             log.info('[broker]', ...msg);
-        }
-        // debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting'],
+        },
+        debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting', 'assignWorker', 'clearExpirationTimer', 'workerRankChanged']
         // logStyle: 'noParam'
     });
     broker.o.pt.onWorkerError.pipe(rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))).subscribe();
     const { i, o } = broker;
     const numOfWorkers = workerNum !== null && workerNum !== void 0 ? workerNum : os.availableParallelism();
+    log.info('numOfWorkers:', numOfWorkers);
     let scheduleState;
     if (threadMode === 'scheduler') {
+        process.env.NODE_ENV = 'development';
         scheduleState = applyScheduler(broker, {
             maxNumOfWorker: numOfWorkers,
             excludeCurrentThead: false,
@@ -62,7 +65,7 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         // Mimic a thread pool's job
         o.pt.assignWorker.pipe(rx.map(([m], idx) => {
             if (threadMode === 'mainOnly')
-                i.dpf.workerAssigned(m, 0, 'main');
+                i.ft.workerAssigned(0, 'main').dp(m);
             else if (threadMode === 'singleWorker') {
                 let worker;
                 let workerNo = 1;
@@ -74,12 +77,12 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
                     workerNo = workers.length + 1;
                     workers.push([worker, workerNo]);
                 }
-                i.dpf.workerAssigned(m, workerNo, worker);
+                i.ft.workerAssigned(workerNo, worker).dp(m);
             }
             else if (threadMode === 'newWorker') {
                 const worker = new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
                 workers.push([worker, idx]);
-                i.dpf.workerAssigned(m, idx++, worker);
+                i.ft.workerAssigned(idx++, worker).dp(m);
             }
             else {
                 let worker;
@@ -92,10 +95,10 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
                         worker = new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
                         workers.push([worker, workerNo]);
                     }
-                    i.dpf.workerAssigned(m, workerNo, worker);
+                    i.ft.workerAssigned(workerNo, worker).dp(m);
                 }
                 else
-                    i.dpf.workerAssigned(m, 0, 'main');
+                    i.ft.workerAssigned(0, 'main').dp(m);
             }
             workerIsAssigned = true;
         }), rx.ignoreElements()), rx.merge(broker.error$.pipe(rx.map(([label, err]) => console.error('Broker', label, 'on error', err))), o.pt.onWorkerError.pipe(rx.map(([, workNo, err, type]) => console.error('Worker', workNo, 'on', type !== null && type !== void 0 ? type : 'error', err)))).pipe(rx.take(1), rx.map(() => {
@@ -105,10 +108,11 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
             // workers.splice(0);
         }))));
     }
-    sorter.o.dp.log('Initial test array', testArr);
+    broker.i.ft.mainThreadInit().dp();
+    sorter.o.ft.log('Initial test array', testArr).dp();
     performance.mark(threadMode + '/sort start');
     // call main sort function
-    await rx.firstValueFrom(sorter.i.do.sortAllInWorker(sorter.o.at.sortAllInWorkerResolved, testArr.buffer, 0, num, Math.round(num / numOfWorkers / 2)));
+    await rx.firstValueFrom(sorter.i.ft.sortAllInWorker(testArr.buffer, 0, num, Math.round(num / numOfWorkers / 2)).do(sorter.o.at.sortAllInWorkerResolved));
     performance.measure(`measure ${numOfWorkers}`, threadMode + '/sort start');
     const performanceEntry = performance.getEntriesByName(`measure ${numOfWorkers}`)[0];
     // eslint-disable-next-line no-console
@@ -118,26 +122,26 @@ export async function forkMergeSort(threadMode, workerNum, autoExpirated) {
     if (!['scheduler', 'excludeMainThread'].includes(threadMode)) {
         expect(workerIsAssigned).toBe(true);
     }
-    sorter.o.dp.log('-----------------------------\nsorted:', testArr);
+    sorter.o.ft.log('-----------------------------\nsorted:', testArr).dp();
     if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
         await new Promise(r => setTimeout(r, 500));
         console.log('Ranks of workers:', [...scheduleState.ranksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
         console.log('Num of tasks of workers:', [...scheduleState.tasksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
-        for (const [, [, rank]] of scheduleState.tasksByWorkerNo.entries()) {
-            expect(rank).toBe(0);
+        for (const [, [worker, rank]] of scheduleState.tasksByWorkerNo.entries()) {
+            expect(rank).toBe(worker === 'main' ? 1 : 0);
         }
-        for (const [, [, rank]] of scheduleState.ranksByWorkerNo.entries()) {
-            expect(rank).toBe(0);
+        for (const [, [worker, rank]] of scheduleState.ranksByWorkerNo.entries()) {
+            expect(rank).toBe(worker === 'main' ? 1 : 0);
         }
     }
     const latestBrokerEvents = broker.outputTable.addActions('onWorkerExit').l;
     if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
         if (autoExpirated == null)
-            await rx.firstValueFrom(i.do.letAllWorkerExit(o.at.onAllWorkerExit));
+            await rx.firstValueFrom(i.ft.letAllWorkerExit().do(o.at.onAllWorkerExit));
     }
     else if (threadMode !== 'mainOnly') {
         for (const [, workerNo] of workers)
-            i.dp.letWorkerExit(workerNo);
+            i.ft.letWorkerExit(workerNo).dp();
         await rx.lastValueFrom(latestBrokerEvents.onWorkerExit.pipe(rx.take(workers.length)));
     }
 }

@@ -17,9 +17,9 @@ bootstrapRoutesWith(() => {
     'compare-with-OOP': () => import('@wfh/reactivizer/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/docs/compare-with-OOP.md').then(res => res.default),
     algorithms: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/algorithms/README.md').then(res => res.default),
     reactivizerP2: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/docs/compare-with-OOP.md').then(res => res.default),
-    reactivizerForkJoin: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/docs/fork-join.md').then(res => res.default),
-    'bio-liujing-en': () => import('@wfh/resumes/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/resumes/4mgr/liujing.2023.b1.en.md').then(res => res.default),
-    'bio-liujing-zh': () => import('@wfh/resumes/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/resumes/4mgr/liujing.2023.b1.zh.md').then(res => res.default)
+    reactivizerForkJoin: () => import('@wfh/algorithms/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/reactivizer/docs/fork-join.md').then(res => res.default)
+    // 'bio-liujing-en': () => import('@wfh/resumes/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/resumes/4mgr/liujing.2023.b1.en.md').then(res => res.default),
+    // 'bio-liujing-zh': () => import('@wfh/resumes/README.md.js!=!@wfh/doc-ui-common/dist/markdown-loader!@wfh/resumes/4mgr/liujing.2023.b1.zh.md').then(res => res.default)
   });
   return [
     {path: '/readme/:mdKey', element: <LazyDocComponent/>},

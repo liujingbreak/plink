@@ -22,7 +22,7 @@ export class ControllerCore {
                 rx.tap(action => {
                     const type = nameOfAction(action);
                     if (!this.debugExcludeSet.has(type)) {
-                        opts.log(this.logPrefix, 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                        opts.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                     }
                 }) :
                 (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
@@ -30,14 +30,14 @@ export class ControllerCore {
                         const type = nameOfAction(action);
                         if (!this.debugExcludeSet.has(type)) {
                             // eslint-disable-next-line no-console
-                            console.log(`%c ${this.logPrefix} rx:action`, 'color: black; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                            console.log(`%c ${this.logPrefix} rx:`, 'color: black; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                         }
                     }) :
                     rx.tap(action => {
                         const type = nameOfAction(action);
                         if (!this.debugExcludeSet.has(type)) {
                             // eslint-disable-next-line no-console
-                            console.log(this.logPrefix, 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                            console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                         }
                     }))
             : this.actionUpstream;
@@ -70,7 +70,7 @@ export class ControllerCore {
     }
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name) {
-        this.logPrefix = name !== null && name !== void 0 ? name : this.typePrefix;
+        this.logPrefix = name !== null && name !== void 0 ? name : this.typePrefix.trim();
     }
     dispatchFactory(type) {
         if (has.call(this.dispatcher, type)) {

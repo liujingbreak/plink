@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
-import {fork, WorkerControl, setIdleDuring} from '@wfh/reactivizer/dist/fork-join/node-worker';
-import {ActionMeta, str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
+import {WorkerControl, setIdleDuring} from '@wfh/reactivizer/dist/fork-join/node-worker';
+import {SingleActionFactory, ActionMeta, str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
 import md5 from 'md5';
 import MarkdownIt from 'markdown-it';
 import highlight from 'highlight.js';
@@ -9,26 +9,26 @@ import {TOC} from './md-types';
 import {ChildNode, Element, lookupTextNodeIn, createTocTree} from './markdown-processor-helper';
 
 export type MdInputActions = {
-  forkProcessFile(markdownFileContent: string, filePath: string): void;
-  processFile(markdownFileContent: SharedArrayBuffer, filePath: string): void;
-  processFileDone(res: {resultHtml: ArrayBuffer; toc: TOC[]; mermaid: ArrayBuffer[]; transferList: ArrayBuffer[]}): void;
+  forkProcessFile(markdownFileContent: string, filePath: string): SingleActionFactory;
+  processFile(markdownFileContent: SharedArrayBuffer, filePath: string): SingleActionFactory;
+  processFileDone(res: {resultHtml: ArrayBuffer; toc: TOC[]; mermaid: ArrayBuffer[]; transferList: ArrayBuffer[]}): SingleActionFactory;
   /** Consumer should dispatach to be related to "resolveImage" event */
-  imageResolved(resultUrl: string): void;
-  linkResolved(resultUrl: string): void;
+  imageResolved(resultUrl: string): SingleActionFactory;
+  linkResolved(resultUrl: string): SingleActionFactory;
   /** Consumer should dispatch */
-  anchorLinkResolved(url: string): void;
+  anchorLinkResolved(url: string): SingleActionFactory;
 };
 
 export type MdOutputEvents = {
   processFileDone: MdInputActions['processFileDone'];
   /** Consumer program should react on this event */
-  imageToBeResolved(imgSrc: string, mdFilePath: string): void;
+  imageToBeResolved(imgSrc: string, mdFilePath: string): SingleActionFactory;
   /** Consumer program should react on this event */
-  linkToBeResolved(urlSrc: string, mdFilePath: string): void;
+  linkToBeResolved(urlSrc: string, mdFilePath: string): SingleActionFactory;
   /** Consumer should react and dispatach "anchorLinkResolved" */
-  anchorLinkToBeResolved(linkSrc: string, mdFilePath: string): void;
+  anchorLinkToBeResolved(linkSrc: string, mdFilePath: string): SingleActionFactory;
 
-  htmlRendered(file: string, html: string): void;
+  htmlRendered(file: string, html: string): SingleActionFactory;
 };
 
 const headerSet = new Set<string>('h1 h2 h3 h4 h5'.split(' '));
@@ -53,9 +53,10 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
   r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.pipe(
     rx.mergeMap(async ([m, content, file]) => {
       try {
-        const resultDone = fork(markdownProcessor, 'processFile', [str2ArrayBuffer<SharedArrayBuffer>(content, true), file], 'processFileDone', m);
-        const [result] = await setIdleDuring.asPromise(markdownProcessor, resultDone);
-        o.dpf.processFileDone(m, result);
+        const resultDone = o.ft.fork('processFile', str2ArrayBuffer<SharedArrayBuffer>(content, true), file)
+          .do(i.at.processFileDone, m);
+        const [, result] = await setIdleDuring.asPromise(markdownProcessor, resultDone);
+        o.ft.processFileDone(result).dp(m);
       } catch (e) {
         markdownProcessor.dispatchErrorFor(e, m);
       }
@@ -64,7 +65,7 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
 
   r('processFile -> processFileDone', i.pt.processFile.pipe(
     rx.mergeMap(([m, content, file]) => {
-      o.dp.log('react to processFile', file);
+      o.ft.log('react to processFile', file).dp();
       return rx.defer(() => {
         const html = md.render(arrayBuffer2str(content));
         const doc = parseHtml(html, {sourceCodeLocationInfo: true});
@@ -74,17 +75,17 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
         rx.map(([content, toc, mermaidCodes]) => {
           const buf = str2ArrayBuffer<ArrayBuffer>(content);
           const mermaidBufs = mermaidCodes.map(code => str2ArrayBuffer<ArrayBuffer>(code));
-          o.dpf.processFileDone(m, {resultHtml: buf, toc: createTocTree(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs]});
+          o.ft.processFileDone({resultHtml: buf, toc: createTocTree(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs]}).dp(m);
         }),
         markdownProcessor.catchErrorFor(m)
       );
     })
   ));
 
-  i.dp.setLiftUpActions(rx.merge(
+  i.ft.setLiftUpActions(rx.merge(
     o.at.imageToBeResolved,
     o.at.linkToBeResolved
-  ));
+  )).dp();
 }
 
 function dfsAccessElement(
@@ -132,13 +133,13 @@ function dfsAccessElement(
       } else if (nodeName === 'img') {
         const imgSrc = el.attrs.find(item => item.name === 'src');
         if (imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
-          o.dp.log('found img src=' + imgSrc.value);
+          o.ft.log('found img src=' + imgSrc.value).dp();
           output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.src!.startOffset + 'src="'.length));
           // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
           htmlOffset = el.sourceCodeLocation!.attrs?.src.endOffset! - 1;
 
           const result$ = new rx.ReplaySubject<string>(1);
-          o.do.imageToBeResolved(i.at.imageResolved, imgSrc.value, file).pipe(
+          o.ft.imageToBeResolved(imgSrc.value, file).do(i.at.imageResolved).pipe(
             rx.take(1),
             rx.map(([, url]) => url),
             rx.tap(result$)
@@ -163,7 +164,7 @@ function dfsAccessElement(
           output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.href!.startOffset + 'href="'.length));
           htmlOffset = el.sourceCodeLocation!.attrs!.href!.endOffset - 1;
           const result$ = new rx.ReplaySubject<string>(1);
-          o.do.linkToBeResolved(i.at.linkResolved, hrefAttr?.value, file).pipe(
+          o.ft.linkToBeResolved(hrefAttr?.value, file).do(i.at.linkResolved).pipe(
             rx.take(1),
             rx.map(([, url]) => url),
             rx.tap(result$)

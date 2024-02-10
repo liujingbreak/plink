@@ -25,4 +25,4 @@ const handler: ReactScriptsHandler & ConfigHandler = {
 };
 
 export default handler;
- 
+

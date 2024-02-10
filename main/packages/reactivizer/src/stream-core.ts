@@ -76,7 +76,7 @@ export class ControllerCore<I> {
           rx.tap(action => {
             const type = nameOfAction(action);
             if (!this.debugExcludeSet.has(type)) {
-              opts.log!(this.logPrefix, 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+              opts.log!(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
             }
           }) :
           (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
@@ -84,7 +84,7 @@ export class ControllerCore<I> {
               const type = nameOfAction(action);
               if (!this.debugExcludeSet.has(type)) {
                 // eslint-disable-next-line no-console
-                console.log(`%c ${this.logPrefix} rx:action`, 'color: black; background: #8c61ff;',
+                console.log(`%c ${this.logPrefix} rx:`, 'color: black; background: #8c61ff;',
                   type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
               }
             }) :
@@ -92,7 +92,7 @@ export class ControllerCore<I> {
               const type = nameOfAction(action);
               if (!this.debugExcludeSet.has(type)) {
                 // eslint-disable-next-line no-console
-                console.log(this.logPrefix, 'rx:action', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
               }
             })
       )
@@ -138,7 +138,7 @@ export class ControllerCore<I> {
 
   /** change the "name" as previous specified in CoreOptions of constructor */
   setName(name: string | null | undefined) {
-    this.logPrefix = name ?? this.typePrefix;
+    this.logPrefix = name ?? this.typePrefix.trim();
   }
 
   dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]> {

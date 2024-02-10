@@ -30,16 +30,17 @@ function setupReacting(markdownProcessor) {
     const { r, i, o } = markdownProcessor;
     r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.pipe(rx.mergeMap(async ([m, content, file]) => {
         try {
-            const resultDone = (0, node_worker_1.fork)(markdownProcessor, 'processFile', [(0, reactivizer_1.str2ArrayBuffer)(content, true), file], 'processFileDone', m);
-            const [result] = await node_worker_1.setIdleDuring.asPromise(markdownProcessor, resultDone);
-            o.dpf.processFileDone(m, result);
+            const resultDone = o.ft.fork('processFile', (0, reactivizer_1.str2ArrayBuffer)(content, true), file)
+                .do(i.at.processFileDone, m);
+            const [, result] = await node_worker_1.setIdleDuring.asPromise(markdownProcessor, resultDone);
+            o.ft.processFileDone(result).dp(m);
         }
         catch (e) {
             markdownProcessor.dispatchErrorFor(e, m);
         }
     })));
     r('processFile -> processFileDone', i.pt.processFile.pipe(rx.mergeMap(([m, content, file]) => {
-        o.dp.log('react to processFile', file);
+        o.ft.log('react to processFile', file).dp();
         return rx.defer(() => {
             const html = md.render((0, reactivizer_1.arrayBuffer2str)(content));
             const doc = (0, parse5_1.parse)(html, { sourceCodeLocationInfo: true });
@@ -48,10 +49,10 @@ function setupReacting(markdownProcessor) {
         }).pipe(rx.map(([content, toc, mermaidCodes]) => {
             const buf = (0, reactivizer_1.str2ArrayBuffer)(content);
             const mermaidBufs = mermaidCodes.map(code => (0, reactivizer_1.str2ArrayBuffer)(code));
-            o.dpf.processFileDone(m, { resultHtml: buf, toc: (0, markdown_processor_helper_1.createTocTree)(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs] });
+            o.ft.processFileDone({ resultHtml: buf, toc: (0, markdown_processor_helper_1.createTocTree)(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs] }).dp(m);
         }), markdownProcessor.catchErrorFor(m));
     })));
-    i.dp.setLiftUpActions(rx.merge(o.at.imageToBeResolved, o.at.linkToBeResolved));
+    i.ft.setLiftUpActions(rx.merge(o.at.imageToBeResolved, o.at.linkToBeResolved)).dp();
 }
 exports.setupReacting = setupReacting;
 function dfsAccessElement(processor, _processFileActionMeta, sourceHtml, file, root
@@ -89,12 +90,12 @@ function dfsAccessElement(processor, _processFileActionMeta, sourceHtml, file, r
         else if (nodeName === 'img') {
             const imgSrc = el.attrs.find(item => item.name === 'src');
             if (imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
-                o.dp.log('found img src=' + imgSrc.value);
+                o.ft.log('found img src=' + imgSrc.value).dp();
                 output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation.attrs.src.startOffset + 'src="'.length));
                 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                 htmlOffset = ((_a = el.sourceCodeLocation.attrs) === null || _a === void 0 ? void 0 : _a.src.endOffset) - 1;
                 const result$ = new rx.ReplaySubject(1);
-                o.do.imageToBeResolved(i.at.imageResolved, imgSrc.value, file).pipe(rx.take(1), rx.map(([, url]) => url), rx.tap(result$)).subscribe();
+                o.ft.imageToBeResolved(imgSrc.value, file).do(i.at.imageResolved).pipe(rx.take(1), rx.map(([, url]) => url), rx.tap(result$)).subscribe();
                 return output.push(result$);
             }
         }
@@ -117,7 +118,7 @@ function dfsAccessElement(processor, _processFileActionMeta, sourceHtml, file, r
                 output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation.attrs.href.startOffset + 'href="'.length));
                 htmlOffset = el.sourceCodeLocation.attrs.href.endOffset - 1;
                 const result$ = new rx.ReplaySubject(1);
-                o.do.linkToBeResolved(i.at.linkResolved, hrefAttr === null || hrefAttr === void 0 ? void 0 : hrefAttr.value, file).pipe(rx.take(1), rx.map(([, url]) => url), rx.tap(result$)).subscribe();
+                o.ft.linkToBeResolved(hrefAttr === null || hrefAttr === void 0 ? void 0 : hrefAttr.value, file).do(i.at.linkResolved).pipe(rx.take(1), rx.map(([, url]) => url), rx.tap(result$)).subscribe();
                 return output.push(result$);
             }
         }

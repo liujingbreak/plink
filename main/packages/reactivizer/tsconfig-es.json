@@ -9,6 +9,7 @@
     "outDir": "es",
     "strict": true,
     "inlineSources": true,
+    "moduleResolution": "Node",
     "paths": {
       "@wfh/algorithms/*": [
         "../algorithms/src/*"

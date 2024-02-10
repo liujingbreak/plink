@@ -1,6 +1,5 @@
 import type {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
-import {ReactorComposite} from '../epic';
 import {Action, InferPayload} from '../control';
 import {SingleActionFactory} from '../control2';
 import {ReactorCompositeMergeType2} from '../inferred-types';
@@ -10,7 +9,7 @@ export const brokerOutputTableFor = ['newWorkerReady', 'assignWorker'] as const;
 export type Broker<
   WI = Record<never, never>,
   WO = Record<never, never>
-> = ReactorComposite<BrokerInput, BrokerEvent<WI, WO>, [], typeof brokerOutputTableFor>;
+> = ReactorComposite2<BrokerInput, BrokerEvent<WI, WO>, [], typeof brokerOutputTableFor>;
 
 export type ForkWorkerInput = {
   exit(): SingleActionFactory;
@@ -22,12 +21,12 @@ export type ForkWorkerInput = {
   setLiftUpActions(action$: rx.Observable<Action<any>>): SingleActionFactory;
 };
 
-export interface ForkWorkerOutput {
+export interface ForkWorkerOutput<I = Record<string, any>>{
   workerInited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): SingleActionFactory;
   // inited(workerNo: number): SingleActionFactory;
   // forkAction<O, T extends keyof O>(targetActionName: T, ...params: InferPayload<O[T]>): SingleActionFactory;
   // fork(targetAction: Action<any>): SingleActionFactory;
-  fork<I extends Record<string, any>, K extends string & keyof I>(
+  fork<K extends string & keyof I>(
     actionName: K & string,
     ...params: InferPayload<I[K]>
   ): SingleActionFactory;
@@ -52,7 +51,7 @@ export type WorkerControl<
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
 > = ReactorCompositeMergeType2<
-ReactorComposite2<ForkWorkerInput, ForkWorkerOutput, typeof workerInputTableFor, typeof workerOutputTableFor>,
+ReactorComposite2<ForkWorkerInput, ForkWorkerOutput<I>, typeof workerInputTableFor, typeof workerOutputTableFor>,
 I, O, LI, LO>;
 
 export type BrokerInput = {
@@ -63,7 +62,8 @@ export type BrokerInput = {
    * work in web browser
    */
   letAllWorkerExit(): SingleActionFactory;
-  workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main'): SingleActionFactory;
+  workerAssigned(worketNo: number, worker: Worker | NodeWorker | 'main', isNew?: boolean, workerRank?: number): SingleActionFactory;
+  mainThreadInit(): SingleActionFactory;
 };
 
 export type BrokerEvent<I = Record<never, never>, O = Record<never, never>> = {

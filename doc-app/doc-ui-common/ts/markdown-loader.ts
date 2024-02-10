@@ -21,7 +21,7 @@ const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
           try {
             const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
             importCode.push(`import imgSrc${imgIdx} from '${url}';`);
-            workerInput.dpf.imageResolved(m, 'imgSrc' + (imgIdx++));
+            workerInput.ft.imageResolved('imgSrc' + (imgIdx++)).dp(m);
           } catch (e) {
             markdownProcessor.dispatchErrorFor(e, m);
           }
@@ -31,14 +31,14 @@ const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
         rx.tap(([m, href, _file]) => {
           const matched = /([^/]+)\.md$/.exec(href);
           if (matched?.[1]) {
-            workerInput.dpf.linkResolved(m, JSON.stringify(matched[1]));
+            workerInput.ft.linkResolved(JSON.stringify(matched[1])).dp(m);
             return;
           }
-          workerInput.dpf.linkResolved(m, JSON.stringify(href));
+          workerInput.ft.linkResolved(JSON.stringify(href)).dp(m);
         })
       )
     )),
-    rx.takeUntil(i.do.forkProcessFile(o.at.processFileDone, source, this.resourcePath).pipe(
+    rx.takeUntil(i.ft.forkProcessFile(source, this.resourcePath).do(o.at.processFileDone).pipe(
       rx.take(1),
       rx.tap(([, {resultHtml, toc, mermaid}]) => {
         cb(null, importCode.join('\n') + '\nconst html = ' + arrayBuffer2str(resultHtml) +

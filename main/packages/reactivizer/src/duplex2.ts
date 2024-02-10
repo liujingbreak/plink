@@ -16,8 +16,8 @@ export class DuplexController<I, O> {
 
   constructor(opts?: DuplexOptions<I & O>) {
     const name = opts?.name ?? '';
-    this.inputControl = this.i = new RxController2<I>({...opts as DuplexOptions<I>, debug: opts?.debug, name: name + `#${this.id}.i `, log: opts?.log});
-    this.outputControl = this.o = new RxController2<O>({...opts as DuplexOptions<O>, debug: opts?.debug, name: name + `#${this.id}.o `, log: opts?.log});
+    this.inputControl = this.i = new RxController2<I>({...opts as DuplexOptions<I>, debug: opts?.debug, name: name + `#${this.id}.i`, log: opts?.log});
+    this.outputControl = this.o = new RxController2<O>({...opts as DuplexOptions<O>, debug: opts?.debug, name: name + `#${this.id}.o`, log: opts?.log});
   }
 
   /** Invoke `setName` on RxController */

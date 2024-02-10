@@ -8,7 +8,7 @@ import StatsPlugin from '@wfh/webpack-common/dist/webpack-stats-plugin';
 import {BundleAnalyzerPlugin} from 'webpack-bundle-analyzer';
 import fs from 'fs-extra';
 import _ from 'lodash';
-import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig/* , webInjector*/} from '@wfh/plink';
+import {log4File, packageOfFileFactory, plinkEnv, config as plinkConfig/* , webInjector*/} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {FileCacheOptions, Configuration, RuleSetRule, Compiler, ProgressPlugin} from 'webpack';
 import nodeResolve from 'resolve';
@@ -24,7 +24,7 @@ import {TermuxWebpackPlugin} from './termux-issue-webpack-plugin';
 // import inspector from 'node:inspector';
 // inspector.open(9222, 'localhost', true);
 
-const log = logger.getLogger('@wfh/cra-scripts.webpack-config');
+const log = log4File(__filename);
 const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export default function(webpackEnv: 'production' | 'development') {
@@ -385,7 +385,7 @@ function nameFromConfigEntry(config: Configuration) {
       typeof config.entry === 'object' ? Object.values(config.entry)[0] : null;
 
   if (Array.isArray(entryFile))
-    entryFile = entryFile[0]
+    entryFile = entryFile[0];
 
   let buildIdentifier: undefined | string;
   if (typeof entryFile === 'string') {

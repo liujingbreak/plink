@@ -1,22 +1,18 @@
-declare const sorter: import("..").ReactorComposite<{
-    sortAllInWorkerResolved: (p: [p: [number, number]]) => void;
-    sortResolved: (p: [number, number]) => void;
-    mergeResolved: (p: import("../fork-join/node-worker").ForkTransferablePayload<ArrayBuffer | null> | null) => void;
+declare const sorter: import("../fork-join/types").WorkerControl<{
+    sortAllInWorkerResolved: (p: any) => import("..").SingleActionFactory;
+    sortResolved: (p: [offset: number, len: number]) => import("..").SingleActionFactory;
+    mergeResolved: (p: import("../fork-join/node-worker").ForkTransferablePayload<ArrayBuffer | null> | null) => import("..").SingleActionFactory;
 } & {
-    sortAllInWorkerCompleted: () => void;
-    sortCompleted: () => void;
-    mergeCompleted: () => void;
-} & import("../fork-join/types").ForkWorkerInput & Record<string, never> & {
-    sortAllInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): Promise<[p: [number, number]]>;
-    sort(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold?: number): Promise<[number, number]>;
+    sortAllInWorkerCompleted: () => import("..").SingleActionFactory;
+    sortCompleted: () => import("..").SingleActionFactory;
+    mergeCompleted: () => import("..").SingleActionFactory;
+} & import("..").ActionFactoryOfPlainType<{
+    sortAllInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): Promise<any>;
+    sort(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold?: number): Promise<[offset: number, len: number]>;
     merge(buf: SharedArrayBuffer, offset1: number, len1: number, offset2: number, len2: number, noForkThreshold?: number, targetBuffer?: SharedArrayBuffer | undefined, targetOffset?: number | undefined): Promise<import("../fork-join/node-worker").ForkTransferablePayload<ArrayBuffer | null> | null>;
-}, {
-    sortAllInWorkerResolved: (p: [p: [number, number]]) => void;
-    sortResolved: (p: [number, number]) => void;
-    mergeResolved: (p: import("../fork-join/node-worker").ForkTransferablePayload<ArrayBuffer | null> | null) => void;
-} & {
-    sortAllInWorkerCompleted: () => void;
-    sortCompleted: () => void;
-    mergeCompleted: () => void;
-} & import("../fork-join/types").ForkWorkerOutput & Record<never, never>, readonly ("setLiftUpActions" | "exit")[], readonly ("log" | "workerInited" | "warn")[]>;
+}>, import("..").InferFuncReturnEvents<{
+    sortAllInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): Promise<any>;
+    sort(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold?: number): Promise<[offset: number, len: number]>;
+    merge(buf: SharedArrayBuffer, offset1: number, len1: number, offset2: number, len2: number, noForkThreshold?: number, targetBuffer?: SharedArrayBuffer | undefined, targetOffset?: number | undefined): Promise<import("../fork-join/node-worker").ForkTransferablePayload<ArrayBuffer | null> | null>;
+}>>;
 export { sorter };

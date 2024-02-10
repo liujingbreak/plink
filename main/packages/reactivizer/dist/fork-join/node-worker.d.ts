@@ -2,13 +2,17 @@
 /// <reference types="node" />
 /// <reference types="node" />
 /// <reference types="node" />
+/// <reference types="node" />
 import type { promises as fsPromises } from 'node:fs';
 import type { X509Certificate } from 'node:crypto';
 import type { Blob } from 'node:buffer';
 import { MessagePort } from 'worker_threads';
+import * as rx from 'rxjs';
+import { ActionFunctions } from '../control';
 import { ReactorCompositeOpt } from '../epic';
+import { InferFuncReturnEvents, ActionFactoryOfPlainType } from '../inferred-types';
 import { ForkWorkerInput, ForkWorkerOutput, WorkerControl } from './types';
-export { fork, setIdleDuring } from './common';
+export { setIdleDuring } from './common';
 export { WorkerControl } from './types';
 /**
  * @param opts.log if value is `undefined` and current createWorkerControl() is for creating instance in a forked thread, by default log messages will
@@ -19,3 +23,4 @@ export type ForkTransferablePayload<T = unknown> = {
     content: T;
     transferList: (ArrayBuffer | MessagePort | fsPromises.FileHandle | X509Certificate | Blob)[];
 };
+export declare function createWorkerControlOfFn<F extends ActionFunctions>(recursiveFuncs: F, opts?: ReactorCompositeOpt<any, any>): WorkerControl<{ [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => import("..").SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => import("..").SingleActionFactory; } & ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F>>;

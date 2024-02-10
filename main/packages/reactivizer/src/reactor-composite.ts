@@ -4,7 +4,7 @@ import {SingleActionFactory, RxController2} from './control2';
 import {DuplexController} from './duplex2';
 import {ActionTable} from './action-table';
 import {ReactorCompositeOpt} from './reactor-base';
-import {InferFuncReturnEvents} from './inferred-types';
+import {InferFuncReturnEvents, ActionFactoryOfPlainType} from './inferred-types';
 // inspector.open(9222, 'localhost', true);
 
 interface BaseEvents {
@@ -120,12 +120,12 @@ export class ReactorComposite2<
         this.reactivizeFunction(key, func, fObject);
       }
     }
-    return this as unknown as ReactorComposite2<I & F, InferFuncReturnEvents<F> & O, LI, LO>;
+    return this as unknown as ReactorComposite2<I & ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F> & O, LI, LO>;
   }
 
   reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F) {
     this.reactivize(fObject);
-    return this as unknown as ReactorComposite2<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O, LI, LO>;
+    return this as unknown as ReactorComposite2<InferFuncReturnEvents<F> & I & ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F> & O, LI, LO>;
   }
 
   /**

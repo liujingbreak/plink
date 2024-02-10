@@ -3,7 +3,7 @@ import {ReactorComposite, ReactorCompositeOpt} from '../epic';
 // import {timeoutLog} from '../utils';
 import {ReactorComposite2} from '../reactor-composite';
 import {deserializeAction2, RxController2} from '../control2';
-import {Action, serializeAction, deserializeAction, RxController} from '../control';
+import {Action, serializeAction, deserializeAction} from '../control';
 import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as outputTableFor, ForkWorkerInput, ForkWorkerOutput, WorkerControl, ThreadExpirationEvents} from './types';
 import {applyScheduler} from './worker-scheduler';
 export * from './types';
@@ -118,7 +118,7 @@ export function createBroker<
   ));
 
   r('(newWorkerReady) forkByBroker, workerInited -> ensureInitWorker, worker chan postMessage()', o.pt.newWorkerReady.pipe(
-    rx.mergeMap(([, fromWorkerNo, workerOutput]) => (workerOutput as unknown as RxController<ForkWorkerOutput>).pt.forkByBroker.pipe(
+    rx.mergeMap(([, fromWorkerNo, workerOutput]) => (workerOutput as unknown as RxController2<ForkWorkerOutput>).pt.forkByBroker.pipe(
       rx.mergeMap(async ([, targetAction, port]) => {
         let assignedWorkerNo: number | undefined;
         try {
@@ -151,13 +151,18 @@ export function createBroker<
       const prop = workerProps.get(workerNo)!;
       // eslint-disable-next-line @typescript-eslint/ban-types
       prop.port.postMessage(serializeAction(
-        (o as unknown as RxController<ForkWorkerInput>).core.createAction('exit')
+        (o as unknown as RxController2<ForkWorkerInput>).createAction('exit')
       ));
       prop.state = 'exit';
     })
   ));
 
-  o.ft.newWorkerReady(0, workerController.o, workerController.i).dp();
+  r('mainThreadInit', i.pt.mainThreadInit.pipe(
+    rx.tap(() => {
+      broker.i.ft.workerAssigned(0, 'main', true, 0).dp();
+      broker.o.ft.newWorkerReady(0, workerController.o, workerController.i).dp();
+    })
+  ));
   return broker as unknown as Broker<I, O>;
 }
 
@@ -166,10 +171,11 @@ type ScheduleOptions = typeof applyScheduler extends (c: any, o: infer O) => any
 export function setupForMainWorker<
   I = Record<never, never>,
   O = Record<never, never>
->(workerContoller: WorkerControl<I, O, any, any>,
+>(workerController: WorkerControl<I, O, any, any>,
   opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
 ): Broker<I, O> {
-  const broker = createBroker(workerContoller, opts);
+  const broker = createBroker(workerController, opts);
   applyScheduler(broker, opts);
+  broker.i.ft.mainThreadInit().dp();
   return broker;
 }

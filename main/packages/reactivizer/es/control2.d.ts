@@ -7,16 +7,20 @@ export type ActionFactory = {
 };
 export interface SingleActionFactory {
     dp(...origActionMeta: ArrayOrTuple<ActionMeta>): void;
+    /** At the moment  this method is called, the message is sent, not the moment thatt the returned
+     * observable is subscribed.
+     * Retuened is an observable of ReplaySuvbject(1) */
     do<F>(waitForAction$: rx.Observable<Action<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
 }
 export declare class RxController2<I> extends ControllerCore<I> {
     opts?: (CoreOptions<I> & {
         debugTableAction?: boolean | undefined;
     }) | undefined;
-    /** abbrevation of payloadByType */
+    /** Abbrevation of payloadByType */
     pt: PayloadByType<I>;
-    /** abbrevation of actionByType */
+    /** Action observable streamby type */
     at: ActionByType<I>;
+    /** Action factory by type */
     ft: I;
     /** Rx operator for `do()`, we can change it by emit new value to this observable,
      * you don't need to use this Subject directory, it is meant to be extended by Reactivizer internally

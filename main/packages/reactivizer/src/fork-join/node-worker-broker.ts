@@ -4,7 +4,7 @@ import * as rx from 'rxjs';
 import {ReactorCompositeOpt} from '../epic';
 import {ReactorComposite2} from '../reactor-composite';
 // import {timeoutLog} from '../utils';
-import {Action, serializeAction, RxController} from '../control';
+import {Action, serializeAction} from '../control';
 import {deserializeAction2, RxController2} from '../control2';
 import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as outputTableFor, ForkWorkerInput, ForkWorkerOutput, ThreadExpirationEvents, WorkerControl} from './types';
 import {applyScheduler} from './worker-scheduler';
@@ -84,7 +84,7 @@ export function createBroker<
         } else if ((event as {type: string}).type === 'log') {
           const p = (event as unknown as {p: [string]}).p;
           // eslint-disable-next-line no-console
-          (opts?.log ?? console.log)(p.join(' '));
+          (opts?.log ?? console.log)(...p);
         } else if ((event as {error?: any}).error) {
           o.ft.onWorkerError(
             workerNo,
@@ -155,14 +155,19 @@ export function createBroker<
       const prop = workerProps.get(workerNo)!;
       // eslint-disable-next-line @typescript-eslint/ban-types
       prop.port.postMessage(serializeAction(
-        (o as unknown as RxController<ForkWorkerInput>).core.createAction('exit')
+        (o as unknown as RxController2<ForkWorkerInput>).createAction('exit')
       ));
       prop.state = 'exit';
     })
   ));
 
+  r('mainThreadInit', i.pt.mainThreadInit.pipe(
+    rx.tap(() => {
+      broker.i.ft.workerAssigned(0, 'main', true, 0).dp();
+      broker.o.ft.newWorkerReady(0, workerController.o, workerController.i).dp();
+    })
+  ));
 
-  o.ft.newWorkerReady(0, workerController.o, workerController.i).dp();
   return broker as unknown as Broker<I, O>;
 }
 
@@ -171,11 +176,12 @@ type ScheduleOptions = typeof applyScheduler extends (c: any, o: infer O) => any
 export function setupForMainWorker<
   I = Record<never, never>,
   O = Record<never, never>
->(workerContoller: WorkerControl<I, O, any, any>,
+>(workerController: WorkerControl<I, O, any, any>,
   opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
  ): Broker<I, O> {
 
-  const broker = createBroker(workerContoller, opts);
+  const broker = createBroker(workerController, opts);
   applyScheduler(broker, opts);
+  broker.i.ft.mainThreadInit().dp();
   return broker;
 }

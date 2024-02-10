@@ -4,6 +4,7 @@ import { SingleActionFactory } from './control2';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 import { ReactorCompositeOpt } from './reactor-base';
+import { ActionFactoryOfPlainType } from './inferred-types';
 interface BaseEvents {
     _onErrorFor(err: any): SingleActionFactory;
 }
@@ -32,8 +33,8 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
     startAll(): void;
     /** @deprecated call dispose() instead */
     destory(): void;
-    reactivize<F extends ActionFunctions>(fObject: F): ReactorComposite2<I & F, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => void; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => void; } & O, LI, LO>;
-    reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F): ReactorComposite2<{ [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => void; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => void; } & I & F, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => void; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => void; } & O, LI, LO>;
+    reactivize<F extends ActionFunctions>(fObject: F): ReactorComposite2<I & ActionFactoryOfPlainType<F>, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & O, LI, LO>;
+    reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F): ReactorComposite2<{ [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & I & ActionFactoryOfPlainType<F>, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & O, LI, LO>;
     /**
      * It is just a declaration of mergeMap() operator, which merge an observable to the main stream
      * which will be or has already been observed by `startAll()`.

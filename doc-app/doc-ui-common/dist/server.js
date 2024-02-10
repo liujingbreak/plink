@@ -13,8 +13,8 @@ function activate(ctx) {
     const router = ctx.router();
     router.get('/markdown-local', (req, res) => {
         log.info('load local markdown file', req.query.file);
-        i.do.loadFile(o.at.fileLoaded, req.query.file).pipe(rx.mergeMap(([, content]) => {
-            return i.do.forkProcessFile(o.at.processFileDone, content, req.query.file);
+        i.ft.loadFile(req.query.file).do(o.at.fileLoaded).pipe(rx.mergeMap(([, content]) => {
+            return i.ft.forkProcessFile(content, req.query.file).do(o.at.processFileDone);
         }), rx.tap(([, { resultHtml, toc, mermaid }]) => {
             res.json({
                 html: resultHtml,
@@ -32,7 +32,8 @@ r('newWorkerReady(imageToBeResolved, linkToBeResolved) -> imageResolved', broker
     try {
         const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
         // TODO
-        workerInput.dpf.imageResolved(m, 'TODO');
+        log.info('image url', url);
+        workerInput.ft.imageResolved('TODO').dp(m);
     }
     catch (e) {
         markdown_processor_main_1.markdownProcessor.dispatchErrorFor(e, m);
@@ -40,9 +41,9 @@ r('newWorkerReady(imageToBeResolved, linkToBeResolved) -> imageResolved', broker
 })), workerOutput.pt.linkToBeResolved.pipe(rx.tap(([m, href, _file]) => {
     const matched = /([^/]+)\.md$/.exec(href);
     if (matched === null || matched === void 0 ? void 0 : matched[1]) {
-        workerInput.dpf.linkResolved(m, JSON.stringify(matched[1]));
+        workerInput.ft.linkResolved(JSON.stringify(matched[1])).dp(m);
         return;
     }
-    workerInput.dpf.linkResolved(m, JSON.stringify(href));
+    workerInput.ft.linkResolved(JSON.stringify(href)).dp(m);
 }))))));
 //# sourceMappingURL=server.js.map

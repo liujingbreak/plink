@@ -8,7 +8,7 @@ const log = log4File(__filename);
 export function extractDllName(entries: CommandOption['buildTargets']) {
   const firstEntryPkg = entries[0].pkg;
   if (firstEntryPkg == null)
-    throw new Error(`For DLL build, the first entry must be inside a Plink package of current workspace, ${entries[0].file}`);
+    throw new Error(`For DLL build, the first entry must be inside a Plink package of current workspace, ${entries[0].file!}`);
 
   const parsed = Path.parse(entries[0].file!);
   const firstEntryPathWithoutSuffix = Path.resolve(parsed.dir, parsed.name);
@@ -42,7 +42,7 @@ export function setupDllPlugin(entries: CommandOption['buildTargets'], config: C
   };
 
   config.optimization!.runtimeChunk = false;
-  if (config.optimization && config.optimization.splitChunks) {
+  if (config.optimization?.splitChunks) {
     config.optimization.splitChunks = {
       cacheGroups: {default: false}
     };

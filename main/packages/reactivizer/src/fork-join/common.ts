@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {ReactorComposite} from '../epic';
+import {ReactorComposite2} from '..';
 import {ForkWorkerOutput} from './types';
 
 /**
@@ -42,11 +42,11 @@ import {ForkWorkerOutput} from './types';
  * @return {Observable} which should `complete`, so that it notifies scheduler to demote current thread
  * worker as current thread will be back to continue previous task.
  */
-export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: ReactorComposite<any, O, any, any>, waitingTask$: rx.ObservableInput<T>): rx.Observable<T> {
-  const worker = workerCtl as unknown as ReactorComposite<any, ForkWorkerOutput>;
-  worker.o.dp.wait();
+export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: ReactorComposite2<any, O, any, any>, waitingTask$: rx.ObservableInput<T>): rx.Observable<T> {
+  const worker = workerCtl as unknown as ReactorComposite2<any, ForkWorkerOutput>;
+  worker.o.ft.wait().dp();
   return rx.from(waitingTask$).pipe(
-    rx.finalize(() => worker.o.dp.stopWaiting())
+    rx.finalize(() => worker.o.ft.stopWaiting().dp())
   );
 }
 
@@ -58,7 +58,7 @@ export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: ReactorC
  * worker as current thread will be back to continue previous task.
  */
 export namespace setIdleDuring {
-  export function asPromise<T, O extends ForkWorkerOutput>(...args: [workerCtl: ReactorComposite<any, O, any, any>, waitingTask$: rx.ObservableInput<T>]) {
-    return rx.lastValueFrom(setIdleDuring(...args));
+  export function asPromise<T, O extends ForkWorkerOutput>(workerCtl: ReactorComposite2<any, O, any, any>, waitingTask$: rx.ObservableInput<T>) {
+    return rx.firstValueFrom(setIdleDuring(workerCtl, waitingTask$));
   }
 }

@@ -64,7 +64,7 @@ export interface ConfigHandler {
 export class ConfigHandlerMgr {
   private static _tsNodeRegistered = false;
 
-  private static initConfigHandlers(fileAndExports: Iterable<[file: string, exportName: string]>, rootPath: string):
+  private static initConfigHandlers(fileAndExports: Iterable<[file: string, exportName: string]>, _rootPath: string):
   Array<{file: string; handler: ConfigHandler}> {
     const exporteds: Array<{file: string; handler: ConfigHandler}> = [];
 
