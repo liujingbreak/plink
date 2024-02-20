@@ -3,7 +3,7 @@ import Path from 'node:path';
 import _ from 'lodash';
 import log4js from 'log4js';
 // import * as rx from 'rxjs';
-import {distinctUntilChanged, map, skip, take} from 'rxjs/operators';
+import {distinctUntilChanged, map, skip, take, firstValueFrom} from 'rxjs';
 // import {map, take} from 'rxjs/operators';
 import {actionDispatcher as pkgActions, getStore, slice} from '../package-mgr';
 import {boxString, getRootDir} from '../utils/misc';
@@ -49,7 +49,7 @@ export default async function(opts: {isSrcDir: boolean}, action?: 'add' | 'remov
 }
 
 export function listProject(projects?: string[], afterChange = false) {
-  return getStore().pipe(
+  return firstValueFrom(getStore().pipe(
     distinctUntilChanged((a, b) => a.project2Packages === b.project2Packages &&
       a.srcDir2Packages === b.srcDir2Packages),
     map(s => ({project2Packages: [...s.project2Packages.keys()], srcDir2Packages: [...s.srcDir2Packages.keys()]})),
@@ -64,7 +64,7 @@ export function listProject(projects?: string[], afterChange = false) {
       printProjects(s.project2Packages, s.srcDir2Packages);
     }),
     take(1)
-  ).toPromise();
+  ));
 }
 
 function printProjects(projects: Iterable<string>, srcDirs: Iterable<string>) {

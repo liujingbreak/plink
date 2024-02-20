@@ -1,43 +1,18 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listPackagesByProjects = exports.checkDir = void 0;
+const tslib_1 = require("tslib");
 /* eslint-disable no-console */
-const config_1 = __importDefault(require("../config"));
-const pkMgr = __importStar(require("../package-mgr"));
+const config_1 = tslib_1.__importDefault(require("../config"));
+const pkMgr = tslib_1.__importStar(require("../package-mgr"));
 // import {getRootDir} from '../utils/misc';
 const package_list_helper_1 = require("../package-mgr/package-list-helper");
-const chalk_1 = __importDefault(require("chalk"));
-const path_1 = __importDefault(require("path"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const cli_init_1 = require("./cli-init");
 const operators_1 = require("rxjs/operators");
 const misc_1 = require("../utils/misc");
-const priorityHelper = __importStar(require("../package-priority-helper"));
+const priorityHelper = tslib_1.__importStar(require("../package-priority-helper"));
 const package_runner_1 = require("../package-runner");
 const store_1 = require("../store");
 async function list(opt) {

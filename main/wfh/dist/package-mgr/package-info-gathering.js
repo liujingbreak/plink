@@ -1,14 +1,12 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.walkPackages = exports.packageOfFileFactory = exports.PackageInstance = void 0;
-const path_1 = __importDefault(require("path"));
+const tslib_1 = require("tslib");
+const path_1 = tslib_1.__importDefault(require("path"));
 const log4js_1 = require("log4js");
-const lru_cache_1 = __importDefault(require("lru-cache"));
+const lru_cache_1 = tslib_1.__importDefault(require("lru-cache"));
 const dir_tree_1 = require("../../../packages/require-injector/dist/dir-tree");
-const packageNodeInstance_1 = __importDefault(require("../packageNodeInstance"));
+const packageNodeInstance_1 = tslib_1.__importDefault(require("../packageNodeInstance"));
 exports.PackageInstance = packageNodeInstance_1.default;
 const misc_1 = require("../utils/misc");
 const package_list_helper_1 = require("./package-list-helper");
@@ -44,7 +42,7 @@ function walkPackages() {
     const packageInfo = {
         get allModules() {
             return [...packageInfo.moduleMap.values()];
-        },
+        }, // array
         moduleMap: new Map(),
         dirTree: null
     };

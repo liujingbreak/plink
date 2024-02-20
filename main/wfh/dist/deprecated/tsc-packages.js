@@ -1,20 +1,18 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateTsconfigFiles = exports.tsc = void 0;
+const tslib_1 = require("tslib");
 /* eslint-disable import/order */
 /**
  * Use Typescript "Project Reference" & "tsc -b Commandline" ability to compile multiple packages
  */
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const fs_extra_1 = __importDefault(require("fs-extra"));
-const log4js_1 = __importDefault(require("log4js"));
+const fs_1 = tslib_1.__importDefault(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const log4js_1 = tslib_1.__importDefault(require("log4js"));
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const config_1 = __importDefault(require("../config"));
+const config_1 = tslib_1.__importDefault(require("../config"));
 const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const package_mgr_1 = require("../package-mgr");
 const utils_1 = require("../cmd/utils");
@@ -103,7 +101,7 @@ function generateTsconfigFiles(pkgs, opts) {
             compilerOptions: {
                 rootDir: rootDirValue,
                 outDir: path_1.default.relative(tsConfigsDir, path_1.default.resolve(pkg.realPath, outDir)).replace(/\\/g, '/'),
-                composite: true,
+                composite: true, // required by Project Reference
                 declaration: true,
                 importHelpers: false,
                 skipLibCheck: true,

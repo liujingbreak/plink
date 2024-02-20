@@ -43,25 +43,26 @@ class ControllerCore {
         this.actionUnsubDispatcher = new rx.Subject();
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
         this.debugExcludeSet = new Set((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : []);
+        this.debugIncludeSet = (opts === null || opts === void 0 ? void 0 : opts.debugIncludeTypes) ? new Set(opts.debugIncludeTypes) : null;
         const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
             ? this.actionUpstream.pipe((opts === null || opts === void 0 ? void 0 : opts.log) ?
                 rx.tap(action => {
                     const type = nameOfAction(action);
-                    if (!this.debugExcludeSet.has(type)) {
+                    if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                         opts.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                     }
                 }) :
                 (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
                     rx.tap(action => {
                         const type = nameOfAction(action);
-                        if (!this.debugExcludeSet.has(type)) {
+                        if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                             // eslint-disable-next-line no-console
                             console.log(`%c ${this.logPrefix} rx:`, 'color: black; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                         }
                     }) :
                     rx.tap(action => {
                         const type = nameOfAction(action);
-                        if (!this.debugExcludeSet.has(type)) {
+                        if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                             // eslint-disable-next-line no-console
                             console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                         }

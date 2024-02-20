@@ -6,11 +6,19 @@ export type ActionFactory = {
     [k: string]: (...args: any[]) => SingleActionFactory;
 };
 export interface SingleActionFactory {
-    dp(...origActionMeta: ArrayOrTuple<ActionMeta>): void;
-    /** At the moment  this method is called, the message is sent, not the moment thatt the returned
+    dp(...origActionMeta: ArrayOrTuple<ActionMeta | undefined>): void;
+    /** At the moment this method is called, the message is sent, not the moment that the returned
      * observable is subscribed.
-     * Retuened is an observable of ReplaySuvbject(1) */
+     * Retuened is an observable of ReplaySuvbject(1), NOTE: if you are expecting more than one "associated"
+     * responding messages, only first responsive message is recorded by ReplaySubject and returned,
+     * see ddo<F> as alternative
+     **/
     do<F>(waitForAction$: rx.Observable<Action<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
+    /**
+     * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
+     * responding messages will be recieved
+     */
+    ddo<F>(waitForAction$: rx.Observable<Action<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
 }
 export declare class RxController2<I> extends ControllerCore<I> {
     opts?: (CoreOptions<I> & {

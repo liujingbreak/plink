@@ -21,6 +21,7 @@ function extractDllName(entries) {
 }
 exports.extractDllName = extractDllName;
 function setupDllPlugin(entries, config, pluginConstFinder) {
+    var _a;
     const [dllName, requirePath] = extractDllName(entries);
     config.entry = {
         [dllName]: entries.map(en => {
@@ -37,7 +38,7 @@ function setupDllPlugin(entries, config, pluginConstFinder) {
         name: '_dll_' + dllName
     };
     config.optimization.runtimeChunk = false;
-    if (config.optimization && config.optimization.splitChunks) {
+    if ((_a = config.optimization) === null || _a === void 0 ? void 0 : _a.splitChunks) {
         config.optimization.splitChunks = {
             cacheGroups: { default: false }
         };
@@ -78,7 +79,7 @@ function setupDllReferencePlugin(manifestFiles, config) {
         const name = '_dll_' + m[1];
         config.plugins.push(new webpack_1.DllReferencePlugin({
             manifest: manifestFile,
-            name,
+            name, // (It must be same as Dll library.name) offical description: The name where the dll is exposed (external name, defaults to manifest.name), In example, it is: dll js file path
             sourceType: 'global'
         }));
         log.info('Dll Reference:', manifestFile);

@@ -53,7 +53,7 @@ function createWorkerControl(opts) {
                 })
             }), 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...((_d = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _d !== void 0 ? _d : [])] }));
+        debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...((_d = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _d !== void 0 ? _d : [])], debugIncludeTypes: opts === null || opts === void 0 ? void 0 : opts.debugIncludeTypes }));
     const { r, i, o, outputTable } = comp;
     r('-> workerInited', new rx.Observable(() => {
         const handler = (event) => {

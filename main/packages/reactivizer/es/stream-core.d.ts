@@ -27,6 +27,9 @@ export type CoreOptions<I> = {
     * */
     autoConnect?: boolean;
     debug?: boolean;
+    /** Log all actions whose type is listed in this property, by default "undefined" means actions of all types will be logged. */
+    debugIncludeTypes?: (keyof I)[];
+    /** Exclude actions of specific types from "debugIncludeTypes" */
     debugExcludeTypes?: (keyof I)[];
     logStyle?: 'full' | 'noParam';
     log?: (msg: string, ...objs: any[]) => unknown;
@@ -40,6 +43,7 @@ export declare class ControllerCore<I> {
     typePrefix: string;
     logPrefix: string;
     action$: rx.Observable<Action<I[keyof I]>>;
+    debugIncludeSet: Set<string | number | symbol> | null;
     debugExcludeSet: Set<string | number | symbol>;
     /** Event when `action$` is first time subscribed */
     actionSubscribed$: rx.Observable<void>;

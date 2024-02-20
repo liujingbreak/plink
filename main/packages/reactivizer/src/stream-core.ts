@@ -37,6 +37,9 @@ export type CoreOptions<I> = {
   * */
   autoConnect?: boolean;
   debug?: boolean;
+  /** Log all actions whose type is listed in this property, by default "undefined" means actions of all types will be logged. */
+  debugIncludeTypes?: (keyof I)[];
+  /** Exclude actions of specific types from "debugIncludeTypes" */
   debugExcludeTypes?: (keyof I)[];
   logStyle?: 'full' | 'noParam';
   log?: (msg: string, ...objs: any[]) => unknown;
@@ -54,6 +57,7 @@ export class ControllerCore<I> {
   typePrefix = '#' + SEQ++ + ' ';
   logPrefix = ''; // TODO: a better identity to distinguish threads
   action$: rx.Observable<Action<I[keyof I]>>;
+  debugIncludeSet: Set<string | number | symbol> | null;
   debugExcludeSet: Set<string | number | symbol>;
 
   /** Event when `action$` is first time subscribed */
@@ -69,20 +73,21 @@ export class ControllerCore<I> {
   constructor(public opts?: CoreOptions<I>) {
     this.setName(opts?.name);
     this.debugExcludeSet = new Set(opts?.debugExcludeTypes ?? []);
+    this.debugIncludeSet = opts?.debugIncludeTypes ? new Set(opts.debugIncludeTypes) : null;
 
     const debuggableAction$ = opts?.debug
       ? this.actionUpstream.pipe(
         opts?.log ?
           rx.tap(action => {
             const type = nameOfAction(action);
-            if (!this.debugExcludeSet.has(type)) {
+            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
               opts.log!(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
             }
           }) :
           (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
             rx.tap(action => {
               const type = nameOfAction(action);
-              if (!this.debugExcludeSet.has(type)) {
+              if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                 // eslint-disable-next-line no-console
                 console.log(`%c ${this.logPrefix} rx:`, 'color: black; background: #8c61ff;',
                   type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
@@ -90,7 +95,7 @@ export class ControllerCore<I> {
             }) :
             rx.tap(action => {
               const type = nameOfAction(action);
-              if (!this.debugExcludeSet.has(type)) {
+              if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                 // eslint-disable-next-line no-console
                 console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
               }

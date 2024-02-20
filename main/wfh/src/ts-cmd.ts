@@ -145,7 +145,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     }
   }
 
-  const {action$, ofType, dispatcher} = languageServices(ts, {
+  const {i, o} = languageServices(ts, {
     transformSourceFile(file, content) {
       const changed = webInjector.injectToFile(file, content);
       if (changed !== content) {
@@ -179,16 +179,14 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
 
   function dealCommonJob() {
     return rx.merge(
-      action$.pipe(
-        ofType('onCompilerOptions'),
+      o.pt.onCompilerOptions.pipe(
         op.take(1),
-        op.map(({payload: compilerOptions}) => {
+        op.map(([, compilerOptions]) => {
           log.info('typescript compilerOptions:', compilerOptions);
         })
       ),
-      action$.pipe(
-        ofType('emitFile'),
-        op.map(async ({payload: [file, content]}) => {
+      o.pt.emitFile.pipe(
+        op.map(async ([, file, content]) => {
           const destFile = realPathOf(file, workDir, packageDirTree, false);
           if (destFile == null)
             return;
@@ -198,16 +196,14 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
           void fs.promises.writeFile(destFile, content);
         })
       ),
-      action$.pipe(
-        ofType('onEmitFailure'),
-        op.map(({payload: [file, msg, type]}) => {
+      o.pt.onEmitFailure.pipe(
+        op.map(([, file, msg, type]) => {
           emitFailedFile$.next(file);
           log.error(`[${type}] ` + msg);
         })
       ),
-      action$.pipe(
-        ofType('onSuggest'),
-        op.map(({payload: [_fileName, msg]}) => {
+      o.pt.onSuggest.pipe(
+        op.map(([, _fileName, msg]) => {
           log.warn(msg);
         })
       )
@@ -220,8 +216,10 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     rx.merge(
       dealCommonJob()
     ).subscribe();
-    exitHooks.push(() => dispatcher.stop());
-    dispatcher.watch([...watchDirs, ...includePatterns]);
+    exitHooks.push(() => {
+      i.ft.stop().dp();
+    });
+    i.ft.watch([...watchDirs, ...includePatterns]).dp();
     // watch(rootFiles, compilerOptions, commonRootDir, packageDirTree, ts);
     return [];
   } else {
@@ -248,7 +246,7 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
       }
     }
     for (const file of rootFiles) {
-      dispatcher.addSourceFile(file, true);
+      i.ft.addSourceFile(file, true).dp();
     }
     writtenFile$.complete();
     emitFailedFile$.complete();

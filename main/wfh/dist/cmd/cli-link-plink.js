@@ -1,12 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reinstallWithLinkedPlink = void 0;
+const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = tslib_1.__importDefault(require("fs"));
 const misc_1 = require("../utils/misc");
 const package_mgr_1 = require("../package-mgr");
 /**

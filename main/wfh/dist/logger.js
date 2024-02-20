@@ -1,10 +1,8 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.log4File = void 0;
-const node_path_1 = __importDefault(require("node:path"));
+const tslib_1 = require("tslib");
+const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const log4js_1 = require("log4js");
 const package_info_gathering_1 = require("./package-mgr/package-info-gathering");
 /**

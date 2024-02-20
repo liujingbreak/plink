@@ -1,12 +1,11 @@
 import fs from 'fs';
 import Path from 'path';
-// import inspector from 'inspector';
 import _ts from 'typescript';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import chokidar from 'chokidar';
-import {createActionStreamByType} from '../../../packages/redux-toolkit-observable/dist/rx-utils';
-// import {createActionStream} from '../../../packages/redux-toolkit-observable/rx-utils';
+import {ReactorComposite2, SingleActionFactory, ActionMeta} from '../../../packages/reactivizer';
+import {setTsCompilerOptForNodePath} from '../package-mgr/package-list-helper';
 import {parseConfigFileToJson} from '../ts-cmd-util';
 import {plinkEnv} from './misc';
 // require('inspector').open(9229, '0.0.0.0', true);
@@ -49,11 +48,6 @@ function plinkNodeJsCompilerOptionJson(ts: typeof _ts, opts: TscOptions = {}) {
     declaration: true,
     tsBuildInfoFile: opts.tsBuildInfoFile,
     // diagnostics: true,
-    // module: 'ESNext',
-    /**
-     * for gulp-sourcemaps usage:
-     *  If you set the outDir option to the same value as the directory in gulp.dest, you should set the sourceRoot to ./.
-     */
     outDir: coRootDir, // must be same as rootDir
     rootDir: coRootDir,
     skipLibCheck: true,
@@ -109,35 +103,43 @@ export function createTranspileFileWithTsCheck(
   ts: any = _ts,
   opts?: NonNullable<Parameters<typeof languageServices>[1]>
 ) {
-  const {action$, ofType, dispatcher} = languageServices(ts, opts);
+  const {i, o} = languageServices(ts, opts);
+
+  // r('onCompilerOptions -> console.log', o.pt.onCompilerOptions.pipe(
+  //   // eslint-disable-next-line no-console
+  //   rx.tap(([, co]) => console.log('Transpile TS file with compilerOptions:', co)),
+  //   rx.take(1)
+  // ));
 
   return function(content: string, file: string) {
     let destFile: string | undefined;
     let sourceMap: string | undefined;
-    rx.merge(
-      action$.pipe(
-        ofType('emitFile'),
-        op.map(({payload: [outputFile, outputContent]}) => {
+
+    i.ft.addSourceFile(file, true, content)
+      .do(o.at.emitFile).pipe(
+        rx.map(([, outputFile, outputContent]) => {
           if (/\.[mc]?js/.test(outputFile)) {
             destFile = outputContent;
           } else if (outputFile.endsWith('.map')) {
             sourceMap = outputContent;
           }
         }),
-        op.takeWhile(() => destFile == null || sourceMap == null)
-      ),
-      action$.pipe(
-        ofType('onEmitFailure', 'onSuggest'),
-        op.map(({payload: [_file, diagnostics]}) => {
+        rx.take(1),
+        rx.takeUntil(rx.merge( o.pt.onEmitFailure, o.pt.onSuggest).pipe(
+          rx.map(([, _file, diagnostics]) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          console.error('[tsc-util]', diagnostics);
-        })
+            console.error('[tsc-util]', diagnostics);
+          })
+        ))
       )
-    ).subscribe();
-    dispatcher.addSourceFile(file, true, content);
+      .subscribe();
+
+    if (destFile == null) {
+      throw new Error(`Failed to compile ${file}`);
+    }
 
     return {
-      code: destFile!,
+      code: destFile,
       map: sourceMap!
     };
   };
@@ -150,30 +152,34 @@ export enum LogLevel {
 }
 
 type LangServiceActionCreator = {
-  watch(dirs: string[]): void;
-  addSourceFile(file: string, sync: boolean, content?: string): void;
-  changeSourceFile(file: string, content: string | undefined | null): void;
-  onCompilerOptions(co: _ts.CompilerOptions): void;
+  watch(dirs: string[]): SingleActionFactory;
+  addSourceFile(file: string, sync: boolean, content?: string): SingleActionFactory;
+  changeSourceFile(file: string, content: string | undefined | null): SingleActionFactory;
+  /** stop watch */
+  stop(): SingleActionFactory;
+};
+
+type LangServiceEvents = {
+  log(level: LogLevel, msg: string): SingleActionFactory;
+  onCompilerOptions(co: _ts.CompilerOptions): SingleActionFactory;
+  onSuggest(file: string, msg: string): SingleActionFactory;
   onEmitFailure(
     file: string,
     diagnostics: string,
     type: 'compilerOptions' | 'syntactic' | 'semantic'
-  ): void;
-  onSuggest(file: string, msg: string): void;
-  emitFile(file: string, content: string): void;
-  log(level: LogLevel, msg: string): void;
-  /** stop watch */
-  stop(): void;
+  ): SingleActionFactory;
+  emitFile(file: string, content: string): SingleActionFactory;
+  versionsUpdated(versions: Map<string, number>): SingleActionFactory;
+  fileChanged(files: Set<string>): SingleActionFactory;
+  unemittedUpdated(files: Set<[file: string, forActionId: ActionMeta['i']]>): SingleActionFactory;
+  setStopped(stopped: boolean): SingleActionFactory;
+  fileContentCache(cache: Map<string, string>): SingleActionFactory;
 };
 
-type LangServiceState = {
-  versions: Map<string, number>;
-  /** root files */
-  files: Set<string>;
-  unemitted: Set<string>;
-  isStopped: boolean;
-  fileContentCache: Map<string, string>;
-};
+const forTable = [
+  'versionsUpdated', 'fileChanged', 'unemittedUpdated',
+  'setStopped', 'fileContentCache'
+] as const;
 
 export function languageServices( ts: any = _ts, opts: {
   formatDiagnosticFileName?(path: string): string;
@@ -183,19 +189,12 @@ export function languageServices( ts: any = _ts, opts: {
 } = {}
 ) {
   const ts0 = ts as typeof _ts;
-  const {dispatcher, dispatchFactory, action$, actionOfType, ofType} =
-    createActionStreamByType<LangServiceActionCreator>();
-  const store = new rx.BehaviorSubject<LangServiceState>({
-    versions: new Map(),
-    files: new Set(),
-    unemitted: new Set(),
-    isStopped: false,
-    fileContentCache: new Map()
+  const rc = new ReactorComposite2<LangServiceActionCreator, LangServiceEvents, [], typeof forTable>({
+    name: 'Plink TS lang service',
+    outputTableFor: forTable
   });
 
-  function setState(cb: (curr: LangServiceState) => LangServiceState) {
-    store.next(cb(store.getValue()));
-  }
+  const {i, o, outputTable, r} = rc;
 
   const formatHost: _ts.FormatDiagnosticsHost = {
     getCanonicalFileName: opts.formatDiagnosticFileName || (path => path),
@@ -208,13 +207,13 @@ export function languageServices( ts: any = _ts, opts: {
   const serviceHost: _ts.LanguageServiceHost = {
     ...ts0.sys, // Important, default language service host does not implement methods like fileExists
     getScriptFileNames() {
-      return Array.from(store.getValue().files.values());
+      return Array.from(outputTable.getData().fileChanged[0]!.values());
     },
     getScriptVersion(fileName: string) {
-      return store.getValue().versions.get(fileName.replace(/\\/g, '/')) + '' || '-1';
+      return outputTable.getData().versionsUpdated[0]!.get(fileName.replace(/\\/g, '/')) + '' || '-1';
     },
     getCompilationSettings() {
-      dispatcher.onCompilerOptions(co);
+      o.ft.onCompilerOptions(co).dp();
       return co;
     },
     getScriptSnapshot(fileName: string) {
@@ -223,7 +222,7 @@ export function languageServices( ts: any = _ts, opts: {
         return undefined;
       }
 
-      const cached = store.getValue().fileContentCache.get(fileName.replace(/\\/g, '/'));
+      const cached = outputTable.getData().fileContentCache[0]!.get(fileName.replace(/\\/g, '/'));
       const originContent = cached != null ? cached : fs.readFileSync(fileName, 'utf8');
       return ts0.ScriptSnapshot.fromString(
         opts.transformSourceFile
@@ -234,7 +233,7 @@ export function languageServices( ts: any = _ts, opts: {
     getCancellationToken() {
       return {
         isCancellationRequested() {
-          return store.getValue().isStopped;
+          return outputTable.getData().setStopped[0]!;
         }
       };
     },
@@ -244,128 +243,133 @@ export function languageServices( ts: any = _ts, opts: {
     getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options),
 
     trace(s) {
-      dispatcher.log(LogLevel.log, s);
+      o.ft.log(LogLevel.log, s).dp();
       // console.log('[lang-service trace]', s);
     },
     error(s) {
-      dispatcher.log(LogLevel.error, s);
+      o.ft.log(LogLevel.error, s).dp();
       // eslint-disable-next-line no-console
       console.log('[lang-service error]', s);
     },
     log(s) {
-      dispatcher.log(LogLevel.log, s);
+      o.ft.log(LogLevel.log, s).dp();
       // eslint-disable-next-line no-console
       console.log('[lang-service log]', s);
     }
   };
   const documentRegistry = ts0.createDocumentRegistry();
   let services: _ts.LanguageService | undefined;
-  const stop$ = action$.pipe(ofType('stop'));
 
   let watcher: ReturnType<typeof chokidar.watch>;
 
-  rx.merge(
-    actionOfType('watch').pipe(
-      op.exhaustMap(
-        ({payload: dirs}) =>
-          new rx.Observable<never>(() => {
-            if (watcher == null)
-              watcher = chokidar.watch(
-                dirs.map(dir => dir.replace(/\\/g, '/')),
-                opts.watcher
-              );
+  r('watch', i.pt.watch.pipe(
+    rx.exhaustMap(([, dirs]) =>
+      new rx.Observable<never>(() => {
+        if (watcher == null)
+          watcher = chokidar.watch(
+            dirs.map(dir => dir.replace(/\\/g, '/')),
+            opts.watcher
+          );
 
-            watcher.on('add', path =>
-              dispatcher.addSourceFile(path, false)
-            );
-            watcher.on('change', path => {
-              void fs.promises.readFile(path, 'utf8')
-                .then(content => {
-                  dispatcher.changeSourceFile(path, content);
-                });
+        watcher.on('add', path => {
+          i.ft.addSourceFile(path, false).dp();
+        });
+        watcher.on('change', path => {
+          void fs.promises.readFile(path, 'utf8')
+            .then(content => {
+              i.ft.changeSourceFile(path, content).dp();
             });
-            return () => {
-              void watcher.close().then(() => {
-                // eslint-disable-next-line no-console
-                console.log('[tsc-util] chokidar watcher stops');
-              });
-            };
-          })
-      )
-    ),
-    actionOfType('addSourceFile').pipe(
-      op.filter(({payload: [file]}) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)),
-      op.map(({payload: [fileName, sync, content]}) => {
-        setState(s => {
-          s.files.add(fileName);
-          s.versions.set(fileName.replace(/\\/g, '/'), 0);
-          if (content != null)
-            s.fileContentCache.set(fileName.replace(/\\/g, '/'), content);
-          return s;
         });
-        if (sync) getEmitFile(fileName);
-        else {
-          setState(s => {
-            s.unemitted.add(fileName);
-            return s;
+        return () => {
+          void watcher.close().then(() => {
+            // eslint-disable-next-line no-console
+            console.log('[tsc-util] chokidar watcher stops');
           });
-          return fileName;
-        }
-      }),
-      op.filter((file): file is string => file != null),
-      op.debounceTime(333),
-      op.map(() => {
-        for (const file of store.getValue().unemitted.values()) {
-          getEmitFile(file);
-        }
-        setState(s => {
-          s.unemitted.clear();
-          return s;
-        });
-      })
-    ),
-    actionOfType('changeSourceFile').pipe(
-      op.filter(({payload: [file]}) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)),
-      // TODO: debounce on same file changes
-      op.map(({payload: [fileName, content]}) => {
-        setState(s => {
-          const normFile = fileName.replace(/\\/g, '/');
-          const version = s.versions.get(normFile);
-          s.versions.set(normFile, (version != null ? version : 0) + 1);
-          if (content != null) {
-            s.fileContentCache.set(normFile, content);
-          }
-          return s;
-        });
-        getEmitFile(fileName);
+        };
       })
     )
-  )
-    .pipe(
-      op.takeUntil(stop$),
-      op.catchError((err, src) => {
-        console.error('Language service error', err);
-        return src;
-      }),
-      op.finalize(() => {
-        setState(s => {
-          s.isStopped = true;
-          return s;
-        });
-      })
-    )
-    .subscribe();
+  ));
 
-  function getEmitFile(fileName: string) {
+  const state$ = rx.combineLatest([outputTable.l.fileChanged, outputTable.l.versionsUpdated,
+    outputTable.l.fileContentCache, outputTable.l.unemittedUpdated]).pipe(
+    rx.map(([[, files], [, versions], [, fileContentCache], [, unemitted]]) => [files, versions, fileContentCache, unemitted] as const)
+  );
+
+  r('addSourceFile', i.pt.addSourceFile.pipe(
+    rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)),
+    rx.switchMap(([m, fileName, sync, content]) => {
+      return state$.pipe(
+        rx.take(1),
+        rx.map(([files, versions, fileContentCache, unemitted]) => {
+          files.add(fileName);
+          versions.set(fileName.replace(/\\/g, '/'), 0);
+          o.ft.fileChanged(files).dp(m);
+          o.ft.versionsUpdated(versions).dp(m);
+          if (content != null) {
+            fileContentCache.set(fileName.replace(/\\/g, '/'), content);
+            o.ft.fileContentCache(fileContentCache).dp(m);
+          }
+          if (sync) getEmitFile(fileName, m);
+          else {
+            unemitted.add([fileName, m.i]);
+            o.ft.unemittedUpdated(unemitted).dp(m);
+            return fileName;
+          }
+        })
+      );
+    }),
+    rx.filter((file): file is string => file != null),
+    rx.debounceTime(333),
+    rx.withLatestFrom(outputTable.l.unemittedUpdated),
+    rx.map(([, [, unemitted]]) => {
+      for (const [file, id] of unemitted.values()) {
+        getEmitFile(file, {i: id});
+      }
+      o.ft.unemittedUpdated(unemitted).dp();
+    })
+  ));
+
+  r('changeSourceFile', i.pt.changeSourceFile.pipe(
+    rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)),
+    rx.withLatestFrom(outputTable.l.versionsUpdated,
+      outputTable.l.fileContentCache),
+    // TODO: debounce on same file changes
+    op.map(([[m, fileName, content], [, versions], [, fileContentCache]]) => {
+      const normFile = fileName.replace(/\\/g, '/');
+      const version = versions.get(normFile);
+      versions.set(normFile, (version != null ? version : 0) + 1);
+      o.ft.versionsUpdated(versions).dp(m);
+      if (content != null) {
+        fileContentCache.set(normFile, content);
+        o.ft.fileContentCache(fileContentCache).dp(m);
+      }
+      getEmitFile(fileName, m);
+    })
+  ));
+
+  r('stop', i.pt.stop.pipe(
+    rx.tap(([m]) => {
+      o.ft.setStopped(true).dp(m);
+      rc.dispose();
+    })
+  ));
+
+  o.ft.setStopped(false).dp();
+  o.ft.fileContentCache(new Map()).dp();
+  o.ft.versionsUpdated(new Map()).dp();
+  o.ft.unemittedUpdated(new Set()).dp();
+  o.ft.fileChanged(new Set()).dp();
+
+  function getEmitFile(fileName: string, meta: ActionMeta) {
     if (services == null) {
       services = ts0.createLanguageService(serviceHost, documentRegistry);
       const coDiag = services.getCompilerOptionsDiagnostics();
       if (coDiag.length > 0)
-        dispatcher.onEmitFailure(
+        o.ft.onEmitFailure(
           fileName,
           ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost),
           'compilerOptions'
-        );
+        ).dp(meta);
     }
     const output = services.getEmitOutput(fileName);
     if (output.emitSkipped) {
@@ -374,20 +378,20 @@ export function languageServices( ts: any = _ts, opts: {
 
     const syntDiag = services.getSyntacticDiagnostics(fileName);
     if (syntDiag.length > 0) {
-      dispatcher.onEmitFailure(
+      o.ft.onEmitFailure(
         fileName,
         ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost),
         'syntactic'
-      );
+      ).dp(meta);
     }
     const semanticDiag = services.getSemanticDiagnostics(fileName);
 
     if (semanticDiag.length > 0) {
-      dispatcher.onEmitFailure(
+      o.ft.onEmitFailure(
         fileName,
         ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost),
         'semantic'
-      );
+      ).dp(meta);
     }
 
     const suggests = services.getSuggestionDiagnostics(fileName);
@@ -396,30 +400,34 @@ export function languageServices( ts: any = _ts, opts: {
       const {line, character} = sug.file.getLineAndCharacterOfPosition(
         sug.start
       );
-      dispatcher.onSuggest(
+      o.ft.onSuggest(
         fileName,
         `${fileName}:${line + 1}:${character + 1} ` +
           ts0.flattenDiagnosticMessageText(sug.messageText, '\n', 2)
-      );
+      ).dp(meta);
     }
 
-    output.outputFiles.forEach(o => {
-      dispatcher.emitFile(o.name, o.text);
+    output.outputFiles.forEach(file => {
+      o.ft.emitFile(file.name, file.text).dp(meta);
     });
   }
 
-  return {
-    dispatcher,
-    dispatchFactory,
-    action$,
-    ofType,
-    store: store.pipe(op.map(s => s.files))
-  };
+  return rc;
 }
 
 export function registerNode() {
   const compile = createTranspileFileWithTsCheck(_ts, {
-    tscOpts: {inlineSourceMap: true, basePath: plinkEnv.workDir}
+    tscOpts: {
+      inlineSourceMap: true, basePath: plinkEnv.workDir,
+      changeCompilerOptions(co) {
+        co.preserveSymlinks = true;
+        setTsCompilerOptForNodePath(process.cwd(), plinkEnv.workDir, co, {
+          workspaceDir: plinkEnv.workDir,
+          enableTypeRoots: true,
+          realPackagePaths: true
+        });
+      }
+    }
   });
   const ext = '.ts';
   const old = require.extensions[ext] || require.extensions['.js'];
@@ -439,12 +447,9 @@ export function registerNode() {
 }
 
 export function test(dir: string) {
-  const {action$, ofType} = languageServices([dir]);
-  action$
-    .pipe(
-      ofType('emitFile'),
-      // eslint-disable-next-line no-console
-      op.map(({payload: [file]}) => console.log('emit', file))
-    )
-    .subscribe();
+  const {o} = languageServices([dir]);
+  o.pt.emitFile.pipe(
+    // eslint-disable-next-line no-console
+    op.map(([, file]) => console.log('emit', file))
+  ).subscribe();
 }

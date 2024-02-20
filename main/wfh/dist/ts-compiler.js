@@ -1,39 +1,11 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerExtension = exports.transpileAndCheck = exports.transpileSingleTs = exports.jsonToCompilerOptions = exports.readTsConfig = void 0;
-/**
- * Deprecated: use main/wfh/ts/utils/tsc-util.ts instead
- */
+const tslib_1 = require("tslib");
 const fs_1 = require("fs");
-const Path = __importStar(require("path"));
-const ts = __importStar(require("typescript"));
-const chalk_1 = __importDefault(require("chalk"));
+const Path = tslib_1.__importStar(require("path"));
+const ts = tslib_1.__importStar(require("typescript"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const log4js_1 = require("log4js");
 const misc_1 = require("./utils/misc");
 const log = (0, log4js_1.getLogger)('plink.ts-compiler');
@@ -108,7 +80,7 @@ class TsCompiler {
             },
             readDirectory: compilerHost.readDirectory,
             getDirectories: compilerHost.getDirectories,
-            directoryExists: ts.sys.directoryExists,
+            directoryExists: ts.sys.directoryExists, // debuggable('directoryExists', compilerHost.directoryExists),
             realpath: compilerHost.realpath // debuggable('realpath', compilerHost.realpath),
         };
         this.langService = ts.createLanguageService(serviceHost, ts.createDocumentRegistry());
@@ -190,51 +162,4 @@ function registerExtension(ext, compilerOpt) {
     };
 }
 exports.registerExtension = registerExtension;
-// export function testCompiler(file: string) {
-//   const fs = require('fs');
-//   console.log(file);
-//   const compilerOpt = {
-//     baseUrl: '.',
-//     outDir: '',
-//     declaration: true,
-//     module: 'commonjs',
-//     target: 'es2015',
-//     noImplicitAny: true,
-//     suppressImplicitAnyIndexErrors: true,
-//     allowSyntheticDefaultImports: true,
-//     esModuleInterop: true,
-//     inlineSourceMap: false,
-//     inlineSources: true,
-//     moduleResolution: 'node',
-//     experimentalDecorators: true,
-//     emitDecoratorMetadata: true,
-//     noUnusedLocals: true,
-//     preserveSymlinks: false,
-//     downlevelIteration: false,
-//     strictNullChecks: true,
-//     resolveJsonModule: true,
-//     diagnostics: true,
-//     lib: [ 'es2016', 'es2015', 'dom' ],
-//     pretty: true,
-//     rootDir: '..',
-//     importHelpers: true,
-//     skipLibCheck: true,
-//     sourceMap: true,
-//     emitDeclarationOnly: false,
-//     paths: {
-//       '*': [
-//         '../node_modules/@types/*',
-//         'node_modules/@types/*',
-//         'node_modules/*',
-//         '../node_modules/*'
-//       ]
-//     },
-//     typeRoots: [
-//       '/Users/liujing/bk/mytool/node_modules/@types'
-//       //'./node_modules/@types', '../node_modules/@types'
-//     ]
-//   };
-//   const co = jsonToCompilerOptions(compilerOpt);
-//   transpileAndCheck(fs.readFileSync(file, 'utf8'), file, co);
-// }
 //# sourceMappingURL=ts-compiler.js.map

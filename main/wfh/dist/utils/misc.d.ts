@@ -1,3 +1,4 @@
+/// <reference types="wfh/src/cmd/cfont" />
 import '../node-path';
 import * as cfonts from 'cfonts';
 import Table from 'cli-table3';
@@ -10,7 +11,7 @@ export declare enum WordTokenType {
     eol = 0,
     word = 1,
     tab = 2,
-    eos = 3,
+    eos = 3,// end of sentence
     other = 4
 }
 export declare class WordLexer extends BaseLexer<WordTokenType> {

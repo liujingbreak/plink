@@ -17,9 +17,9 @@ export interface ReplaceTypeValue {
 }
 /** // TODO */
 export declare enum ReplaceType {
-    rq = 0,
-    ima = 1,
-    imp = 2,
+    rq = 0,// require()
+    ima = 1,// import()
+    imp = 2,// import expression
     rs = 3
 }
 export interface RegexSetting extends FactorySetting {

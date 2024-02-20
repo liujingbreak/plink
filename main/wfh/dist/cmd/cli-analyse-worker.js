@@ -1,15 +1,13 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dfsTraverseFiles = exports.Context = void 0;
+const tslib_1 = require("tslib");
 require("source-map-support/register");
-const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
-const module_1 = __importDefault(require("module"));
-const typescript_1 = __importDefault(require("typescript"));
-const ts_ast_query_1 = __importDefault(require("../utils/ts-ast-query"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const fs_1 = tslib_1.__importDefault(require("fs"));
+const module_1 = tslib_1.__importDefault(require("module"));
+const typescript_1 = tslib_1.__importDefault(require("typescript"));
+const ts_ast_query_1 = tslib_1.__importDefault(require("../utils/ts-ast-query"));
 // import {EOL as eol} from 'os';
 const graph_1 = require("../utils/graph");
 const ts_compiler_1 = require("../ts-compiler");
@@ -46,7 +44,7 @@ class Context {
     }
     toPlainObject() {
         return {
-            commonDir: this.commonDir.slice(0, -1),
+            commonDir: this.commonDir.slice(0, -1), // trim last Path.sep
             relativeDepsOutSideDir: Array.from(this.relativeDepsOutSideDir.values()),
             cyclic: this.cyclic,
             canNotResolve: this.canNotResolve,
@@ -112,7 +110,7 @@ function parseFile(q, file, ctx) {
     const deps = [];
     q.walkAst(q.src, [
         {
-            query: '.moduleSpecifier:StringLiteral',
+            query: '.moduleSpecifier:StringLiteral', // Both :ExportDeclaration or :ImportDeclaration
             callback(ast) {
                 const dep = resolve(ast.getText(), file, ctx, ast.getStart(), q.src);
                 if (dep)

@@ -29,7 +29,8 @@ export function createWorkerControl<
     debug: opts?.debug,
     log: !isInWorker ? opts?.log : (...args) => mainPort?.postMessage({type: 'log', p: args}),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    debugExcludeTypes: ['log', 'warn', ...(opts?.debugExcludeTypes ?? [] as any)]
+    debugExcludeTypes: ['log', 'warn', ...(opts?.debugExcludeTypes ?? [] as any)],
+    debugIncludeTypes: opts?.debugIncludeTypes as any[]
   });
 
   const {r, i, o, outputTable} = comp;

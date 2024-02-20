@@ -343,16 +343,18 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string,
   const rootDir = Path.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
   tsjson.compilerOptions = {
     rootDir,
+    baseUrl: workspace,
     // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
     skipLibCheck: false,
     jsx: 'preserve',
-    target: 'es2015',
-    module: 'nodenext',
+    target: 'es2017',
+    // module: 'ESNext', // There is a problem with "NodeNext" with Typescript 5.3.3 and coc-tsserver, the "log4js.Logger" type being exported from @wfh/plink can not be recoganized by consumer TS file
+    // moduleResolution: 'node10', // Same as above, "bunder" or "NodeNext" have problem along with "module" setting with "NodeNext"
     strict: true,
     declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
     paths: extraPathMapping
   };
-  setTsCompilerOptForNodePath(proj, proj, tsjson.compilerOptions, {
+  setTsCompilerOptForNodePath(proj, workspace, tsjson.compilerOptions, {
     workspaceDir: workspace,
     enableTypeRoots: true,
     realPackagePaths: true

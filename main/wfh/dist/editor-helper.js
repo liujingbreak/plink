@@ -1,46 +1,21 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getStore = exports.getState = exports.getAction$ = exports.dispatcher = void 0;
+const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable max-len */
-const path_1 = __importDefault(require("path"));
-const fs = __importStar(require("fs-extra"));
-const lodash_1 = __importDefault(require("lodash"));
-const log4js_1 = __importDefault(require("log4js"));
-const chalk_1 = __importDefault(require("chalk"));
-const rx = __importStar(require("rxjs"));
-const op = __importStar(require("rxjs/operators"));
-const typescript_1 = __importDefault(require("typescript"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const fs = tslib_1.__importStar(require("fs-extra"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const rx = tslib_1.__importStar(require("rxjs"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
+const typescript_1 = tslib_1.__importDefault(require("typescript"));
 const package_list_helper_1 = require("./package-mgr/package-list-helper");
 const package_mgr_1 = require("./package-mgr");
 const store_1 = require("./store");
-const _recp = __importStar(require("./recipe-manager"));
+const _recp = tslib_1.__importStar(require("./recipe-manager"));
 const rwPackageJson_1 = require("./rwPackageJson");
 const config_1 = require("./config");
 const misc_1 = require("./utils/misc");
@@ -234,7 +209,7 @@ function writePackageSettingType() {
     const done = new Array((0, package_mgr_1.getState)().workspaces.size);
     let i = 0;
     for (const wsKey of (0, package_mgr_1.getState)().workspaces.keys()) {
-        let header = 'import \'@wfh/plink\';';
+        let header = 'import \'@wfh/plink\';'; // Important, make sure Ts knows that @wfh/plink iexists
         // let body = 'export interface PackagesConfig {\n';
         let interfaceBody = 'declare module \'@wfh/plink\' {\n';
         interfaceBody += '  interface PlinkSettings {\n';
@@ -285,16 +260,18 @@ function createTsConfig(proj, srcRootDir, workspace, extraPathMapping, include =
     const rootDir = path_1.default.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
     tsjson.compilerOptions = {
         rootDir,
+        baseUrl: workspace,
         // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
         skipLibCheck: false,
         jsx: 'preserve',
-        target: 'es2015',
-        module: 'nodenext',
+        target: 'es2017',
+        // module: 'ESNext', // There is a problem with "NodeNext" with Typescript 5.3.3 and coc-tsserver, the "log4js.Logger" type being exported from @wfh/plink can not be recoganized by consumer TS file
+        // moduleResolution: 'node10', // Same as above, "bunder" or "NodeNext" have problem along with "module" setting with "NodeNext"
         strict: true,
-        declaration: false,
+        declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
         paths: extraPathMapping
     };
-    (0, package_list_helper_1.setTsCompilerOptForNodePath)(proj, proj, tsjson.compilerOptions, {
+    (0, package_list_helper_1.setTsCompilerOptForNodePath)(proj, workspace, tsjson.compilerOptions, {
         workspaceDir: workspace,
         enableTypeRoots: true,
         realPackagePaths: true

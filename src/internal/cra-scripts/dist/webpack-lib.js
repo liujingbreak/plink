@@ -9,8 +9,10 @@ const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const utils_1 = require("./utils");
 const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-lib');
 const MODULE_NAME_PAT = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const MiniCssExtractPlugin = require(path_1.default.resolve('node_modules/mini-css-extract-plugin'));
 function change(packageTarget, config) {
+    var _a;
     const { realPath: pkDir } = packageTarget;
     if (Array.isArray(config.entry)) {
         config.entry = config.entry.filter(item => !/[\\/]react-dev-utils[\\/]webpackHotDevClient/.test(item));
@@ -19,7 +21,7 @@ function change(packageTarget, config) {
     config.output.filename = 'lib-bundle.js';
     config.output.libraryTarget = 'umd';
     config.optimization.runtimeChunk = false;
-    if (config.optimization && config.optimization.splitChunks) {
+    if ((_a = config.optimization) === null || _a === void 0 ? void 0 : _a.splitChunks) {
         config.optimization.splitChunks = {
             cacheGroups: { default: false }
         };

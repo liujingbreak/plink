@@ -1,6 +1,6 @@
 {
   "name": "@wfh/plink",
-  "version": "0.13.1-3",
+  "version": "0.13.1-4",
   "description": "Plink - A monorepo management tool links packages and projects, configures tsconfig.json for symlinks, provides command line extension ability",
   "main": "wfh/dist/index.js",
   "types": "wfh/dist/index.d.ts",

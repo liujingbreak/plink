@@ -1,4 +1,4 @@
-///<reference path="./module-declare.d.ts" />
+/// <reference path="./module-declare.d.ts" />
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 import Path from 'path';
 import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
@@ -147,11 +147,21 @@ export default function(webpackEnv: 'production' | 'development') {
     })());
 
     const htmlWebpackPluginConstrutor = getPluginConstructor('html-webpack-plugin'); // require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
-    const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as {userOptions: HtmlWebpackPluginOptions};
-    htmlWebpackPluginInstance.userOptions.templateParameters = {
-      _config: plinkConfig(),
-      _dllJsFiles: dllJsFiles.map(p => config.output!.publicPath + p)
+    const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as
+      {
+        userOptions: HtmlWebpackPluginOptions;
+        options?: HtmlWebpackPluginOptions;
+      };
+    const targetOpts = htmlWebpackPluginInstance.options ?? htmlWebpackPluginInstance.userOptions;
+    const originTemplFn = typeof targetOpts.templateParameters === 'function' ? targetOpts.templateParameters : () => {};
+    targetOpts.templateParameters = (...args) => {
+      return {
+        ...originTemplFn(...args),
+        _config: plinkConfig(),
+        _dllJsFiles: dllJsFiles.map(p => config.output!.publicPath + p)
+      };
     };
+    // console.log('----------------------------->>>>>>>>> debug', htmlWebpackPluginInstance);
     setupSplitChunks(config, (mod) => {
       const file = mod.resource ?? null;
       if (file == null)
@@ -182,11 +192,12 @@ export default function(webpackEnv: 'production' | 'development') {
   }
   const rules = [...config.module?.rules ?? []]; // BFS array contains both RuleSetRule and RuleSetUseItem
 
-  for (const rule of rules) {
-    if (typeof rule !== 'string') {
-      if (rule.oneOf) {
-        rules.push(...rule.oneOf);
-      } else if (Array.isArray(rule.use)) {
+  for (const ruleItem of rules) {
+    if (typeof ruleItem !== 'string') {
+      const rule = ruleItem as RuleSetRule;
+      if ((rule ).oneOf) {
+        rules.push(...rule.oneOf as any[]);
+      } else if (Array.isArray((rule ).use)) {
         rules.push(...rule.use as any); // In factor rule.use is RuleSetUseItem not RuleSetRule
       } else if (rule.loader) {
         const appSrc = Path.join(plinkEnv.workDir, 'src');

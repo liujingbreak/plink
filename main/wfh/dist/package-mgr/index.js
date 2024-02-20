@@ -2,42 +2,18 @@
 /**
  * Unfortunately, this file is very long, you need to fold by indention for better view of source code in Editor
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPackageInfo = exports.installInDir = exports.switchCurrentWorkspace = exports.isCwdWorkspace = exports.getProjectList = exports.getPackagesOfProjects = exports.workspaceDir = exports.workspaceKey = exports.projKeyToPath = exports.pathToProjKey = exports.getStore = exports.getState = exports.onLinkedPackageAdded = exports.updateGitIgnores = exports.actionDispatcher = exports.slice = void 0;
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
+const tslib_1 = require("tslib");
+const fs_1 = tslib_1.__importDefault(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const os_1 = require("os");
-const chalk_1 = __importDefault(require("chalk"));
-const fs_extra_1 = __importDefault(require("fs-extra"));
-const lodash_1 = __importDefault(require("lodash"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
+const rx = tslib_1.__importStar(require("rxjs"));
+const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const rxjs_1 = require("rxjs");
-const operators_1 = require("rxjs/operators");
+const rxjs_2 = require("rxjs");
 const log4js_1 = require("log4js");
 const transitive_dep_hoister_1 = require("../transitive-dep-hoister");
 const process_utils_1 = require("../process-utils");
@@ -45,7 +21,7 @@ const recipe_manager_1 = require("../recipe-manager");
 const store_1 = require("../store");
 const helper_1 = require("../../../packages/redux-toolkit-observable/dist/helper");
 // import { getRootDir } from '../utils/misc';
-const symlinks_1 = __importStar(require("../utils/symlinks"));
+const symlinks_1 = tslib_1.__importStar(require("../utils/symlinks"));
 const rwPackageJson_1 = require("../rwPackageJson");
 const misc_1 = require("../utils/misc");
 const log = (0, log4js_1.getLogger)('plink.package-mgr');
@@ -112,7 +88,7 @@ exports.slice = store_1.stateFactory.newSlice({
                 map.set(pkInfo.name, pkInfo);
             }
         },
-        onLinkedPackageAdded(d, action) { },
+        onLinkedPackageAdded(_d, _action) { },
         addProject(d, action) {
             for (const rawDir of action.payload) {
                 const dir = pathToProjKey(rawDir);
@@ -308,12 +284,12 @@ store_1.stateFactory.addEpic((action$, state$) => {
     (0, rxjs_1.defer)(() => {
         process.nextTick(() => exports.actionDispatcher._updatePlinkPackageInfo());
         return rxjs_1.EMPTY;
-    }), getStore().pipe((0, operators_1.map)(s => s.project2Packages), (0, operators_1.distinctUntilChanged)(), (0, operators_1.map)(pks => {
+    }), getStore().pipe((0, rxjs_2.map)(s => s.project2Packages), (0, rxjs_2.distinctUntilChanged)(), (0, rxjs_2.map)(pks => {
         (0, recipe_manager_1.setProjectList)(getProjectList());
         return pks;
-    }), (0, operators_1.ignoreElements)()), getStore().pipe((0, operators_1.map)(s => s.srcDir2Packages), (0, operators_1.distinctUntilChanged)(), (0, operators_1.filter)(v => v != null), (0, operators_1.map)((linkPatternMap) => {
+    }), (0, rxjs_2.ignoreElements)()), getStore().pipe((0, rxjs_2.map)(s => s.srcDir2Packages), (0, rxjs_2.distinctUntilChanged)(), (0, rxjs_2.filter)(v => v != null), (0, rxjs_2.map)((linkPatternMap) => {
         (0, recipe_manager_1.setLinkPatterns)(linkPatternMap.keys());
-    })), getStore().pipe((0, operators_1.map)(s => s.srcPackages), (0, operators_1.distinctUntilChanged)(), (0, operators_1.scan)((prevMap, currMap) => {
+    })), getStore().pipe((0, rxjs_2.map)(s => s.srcPackages), (0, rxjs_2.distinctUntilChanged)(), (0, rxjs_2.scan)((prevMap, currMap) => {
         packageAddedList.splice(0);
         for (const nm of currMap.keys()) {
             if (!prevMap.has(nm)) {
@@ -325,7 +301,7 @@ store_1.stateFactory.addEpic((action$, state$) => {
         return currMap;
     })), 
     //  updateWorkspace
-    actionByTypes.updateWorkspace.pipe((0, operators_1.concatMap)(({ payload: { dir, isForce, useNpmCi, packageJsonFiles } }) => {
+    actionByTypes.updateWorkspace.pipe((0, rxjs_2.concatMap)(({ payload: { dir, isForce, useNpmCi, packageJsonFiles } }) => {
         dir = path_1.default.resolve(dir);
         exports.actionDispatcher._setCurrentWorkspace(dir);
         maybeCopyTemplate(path_1.default.resolve(__dirname, '../../templates/app-template.js'), path_1.default.resolve(dir, 'app.js'));
@@ -349,9 +325,9 @@ store_1.stateFactory.addEpic((action$, state$) => {
         // call initRootDirectory() and wait for it finished by observing action '_syncLinkedPackages',
         // then call _hoistWorkspaceDeps
         return (0, rxjs_1.merge)(packageJsonFiles != null ? scanAndSyncPackages(packageJsonFiles) :
-            (0, rxjs_1.defer)(() => (0, rxjs_1.of)(initRootDirectory())), action$.pipe((0, store_1.ofPayloadAction)(exports.slice.actions._syncLinkedPackages), (0, operators_1.take)(1), (0, operators_1.map)(() => exports.actionDispatcher._hoistWorkspaceDeps({ dir }))));
-    })), actionByTypes.scanAndSyncPackages.pipe((0, operators_1.concatMap)(({ payload }) => {
-        return (0, rxjs_1.merge)(scanAndSyncPackages(payload.packageJsonFiles), action$.pipe((0, store_1.ofPayloadAction)(exports.slice.actions._syncLinkedPackages), (0, operators_1.take)(1), (0, operators_1.tap)(() => {
+            (0, rxjs_1.defer)(() => (0, rxjs_1.of)(initRootDirectory())), action$.pipe((0, store_1.ofPayloadAction)(exports.slice.actions._syncLinkedPackages), (0, rxjs_2.take)(1), (0, rxjs_2.map)(() => exports.actionDispatcher._hoistWorkspaceDeps({ dir }))));
+    })), actionByTypes.scanAndSyncPackages.pipe((0, rxjs_2.concatMap)(({ payload }) => {
+        return (0, rxjs_1.merge)(scanAndSyncPackages(payload.packageJsonFiles), action$.pipe((0, store_1.ofPayloadAction)(exports.slice.actions._syncLinkedPackages), (0, rxjs_2.take)(1), (0, rxjs_2.tap)(() => {
             const currWs = getState().currWorkspace;
             for (const wsKey of getState().workspaces.keys()) {
                 if (wsKey !== currWs)
@@ -364,7 +340,7 @@ store_1.stateFactory.addEpic((action$, state$) => {
         })));
     })), 
     // initRootDir
-    actionByTypes.initRootDir.pipe((0, operators_1.map)(({ payload }) => {
+    actionByTypes.initRootDir.pipe((0, rxjs_2.map)(({ payload }) => {
         checkAllWorkspaces();
         if (getState().workspaces.has(workspaceKey(misc_1.plinkEnv.workDir))) {
             exports.actionDispatcher.updateWorkspace(Object.assign({ dir: misc_1.plinkEnv.workDir }, payload));
@@ -381,21 +357,21 @@ store_1.stateFactory.addEpic((action$, state$) => {
                 }
             }
         }
-    })), actionByTypes._hoistWorkspaceDeps.pipe((0, operators_1.map)(({ payload }) => {
+    })), actionByTypes._hoistWorkspaceDeps.pipe((0, rxjs_2.map)(({ payload }) => {
         const wsKey = workspaceKey(payload.dir);
         // actionDispatcher.onWorkspacePackageUpdated(wsKey);
         deleteDuplicatedInstalledPkg(wsKey);
         setImmediate(() => exports.actionDispatcher.workspaceStateUpdated(wsKey));
-    })), actionByTypes.updateDir.pipe((0, operators_1.tap)(() => exports.actionDispatcher._updatePlinkPackageInfo()), (0, operators_1.concatMap)(() => scanAndSyncPackages()), (0, operators_1.tap)(() => {
+    })), actionByTypes.updateDir.pipe((0, rxjs_2.tap)(() => exports.actionDispatcher._updatePlinkPackageInfo()), (0, rxjs_2.concatMap)(() => scanAndSyncPackages()), (0, rxjs_2.tap)(() => {
         for (const key of getState().workspaces.keys()) {
             updateInstalledPackageForWorkspace(key);
         }
     })), 
     // Handle newly added workspace
-    getStore().pipe((0, operators_1.map)(s => s.workspaces), (0, operators_1.distinctUntilChanged)(), (0, operators_1.map)(ws => {
+    getStore().pipe((0, rxjs_2.map)(s => s.workspaces), (0, rxjs_2.distinctUntilChanged)(), (0, rxjs_2.map)(ws => {
         const keys = Array.from(ws.keys());
         return keys;
-    }), (0, operators_1.scan)((prev, curr) => {
+    }), (0, rxjs_2.scan)((prev, curr) => {
         if (prev.length < curr.length) {
             const newAdded = lodash_1.default.difference(curr, prev);
             // eslint-disable-next-line no-console
@@ -410,7 +386,7 @@ store_1.stateFactory.addEpic((action$, state$) => {
     ...Array.from(getState().workspaces.keys()).map(key => {
         return getStore().pipe(
         // filter(s => s.workspaces.has(key)),
-        (0, operators_1.takeWhile)(s => s.workspaces.has(key)), (0, operators_1.map)(s => s.workspaces.get(key)), (0, operators_1.distinctUntilChanged)((s1, s2) => s1.installJson === s2.installJson), (0, operators_1.scan)((old, newWs) => {
+        (0, rxjs_2.takeWhile)(s => s.workspaces.has(key)), (0, rxjs_2.map)(s => s.workspaces.get(key)), (0, rxjs_2.distinctUntilChanged)((s1, s2) => s1.installJson === s2.installJson), (0, rxjs_2.scan)((old, newWs) => {
             /* eslint-disable max-len */
             const newDeps = Object.entries(newWs.installJson.dependencies || [])
                 .concat(Object.entries(newWs.installJson.devDependencies || []))
@@ -440,40 +416,40 @@ store_1.stateFactory.addEpic((action$, state$) => {
     }), 
     // _workspaceBatchChanged will trigger creating symlinks, but meanwhile _installWorkspace will delete symlinks.
     // To avoid them from running simultaneously.
-    (0, rxjs_1.merge)(actionByTypes._workspaceBatchChanged, actionByTypes._installWorkspace).pipe((0, operators_1.concatMap)(action => {
+    (0, rxjs_1.merge)(actionByTypes._workspaceBatchChanged, actionByTypes._installWorkspace).pipe((0, rxjs_2.concatMap)(action => {
         if ((0, helper_1.isActionOfCreator)(action, exports.slice.actions._installWorkspace)) {
             const wsKey = action.payload.workspaceKey;
-            return getStore().pipe((0, operators_1.map)(s => s.workspaces.get(wsKey)), (0, operators_1.distinctUntilChanged)(), (0, operators_1.filter)(ws => ws != null), (0, operators_1.take)(1), (0, operators_1.concatMap)(ws => {
+            return getStore().pipe((0, rxjs_2.map)(s => s.workspaces.get(wsKey)), (0, rxjs_2.distinctUntilChanged)(), (0, rxjs_2.filter)(ws => ws != null), (0, rxjs_2.take)(1), (0, rxjs_2.concatMap)(ws => {
                 return installWorkspace(ws, getState().npmInstallOpt);
-            }), (0, operators_1.map)(() => {
+            }), (0, rxjs_2.map)(() => {
                 updateInstalledPackageForWorkspace(wsKey);
-            }), (0, operators_1.ignoreElements)());
+            }), (0, rxjs_2.ignoreElements)());
         }
         else if ((0, helper_1.isActionOfCreator)(action, exports.slice.actions._workspaceBatchChanged)) {
             const wsKeys = action.payload;
-            return (0, rxjs_1.merge)(...wsKeys.map(_createSymlinksForWorkspace)).pipe((0, operators_1.finalize)(() => exports.actionDispatcher.workspaceChanged(wsKeys)));
+            return (0, rxjs_1.merge)(...wsKeys.map(_createSymlinksForWorkspace)).pipe((0, rxjs_2.finalize)(() => exports.actionDispatcher.workspaceChanged(wsKeys)));
         }
         else {
             return rxjs_1.EMPTY;
         }
     })), 
     // something is newly installed or changed in workspace node_modules
-    actionByTypes.workspaceStateUpdated.pipe((0, operators_1.map)(action => updatedWorkspaceSet.add(action.payload)), (0, operators_1.debounceTime)(800), (0, operators_1.tap)(() => {
+    actionByTypes.workspaceStateUpdated.pipe((0, rxjs_2.map)(action => updatedWorkspaceSet.add(action.payload)), (0, rxjs_2.debounceTime)(800), (0, rxjs_2.tap)(() => {
         exports.actionDispatcher._workspaceBatchChanged(Array.from(updatedWorkspaceSet.values()));
         updatedWorkspaceSet.clear();
-    }), (0, operators_1.map)(() => {
+    }), (0, rxjs_2.map)(() => {
         exports.actionDispatcher.packagesUpdated();
-    })), actionByTypes.updateGitIgnores.pipe((0, operators_1.tap)(action => {
+    })), actionByTypes.updateGitIgnores.pipe((0, rxjs_2.tap)(action => {
         let rel = action.payload.file;
         if (path_1.default.isAbsolute(rel)) {
             rel = path_1.default.relative(rootDir, rel).replace(/\\/g, '/');
         }
         gitIgnoreFilesWaiting.add(rel);
-    }), (0, operators_1.debounceTime)(500), (0, operators_1.map)(() => {
+    }), (0, rxjs_2.debounceTime)(500), (0, rxjs_2.map)(() => {
         const changedFiles = [...gitIgnoreFilesWaiting.values()];
         gitIgnoreFilesWaiting.clear();
         return changedFiles;
-    }), (0, operators_1.concatMap)((changedFiles) => {
+    }), (0, rxjs_2.concatMap)((changedFiles) => {
         return (0, rxjs_1.merge)(...changedFiles.map(async (rel) => {
             const file = path_1.default.resolve(rootDir, rel);
             const lines = getState().gitIgnores[file];
@@ -489,7 +465,7 @@ store_1.stateFactory.addEpic((action$, state$) => {
                 });
             }
         }));
-    }), (0, operators_1.ignoreElements)()), action$.pipe((0, store_1.ofPayloadAction)(exports.slice.actions.addProject, exports.slice.actions.deleteProject), (0, operators_1.concatMap)(() => scanAndSyncPackages())), action$.pipe((0, store_1.ofPayloadAction)(exports.slice.actions.addSrcDirs, exports.slice.actions.deleteSrcDirs), (0, operators_1.concatMap)(() => scanAndSyncPackages()))).pipe((0, operators_1.ignoreElements)(), (0, operators_1.catchError)(err => {
+    }), (0, rxjs_2.ignoreElements)()), action$.pipe((0, store_1.ofPayloadAction)(exports.slice.actions.addProject, exports.slice.actions.deleteProject), (0, rxjs_2.concatMap)(() => scanAndSyncPackages())), action$.pipe((0, store_1.ofPayloadAction)(exports.slice.actions.addSrcDirs, exports.slice.actions.deleteSrcDirs), (0, rxjs_2.concatMap)(() => scanAndSyncPackages()))).pipe((0, rxjs_2.ignoreElements)(), (0, rxjs_2.catchError)(err => {
         log.error(err.stack ? err.stack : err);
         return (0, rxjs_1.throwError)(err);
     }));
@@ -704,7 +680,7 @@ async function copyNpmrcToWorkspace(workspaceDir) {
     const target = path_1.default.resolve(workspaceDir, '.npmrc');
     if (fs_1.default.existsSync(target))
         return;
-    const isChina = await getStore().pipe((0, operators_1.map)(s => s.isInChina), (0, operators_1.distinctUntilChanged)(), (0, operators_1.filter)(cn => cn != null), (0, operators_1.take)(1)).toPromise();
+    const isChina = await getStore().pipe((0, rxjs_2.map)(s => s.isInChina), (0, rxjs_2.distinctUntilChanged)(), (0, rxjs_2.filter)(cn => cn != null), (0, rxjs_2.take)(1)).toPromise();
     if (isChina) {
         // eslint-disable-next-line no-console
         log.info('create .npmrc to', target);
@@ -752,10 +728,10 @@ async function scanAndSyncPackages(includePackageJsonFiles) {
         exports.actionDispatcher._syncLinkedPackages([pkgList, 'update']);
     }
     else {
-        const rm = (await Promise.resolve().then(() => __importStar(require('../recipe-manager'))));
+        const rm = (await import('../recipe-manager.js'));
         pkgList = [];
         exports.actionDispatcher._clearProjAndSrcDirPkgs();
-        await rm.scanPackages().pipe((0, operators_1.tap)(([proj, jsonFile, srcDir]) => {
+        await rx.lastValueFrom(rm.scanPackages().pipe((0, rxjs_2.tap)(([proj, jsonFile, srcDir]) => {
             if (proj && !projPkgMap.has(proj))
                 projPkgMap.set(proj, []);
             if (proj == null && srcDir && !srcPkgMap.has(srcDir))
@@ -774,7 +750,7 @@ async function scanAndSyncPackages(includePackageJsonFiles) {
             else {
                 log.debug(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`, info.json);
             }
-        })).toPromise();
+        })));
         // log.warn(projPkgMap, srcPkgMap);
         for (const [prj, pkgs] of projPkgMap.entries()) {
             exports.actionDispatcher._associatePackageToPrj({ prj, pkgs });
@@ -807,13 +783,13 @@ function _createSymlinksForWorkspace(wsKey) {
         });
     }
     const symlinksToCreate = (0, rxjs_1.from)(Array.from(pkgNameSet.values())) // Important, do not use pkgNameSet iterable, it will be changed before subscription
-        .pipe((0, operators_1.map)(name => {
+        .pipe((0, rxjs_2.map)(name => {
         const pkg = getState().srcPackages.get(name) || ws.installedComponents.get(name);
         if (pkg == null) {
             log.warn(`Missing package information of ${name}, please run "Plink sync ${wsKey}" again to sync Plink state`);
         }
         return pkg;
-    }), (0, operators_1.filter)(pkg => pkg != null));
+    }), (0, rxjs_2.filter)(pkg => pkg != null));
     if (rootDir === workspaceDir(wsKey)) {
         const plinkPkg = getState().linkedDrcp || getState().installedDrcp;
         if (plinkPkg) {

@@ -7,11 +7,12 @@ import Path from 'path';
 import {EOL} from 'os';
 import {PayloadAction} from '@reduxjs/toolkit';
 import chalk from 'chalk';
+import * as rx from 'rxjs';
 import fsext from 'fs-extra';
 import _ from 'lodash';
 import {from, merge, Observable, of, defer, throwError, EMPTY} from 'rxjs';
 import {distinctUntilChanged, filter, map, debounceTime, takeWhile,
-  take, concatMap, ignoreElements, scan, catchError, tap, finalize} from 'rxjs/operators';
+  take, concatMap, ignoreElements, scan, catchError, tap, finalize} from 'rxjs';
 import {getLogger} from 'log4js';
 import {listCompDependency, PackageJsonInterf, DependentInfo} from '../transitive-dep-hoister';
 import {exe} from '../process-utils';
@@ -187,7 +188,7 @@ export const slice = stateFactory.newSlice({
         map.set(pkInfo.name, pkInfo);
       }
     },
-    onLinkedPackageAdded(d, action: PayloadAction<string[]>) {},
+    onLinkedPackageAdded(_d, _action: PayloadAction<string[]>) {},
     addProject(d, action: PayloadAction<string[]>) {
       for (const rawDir of action.payload) {
         const dir = pathToProjKey(rawDir);
@@ -290,28 +291,27 @@ export const slice = stateFactory.newSlice({
       const wsKey = workspaceKey(dir);
       const {hoisted: hoistedDeps, hoistedPeers: hoistPeerDepInfo,
         hoistedDev: hoistedDevDeps, hoistedDevPeers: devHoistPeerDepInfo
-      } =
-        listCompDependency(
-          state.srcPackages, wsKey, pkjson.dependencies || {}, pkjson.devDependencies
+      } = listCompDependency(
+        state.srcPackages, wsKey, pkjson.dependencies || {}, pkjson.devDependencies
       );
 
       const installJson: PackageJsonInterf = {
         ...pkjson,
         dependencies: Array.from(hoistedDeps.entries())
-        .concat(Array.from(hoistPeerDepInfo.entries()).filter(item => !item[1].missing))
-        .filter(([name]) => !isDrcpSymlink || name !== '@wfh/plink')
-        .reduce((dic, [name, info]) => {
-          dic[name] = info.by[0].ver;
-          return dic;
-        }, {} as {[key: string]: string}),
+          .concat(Array.from(hoistPeerDepInfo.entries()).filter(item => !item[1].missing))
+          .filter(([name]) => !isDrcpSymlink || name !== '@wfh/plink')
+          .reduce((dic, [name, info]) => {
+            dic[name] = info.by[0].ver;
+            return dic;
+          }, {} as {[key: string]: string}),
 
         devDependencies: Array.from(hoistedDevDeps.entries())
-        .concat(Array.from(devHoistPeerDepInfo.entries()).filter(item => !item[1].missing))
-        .filter(([name]) => !isDrcpSymlink || name !== '@wfh/plink')
-        .reduce((dic, [name, info]) => {
-          dic[name] = info.by[0].ver;
-          return dic;
-        }, {} as {[key: string]: string})
+          .concat(Array.from(devHoistPeerDepInfo.entries()).filter(item => !item[1].missing))
+          .filter(([name]) => !isDrcpSymlink || name !== '@wfh/plink')
+          .reduce((dic, [name, info]) => {
+            dic[name] = info.by[0].ver;
+            return dic;
+          }, {} as {[key: string]: string})
       };
 
       // log.warn(installJson);
@@ -775,7 +775,7 @@ async function initRootDirectory() {
   // maybeCopyTemplate(Path.resolve(__dirname, '../../templates/config.local-template.yaml'), Path.join(distDir, 'config.local.yaml'));
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates/log4js.js'), rootPath + '/log4js.js');
   maybeCopyTemplate(Path.resolve(__dirname, '../../templates',
-      'gitignore.txt'), rootDir + '/.gitignore');
+    'gitignore.txt'), rootDir + '/.gitignore');
   await cleanInvalidSymlinks();
   await scanAndSyncPackages();
   // await _deleteUselessSymlink(Path.resolve(rootDir, 'node_modules'), new Set<string>());
@@ -905,9 +905,9 @@ async function copyNpmrcToWorkspace(workspaceDir: string) {
     return;
   const isChina = await getStore().pipe(
     map(s => s.isInChina), distinctUntilChanged(),
-      filter(cn => cn != null),
-      take(1)
-    ).toPromise();
+    filter(cn => cn != null),
+    take(1)
+  ).toPromise();
 
   if (isChina) {
     // eslint-disable-next-line no-console
@@ -955,10 +955,10 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
     });
     actionDispatcher._syncLinkedPackages([pkgList, 'update']);
   } else {
-    const rm = (await import('../recipe-manager'));
+    const rm = (await import('../recipe-manager.js'));
     pkgList = [];
     actionDispatcher._clearProjAndSrcDirPkgs();
-    await rm.scanPackages().pipe(
+    await rx.lastValueFrom(rm.scanPackages().pipe(
       tap(([proj, jsonFile, srcDir]) => {
         if (proj && !projPkgMap.has(proj))
           projPkgMap.set(proj, []);
@@ -979,7 +979,7 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
           log.debug(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`, info.json);
         }
       })
-    ).toPromise();
+    ));
     // log.warn(projPkgMap, srcPkgMap);
     for (const [prj, pkgs] of projPkgMap.entries()) {
       actionDispatcher._associatePackageToPrj({prj, pkgs});
@@ -995,7 +995,7 @@ async function scanAndSyncPackages(includePackageJsonFiles?: string[]) {
 function _createSymlinksForWorkspace(wsKey: string) {
   if (symlinkDirName !== '.links' && fs.existsSync(Path.resolve(rootDir, wsKey, '.links'))) {
     fsext.remove(Path.resolve(rootDir, wsKey, '.links'))
-    .catch(ex => log.info(ex));
+      .catch(ex => log.info(ex));
   }
   const symlinkDir = Path.resolve(rootDir, wsKey, symlinkDirName || 'node_modules');
   fsext.mkdirpSync(symlinkDir);

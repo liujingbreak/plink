@@ -10,11 +10,22 @@ export type ActionFactory = {
 };
 
 export interface SingleActionFactory {
-  dp(...origActionMeta: ArrayOrTuple<ActionMeta>): void;
-  /** At the moment  this method is called, the message is sent, not the moment thatt the returned
+  dp(...origActionMeta: ArrayOrTuple<ActionMeta | undefined>): void;
+  /** At the moment this method is called, the message is sent, not the moment that the returned
    * observable is subscribed.
-   * Retuened is an observable of ReplaySuvbject(1) */
+   * Retuened is an observable of ReplaySuvbject(1), NOTE: if you are expecting more than one "associated"
+   * responding messages, only first responsive message is recorded by ReplaySubject and returned,
+   * see ddo<F> as alternative
+   **/
   do<F>(waitForAction$: rx.Observable<Action<F>>,
+    origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
+  ): rx.Observable<InferMapParam<F>>;
+
+  /** 
+   * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
+   * responding messages will be recieved
+   */
+  ddo<F>(waitForAction$: rx.Observable<Action<F>>,
     origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ): rx.Observable<InferMapParam<F>>;
 }
@@ -27,11 +38,12 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
     private control: RxController2<I>
   ) {}
 
-  dp(...origActionMeta: ArrayOrTuple<ActionMeta>) {
-    if (origActionMeta.length > 0)
-      return this.control.dispatchForFactory(this.type)(origActionMeta, ...this.payload);
+  dp(...origActionMeta: ArrayOrTuple<ActionMeta | undefined>) {
+    const metas = origActionMeta.filter(m => m != null) as ActionMeta[];
+    if (metas.length > 0)
+      this.control.dispatchForFactory(this.type)(metas, ...this.payload);
     else
-      return this.control.dispatchFactory(this.type)(...this.payload);
+      this.control.dispatchFactory(this.type)(...this.payload);
   }
 
   do<F>(waitForAction$: rx.Observable<Action<F>>,
@@ -42,22 +54,36 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
     if (referActionMeta)
       action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : (referActionMeta as ActionMeta).i;
     const r$ = new rx.ReplaySubject<InferMapParam<F>>(1);
-    rx.merge(
+    this.ddo(waitForAction$, referActionMeta).pipe(
+      rx.take(1)
+    ).subscribe(r$);
+    return r$.asObservable();
+  }
+
+  ddo<F>(waitForAction$: rx.Observable<Action<F>>,
+    referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
+  ) {
+    const action = this.control.createAction(this.type, this.payload);
+
+    if (referActionMeta)
+      action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : (referActionMeta as ActionMeta).i;
+    return rx.merge(
       this.control.doOperator$.pipe(
         rx.take(1),
         rx.switchMap(operator => waitForAction$.pipe(
           operator(action),
           actionRelatedToAction<Action<F>>(action),
-          mapActionToPayload()
+          mapActionToPayload(),
+          rx.take(1)
         ))
       ),
       new rx.Observable<never>(sub => {
         this.control.actionUpstream.next(action);
         sub.complete();
       })
-    ).subscribe(r$);
-    return r$.asObservable();
+    );
   }
+
 }
 
 export class RxController2<I> extends ControllerCore<I> {

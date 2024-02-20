@@ -34,21 +34,28 @@ class SingleActionFactoryImpl {
         this.control = control;
     }
     dp(...origActionMeta) {
-        if (origActionMeta.length > 0)
-            return this.control.dispatchForFactory(this.type)(origActionMeta, ...this.payload);
+        const metas = origActionMeta.filter(m => m != null);
+        if (metas.length > 0)
+            this.control.dispatchForFactory(this.type)(metas, ...this.payload);
         else
-            return this.control.dispatchFactory(this.type)(...this.payload);
+            this.control.dispatchFactory(this.type)(...this.payload);
     }
     do(waitForAction$, referActionMeta) {
         const action = this.control.createAction(this.type, this.payload);
         if (referActionMeta)
             action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : referActionMeta.i;
         const r$ = new rx.ReplaySubject(1);
-        rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(operator(action), (0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)()))), new rx.Observable(sub => {
+        this.ddo(waitForAction$, referActionMeta).pipe(rx.take(1)).subscribe(r$);
+        return r$.asObservable();
+    }
+    ddo(waitForAction$, referActionMeta) {
+        const action = this.control.createAction(this.type, this.payload);
+        if (referActionMeta)
+            action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : referActionMeta.i;
+        return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(operator(action), (0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1)))), new rx.Observable(sub => {
             this.control.actionUpstream.next(action);
             sub.complete();
-        })).subscribe(r$);
-        return r$.asObservable();
+        }));
     }
 }
 class RxController2 extends stream_core_1.ControllerCore {

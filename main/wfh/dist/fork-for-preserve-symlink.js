@@ -1,42 +1,16 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.forkFile = exports.workDirChangedByCli = exports.isWin32 = void 0;
-const path_1 = __importDefault(require("path"));
+const tslib_1 = require("tslib");
+const path_1 = tslib_1.__importDefault(require("path"));
 const child_process_1 = require("child_process");
-const fs_1 = __importDefault(require("fs"));
-const os_1 = __importDefault(require("os"));
-const log4js_1 = __importDefault(require("log4js"));
-const rx = __importStar(require("rxjs"));
-const op = __importStar(require("rxjs/operators"));
+const fs_1 = tslib_1.__importDefault(require("fs"));
+const os_1 = tslib_1.__importDefault(require("os"));
+const rx = tslib_1.__importStar(require("rxjs"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
 const misc_1 = require("./utils/misc");
 exports.isWin32 = os_1.default.platform().indexOf('win32') >= 0;
-const log = log4js_1.default.getLogger('plink.fork-for-preserver-symlink');
+// const log = log4js.getLogger('plink.fork-for-preserver-symlink');
 function workDirChangedByCli() {
     const argv = process.argv.slice(2);
     const foundCmdOptIdx = argv.findIndex(arg => arg === '--cwd' || arg === '--space');
@@ -52,9 +26,9 @@ exports.workDirChangedByCli = workDirChangedByCli;
  * @returns promise<number> if a child process is forked to apply "--preserve-symlinks", or `undefined` no new child process is created
  */
 function run(moduleName, opts) {
-    if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
-        return forkFile(moduleName, opts || {}).exited;
-    }
+    // if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
+    //   return forkFile(moduleName, opts || {}).exited;
+    // }
     // In case it is already under "preserve-symlinks" mode
     const { workdir } = workDirChangedByCli();
     const { runModule } = require('./fork-module-wrapper');
@@ -66,20 +40,20 @@ exports.default = run;
 * Unlike `run(modulename, opts)` this function will always fork a child process, it is conditionally executed inside `run(modulename, opts)`
 */
 function forkFile(moduleName, opts) {
-    let recovered = false;
+    // let recovered = false;
     const { initProcess, exitHooks } = require('./utils/bootstrap-process');
     const { stateFactory } = require('./store');
-    exitHooks.push(() => removed.then((removeResolved) => {
-        if (recovered)
-            return;
-        recovered = true;
-        for (const { link, content } of removeResolved) {
-            if (!fs_1.default.existsSync(link)) {
-                void fs_1.default.promises.symlink(content, link, exports.isWin32 ? 'junction' : 'dir');
-                log.info('recover ' + link);
-            }
-        }
-    }));
+    // exitHooks.push(() => removed.then((removeResolved) => {
+    //   if (recovered)
+    //     return;
+    //   recovered = true;
+    //   for (const {link, content} of removeResolved) {
+    //     if (!fs.existsSync(link)) {
+    //       void fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
+    //       log.info('recover ' + link);
+    //     }
+    //   }
+    // }));
     // Set env.__plinkLogMainPid to a noexist PID
     // so that `initProcess()` won't assign a PID to this variable as default,
     // and current process will not be consider as main log process by
@@ -88,7 +62,7 @@ function forkFile(moduleName, opts) {
     initProcess('none');
     // removeNodeModuleSymlink needs Editor-helper, and editor-helper needs store being configured!
     stateFactory.configureStore();
-    const removed = removeNodeModuleSymlink();
+    // const removed = removeNodeModuleSymlink();
     const { workdir, argv } = workDirChangedByCli();
     // process.execArgv.push('--preserve-symlinks-main', '--preserve-symlinks');
     const foundDebugOptIdx = argv.findIndex(arg => arg === '--inspect' || arg === '--inspect-brk');
@@ -133,28 +107,27 @@ exports.forkFile = forkFile;
  * Temporarily rename <pkg>/node_modules to another name
  * @returns
  */
-async function removeNodeModuleSymlink() {
-    const { getState } = require('./editor-helper');
-    const links = getState().nodeModuleSymlinks;
-    if (links == null)
-        return Promise.resolve([]);
-    const dones = Array.from(links.values()).map(async (link) => {
-        let stat;
-        try {
-            stat = await fs_1.default.promises.lstat(link);
-            if (!stat.isSymbolicLink())
-                return null;
-        }
-        catch (ex) {
-            return null;
-        }
-        const content = fs_1.default.readlinkSync(link);
-        await fs_1.default.promises.unlink(link);
-        return { link, content };
-    });
-    const res = await Promise.all(dones);
-    return res.filter(item => item != null);
-}
+// async function removeNodeModuleSymlink() {
+//   const {getState} = require('./editor-helper') as typeof _editorHelper;
+//   const links = getState().nodeModuleSymlinks;
+//   if (links == null)
+//     return Promise.resolve([]);
+//   const dones = Array.from(links.values()).map(async link => {
+//     let stat: fs.Stats | undefined;
+//     try {
+//       stat = await fs.promises.lstat(link);
+//       if (!stat.isSymbolicLink())
+//         return null;
+//     } catch (ex) {
+//       return null;
+//     }
+//     const content = fs.readlinkSync(link);
+//     await fs.promises.unlink(link);
+//     return {link, content};
+//   });
+//   const res = await Promise.all(dones);
+//   return res.filter(item => item != null) as {link: string; content: string}[];
+// }
 /**
  *
  * @param tModule module name like "@foo/bar/dist/index.js", "@foo/bar/dist/index"

@@ -1,15 +1,13 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listProject = void 0;
+const tslib_1 = require("tslib");
 // import fs from 'fs-extra';
-const node_path_1 = __importDefault(require("node:path"));
-const lodash_1 = __importDefault(require("lodash"));
-const log4js_1 = __importDefault(require("log4js"));
+const node_path_1 = tslib_1.__importDefault(require("node:path"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const log4js_1 = tslib_1.__importDefault(require("log4js"));
 // import * as rx from 'rxjs';
-const operators_1 = require("rxjs/operators");
+const rxjs_1 = require("rxjs");
 // import {map, take} from 'rxjs/operators';
 const package_mgr_1 = require("../package-mgr");
 const misc_1 = require("../utils/misc");
@@ -56,15 +54,15 @@ async function default_1(opts, action, dirs) {
 }
 exports.default = default_1;
 function listProject(projects, afterChange = false) {
-    return (0, package_mgr_1.getStore)().pipe((0, operators_1.distinctUntilChanged)((a, b) => a.project2Packages === b.project2Packages &&
-        a.srcDir2Packages === b.srcDir2Packages), (0, operators_1.map)(s => ({ project2Packages: [...s.project2Packages.keys()], srcDir2Packages: [...s.srcDir2Packages.keys()] })), (0, operators_1.distinctUntilChanged)((a, b) => {
+    return (0, rxjs_1.firstValueFrom)((0, package_mgr_1.getStore)().pipe((0, rxjs_1.distinctUntilChanged)((a, b) => a.project2Packages === b.project2Packages &&
+        a.srcDir2Packages === b.srcDir2Packages), (0, rxjs_1.map)(s => ({ project2Packages: [...s.project2Packages.keys()], srcDir2Packages: [...s.srcDir2Packages.keys()] })), (0, rxjs_1.distinctUntilChanged)((a, b) => {
         return lodash_1.default.difference(a.project2Packages, b.project2Packages).length === 0 &&
             lodash_1.default.difference(b.project2Packages, a.project2Packages).length === 0 &&
             lodash_1.default.difference(a.srcDir2Packages, b.srcDir2Packages).length === 0 &&
             lodash_1.default.difference(b.srcDir2Packages, a.srcDir2Packages).length === 0;
-    }), afterChange ? (0, operators_1.skip)(1) : (0, operators_1.map)(s => s), (0, operators_1.map)(s => {
+    }), afterChange ? (0, rxjs_1.skip)(1) : (0, rxjs_1.map)(s => s), (0, rxjs_1.map)(s => {
         printProjects(s.project2Packages, s.srcDir2Packages);
-    }), (0, operators_1.take)(1)).toPromise();
+    }), (0, rxjs_1.take)(1)));
 }
 exports.listProject = listProject;
 function printProjects(projects, srcDirs) {

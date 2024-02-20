@@ -1,46 +1,21 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.testable = exports.publish = exports.pack = void 0;
-const fs = __importStar(require("fs"));
-const Path = __importStar(require("path"));
-const fs_extra_1 = __importDefault(require("fs-extra"));
-const _ = __importStar(require("lodash"));
-const rx = __importStar(require("rxjs"));
-const op = __importStar(require("rxjs/operators"));
-const log4js_1 = __importDefault(require("log4js"));
-const strip_ansi_1 = __importDefault(require("strip-ansi"));
-const patch_text_1 = __importDefault(require("../utils/patch-text"));
+const tslib_1 = require("tslib");
+const fs = tslib_1.__importStar(require("fs"));
+const Path = tslib_1.__importStar(require("path"));
+const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+const _ = tslib_1.__importStar(require("lodash"));
+const rx = tslib_1.__importStar(require("rxjs"));
+const op = tslib_1.__importStar(require("rxjs/operators"));
+const log4js_1 = tslib_1.__importDefault(require("log4js"));
+const strip_ansi_1 = tslib_1.__importDefault(require("strip-ansi"));
+const patch_text_1 = tslib_1.__importDefault(require("../utils/patch-text"));
 const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const package_mgr_1 = require("../package-mgr");
-const config_1 = __importDefault(require("../config"));
+const config_1 = tslib_1.__importDefault(require("../config"));
 const process_utils_1 = require("../process-utils");
-const json_sync_parser_1 = __importDefault(require("../utils/json-sync-parser"));
+const json_sync_parser_1 = tslib_1.__importDefault(require("../utils/json-sync-parser"));
 const promise_queque_1 = require("../../../packages/thread-promise-pool/dist/promise-queque");
 const misc_1 = require("../utils/misc");
 require("../editor-helper");

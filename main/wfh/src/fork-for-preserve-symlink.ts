@@ -2,7 +2,6 @@ import Path from 'path';
 import {fork, ForkOptions} from 'child_process';
 import fs from 'fs';
 import os from 'os';
-import log4js from 'log4js';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {plinkEnv} from './utils/misc';
@@ -21,7 +20,7 @@ declare global {
 }
 
 export const isWin32 = os.platform().indexOf('win32') >= 0;
-const log = log4js.getLogger('plink.fork-for-preserver-symlink');
+// const log = log4js.getLogger('plink.fork-for-preserver-symlink');
 
 export function workDirChangedByCli() {
   const argv = process.argv.slice(2);
@@ -44,9 +43,9 @@ export default function run(
     handleShutdownMsg?: boolean;
   }) {
 
-  if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
-    return forkFile(moduleName, opts || {}).exited;
-  }
+  // if ((process.env.NODE_PRESERVE_SYMLINKS !== '1' && process.execArgv.indexOf('--preserve-symlinks') < 0)) {
+  //   return forkFile(moduleName, opts || {}).exited;
+  // }
   // In case it is already under "preserve-symlinks" mode
   const {workdir} = workDirChangedByCli();
   const {runModule} = require('./fork-module-wrapper') as typeof wrapper;
@@ -63,22 +62,22 @@ export function forkFile(
     stateExitAction?: 'save' | 'send' | 'none';
     handleShutdownMsg?: boolean;
   } & ForkOptions) {
-  let recovered = false;
+  // let recovered = false;
   const {initProcess, exitHooks} = require('./utils/bootstrap-process') as typeof bootstrapProc;
   const {stateFactory} = require('./store') as typeof store;
 
-  exitHooks.push(() => removed.then((removeResolved) => {
-    if (recovered)
-      return;
-    recovered = true;
+  // exitHooks.push(() => removed.then((removeResolved) => {
+  //   if (recovered)
+  //     return;
+  //   recovered = true;
 
-    for (const {link, content} of removeResolved) {
-      if (!fs.existsSync(link)) {
-        void fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
-        log.info('recover ' + link);
-      }
-    }
-  }));
+  //   for (const {link, content} of removeResolved) {
+  //     if (!fs.existsSync(link)) {
+  //       void fs.promises.symlink(content, link, isWin32 ? 'junction' : 'dir');
+  //       log.info('recover ' + link);
+  //     }
+  //   }
+  // }));
 
   // Set env.__plinkLogMainPid to a noexist PID
   // so that `initProcess()` won't assign a PID to this variable as default,
@@ -89,7 +88,7 @@ export function forkFile(
 
   // removeNodeModuleSymlink needs Editor-helper, and editor-helper needs store being configured!
   stateFactory.configureStore();
-  const removed = removeNodeModuleSymlink();
+  // const removed = removeNodeModuleSymlink();
 
   const {workdir, argv} = workDirChangedByCli();
 
@@ -152,29 +151,29 @@ export function forkFile(
  * Temporarily rename <pkg>/node_modules to another name
  * @returns
  */
-async function removeNodeModuleSymlink() {
-  const {getState} = require('./editor-helper') as typeof _editorHelper;
-  const links = getState().nodeModuleSymlinks;
-  if (links == null)
-    return Promise.resolve([]);
+// async function removeNodeModuleSymlink() {
+//   const {getState} = require('./editor-helper') as typeof _editorHelper;
+//   const links = getState().nodeModuleSymlinks;
+//   if (links == null)
+//     return Promise.resolve([]);
 
-  const dones = Array.from(links.values()).map(async link => {
-    let stat: fs.Stats | undefined;
-    try {
-      stat = await fs.promises.lstat(link);
-      if (!stat.isSymbolicLink())
-        return null;
-    } catch (ex) {
-      return null;
-    }
+//   const dones = Array.from(links.values()).map(async link => {
+//     let stat: fs.Stats | undefined;
+//     try {
+//       stat = await fs.promises.lstat(link);
+//       if (!stat.isSymbolicLink())
+//         return null;
+//     } catch (ex) {
+//       return null;
+//     }
 
-    const content = fs.readlinkSync(link);
-    await fs.promises.unlink(link);
-    return {link, content};
-  });
-  const res = await Promise.all(dones);
-  return res.filter(item => item != null) as {link: string; content: string}[];
-}
+//     const content = fs.readlinkSync(link);
+//     await fs.promises.unlink(link);
+//     return {link, content};
+//   });
+//   const res = await Promise.all(dones);
+//   return res.filter(item => item != null) as {link: string; content: string}[];
+// }
 
 /**
  *

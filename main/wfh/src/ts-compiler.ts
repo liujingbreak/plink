@@ -1,6 +1,3 @@
-/**
- * Deprecated: use main/wfh/ts/utils/tsc-util.ts instead
- */
 import {readFileSync} from 'fs';
 import * as Path from 'path';
 import * as ts from 'typescript';
@@ -175,51 +172,3 @@ export function registerExtension(ext: string, compilerOpt: ts.CompilerOptions) 
   };
 }
 
-// export function testCompiler(file: string) {
-//   const fs = require('fs');
-//   console.log(file);
-//   const compilerOpt = {
-//     baseUrl: '.',
-//     outDir: '',
-//     declaration: true,
-//     module: 'commonjs',
-//     target: 'es2015',
-//     noImplicitAny: true,
-//     suppressImplicitAnyIndexErrors: true,
-//     allowSyntheticDefaultImports: true,
-//     esModuleInterop: true,
-//     inlineSourceMap: false,
-//     inlineSources: true,
-//     moduleResolution: 'node',
-//     experimentalDecorators: true,
-//     emitDecoratorMetadata: true,
-//     noUnusedLocals: true,
-//     preserveSymlinks: false,
-//     downlevelIteration: false,
-//     strictNullChecks: true,
-//     resolveJsonModule: true,
-//     diagnostics: true,
-//     lib: [ 'es2016', 'es2015', 'dom' ],
-//     pretty: true,
-//     rootDir: '..',
-//     importHelpers: true,
-//     skipLibCheck: true,
-//     sourceMap: true,
-//     emitDeclarationOnly: false,
-//     paths: {
-//       '*': [
-//         '../node_modules/@types/*',
-//         'node_modules/@types/*',
-//         'node_modules/*',
-//         '../node_modules/*'
-//       ]
-//     },
-//     typeRoots: [
-//       '/Users/liujing/bk/mytool/node_modules/@types'
-//       //'./node_modules/@types', '../node_modules/@types'
-//     ]
-//   };
-
-//   const co = jsonToCompilerOptions(compilerOpt);
-//   transpileAndCheck(fs.readFileSync(file, 'utf8'), file, co);
-// }

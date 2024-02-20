@@ -44,10 +44,10 @@ export default function paths() {
     changedPaths.appIndexJs = firstEntryFile ?? Path.resolve(pkgDir, _.get(plinkProps, [PKG_LIB_ENTRY_PROP], PKG_LIB_ENTRY_DEFAULT));
   } else if (cmdOption.buildType === 'app') {
     if (firstEntryPkg == null)
-      throw new Error(`First entry file must be inside a Plink package, ${cmdOption.buildTargets[0].file}`);
+      throw new Error(`First entry file must be inside a Plink package, ${cmdOption.buildTargets[0].file!}`);
     const packageJson = firstEntryPkg.json;
     const plinkProps = packageJson.plink ? packageJson.plink : packageJson.dr;
-    const {realPath: pkgDir} = firstEntryPkg!;
+    const {realPath: pkgDir} = firstEntryPkg;
     changedPaths.appIndexJs = firstEntryFile ?? Path.resolve(pkgDir, _.get(plinkProps, [PKG_APP_ENTRY_PROP], PKG_APP_ENTRY_DEFAULT));
     // CRA also accepts process.env.BUILD_PATH as appBuild value
     changedPaths.appBuild = pCfg.resolve('staticDir');

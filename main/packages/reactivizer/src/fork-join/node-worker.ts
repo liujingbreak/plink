@@ -46,7 +46,8 @@ export function createWorkerControl<
           return type === 'string' ? arg : inspect(arg, {depth: 0, showHidden: false, compact: true, maxStringLength: 20});
         })}),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)]
+    debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)],
+    debugIncludeTypes: opts?.debugIncludeTypes as any[]
     // logStyle: 'noParam'
   });
 

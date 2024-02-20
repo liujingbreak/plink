@@ -28,7 +28,7 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
     algo = require('@wfh/algorithms') as typeof algorithms;
   } catch (e) {
     // Inside Plink
-    algo = require('../../packages/algorithms') as typeof algorithms;
+    algo = require('../../../algorithms') as typeof algorithms;
   }
   const {RedBlackTree} = algo;
   const workerRankTree = new RedBlackTree<number, number[]>();

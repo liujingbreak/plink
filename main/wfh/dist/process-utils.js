@@ -100,8 +100,8 @@ async function promisifyChildProcess(res, opts, desc) {
     });
     const { code, signal } = await cpExit;
     let joinText = '';
-    let outs = {};
-    if (opts && opts.silent) {
+    const outs = {};
+    if (opts === null || opts === void 0 ? void 0 : opts.silent) {
         const outTexts = await Promise.all([output.done, errOutput.done]);
         joinText = outTexts.join('\n');
         outs.stdout = outTexts[0];

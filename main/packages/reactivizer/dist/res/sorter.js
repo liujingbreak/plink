@@ -37,7 +37,7 @@ function createSorter(comparator, opts) {
         async sortAllInWorker(buf, offset, len, noForkThreshold) {
             const forkDone = await rx.firstValueFrom(sorter.o.ft.fork('sort', buf, offset, len, noForkThreshold)
                 .do(sorter.i.at.sortResolved));
-            return forkDone;
+            return forkDone[1];
         },
         /**
          * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread

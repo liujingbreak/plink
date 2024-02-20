@@ -1,7 +1,7 @@
 import '../node-path';
 import cluster from 'node:cluster';
 import chrp from 'node:child_process';
-import {isMainThread} from 'node:worker_threads';
+import {isMainThread, threadId} from 'node:worker_threads';
 import log4js from 'log4js';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
@@ -75,7 +75,7 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   interceptFork();
   // TODO: Not working when press ctrl + c, and no async operation can be finished on "SIGINT" event
   process.once('beforeExit', function(code) {
-    log.info('pid ' + process.pid + ': bye');
+    log.info(`pid ${process.pid}, thread ${threadId}: bye`);
     onShut(code, false);
   });
   process.once('SIGINT', () => {
@@ -101,9 +101,10 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
             const ret = hookFn();
             if (ret == null || typeof ret === 'number') {
               return rx.of(ret);
-            } else {
+            } else if (rx.isObservable(ret) || Array.isArray(ret) || (ret as PromiseLike<unknown>).then) {
               return rx.from(ret);
             }
+            return rx.of(0);
           } catch (err) {
             log.error('Failed to execute shutdown hooks', err);
             exitCode = 1;

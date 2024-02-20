@@ -116,8 +116,8 @@ async function promisifyChildProcess(res: ChildProcess, opts: Option | ForkOptio
   });
   const {code, signal} = await cpExit;
   let joinText = '';
-  let outs = {} as {stdout: string; errout: string};
-  if (opts && opts.silent) {
+  const outs = {} as {stdout: string; errout: string};
+  if (opts?.silent) {
     const outTexts = await Promise.all([output!.done, errOutput!.done]);
     joinText = outTexts.join('\n');
     outs.stdout = outTexts[0];
@@ -135,12 +135,12 @@ function checkTimeout<T>(origPromise: Promise<T>, timeBox = 600000): Promise<T> 
   return new Promise<T>((resolve, reject) => {
     origPromise.then(res => {
       if (timeout) {
-        clearTimeout(timeout);
+        clearTimeout(timeout as any);
       }
       resolve(res);
     }).catch(e => {
       if (timeout) {
-        clearTimeout(timeout);
+        clearTimeout(timeout as any);
       }
       reject(e);
     });

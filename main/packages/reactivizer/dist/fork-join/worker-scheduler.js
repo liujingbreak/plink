@@ -34,7 +34,7 @@ function applyScheduler(broker, opts) {
     }
     catch (e) {
         // Inside Plink
-        algo = require('../../packages/algorithms');
+        algo = require('../../../algorithms');
     }
     const { RedBlackTree } = algo;
     const workerRankTree = new RedBlackTree();

@@ -96,7 +96,7 @@ export interface NpmOptions {
 }
 export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<NpmOptions>): void;
+    initRootDir(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<NpmOptions>): void;
     /**
      * - Create initial files in root directory
      * - Scan linked packages and install transitive dependency
@@ -105,7 +105,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
      * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
      * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
      */
-    updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
+    updateWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         dir: string;
         packageJsonFiles?: string[];
     } & NpmOptions>): void;
@@ -113,42 +113,42 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         packageJsonFiles?: string[];
     }>): void;
     updateDir(): void;
-    _updatePlinkPackageInfo(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
-    _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
-    onLinkedPackageAdded(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    addProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    deleteProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    addSrcDirs(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    deleteSrcDirs(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    _updatePlinkPackageInfo(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
+    _syncLinkedPackages(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
+    onLinkedPackageAdded(_d: import("immer/dist/internal.js").WritableDraft<PackagesState>, _action: PayloadAction<string[]>): void;
+    addProject(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    deleteProject(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    addSrcDirs(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    deleteSrcDirs(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     /** payload: workspace keys, happens as debounced workspace change event */
-    _workspaceBatchChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    _workspaceBatchChanged(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     /** workspaceChanged is safe for external module to watch, it serialize actions like "_installWorkspace" and "_workspaceBatchChanged" */
-    workspaceChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { file, lines } }: {
+    workspaceChanged(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    updateGitIgnores(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { file, lines } }: {
         payload: {
             file: string;
             lines: string[];
         };
         type: string;
     }): void;
-    packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
-    setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
-    _setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
+    packagesUpdated(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
+    setInChina(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
+    _setCurrentWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
     /** paramter: workspace key */
-    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
-    _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
+    workspaceStateUpdated(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
+    _hoistWorkspaceDeps(state: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { dir } }: {
         payload: {
             dir: string;
         };
         type: string;
     }): void;
-    _installWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { workspaceKey } }: {
+    _installWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { workspaceKey } }: {
         payload: {
             workspaceKey: string;
         };
         type: string;
     }): void;
-    _associatePackageToPrj(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: {
+    _associatePackageToPrj(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
             pkgs: {
@@ -157,7 +157,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
-    _associatePackageToSrcDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
+    _associatePackageToSrcDir(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
         payload: {
             pattern: string;
             pkgs: {
@@ -166,11 +166,11 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
         };
         type: string;
     }): void;
-    _clearProjAndSrcDirPkgs(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
+    _clearProjAndSrcDirPkgs(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
 } & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     /** Do this action after any linked package is removed or added  */
-    initRootDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<NpmOptions>): void;
+    initRootDir(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<NpmOptions>): void;
     /**
      * - Create initial files in root directory
      * - Scan linked packages and install transitive dependency
@@ -179,7 +179,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
      * - If "packageJsonFiles" is provided, it should skip step of scanning linked packages
      * - TODO: if there is linked package used in more than one workspace, hoist and install for them all?
      */
-    updateWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<{
+    updateWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<{
         dir: string;
         packageJsonFiles?: string[];
     } & NpmOptions>): void;
@@ -187,42 +187,42 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         packageJsonFiles?: string[];
     }>): void;
     updateDir(): void;
-    _updatePlinkPackageInfo(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
-    _syncLinkedPackages(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
-    onLinkedPackageAdded(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    addProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    deleteProject(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    addSrcDirs(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    deleteSrcDirs(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    _updatePlinkPackageInfo(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
+    _syncLinkedPackages(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
+    onLinkedPackageAdded(_d: import("immer/dist/internal.js").WritableDraft<PackagesState>, _action: PayloadAction<string[]>): void;
+    addProject(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    deleteProject(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    addSrcDirs(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    deleteSrcDirs(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     /** payload: workspace keys, happens as debounced workspace change event */
-    _workspaceBatchChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    _workspaceBatchChanged(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     /** workspaceChanged is safe for external module to watch, it serialize actions like "_installWorkspace" and "_workspaceBatchChanged" */
-    workspaceChanged(d: import("immer/dist/internal").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    updateGitIgnores(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { file, lines } }: {
+    workspaceChanged(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
+    updateGitIgnores(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { file, lines } }: {
         payload: {
             file: string;
             lines: string[];
         };
         type: string;
     }): void;
-    packagesUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
-    setInChina(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
-    _setCurrentWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
+    packagesUpdated(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
+    setInChina(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
+    _setCurrentWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
     /** paramter: workspace key */
-    workspaceStateUpdated(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
-    _hoistWorkspaceDeps(state: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { dir } }: {
+    workspaceStateUpdated(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
+    _hoistWorkspaceDeps(state: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { dir } }: {
         payload: {
             dir: string;
         };
         type: string;
     }): void;
-    _installWorkspace(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { workspaceKey } }: {
+    _installWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { workspaceKey } }: {
         payload: {
             workspaceKey: string;
         };
         type: string;
     }): void;
-    _associatePackageToPrj(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: {
+    _associatePackageToPrj(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: {
         payload: {
             prj: string;
             pkgs: {
@@ -231,7 +231,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
-    _associatePackageToSrcDir(d: import("immer/dist/internal").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
+    _associatePackageToSrcDir(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
         payload: {
             pattern: string;
             pkgs: {
@@ -240,7 +240,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
         };
         type: string;
     }): void;
-    _clearProjAndSrcDirPkgs(d: import("immer/dist/internal").WritableDraft<PackagesState>): void;
+    _clearProjAndSrcDirPkgs(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
 } & import("../../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{
     file: string;

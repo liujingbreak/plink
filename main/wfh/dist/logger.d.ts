@@ -1,3 +1,4 @@
+import { Logger } from 'log4js';
 /**
  * Get log4js Logger for specific node.js file, the output log will have
  * category in form of "<pkg name>.<file base name>"
@@ -15,4 +16,4 @@
  * - EJS module (mjs): loggerForFile(new URL(import.meta.url).pathname)
  * @param file
  */
-export declare function log4File(file: string, subName?: string): import("log4js").Logger;
+export declare function log4File(file: string, subName?: string): Logger;
