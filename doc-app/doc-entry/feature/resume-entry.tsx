@@ -20,6 +20,6 @@ bootstrapRoutesWith(() => {
     {path: '/doc/:mdKey', element: <LazyDocComponent/>},
     {path: '/markdown/open', element: <LazyDocComponent/>},
     {path: '/bio/:mdKey', element: <LazyDocComponent/>},
-    {path: '/*', redirect: '/bio/coupang'}
+    {path: '/*', redirect: '/bio/index'}
   ];
 });

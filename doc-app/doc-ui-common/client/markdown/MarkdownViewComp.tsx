@@ -84,10 +84,10 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   function templateRenderer({mdKey, onBodyRef}: typeof switchAnimDataByKey extends Map<string, infer V> ? V : unknown) {
     return <>
       <div ref={onBodyRef} className={cln(
-        styles.markdownContent, 'markdown-body', 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-10-desktop',
+        styles.markdownContent, 'markdown-body', 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-9-desktop',
         'mdc-layout-grid__cell--span-6-tablet', 'mdc-layout-grid__cell--span-6'
       )}></div>
-      {mdKey ? <TableOfContents className={cln(styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-2-desktop', 'mdc-layout-grid__cell--span-2-tablet', {'mdc-layout-grid': layout?.inputTable.getData().setDeviceSize[0] === 'phone'}) } markdownKey={mdKey} markdownViewCtl={viewControl}/> : '...'}
+      {mdKey ? <TableOfContents className={cln(styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-3-desktop', 'mdc-layout-grid__cell--span-2-tablet', {'mdc-layout-grid': layout?.inputTable.getData().setDeviceSize[0] === 'phone'}) } markdownKey={mdKey} markdownViewCtl={viewControl}/> : '...'}
       <IconButton className={styles.tocPopBtn}
         onToggle={i.dp.handleTogglePopup}
         materialIcon="toc"

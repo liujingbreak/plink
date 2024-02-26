@@ -102,6 +102,7 @@ function dfsAccessElement(
   const chr = new rx.BehaviorSubject<ChildNode[]>(root.childNodes || []);
   const output = [] as Array<string | Promise<string> | rx.Observable<string> | null | undefined>;
   let htmlOffset = 0;
+  const headerTextDuplicationMap = new Map<string, number>();
 
   chr.pipe(
     rx.mergeMap(children => rx.from(children)),
@@ -148,7 +149,13 @@ function dfsAccessElement(
         }
       } else if (headerSet.has(nodeName)) {
         const text = lookupTextNodeIn(el);
-        const hash = btoa(md5(text, {asString: true}));
+        let duplicateCount = headerTextDuplicationMap.get(text);
+        if (duplicateCount != null) {
+          headerTextDuplicationMap.set(text, duplicateCount + 1);
+        } else {
+          headerTextDuplicationMap.set(text, 0);
+        }
+        const hash = btoa(md5(text, {asString: true})) + (duplicateCount != null ? duplicateCount + '' : '');
         const posBeforeStartTagEnd = el.sourceCodeLocation!.startTag!.endOffset - 1;
         output.push(sourceHtml.slice(htmlOffset, posBeforeStartTagEnd), ` id="mdt-${hash}" data-mdt `);
         htmlOffset = posBeforeStartTagEnd;

@@ -64,6 +64,7 @@ function dfsAccessElement(processor, _processFileActionMeta, sourceHtml, file, r
     const chr = new rx.BehaviorSubject(root.childNodes || []);
     const output = [];
     let htmlOffset = 0;
+    const headerTextDuplicationMap = new Map();
     chr.pipe(rx.mergeMap(children => rx.from(children)), rx.map(node => {
         var _a;
         const nodeName = node.nodeName.toLowerCase();
@@ -101,7 +102,14 @@ function dfsAccessElement(processor, _processFileActionMeta, sourceHtml, file, r
         }
         else if (headerSet.has(nodeName)) {
             const text = (0, markdown_processor_helper_1.lookupTextNodeIn)(el);
-            const hash = btoa((0, md5_1.default)(text, { asString: true }));
+            let duplicateCount = headerTextDuplicationMap.get(text);
+            if (duplicateCount != null) {
+                headerTextDuplicationMap.set(text, duplicateCount + 1);
+            }
+            else {
+                headerTextDuplicationMap.set(text, 0);
+            }
+            const hash = btoa((0, md5_1.default)(text, { asString: true })) + (duplicateCount != null ? duplicateCount + '' : '');
             const posBeforeStartTagEnd = el.sourceCodeLocation.startTag.endOffset - 1;
             output.push(sourceHtml.slice(htmlOffset, posBeforeStartTagEnd), ` id="mdt-${hash}" data-mdt `);
             htmlOffset = posBeforeStartTagEnd;
