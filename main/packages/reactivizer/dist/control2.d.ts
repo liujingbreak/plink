@@ -1,6 +1,5 @@
 import * as rx from 'rxjs';
-import { Action, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions } from './stream-core';
-import { InferMapParam } from './control';
+import { Action, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
 export type ActionFactory = {
     [k: string]: (...args: any[]) => SingleActionFactory;
@@ -13,12 +12,12 @@ export interface SingleActionFactory {
      * responding messages, only first responsive message is recorded by ReplaySubject and returned,
      * see ddo<F> as alternative
      **/
-    do<F>(waitForAction$: rx.Observable<Action<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
+    do<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
     /**
      * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
      * responding messages will be recieved
      */
-    ddo<F>(waitForAction$: rx.Observable<Action<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
+    ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
 }
 export declare class RxController2<I> extends ControllerCore<I> {
     opts?: (CoreOptions<I> & {

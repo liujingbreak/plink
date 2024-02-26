@@ -142,6 +142,7 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
             return rx.EMPTY;
         }));
     }
+    /** Respond an error to actions specified by "actionMeta" */
     dispatchErrorFor(err, ...actionMetas) {
         this.o.ft._onErrorFor(err).dp(...actionMetas);
     }

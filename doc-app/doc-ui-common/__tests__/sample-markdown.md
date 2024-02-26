@@ -15,7 +15,7 @@ target-->|"create & extend"|worker
 ### Steps
 
 #### 1. Create a file e.g. "my-multithreaded-services.ts" to define service
-![sample.jpg](../sample.jpg)
+![sample.jpg](./images/Screenshot_20230314-123610_WeChat.jpg)
 
 <a href="./hello.md">abc</a>
 Create a ReactorComposite as core computational service for your business or calcuation logic,

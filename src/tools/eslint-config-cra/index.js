@@ -220,7 +220,7 @@ function create(tsconfigFile) {
       'space-before-blocks': ['warn', 'always'],
       'multiline-ternary': ['warn', 'always-multiline'],
       'jsx-quotes': ['warn', 'prefer-double'],
-      'newline-per-chained-call': ['warn', {ignoreChainWithDepth: 3}],
+      // 'newline-per-chained-call': ['warn', {ignoreChainWithDepth: 3}],
       'key-spacing': ['warn', {afterColon: true}],
       'array-bracket-newline': ['warn', {multiline: true}],
       'object-curly-spacing': ['warn', 'never'],

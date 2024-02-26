@@ -102,7 +102,7 @@ function dfsAccessElement(processor, _processFileActionMeta, sourceHtml, file, r
         }
         else if (headerSet.has(nodeName)) {
             const text = (0, markdown_processor_helper_1.lookupTextNodeIn)(el);
-            let duplicateCount = headerTextDuplicationMap.get(text);
+            const duplicateCount = headerTextDuplicationMap.get(text);
             if (duplicateCount != null) {
                 headerTextDuplicationMap.set(text, duplicateCount + 1);
             }

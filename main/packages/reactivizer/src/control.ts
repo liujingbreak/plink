@@ -326,6 +326,6 @@ export function deserializeAction<I>(actionObj: any, toController: RxController<
 
 export function mapActionToPayload<F>() {
   return (up: rx.Observable<Action<F>>) => up.pipe(
-    rx.map(a => [{i: a.i, r: a.r}, ...a.p] as InferMapParam<F>)
+    rx.map(a => [a, ...a.p] as InferMapParam<F>)
   );
 }

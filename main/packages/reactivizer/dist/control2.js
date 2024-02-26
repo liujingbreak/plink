@@ -52,7 +52,14 @@ class SingleActionFactoryImpl {
         const action = this.control.createAction(this.type, this.payload);
         if (referActionMeta)
             action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : referActionMeta.i;
-        return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(operator(action), (0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1)))), new rx.Observable(sub => {
+        return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
+            if (Array.isArray(actionOrPayload)) {
+                const [actionMeta, ...payload] = actionOrPayload;
+                actionMeta.p = payload;
+                return actionMeta;
+            }
+            return actionOrPayload;
+        }), operator(action), (0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1)))), new rx.Observable(sub => {
             this.control.actionUpstream.next(action);
             sub.complete();
         }));

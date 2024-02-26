@@ -6,7 +6,7 @@ const log = log4File(__filename);
 
 export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions, MdOutputEvents>({
   name: 'markdownProcessor',
-  debug: false,
+  debug: true, // process.env.NODE_ENV !== 'production',
   debugExcludeTypes: ['wait', 'stopWaiting'],
   log(...msg) {
     log.info(...msg);

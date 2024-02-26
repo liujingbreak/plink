@@ -171,6 +171,7 @@ export class ReactorComposite2<
     );
   }
 
+  /** Respond an error to actions specified by "actionMeta" */
   dispatchErrorFor(err: any, ...actionMetas: ActionMeta[]) {
     (this.o as unknown as RxController2<BaseEvents>).ft._onErrorFor(err).dp(...actionMetas);
   }

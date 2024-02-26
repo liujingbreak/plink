@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {SingleActionFactory, ReactorComposite2} from '../src';
+import {SingleActionFactory, ReactorComposite2, RxController2} from '../src';
 
 const inputTableFor = ['message3'] as const;
 
@@ -72,6 +72,22 @@ describe('reactivizer2', () => {
 
     await done;
     expect(mockFn.mock.calls[0][0]).toBe('I am a fake error');
+  }, 10000);
+
+  it('control2\'s  do(), ddo()', async () => {
+    const composite = new ReactorComposite2<BaseActions, BaseResponse>({
+      name: 'reactorComposite2 #3',
+      debug: true
+    });
+
+    composite.r('message2', composite.i.pt.message2.pipe(
+      rx.tap(([m, greeting]) => composite.o.ft.reply2(greeting).dp(m))
+    ));
+
+    const msg = await rx.firstValueFrom(composite.i.ft.message2('hello do()').do(composite.o.pt.reply2));
+    expect(msg[1]).toBe('hello do()');
+    const msgDdo = await rx.firstValueFrom(composite.i.ft.message2('hello ddo()').ddo(composite.o.pt.reply2));
+    expect(msgDdo[1]).toBe('hello ddo()');
   }, 10000);
 });
 

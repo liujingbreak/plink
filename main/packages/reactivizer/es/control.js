@@ -217,6 +217,6 @@ export function deserializeAction(actionObj, toController) {
     return newAction;
 }
 export function mapActionToPayload() {
-    return (up) => up.pipe(rx.map(a => [{ i: a.i, r: a.r }, ...a.p]));
+    return (up) => up.pipe(rx.map(a => [a, ...a.p]));
 }
 //# sourceMappingURL=control.js.map

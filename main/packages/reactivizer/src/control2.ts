@@ -1,8 +1,8 @@
 import * as rx from 'rxjs';
 import {Action, InferPayload, ActionMeta,
   ArrayOrTuple, ControllerCore, CoreOptions,
-  nameOfAction} from './stream-core';
-import {InferMapParam, mapActionToPayload, actionRelatedToAction} from './control';
+  nameOfAction, InferMapParam} from './stream-core';
+import {mapActionToPayload, actionRelatedToAction} from './control';
 import {PayloadByType, ActionByType} from './inferred-types';
 
 export type ActionFactory = {
@@ -17,7 +17,7 @@ export interface SingleActionFactory {
    * responding messages, only first responsive message is recorded by ReplaySubject and returned,
    * see ddo<F> as alternative
    **/
-  do<F>(waitForAction$: rx.Observable<Action<F>>,
+  do<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
     origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ): rx.Observable<InferMapParam<F>>;
 
@@ -25,7 +25,7 @@ export interface SingleActionFactory {
    * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
    * responding messages will be recieved
    */
-  ddo<F>(waitForAction$: rx.Observable<Action<F>>,
+  ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
     origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ): rx.Observable<InferMapParam<F>>;
 }
@@ -46,7 +46,7 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
       this.control.dispatchFactory(this.type)(...this.payload);
   }
 
-  do<F>(waitForAction$: rx.Observable<Action<F>>,
+  do<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
     referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ) {
     const action = this.control.createAction(this.type, this.payload);
@@ -60,7 +60,7 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
     return r$.asObservable();
   }
 
-  ddo<F>(waitForAction$: rx.Observable<Action<F>>,
+  ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
     referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ) {
     const action = this.control.createAction(this.type, this.payload);
@@ -71,6 +71,14 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
       this.control.doOperator$.pipe(
         rx.take(1),
         rx.switchMap(operator => waitForAction$.pipe(
+          rx.map(actionOrPayload => {
+            if (Array.isArray(actionOrPayload)) {
+              const [actionMeta, ...payload] = actionOrPayload;
+              (actionMeta as Action<F>).p = payload;
+              return actionMeta as Action<F>;
+            }
+            return actionOrPayload;
+          }),
           operator(action),
           actionRelatedToAction<Action<F>>(action),
           mapActionToPayload(),

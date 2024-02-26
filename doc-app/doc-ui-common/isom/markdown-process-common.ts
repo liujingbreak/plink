@@ -149,7 +149,7 @@ function dfsAccessElement(
         }
       } else if (headerSet.has(nodeName)) {
         const text = lookupTextNodeIn(el);
-        let duplicateCount = headerTextDuplicationMap.get(text);
+        const duplicateCount = headerTextDuplicationMap.get(text);
         if (duplicateCount != null) {
           headerTextDuplicationMap.set(text, duplicateCount + 1);
         } else {
