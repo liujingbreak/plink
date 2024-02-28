@@ -33,7 +33,7 @@ const slice = store_1.stateFactory.newSlice({
     initialState,
     reducers: {
         clearSymlinks() { },
-        hookTsconfig(s, { payload }) { },
+        hookTsconfig(_s, _payload) { },
         unHookTsconfig(s, { payload }) {
             for (const file of payload) {
                 const relPath = relativePath(file);
@@ -41,11 +41,11 @@ const slice = store_1.stateFactory.newSlice({
             }
         },
         unHookAll() { },
-        clearSymlinksDone(S) { }
+        clearSymlinksDone(_s) { }
     }
 });
 exports.dispatcher = store_1.stateFactory.bindActionCreators(slice);
-store_1.stateFactory.addEpic((action$, state$) => {
+store_1.stateFactory.addEpic((action$, _state$) => {
     let noModuleSymlink;
     function updateNodeModuleSymlinks(wsKey) {
         var _a;
@@ -85,7 +85,9 @@ store_1.stateFactory.addEpic((action$, state$) => {
         }));
     }
     return rx.merge(action$.pipe((0, store_1.ofPayloadAction)(slice.actions.clearSymlinks), op.concatMap(() => {
-        return rx.from(_recp.allSrcDirs()).pipe(op.map(item => item.projDir ? path_1.default.resolve(item.projDir, item.srcDir, 'node_modules') :
+        return rx.from(_recp.allSrcDirs()).pipe(
+        // eslint-disable-next-line multiline-ternary
+        op.map(item => item.projDir ? path_1.default.resolve(item.projDir, item.srcDir, 'node_modules') :
             path_1.default.resolve(item.srcDir, 'node_modules')), op.mergeMap(dir => {
             return rx.from(fs.promises.lstat(dir)).pipe(op.filter(stat => stat.isSymbolicLink()), op.mergeMap(stat => {
                 log.info('remove symlink ' + dir);
@@ -165,7 +167,8 @@ function updateTsconfigFileForProjects(wsKey, includeProject) {
     const projectDirs = (0, package_mgr_1.getProjectList)();
     const workspaceDir = path_1.default.resolve(rootPath, wsKey);
     const recipeManager = require('./recipe-manager');
-    const srcRootDir = (0, misc_1.closestCommonParentDir)(projectDirs);
+    const linkedPlink = (0, package_mgr_1.getState)().linkedDrcp;
+    const srcRootDir = (0, misc_1.closestCommonParentDir)(linkedPlink ? [linkedPlink.realPath, ...projectDirs] : projectDirs);
     if (includeProject) {
         writeTsConfigForProj(includeProject);
     }
@@ -195,9 +198,7 @@ function updateTsconfigFileForProjects(wsKey, includeProject) {
         include);
         const projDir = path_1.default.resolve(proj);
         (0, package_mgr_1.updateGitIgnores)({ file: path_1.default.resolve(proj, '.gitignore'),
-            lines: [
-                path_1.default.relative(projDir, tsconfigFile).replace(/\\/g, '/')
-            ]
+            lines: [path_1.default.relative(projDir, tsconfigFile).replace(/\\/g, '/')]
         });
         (0, package_mgr_1.updateGitIgnores)({
             file: path_1.default.resolve(rootPath, '.gitignore'),
@@ -260,7 +261,7 @@ function createTsConfig(proj, srcRootDir, workspace, extraPathMapping, include =
     const rootDir = path_1.default.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
     tsjson.compilerOptions = {
         rootDir,
-        baseUrl: workspace,
+        // baseUrl: workspace,
         // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
         skipLibCheck: false,
         jsx: 'preserve',
@@ -271,7 +272,7 @@ function createTsConfig(proj, srcRootDir, workspace, extraPathMapping, include =
         declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
         paths: extraPathMapping
     };
-    (0, package_list_helper_1.setTsCompilerOptForNodePath)(proj, workspace, tsjson.compilerOptions, {
+    (0, package_list_helper_1.setTsCompilerOptForNodePath)(proj, tsjson.compilerOptions, {
         workspaceDir: workspace,
         enableTypeRoots: true,
         realPackagePaths: true
@@ -298,7 +299,7 @@ async function updateHookedTsconfig(data, workspaceDir) {
     // if (json.compilerOptions?.paths && json.compilerOptions.paths['_package-settings'] != null) {
     //   delete json.compilerOptions.paths['_package-settings'];
     // }
-    const newCo = (0, package_list_helper_1.setTsCompilerOptForNodePath)(tsconfigDir, data.baseUrl, json.compilerOptions, {
+    const newCo = (0, package_list_helper_1.setTsCompilerOptForNodePath)(tsconfigDir, json.compilerOptions, {
         workspaceDir, enableTypeRoots: true, realPackagePaths: true
     });
     json.compilerOptions = newCo;
@@ -308,10 +309,14 @@ async function updateHookedTsconfig(data, workspaceDir) {
 function overrideTsConfig(src, target) {
     for (const key of Object.keys(src)) {
         if (key === 'compilerOptions') {
-            if (target.compilerOptions)
+            if (target.compilerOptions) {
                 Object.assign(target.compilerOptions, src.compilerOptions);
+                if (src.compilerOptions.baseUrl == null)
+                    delete target.compilerOptions.baseUrl;
+            }
         }
         else {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             target[key] = src[key];
         }
     }

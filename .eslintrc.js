@@ -1,9 +1,349 @@
-const config = require('@wfh/eslint-config-cra').create(
-  require('path').resolve(__dirname, 'tsconfig.json'),
-  '17.0.2' // React version
-);
+const Path = require('node:path');
+const reactAppCfg = require('eslint-config-react-app');
+const reactOverride = reactAppCfg.overrides[0];
 
 // To change default ignorePatterns
 // config.ignorePatterns = ["**/*.d.ts"];
 
-module.exports = config;
+function createTsRulesOverride(files, tsconfigFile) {
+  return {
+    files,
+    extends: [
+      'eslint:recommended',
+      'plugin:@typescript-eslint/recommended',
+      'plugin:@typescript-eslint/recommended-requiring-type-checking'
+    ],
+    excludedFiles: '*.d.ts',
+    plugins: [
+      'jsdoc',
+      'import',
+      'prefer-arrow',
+      '@typescript-eslint',
+      '@typescript-eslint/tslint'
+    ],
+    parser: '@typescript-eslint/parser',
+    parserOptions: {
+      ...(reactOverride.parserOptions),
+      // debugLevel: true,
+      project: tsconfigFile
+    },
+    rules: {
+      ...(reactOverride.rules),
+      'comma-dangle': 'off',
+      '@typescript-eslint/comma-dangle': ['warn', 'never'],
+      'object-curly-spacing': 'off',
+      '@typescript-eslint/prefer-optional-chain': 'warn',
+      '@typescript-eslint/object-curly-spacing': ['warn', 'never'],
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/tslint/config': [
+        'warn', {
+          rules: {
+            whitespace: [
+              true,
+              'check-branch',
+              'check-decl',
+              'check-operator',
+              // "check-module",
+              'check-separator',
+              'check-rest-spread',
+              'check-type',
+              'check-typecast',
+              'check-type-operator'
+              // "check-preblock",
+              // "check-postbrace"
+            ]
+          }
+        }
+      ],
+      '@typescript-eslint/adjacent-overload-signatures': 'error',
+      '@typescript-eslint/array-type': 'off',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/ban-ts-comment': 'error',
+      '@typescript-eslint/ban-types': [
+        'error',
+        {
+          types: {
+            Object: {
+              message: 'Avoid using the `Object` type. Did you mean `object`?'
+            },
+            Function: {
+              message: 'Avoid using the `Function` type. Prefer a specific function type, like `() => void`.'
+            },
+            Boolean: {
+              message: 'Avoid using the `Boolean` type. Did you mean `boolean`?'
+            },
+            Number: {
+              message: 'Avoid using the `Number` type. Did you mean `number`?'
+            },
+            String: {
+              message: 'Avoid using the `String` type. Did you mean `string`?'
+            },
+            Symbol: {
+              message: 'Avoid using the `Symbol` type. Did you mean `symbol`?'
+            }
+          }
+        }
+      ],
+      '@typescript-eslint/consistent-type-assertions': 'error',
+      '@typescript-eslint/dot-notation': 'error',
+      '@typescript-eslint/explicit-member-accessibility': [
+        'error',
+        {
+          accessibility: 'no-public'
+        }
+      ],
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      indent: 'off',
+      '@typescript-eslint/indent': [
+        'warn',
+        2
+      ],
+      '@typescript-eslint/member-delimiter-style': [
+        'warn',
+        {
+          multiline: {
+            delimiter: 'semi',
+            requireLast: true
+          },
+          singleline: {
+            delimiter: 'semi',
+            requireLast: false
+          }
+        }
+      ],
+      '@typescript-eslint/naming-convention': 'off',
+      '@typescript-eslint/no-array-constructor': 'error',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/no-empty-interface': 'error',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-extra-non-null-assertion': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-for-in-array': 'error',
+      '@typescript-eslint/no-implied-eval': 'error',
+      '@typescript-eslint/no-inferrable-types': 'error',
+      '@typescript-eslint/no-misused-new': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-non-null-asserted-optional-chain': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-parameter-properties': 'off',
+      '@typescript-eslint/no-shadow': [
+        'off',
+        {
+          hoist: 'all'
+        }
+      ],
+      '@typescript-eslint/no-this-alias': 'warn',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        {
+          allowShortCircuit: true
+        }
+      ],
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-use-before-define': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/prefer-as-const': 'error',
+      '@typescript-eslint/prefer-for-of': 'error',
+      '@typescript-eslint/prefer-function-type': 'error',
+      '@typescript-eslint/prefer-namespace-keyword': 'error',
+      '@typescript-eslint/prefer-regexp-exec': 'error',
+      '@typescript-eslint/quotes': [
+        'error',
+        'single',
+        {avoidEscape: true}
+      ],
+      '@typescript-eslint/require-await': 'error',
+      '@typescript-eslint/restrict-plus-operands': 'off',
+      '@typescript-eslint/restrict-template-expressions': ['error', {allowNumber: true, allowBoolean: true}],
+      '@typescript-eslint/semi': [
+        'error',
+        'always'
+      ],
+      '@typescript-eslint/triple-slash-reference': [
+        'off',
+        {
+          path: 'always',
+          types: 'prefer-import',
+          lib: 'always'
+        }
+      ],
+      '@typescript-eslint/no-extra-semi': 'error',
+      '@typescript-eslint/unbound-method': ['off', {ignoreStatic: true}],
+      '@typescript-eslint/unified-signatures': 'error'
+    }
+  };
+}
+
+module.exports = {
+  root: true,
+  ...reactAppCfg,
+  extends: [
+    'eslint:recommended',
+    ...reactAppCfg.extends
+  ],
+  ignorePatterns: [
+    '**/dist/**/*',
+    '**/*.d.ts',
+    '**/*.d.mts',
+    '**/*.d.cts'
+  ],
+  // settings: {
+  //   react: {
+  //       version: reactVersion, // To override "detect" setting in CRA's eslint-config-react-app/base.js
+  //   },
+  // },
+  overrides: [
+    createTsRulesOverride(['**/*.tsx', '**/*.mtsx'], Path.resolve(__dirname, 'doc-app/tsconfig.json')),
+    createTsRulesOverride(['**/*.ts', '**/*.mts'], Path.resolve(__dirname, 'tsconfig.json'))
+  ],
+  rules: {
+    ...reactAppCfg.rules,
+    'prefer-const': 'error',
+    'comma-dangle': ['error', 'never'],
+    'comma-spacing': ['warn', {before: false, after: true}],
+    'space-before-blocks': ['warn', 'always'],
+    'multiline-ternary': ['warn', 'always-multiline'],
+    'jsx-quotes': ['warn', 'prefer-double'],
+    // 'newline-per-chained-call': ['warn', {ignoreChainWithDepth: 3}],
+    'key-spacing': ['warn', {afterColon: true}],
+    'array-bracket-newline': ['warn', {multiline: true}],
+    'object-curly-spacing': ['warn', 'never'],
+    'brace-style': [
+      'error', '1tbs', {
+        allowSingleLine: true
+      }
+    ],
+    'no-extra-semi': 'off',
+    'prefer-rest-params': 'off',
+    'arrow-parens': [
+      'off',
+      'always'
+    ],
+    complexity: 'off',
+    'constructor-super': 'error',
+    curly: [
+      'off',
+      'multi-line'
+    ],
+    'default-case': 'error',
+    'dot-notation': 'error',
+    'eol-last': 'error',
+    eqeqeq: [
+      'error',
+      'smart'
+    ],
+    'guard-for-in': 'error',
+    'id-blacklist': 'off',
+    'id-match': 'off',
+    'import/order': ['warn', {groups: ['builtin', 'external', 'parent', 'sibling', 'index']}],
+    'jsdoc/check-alignment': 'off',
+    'jsdoc/check-indentation': 'off',
+    'jsdoc/newline-after-description': 'off',
+    'linebreak-style': [
+      'error',
+      'unix'
+    ],
+    'max-classes-per-file': 'off',
+    'new-parens': 'error',
+    'no-array-constructor': 'off',
+    'no-bitwise': 'off',
+    'no-caller': 'error',
+    'no-cond-assign': 'off',
+    'no-console': [
+      'error',
+      {
+        allow: [
+          'warn',
+          'dir',
+          'time',
+          'timeEnd',
+          'timeLog',
+          'trace',
+          'assert',
+          'clear',
+          'count',
+          'countReset',
+          'group',
+          'groupEnd',
+          'table',
+          'debug',
+          'info',
+          'dirxml',
+          'error',
+          'groupCollapsed',
+          'Console',
+          'profile',
+          'profileEnd',
+          'timeStamp',
+          'context'
+        ]
+      }
+    ],
+    'no-constant-condition': 'off',
+    'no-debugger': 'error',
+    'no-empty': 'off',
+    'no-empty-function': 'off',
+    'no-eval': 'error',
+    'no-fallthrough': 'off',
+    'no-implied-eval': 'off',
+    'no-invalid-this': 'off',
+    'no-new-wrappers': 'off',
+    'no-shadow': 'off',
+    'no-throw-literal': 'error',
+    'no-trailing-spaces': [
+      'error',
+      {
+        ignoreComments: true
+      }
+    ],
+    'no-undef-init': 'error',
+    'no-underscore-dangle': 'off',
+    'no-unsafe-finally': 'error',
+    'no-unused-expressions': 'error',
+    'no-unused-labels': 'error',
+    'no-unused-vars': 'off',
+    'no-use-before-define': 'off',
+    'no-var': 'off',
+    'object-shorthand': 'error',
+    'one-var': [
+      'off',
+      'never'
+    ],
+    'prefer-arrow/prefer-arrow-functions': 'off',
+    'quote-props': [
+      'error',
+      'as-needed'
+    ],
+    quotes: ['warn', 'single', {avoidEscape: true}],
+    radix: 'error',
+    'require-await': 'off',
+    semi: 'error',
+    'space-before-function-paren': [
+      'error',
+      {
+        anonymous: 'never',
+        named: 'never'
+      }
+    ],
+    indent: ['warn', 2],
+    'spaced-comment': [
+      'error',
+      'always',
+      {
+        markers: ['/']
+      }
+    ],
+    'use-isnan': 'error',
+    'valid-typeof': 'off',
+    'no-loop-func': 'warn',
+    'import/no-anonymous-default-export': 'off', // override rules from eslint-config-react-app
+    'array-callback-return': 'off',
+    'import/no-webpack-loader-syntax': 'off' // override rules from eslint-config-react-app
+  }
+};

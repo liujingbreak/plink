@@ -421,7 +421,7 @@ export function registerNode() {
       inlineSourceMap: true, basePath: plinkEnv.workDir,
       changeCompilerOptions(co) {
         co.preserveSymlinks = true;
-        setTsCompilerOptForNodePath(process.cwd(), plinkEnv.workDir, co, {
+        setTsCompilerOptForNodePath(process.cwd(), co, {
           workspaceDir: plinkEnv.workDir,
           enableTypeRoots: true,
           realPackagePaths: true

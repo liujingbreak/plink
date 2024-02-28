@@ -8,6 +8,9 @@ import {InferFuncReturnEvents, ActionFactoryOfPlainType} from './inferred-types'
 // inspector.open(9222, 'localhost', true);
 
 interface BaseEvents {
+  /** Internal use, when option `debug` is `true`, this message will be dispatched when
+   * ReactorComposite2 is instantiated */
+  _onNew(): SingleActionFactory;
   _onErrorFor(err: any): SingleActionFactory;
 }
 
@@ -50,6 +53,9 @@ export class ReactorComposite2<
 
   constructor(private opts?: ReactorCompositeOpt<I, O, LI, LO>) {
     super(opts);
+    if (opts?.debug) {
+      this.o.ft._onNew().dp();
+    }
     this.reactorSubj = new rx.ReplaySubject();
     const doOperator = <A, F>(dispatchingAction: Action<A>) => (wait$: rx.Observable<Action<F>>) => rx.merge(
       wait$,

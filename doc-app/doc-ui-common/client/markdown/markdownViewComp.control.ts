@@ -1,37 +1,38 @@
-import {ReactorComposite, payloadRelatedToAction} from '@wfh/reactivizer';
+import {SingleActionFactory, ReactorComposite2, actionRelatedToAction} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import {useAppLayout} from '../components/appLayout.control';
 import {Router} from '../animation/AnimatableRoutes.hooks';
 import {LoaderRecivedData} from '../../isom/md-types';
 import {markdownsControl} from './markdownSlice';
 
-type Actions = {
-  setMarkdownKey(key: string): void;
-  setMermaidClassName(n: string): void;
-  setMarkdownBodyRef(div: HTMLDivElement | null, forMdKey: string): void;
-  setRouter(router: Router): void;
-  setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): void;
-  setScrollTopHandler(cb: () => void): void;
-  handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
-  setFileInputRef(el: HTMLInputElement | null): void;
+export type Actions = {
+  setMarkdownKey(key: string): SingleActionFactory;
+  setMermaidClassName(n: string): SingleActionFactory;
+  setMarkdownBodyRef(div: HTMLDivElement | null, forMdKey: string): SingleActionFactory;
+  setRouter(router: Router): SingleActionFactory;
+  setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): SingleActionFactory;
+  setScrollTopHandler(cb: () => void): SingleActionFactory;
+  handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): SingleActionFactory;
+  setFileInputRef(el: HTMLInputElement | null): SingleActionFactory;
 };
 
 export interface Events {
-  markdownDataLoaded(data: LoaderRecivedData): void;
+  markdownDataLoaded(data: LoaderRecivedData): SingleActionFactory;
   /** mermaide, anchors are all renderred */
-  htmlRenderredFor(key: string): void;
-  scrollToTop(): void;
-  setFileInputVisible(visible: boolean): void;
+  htmlRenderredFor(key: string): SingleActionFactory;
+  scrollToTop(): SingleActionFactory;
+  setFileInputVisible(visible: boolean): SingleActionFactory;
 }
 
 export function createMarkdownViewControl(touchUiState: (s: any) => void) {
-  const inputTableFor = ['setScrollTopHandler', 'setLayoutControl', 'setMarkdownKey',
+  const inputTableFor = [
+    'setScrollTopHandler', 'setLayoutControl', 'setMarkdownKey',
     'setMermaidClassName', 'setRouter', 'setMarkdownBodyRef', 'setFileInputRef'
   ] as const;
 
   const outputTableFor = ['setFileInputVisible', 'markdownDataLoaded', 'htmlRenderredFor'] as const;
 
-  const composite = new ReactorComposite<Actions, Events, typeof inputTableFor, typeof outputTableFor>({
+  const composite = new ReactorComposite2<Actions, Events, typeof inputTableFor, typeof outputTableFor>({
     name: 'MarkdownView',
     outputTableFor,
     inputTableFor,
@@ -55,13 +56,14 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
       rx.filter(([[, , key0], [, key], , router]) => router.matchedRoute?.matchedParams.mdKey === key && key0 === key),
       rx.mergeMap(([[, containerDom], [m2, key], [, mermaidClassName], router]) =>
         outputTable.l.markdownDataLoaded.pipe(
-          payloadRelatedToAction(m2),
+          actionRelatedToAction(m2),
           rx.take(1),
           rx.tap(([, {html}]) => {
+            // TODO: need server-side rendering support
             containerDom!.innerHTML = html;
           }),
           rx.delay(50),
-          rx.mergeMap(([m, {mermaids: mermaidTexts}]) => {
+          rx.mergeMap(([m, {links, mermaids: mermaidTexts}]) => {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             containerDom!.querySelectorAll('.language-mermaid').forEach(async (el, idx) => {
               el.id = 'mermaid-diagram-' + mermaidIdSeed++;
@@ -74,13 +76,16 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
             });
 
             const removeAnchorListener = [] as Array<() => void>;
+            if (links) {
+              markdownsControl.i.ft.registerFiles(links).dp(m);
+            }
 
             containerDom!.querySelectorAll('a').forEach(el => {
               const href = el.getAttribute('href');
-              if (href && !/^\/|https?:\/\//.test(href)) {
+              if (href?.startsWith('md-hash:')) {
                 el.setAttribute('href', '#');
                 const handleAnchor = (event: MouseEvent) => {
-                  router.control!.dp.navigateToRel(href);
+                  router.control!.dp.navigateToRel(encodeURIComponent(href.slice('md-hash:'.length)));
                   // router.control!.dp.navigateTo(router.matchedRoute!.path);
                   event.stopPropagation();
                   event.preventDefault();
@@ -90,9 +95,9 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
               }
             });
             if ((router.matchedRoute!.isPopState !== true && !router.matchedRoute?.location.hash )) {
-              o.dpf.scrollToTop(m2);
+              o.ft.scrollToTop().dp(m2);
             }
-            o.dpf.htmlRenderredFor([m, m2], key);
+            o.ft.htmlRenderredFor(key).dp(m, m2);
             return new rx.Observable(() => {
               return () => {
                 removeAnchorListener.forEach(cb => cb());
@@ -109,11 +114,19 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
   ));
 
   r('markdownsControl::htmlByKey -> markdownDataLoaded', inputTable.l.setMarkdownKey.pipe(
-    rx.switchMap(([m1, key]) => markdownsControl.o.pt.htmlByKey.pipe(
+    rx.mergeMap(payload => inputTable.l.setLayoutControl.pipe(
+      rx.take(1),
+      rx.map(([, layout]) => {
+        layout.i.dp.setLoadingVisible(true);
+        return [payload, layout] as const;
+      })
+    )),
+    rx.switchMap(([[m1, key], layout]) => markdownsControl.o.pt.htmlByKey.pipe(
       rx.map(([m2, map]) => [m1, m2, map.get(key)] as const),
       rx.filter((data): data is [typeof data[0], typeof data[1], NonNullable<typeof data[2]>] => data[2] != null),
       rx.tap(([m1, m2, data]) => {
-        o.dpf.markdownDataLoaded([m1, m2], data);
+        o.ft.markdownDataLoaded(data).dp(m1, m2);
+        layout.i.dp.setLoadingVisible(false);
       })
     ))
   ));
@@ -134,7 +147,7 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
     }),
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.tap(([m, visible]) => {
-      o.dpf.setFileInputVisible(m, visible);
+      o.ft.setFileInputVisible(visible).dp(m);
     })
   ));
 
@@ -148,7 +161,7 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
         ref.setAttribute('multiple', '');
         ref.webkitdirectory = true;
         return new rx.Observable<HTMLInputElement>(sub => {
-          function listener(event: Event) {
+          function listener(_event: Event) {
             if (ref?.files)
               sub.next(ref);
           }
@@ -157,10 +170,6 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
         });
       }
       return rx.EMPTY;
-    }),
-    rx.tap(ref => {
-      console.log(ref.files);
-      console.log(ref.webkitEntries);
     })
   ));
 

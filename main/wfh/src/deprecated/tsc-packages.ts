@@ -182,7 +182,7 @@ export function generateTsconfigFiles(pkgs: Iterable<string>, opts: TscCmdParam)
       });
     }
 
-    setTsCompilerOptForNodePath(tsConfigsDir, './', configJson.compilerOptions, {
+    setTsCompilerOptForNodePath(tsConfigsDir, configJson.compilerOptions, {
       enableTypeRoots: true,
       workspaceDir: Path.resolve(config().rootPath, wsKey!)
     });

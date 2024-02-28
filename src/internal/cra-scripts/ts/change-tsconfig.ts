@@ -4,7 +4,6 @@ import {closestCommonParentDir} from '@wfh/plink/wfh/dist/utils/misc';
 import {getState} from '@wfh/plink/wfh/dist/package-mgr';
 import {setTsCompilerOptForNodePath, plinkEnv/* , log4File*/} from '@wfh/plink';
 import ts from 'typescript';
-import {ForkTsCheckerWebpackPluginTypescriptOpts} from './types';
 import {runTsConfigHandlers} from './utils';
 // const log = log4File(__filename);
 
@@ -20,13 +19,7 @@ export function changeTsConfigFile(entryFile: string) {
 
   const tsconfigJson =
     ts.readConfigFile(process.env._plink_cra_scripts_tsConfig!,
-      (file) => fs.readFileSync(file, 'utf-8')).config as {
-      compilerOptions: {
-        rootDir?: string; baseUrl?: string; paths: {[k: string]: string[]};
-        preserveSymlinks?: boolean;
-      };
-      include?: string[];
-    } & NonNullable<ForkTsCheckerWebpackPluginTypescriptOpts['configOverwrite']>;
+      (file) => fs.readFileSync(file, 'utf-8')).config;
     // JSON.parse(fs.readFileSync(process.env._plink_cra_scripts_tsConfig!, 'utf8'));
   const tsconfigDir = Path.dirname(process.env._plink_cra_scripts_tsConfig!);
 
@@ -35,14 +28,11 @@ export function changeTsConfigFile(entryFile: string) {
   // therefore, initial paths is always empty.
   // const pathMapping: {[key: string]: string[]} = tsconfigJson.compilerOptions.paths = {};
 
-  if (tsconfigJson.compilerOptions.baseUrl == null) {
-    tsconfigJson.compilerOptions.baseUrl = './';
-  }
   tsconfigJson.compilerOptions.preserveSymlinks = false;
 
   // tsconfigJson.compilerOptions.paths = pathMapping;
 
-  setTsCompilerOptForNodePath(tsconfigDir, './', tsconfigJson.compilerOptions, {
+  setTsCompilerOptForNodePath(tsconfigDir, tsconfigJson.compilerOptions, {
     workspaceDir: plinkEnv.workDir,
     noSymlinks: true
     // realPackagePaths: true

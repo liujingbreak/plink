@@ -219,7 +219,7 @@ function setupCompilerOptionsWithPackages(compilerOptions, basePath, opts, ts = 
         }
     }
     // appendTypeRoots([], cwd, compilerOptions, {});
-    (0, package_list_helper_1.setTsCompilerOptForNodePath)(basePath, './', compilerOptions, {
+    (0, package_list_helper_1.setTsCompilerOptForNodePath)(basePath, compilerOptions, {
         enableTypeRoots: true,
         workspaceDir: misc_1.plinkEnv.workDir,
         realPackagePaths: true

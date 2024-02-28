@@ -37,7 +37,7 @@ export interface CompilerOptions {
  * @param assigneeOptions
  * @param opts CompilerOptionSetOpt
  */
-export declare function setTsCompilerOptForNodePath(tsconfigDir: string, baseUrl: string | undefined, assigneeOptions: Partial<CompilerOptions>, opts?: CompilerOptionSetOpt): CompilerOptions;
+export declare function setTsCompilerOptForNodePath(tsconfigDir: string, assigneeOptions: Partial<CompilerOptions>, opts?: CompilerOptionSetOpt): CompilerOptions;
 /**
  *
  * @param pathsDirs Node path like path information

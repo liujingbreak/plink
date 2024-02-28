@@ -29,6 +29,9 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title><%= _config.title || 'Plink' %></title>
+    <script>
+      // SERVER SIDE PRELOAD DATA PLACEHOLDER
+    </script>
     <% for (const dllFile of _dllJsFiles) { %>
     <script defer src="<%=dllFile%>"></script>
     <% } %>

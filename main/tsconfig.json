@@ -2,7 +2,6 @@
   "extends": "./wfh/tsconfig-base.json",
   "compilerOptions": {
     "strict": true,
-    "baseUrl": ".",
     "rootDir": ".",
     "rootDirs": ["wfh/src", "wfh/share"],
     "typeRoots": [

@@ -4,7 +4,6 @@
     {"path": "../algorithms/tsconfig-node.json"}
   ],
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": "src",
     "target": "ES2017",
     "outDir": "dist",

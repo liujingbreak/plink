@@ -130,7 +130,7 @@ function generateTsconfigFiles(pkgs, opts) {
                 return { path: refFile };
             });
         }
-        (0, package_list_helper_1.setTsCompilerOptForNodePath)(tsConfigsDir, './', configJson.compilerOptions, {
+        (0, package_list_helper_1.setTsCompilerOptForNodePath)(tsConfigsDir, configJson.compilerOptions, {
             enableTypeRoots: true,
             workspaceDir: path_1.default.resolve((0, config_1.default)().rootPath, wsKey)
         });

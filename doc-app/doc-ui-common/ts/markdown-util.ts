@@ -114,3 +114,7 @@ function tocMarkdown(tocs: TOC[]) {
   return str.slice(0, -1);
 }
 
+const textEncoder = new TextEncoder();
+export async function digestSha1(text: string) {
+  return btoa(String.fromCodePoint(...new Uint8Array(await globalThis.crypto.subtle.digest('SHA-1', textEncoder.encode(text)))));
+}

@@ -281,7 +281,7 @@ export function setupCompilerOptionsWithPackages(compilerOptions: RequiredCompil
   }
 
   // appendTypeRoots([], cwd, compilerOptions, {});
-  setTsCompilerOptForNodePath(basePath, './', compilerOptions, {
+  setTsCompilerOptForNodePath(basePath, compilerOptions, {
     enableTypeRoots: true,
     workspaceDir: plinkEnv.workDir,
     realPackagePaths: true

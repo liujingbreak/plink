@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {SingleActionFactory, ReactorComposite2, RxController2} from '../src';
+import {SingleActionFactory, ReactorComposite2} from '../src';
 
 const inputTableFor = ['message3'] as const;
 
@@ -74,7 +74,7 @@ describe('reactivizer2', () => {
     expect(mockFn.mock.calls[0][0]).toBe('I am a fake error');
   }, 10000);
 
-  it('control2\'s  do(), ddo()', async () => {
+  it('control2\'s  do(), ddo(), createDispatcherFor()', async () => {
     const composite = new ReactorComposite2<BaseActions, BaseResponse>({
       name: 'reactorComposite2 #3',
       debug: true
@@ -88,6 +88,15 @@ describe('reactivizer2', () => {
     expect(msg[1]).toBe('hello do()');
     const msgDdo = await rx.firstValueFrom(composite.i.ft.message2('hello ddo()').ddo(composite.o.pt.reply2));
     expect(msgDdo[1]).toBe('hello ddo()');
+
+    const mock = jest.fn();
+    composite.r('message3', composite.i.pt.message3.pipe(
+      rx.tap(([, ...params]) => mock(...params))
+    ));
+    const dispatcher = composite.i.createDispatchers();
+    dispatcher.message3('message3 data', 'data2');
+
+    expect(mock.mock.calls[0]).toEqual(['message3 data', 'data2']);
   }, 10000);
 });
 

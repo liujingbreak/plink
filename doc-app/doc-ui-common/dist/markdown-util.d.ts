@@ -16,3 +16,4 @@ export declare function insertOrUpdateMarkdownToc(input: string, srcFile: string
     toc: string;
     html: string;
 }>;
+export declare function digestSha1(text: string): Promise<string>;

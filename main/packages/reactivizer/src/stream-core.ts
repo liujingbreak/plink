@@ -89,7 +89,7 @@ export class ControllerCore<I> {
               const type = nameOfAction(action);
               if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                 // eslint-disable-next-line no-console
-                console.log(`%c ${this.logPrefix} rx:`, 'color: black; background: #8c61ff;',
+                console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;',
                   type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
               }
             }) :
@@ -146,6 +146,7 @@ export class ControllerCore<I> {
     this.logPrefix = name ?? this.typePrefix.trim();
   }
 
+  /** This method is not meant to be used directly */
   dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]> {
     if (has.call(this.dispatcher, type)) {
       return this.dispatcher[type];
@@ -159,6 +160,7 @@ export class ControllerCore<I> {
     return dispatch;
   }
 
+  /** This method is not meant to be used directly */
   dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I[K]> {
     if (has.call(this.dispatcherFor, type)) {
       return this.dispatcherFor[type];

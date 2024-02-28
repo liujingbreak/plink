@@ -2,7 +2,10 @@
 *.bak
 package-lock.json
 /drcp-types
-/wfh/ts/**/*.ts
+/packages/ts/**
+/packages/src/**
+/wfh/spec
+/wfh/src
 **/__test__/**
 /redux-toolkit-observable/*.ts
 /thread-promise-pool/ts

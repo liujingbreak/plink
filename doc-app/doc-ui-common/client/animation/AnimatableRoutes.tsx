@@ -31,7 +31,7 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
       { router.matchedRoute != null ?
         prop.noAnim === true ?
           router.matchedRoute.element :
-          <SwitchAnim logName="RouterSwitchAnim" debug={false} size="full"
+          <SwitchAnim logName="RouterSwitchAnim" debug={true} size="full"
             type="opacity"
             parentDom={router.rootElement}
             switchOnDistinct={router.matchedRoute.element}

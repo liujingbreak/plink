@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.insertOrUpdateMarkdownToc = exports.tocToString = exports.traverseTocTree = exports.markdownToHtml = void 0;
+exports.digestSha1 = exports.insertOrUpdateMarkdownToc = exports.tocToString = exports.traverseTocTree = exports.markdownToHtml = void 0;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const os_1 = tslib_1.__importDefault(require("os"));
@@ -97,4 +97,9 @@ function tocMarkdown(tocs) {
     }
     return str.slice(0, -1);
 }
+const textEncoder = new TextEncoder();
+async function digestSha1(text) {
+    return btoa(String.fromCodePoint(...new Uint8Array(await globalThis.crypto.subtle.digest('SHA-1', textEncoder.encode(text)))));
+}
+exports.digestSha1 = digestSha1;
 //# sourceMappingURL=markdown-util.js.map

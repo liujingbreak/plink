@@ -92,23 +92,25 @@ export function applyHighlightFeature(tocControl: TocControl) {
         } else {
           return outputTable.l.itemsIdUpdated.pipe(
             rx.take(1),
-            rx.map(([, , byIndex]) => [m, byIndex[0], itemById.get(byIndex[0])!] as const)
+            rx.map(([, , byIndex]) => [m, byIndex[0], itemById.get(byIndex[0])] as const)
           );
         }
       })
     )),
-    rx.scan<readonly [ActionMeta, string, ItemState], readonly[ActionMeta, string, ItemState], null>((prev, curr) => {
+    rx.scan<readonly [ActionMeta, string, ItemState | undefined], readonly[ActionMeta, string, ItemState | undefined], null>((prev, curr) => {
       const [meta, cId, cItem] = curr;
       if (prev != null) {
         const [, id, pItem] = prev as typeof curr;
-        o.dpf.unhighlightTitle(meta, id, pItem.titleDom!);
         if (pItem) {
+          o.dpf.unhighlightTitle(meta, id, pItem.titleDom!);
           o.dpf.itemUpdated(meta, {...pItem, highlighted: false});
         }
       }
-      o.dpf.highlightTitle(meta, cId, cItem.titleDom!);
-      i.dpf.scrollTocToVisible(meta, contentHeadIdToTocTitleId(cId));
-      o.dpf.itemUpdated(meta, {...cItem, highlighted: true});
+      if (cItem) {
+        o.dpf.highlightTitle(meta, cId, cItem.titleDom!);
+        i.dpf.scrollTocToVisible(meta, contentHeadIdToTocTitleId(cId));
+        o.dpf.itemUpdated(meta, {...cItem, highlighted: true});
+      }
       return curr;
     }, null)
   ));

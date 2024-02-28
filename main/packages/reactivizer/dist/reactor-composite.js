@@ -55,6 +55,9 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
             else
                 this.reactorSubj.next(['', ...params]);
         };
+        if (opts === null || opts === void 0 ? void 0 : opts.debug) {
+            this.o.ft._onNew().dp();
+        }
         this.reactorSubj = new rx.ReplaySubject();
         const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt._onErrorFor.pipe((0, control_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
             throw err;

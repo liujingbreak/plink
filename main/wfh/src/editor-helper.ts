@@ -60,7 +60,7 @@ const slice = stateFactory.newSlice({
   initialState,
   reducers: {
     clearSymlinks() {},
-    hookTsconfig(s, {payload}: PayloadAction<string[]>) {},
+    hookTsconfig(_s, _payload: PayloadAction<string[]>) {},
     unHookTsconfig(s, {payload}: PayloadAction<string[]>) {
       for (const file of payload) {
         const relPath = relativePath(file);
@@ -68,13 +68,13 @@ const slice = stateFactory.newSlice({
       }
     },
     unHookAll() {},
-    clearSymlinksDone(S) {}
+    clearSymlinksDone(_s) {}
   }
 });
 
 export const dispatcher = stateFactory.bindActionCreators(slice);
 
-stateFactory.addEpic<EditorHelperState>((action$, state$) => {
+stateFactory.addEpic<EditorHelperState>((action$, _state$) => {
   let noModuleSymlink: Set<string>;
 
   function updateNodeModuleSymlinks(wsKey: string) {
@@ -127,6 +127,7 @@ stateFactory.addEpic<EditorHelperState>((action$, state$) => {
     action$.pipe(ofp(slice.actions.clearSymlinks),
       op.concatMap(() => {
         return rx.from(_recp.allSrcDirs()).pipe(
+          // eslint-disable-next-line multiline-ternary
           op.map(item => item.projDir ? Path.resolve(item.projDir, item.srcDir, 'node_modules') :
             Path.resolve(item.srcDir, 'node_modules')),
           op.mergeMap(dir => {
@@ -239,7 +240,8 @@ function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
 
   const recipeManager = require('./recipe-manager') as typeof _recp;
 
-  const srcRootDir = closestCommonParentDir(projectDirs);
+  const linkedPlink = getPkgState().linkedDrcp;
+  const srcRootDir = closestCommonParentDir(linkedPlink ? [linkedPlink.realPath, ...projectDirs] : projectDirs);
 
   if (includeProject) {
     writeTsConfigForProj(includeProject);
@@ -272,9 +274,7 @@ function updateTsconfigFileForProjects(wsKey: string, includeProject?: string) {
     );
     const projDir = Path.resolve(proj);
     updateGitIgnores({file: Path.resolve(proj, '.gitignore'),
-      lines: [
-        Path.relative(projDir, tsconfigFile).replace(/\\/g, '/')
-      ]
+      lines: [Path.relative(projDir, tsconfigFile).replace(/\\/g, '/')]
     });
     updateGitIgnores({
       file: Path.resolve(rootPath, '.gitignore'),
@@ -316,12 +316,12 @@ function writePackageSettingType() {
 }
 
 /**
- * 
- * @param pkgName 
- * @param dir 
- * @param workspace 
- * @param drcpDir 
- * @param include 
+ *
+ * @param pkgName
+ * @param dir
+ * @param workspace
+ * @param drcpDir
+ * @param include
  * @return tsconfig file path
  */
 function createTsConfig(proj: string, srcRootDir: string, workspace: string,
@@ -343,7 +343,7 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string,
   const rootDir = Path.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
   tsjson.compilerOptions = {
     rootDir,
-    baseUrl: workspace,
+    // baseUrl: workspace,
     // noResolve: true, // Do not add this, VC will not be able to understand rxjs module
     skipLibCheck: false,
     jsx: 'preserve',
@@ -354,11 +354,12 @@ function createTsConfig(proj: string, srcRootDir: string, workspace: string,
     declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
     paths: extraPathMapping
   };
-  setTsCompilerOptForNodePath(proj, workspace, tsjson.compilerOptions, {
+  setTsCompilerOptForNodePath(proj, tsjson.compilerOptions, {
     workspaceDir: workspace,
     enableTypeRoots: true,
     realPackagePaths: true
   });
+
   const tsconfigFile = Path.resolve(proj, 'tsconfig.json');
   writeTsConfigFile(tsconfigFile, tsjson);
   return tsconfigFile;
@@ -386,21 +387,24 @@ async function updateHookedTsconfig(data: HookedTsconfig, workspaceDir?: string)
   // if (json.compilerOptions?.paths && json.compilerOptions.paths['_package-settings'] != null) {
   //   delete json.compilerOptions.paths['_package-settings'];
   // }
-  const newCo = setTsCompilerOptForNodePath(tsconfigDir, data.baseUrl,
-    json.compilerOptions as any, {
-      workspaceDir, enableTypeRoots: true, realPackagePaths: true
-    });
+  const newCo = setTsCompilerOptForNodePath(tsconfigDir, json.compilerOptions as any, {
+    workspaceDir, enableTypeRoots: true, realPackagePaths: true
+  });
   json.compilerOptions = newCo;
   log.info('update:', chalk.blue(file));
   return fs.promises.writeFile(file, JSON.stringify(json, null, '  '));
 }
 
-function overrideTsConfig(src: any, target: any) {
+function overrideTsConfig(src: {[key: string]: any}, target: {[key: string]: any}) {
   for (const key of Object.keys(src)) {
     if (key === 'compilerOptions') {
-      if (target.compilerOptions)
+      if (target.compilerOptions) {
         Object.assign(target.compilerOptions, src.compilerOptions);
+        if (src.compilerOptions.baseUrl == null)
+          delete target.compilerOptions.baseUrl;
+      }
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       target[key] = src[key];
     }
   }

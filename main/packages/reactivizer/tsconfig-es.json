@@ -4,7 +4,6 @@
     {"path": "../algorithms/tsconfig-es.json"}
   ],
   "compilerOptions": {
-    "baseUrl": ".",
     "module": "ESNext",
     "outDir": "es",
     "strict": true,

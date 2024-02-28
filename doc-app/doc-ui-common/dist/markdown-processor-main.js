@@ -26,7 +26,7 @@ function setupBroker(excludeCurrentThead = true, maxNumOfWorker) {
         log(msg, ...args) {
             log.info(msg, ...args.map(item => isPrimitiveValue(item) ? item : (0, node_util_1.inspect)(item, { showHidden: false, depth: 0, compact: true })));
         },
-        debugIncludeTypes: ['letWorkerExit'],
+        debugIncludeTypes: ['workerAssigned', 'letWorkerExit'],
         // debugExcludeTypes: ['workerInited'],
         workerFactory() {
             return new worker_threads_1.Worker(path_1.default.resolve(__dirname, '../dist/markdown-processor-worker.js'));

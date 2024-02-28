@@ -265,7 +265,7 @@ function registerNode() {
             inlineSourceMap: true, basePath: misc_1.plinkEnv.workDir,
             changeCompilerOptions(co) {
                 co.preserveSymlinks = true;
-                (0, package_list_helper_1.setTsCompilerOptForNodePath)(process.cwd(), misc_1.plinkEnv.workDir, co, {
+                (0, package_list_helper_1.setTsCompilerOptForNodePath)(process.cwd(), co, {
                     workspaceDir: misc_1.plinkEnv.workDir,
                     enableTypeRoots: true,
                     realPackagePaths: true

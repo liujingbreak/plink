@@ -1,5 +1,5 @@
 import React from 'react';
-import {ReactorComposite, ActionTableDataType, payloadRelatedToAction} from '@wfh/reactivizer';
+import {ReactorComposite2, SingleActionFactory, ActionTableDataType, actionRelatedToAction} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import cln from 'classnames';
 import styles from './SwitchAnim.module.scss';
@@ -15,7 +15,7 @@ type RenderItem = {
   onContainerReady(div: HTMLDivElement | null): void;
 };
 
-interface BaseOptions {
+export interface BaseOptions {
   /** 'full' works like 'flex-grow: 1;', default: 'fit' */
   size?: 'full' | 'fit';
   /** default false, show animation effect for first time content rendering */
@@ -24,31 +24,34 @@ interface BaseOptions {
   className?: string;
   innerClassName?: string;
   debug?: boolean;
+  /** For debug animation layout issue */
+  superSlow?: boolean;
+  logName?: string;
 }
 
 export type SwitchActions = {
-  // syncFromProps(hashKey: string, children: React.ReactNode): void;
-  setBaseOptions(opts: BaseOptions): void;
-  setTemplateData(data: any): void;
-  setSwitchOnDistinct(value: any): void;
-  setTemplateRenderer(r: (data: any) => React.ReactNode): void;
+  // syncFromProps(hashKey: string, children: React.ReactNode): SingleActionFactory;
+  setBaseOptions(opts: BaseOptions): SingleActionFactory;
+  setTemplateData(data: any): SingleActionFactory;
+  setSwitchOnDistinct(value: any): SingleActionFactory;
+  setTemplateRenderer(r: (data: any) => React.ReactNode): SingleActionFactory;
 };
 
 type SwitchEvents = {
-  entering(key: number | string | null): void;
-  leaving(key: number | string | null): void;
+  entering(key: number | string | null): SingleActionFactory;
+  leaving(key: number | string | null): SingleActionFactory;
   /** As React state */
-  changeContent(contentKeys: (number | string)[], contentByKey: Map<string | number, RenderItem>): void;
+  changeContent(contentKeys: (number | string)[], contentByKey: Map<string | number, RenderItem>): SingleActionFactory;
 };
 
 const inputTableFor = ['setTemplateRenderer', 'setTemplateData', 'setBaseOptions'] as const;
 const outputTableFor = ['leaving', 'entering', 'changeContent'] as const;
 
 export function createControl(setState: (s: SwitchAnimOutputData) => void, debug?: boolean) {
-  const composite = new ReactorComposite<SwitchActions, SwitchEvents, typeof inputTableFor, typeof outputTableFor>({
+  const composite = new ReactorComposite2<SwitchActions, SwitchEvents, typeof inputTableFor, typeof outputTableFor>({
     name: 'switchAnim',
     debug,
-    debugExcludeTypes: ['changeContent'],
+    // debugExcludeTypes: ['changeContent'],
     inputTableFor, outputTableFor
   });
 
@@ -56,17 +59,18 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
 
   r('entering -> set className, changeContent & entering(null) -> changeContent', o.pt.entering.pipe(
     rx.filter(([, key]) => key != null),
-    rx.withLatestFrom(o.pt.changeContent),
+    rx.withLatestFrom(outputTable.l.changeContent),
     rx.mergeMap(([[m, key], [, keys, contentByKey]]) => {
       const item = contentByKey.get(key!)!;
       item.clsName = cln(styles.enterStart, styles.entering);
-      o.dpf.changeContent(m, keys, contentByKey);
+      o.ft.changeContent(keys, contentByKey).dp(m);
       return o.pt.entering.pipe(
-        payloadRelatedToAction({i: m.r as number}),
+        rx.filter(([, key]) => key == null),
+        actionRelatedToAction({i: m.r as number}),
         rx.take(1),
         rx.tap(() => {
           item.clsName = '';
-          o.dpf.changeContent(m, keys, contentByKey);
+          o.ft.changeContent(keys, contentByKey).dp(m);
         })
       );
     })
@@ -94,10 +98,10 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
           };
           contentByKey.set(idx, item);
           contentKeys.push(idx);
-          o.dp.changeContent(contentKeys, contentByKey);
+          o.ft.changeContent(contentKeys, contentByKey).dp();
           if (contentKeys.length > 1) {
             // leaving animation
-            return o.dfo.leaving(o.at.leaving, m, contentKeys[0]).pipe(
+            return o.ft.leaving(contentKeys[0]).ddo(o.at.leaving, m).pipe(
               rx.take(1),
               rx.map(() => opts)
             );
@@ -108,10 +112,10 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
         // entering animation
         rx.switchMap(opts => {
           return rx.timer(opts.type === 'translateY' || opts.type == null ? 200 : 20).pipe(
-            rx.tap(() => o.dpf.entering(m, idx)),
-            rx.switchMap(() => rx.timer(TRANSION_DURATION)),
+            rx.tap(() => o.ft.entering(idx).dp(m)),
+            rx.switchMap(() => rx.timer(opts.superSlow ? 20000 : TRANSION_DURATION)),
             rx.tap(() => {
-              o.dpf.entering(m, null);
+              o.ft.entering(null).dp(m);
             })
           );
         })
@@ -133,25 +137,29 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
 
   r('leaving -> leaving(null), changeContent', o.pt.leaving.pipe(
     rx.filter(([, key]) => key != null),
-    rx.withLatestFrom(o.pt.changeContent),
-    rx.concatMap(([[m, key], [, keys, contentByKey]]) => {
+    rx.withLatestFrom(outputTable.l.changeContent, inputTable.l.setBaseOptions),
+    rx.concatMap(([[m, key], [, keys, contentByKey], [, opts]]) => {
       const content = contentByKey.get(key!);
       if (content == null)
         return rx.EMPTY;
-      content.clsName = styles.leaving;
-      o.dpf.changeContent(m, keys, contentByKey);
       if (content.dom) {
         const style = content.dom.style;
+        style.boxSizing = 'border-box';
         style.width = content.dom.clientWidth + 'px';
         style.height = content.dom.clientHeight + 'px';
         style.top = '0px';
         style.left = '0px';
       }
-      return rx.timer(TRANSION_DURATION).pipe(
+      return rx.timer(30).pipe(
+        rx.tap(() => {
+          content.clsName = styles.leaving;
+          o.ft.changeContent(keys, contentByKey).dp(m);
+        }),
+        rx.switchMap(() => rx.timer(opts.superSlow ? 20000 : TRANSION_DURATION)),
         rx.tap(() => {
           contentByKey.delete(key!);
-          o.dpf.changeContent(m, keys.slice(1), contentByKey);
-          o.dpf.leaving(m, null);
+          o.ft.changeContent(keys.slice(1), contentByKey).dp(m);
+          o.ft.leaving(null).dp(m);
         })
       );
     })
@@ -163,12 +171,12 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
   ]).pipe(
     rx.tap(([data, data2]) => setState({...data, ...data2}))
   ));
-  i.dp.setTemplateRenderer((data: React.ReactNode) => {
+  i.ft.setTemplateRenderer((data: React.ReactNode) => {
     return data;
-  });
-  o.dp.changeContent([], new Map());
-  o.dp.entering(null);
-  o.dp.leaving(null);
+  }).dp();
+  o.ft.changeContent([], new Map()).dp();
+  o.ft.entering(null).dp();
+  o.ft.leaving(null).dp();
 
   return composite;
 }

@@ -4,21 +4,9 @@ import classnames from 'classnames/bind';
 import clsddp from 'classnames/dedupe';
 import cls from 'classnames';
 import styles from './SwitchAnim.module.scss';
-import {SwitchAnimOutputData, createControl} from './SwitchAnim.control';
+import {BaseOptions, SwitchAnimOutputData, createControl} from './SwitchAnim.control';
 // import get from 'lodash/get';
 const cx = classnames.bind(styles);
-
-interface BaseOptions {
-  /** 'full' works like 'flex-grow: 1;', default: 'fit' */
-  size?: 'full' | 'fit';
-  /** default false, show animation effect for first time content rendering */
-  animFirstContent?: boolean;
-  type?: 'opacity' | 'translateY';
-  className?: string;
-  innerClassName?: string;
-  debug?: boolean;
-  logName?: string;
-}
 
 export type SwitchAnimProps<D = unknown> = BaseOptions & {
   parentDom?: {className: string} | null;
@@ -39,16 +27,16 @@ const SwitchAnim = React.memo<SwitchAnimProps<any>>(function(props) {
 
   const {i} = composite;
   React.useEffect(() => {
-    i.dp.setSwitchOnDistinct(props.switchOnDistinct);
-  }, [i.dp, props.switchOnDistinct]);
+    i.ft.setSwitchOnDistinct(props.switchOnDistinct).dp();
+  }, [i.ft, props.switchOnDistinct]);
   React.useEffect(() => {
     if (props.templateRenderer)
-      i.dp.setTemplateRenderer(props.templateRenderer);
-  }, [i.dp, props.templateRenderer]);
+      i.ft.setTemplateRenderer(props.templateRenderer).dp();
+  }, [i.ft, props.templateRenderer]);
 
   React.useEffect(() => {
-    i.dp.setTemplateData(props.templateData);
-  }, [i.dp, props.templateData]);
+    i.ft.setTemplateData(props.templateData).dp();
+  }, [i.ft, props.templateData]);
 
   React.useEffect(() => {
     if (props.logName)
@@ -56,7 +44,7 @@ const SwitchAnim = React.memo<SwitchAnimProps<any>>(function(props) {
   }, [composite, props.logName]);
 
   React.useEffect(() => {
-    i.dp.setBaseOptions(props);
+    i.ft.setBaseOptions(props).dp();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.animFirstContent, props.size, props.type, props.className]);
 
@@ -70,8 +58,14 @@ const SwitchAnim = React.memo<SwitchAnimProps<any>>(function(props) {
 
   const content = (displayKeys ?? []).map(key => {
     const item = displayContentByKey!.get(key)!;
-    return <div key={key} className={cls(props.innerClassName ?? '', styles.movingBox, item.clsName)}
-      ref={item.onContainerReady}>{data?.setTemplateRenderer[0]!(item.templateData)}</div>;
+    return <div key={key}
+      className={
+        cls(props.innerClassName ?? '', styles.movingBox,
+          item.clsName, props.superSlow,
+          props.superSlow ? styles.superSlow : ''
+        )}
+      ref={item.onContainerReady}
+    >{data?.setTemplateRenderer[0]!(item.templateData)}</div>;
   });
   const rootCls = cls( props.className || '', cx(
     props.size == null ? 'fit' : props.size,

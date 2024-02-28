@@ -23,17 +23,17 @@ interface HookedTsconfig {
 }
 declare const slice: import("@reduxjs/toolkit").Slice<EditorHelperState, {
     clearSymlinks(): void;
-    hookTsconfig(s: import("immer/dist/internal.js").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
+    hookTsconfig(_s: import("immer/dist/internal.js").WritableDraft<EditorHelperState>, _payload: PayloadAction<string[]>): void;
     unHookTsconfig(s: import("immer/dist/internal.js").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookAll(): void;
-    clearSymlinksDone(S: import("immer/dist/internal.js").WritableDraft<EditorHelperState>): void;
+    clearSymlinksDone(_s: import("immer/dist/internal.js").WritableDraft<EditorHelperState>): void;
 } & import("../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>, "editor-helper">;
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
     clearSymlinks(): void;
-    hookTsconfig(s: import("immer/dist/internal.js").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
+    hookTsconfig(_s: import("immer/dist/internal.js").WritableDraft<EditorHelperState>, _payload: PayloadAction<string[]>): void;
     unHookTsconfig(s: import("immer/dist/internal.js").WritableDraft<EditorHelperState>, { payload }: PayloadAction<string[]>): void;
     unHookAll(): void;
-    clearSymlinksDone(S: import("immer/dist/internal.js").WritableDraft<EditorHelperState>): void;
+    clearSymlinksDone(_s: import("immer/dist/internal.js").WritableDraft<EditorHelperState>): void;
 } & import("../../packages/redux-toolkit-observable/dist/redux-toolkit-observable").ExtraSliceReducers<EditorHelperState>, "editor-helper">;
 export declare function getAction$(type: keyof (typeof slice)['caseReducers']): rx.Observable<{
     type: any;

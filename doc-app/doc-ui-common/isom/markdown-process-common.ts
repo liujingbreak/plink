@@ -1,7 +1,6 @@
 import * as rx from 'rxjs';
 import {WorkerControl, setIdleDuring} from '@wfh/reactivizer/dist/fork-join/node-worker';
 import {SingleActionFactory, ActionMeta, str2ArrayBuffer, arrayBuffer2str} from '@wfh/reactivizer';
-import md5 from 'md5';
 import MarkdownIt from 'markdown-it';
 import highlight from 'highlight.js';
 import {parse as parseHtml, DefaultTreeAdapterMap} from 'parse5';
@@ -29,6 +28,9 @@ export type MdOutputEvents = {
   anchorLinkToBeResolved(linkSrc: string, mdFilePath: string): SingleActionFactory;
 
   htmlRendered(file: string, html: string): SingleActionFactory;
+  /** Implementation should intercept this message and reduce and respond it with message htmlParsedSnippetAssembled */
+  onHtmlParsedSnippet(snippets: Array<string | Promise<string> | rx.Observable<string>>): SingleActionFactory;
+  htmlParsedSnippetAssembled(content: string): SingleActionFactory;
 };
 
 const headerSet = new Set<string>('h1 h2 h3 h4 h5'.split(' '));
@@ -65,7 +67,6 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
 
   r('processFile -> processFileDone', i.pt.processFile.pipe(
     rx.mergeMap(([m, content, file]) => {
-      o.ft.log('react to processFile', file).dp();
       return rx.defer(() => {
         const html = md.render(arrayBuffer2str(content));
         const doc = parseHtml(html, {sourceCodeLocationInfo: true});
@@ -82,11 +83,28 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
     })
   ));
 
+  r('onHtmlParsedSnippet -> htmlParsedSnippetAssembled', o.pt.onHtmlParsedSnippet.pipe(
+    rx.mergeMap(([m, snippets]) => {
+      return rx.from(snippets).pipe(
+        rx.concatMap(item => typeof item === 'string' ? rx.of(JSON.stringify(item)) : item),
+        rx.reduce<string, string[]>((acc, item) => {
+          acc.push(item);
+          return acc;
+        }, []),
+        rx.map(frags => {
+          o.ft.htmlParsedSnippetAssembled(frags.join(' + ')).dp(m);
+        })
+      );
+    })
+  ));
+
   i.ft.setLiftUpActions(rx.merge(
     o.at.imageToBeResolved,
     o.at.linkToBeResolved
   )).dp();
 }
+
+const textEncoder = new TextEncoder();
 
 function dfsAccessElement(
   processor: MarkdownProcessor,
@@ -99,102 +117,108 @@ function dfsAccessElement(
   const {i, o} = processor;
   const toc: TOC[] = [];
   const mermaidCode = [] as string[];
-  const chr = new rx.BehaviorSubject<ChildNode[]>(root.childNodes || []);
-  const output = [] as Array<string | Promise<string> | rx.Observable<string> | null | undefined>;
+
+  const output = [] as Array<string | Promise<string> | rx.Observable<string>>;
   let htmlOffset = 0;
   const headerTextDuplicationMap = new Map<string, number>();
 
-  chr.pipe(
-    rx.mergeMap(children => rx.from(children)),
-    rx.map(node => {
-      const nodeName = node.nodeName.toLowerCase();
-      if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
-        return;
-      const el = node as Element;
-      if (nodeName === 'code') {
-        const classAttr = el.attrs.find(item => item.name === 'class');
-        if (classAttr) {
-          const langMatch = /^language-(.*)$/.exec(classAttr.value);
-          const lang = langMatch ? langMatch[1] : null;
-          const endQuoteSyntaxPos = el.sourceCodeLocation!.attrs!.class!.endOffset - 1;
-          output.push(
-            sourceHtml.slice(htmlOffset, endQuoteSyntaxPos),
-            ' hljs'
-          );
-          htmlOffset = endQuoteSyntaxPos;
+  async function processHtmlNode(node: ChildNode | DefaultTreeAdapterMap['document']) {
+    const nodeName = node.nodeName.trim().toLowerCase();
+    if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
+      return;
+    const el = node as Element;
+    if (nodeName === 'code') {
+      const classAttr = el.attrs.find(item => item.name === 'class');
+      if (classAttr) {
+        const langMatch = /^language-(.*)$/.exec(classAttr.value);
+        const lang = langMatch ? langMatch[1] : null;
+        const endQuoteSyntaxPos = el.sourceCodeLocation!.attrs!.class!.endOffset - 1;
+        output.push(
+          sourceHtml.slice(htmlOffset, endQuoteSyntaxPos),
+          ' hljs'
+        );
+        htmlOffset = endQuoteSyntaxPos;
 
-          if (lang === 'mermaid' && el.childNodes.length > 0) {
-            const mermaidCodeStart = (el.childNodes[0] as Element).sourceCodeLocation!.startOffset;
-            const mermaidCodeEnd = (el.childNodes[el.childNodes.length - 1] as Element).sourceCodeLocation!.endOffset;
-            mermaidCode.push(sourceHtml.slice(mermaidCodeStart, mermaidCodeEnd));
-            output.push(sourceHtml.slice(htmlOffset, mermaidCodeStart));
-            htmlOffset = mermaidCodeEnd;
-          }
+        if (lang === 'mermaid' && el.childNodes.length > 0) {
+          const mermaidCodeStart = (el.childNodes[0] as Element).sourceCodeLocation!.startOffset;
+          const mermaidCodeEnd = (el.childNodes[el.childNodes.length - 1] as Element).sourceCodeLocation!.endOffset;
+          mermaidCode.push(sourceHtml.slice(mermaidCodeStart, mermaidCodeEnd));
+          output.push(sourceHtml.slice(htmlOffset, mermaidCodeStart));
+          htmlOffset = mermaidCodeEnd;
         }
-      } else if (nodeName === 'img') {
-        const imgSrc = el.attrs.find(item => item.name === 'src');
-        if (imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
-          o.ft.log('found img src=' + imgSrc.value).dp();
-          output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.src!.startOffset + 'src="'.length));
-          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-          htmlOffset = el.sourceCodeLocation!.attrs?.src.endOffset! - 1;
-
-          const result$ = new rx.ReplaySubject<string>(1);
-          o.ft.imageToBeResolved(imgSrc.value, file).do(i.at.imageResolved).pipe(
-            rx.take(1),
-            rx.map(([, url]) => url),
-            rx.tap(result$)
-          ).subscribe();
-          return output.push(result$);
-        }
-      } else if (headerSet.has(nodeName)) {
-        const text = lookupTextNodeIn(el);
-        const duplicateCount = headerTextDuplicationMap.get(text);
-        if (duplicateCount != null) {
-          headerTextDuplicationMap.set(text, duplicateCount + 1);
-        } else {
-          headerTextDuplicationMap.set(text, 0);
-        }
-        const hash = btoa(md5(text, {asString: true})) + (duplicateCount != null ? duplicateCount + '' : '');
-        const posBeforeStartTagEnd = el.sourceCodeLocation!.startTag!.endOffset - 1;
-        output.push(sourceHtml.slice(htmlOffset, posBeforeStartTagEnd), ` id="mdt-${hash}" data-mdt `);
-        htmlOffset = posBeforeStartTagEnd;
-        toc.push({
-          level: 0,
-          tag: nodeName,
-          text: lookupTextNodeIn(el),
-          id: hash
-        });
-      } else if (nodeName === 'a') {
-        const hrefAttr = el.attrs.find(attr => attr.name === 'href');
-        if (hrefAttr?.value && hrefAttr.value.startsWith('.')) {
-          output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.href!.startOffset + 'href="'.length));
-          htmlOffset = el.sourceCodeLocation!.attrs!.href!.endOffset - 1;
-          const result$ = new rx.ReplaySubject<string>(1);
-          o.ft.linkToBeResolved(hrefAttr?.value, file).do(i.at.linkResolved).pipe(
-            rx.take(1),
-            rx.map(([, url]) => url),
-            rx.tap(result$)
-          ).subscribe();
-
-          return output.push(result$);
-        }
-      } else if (el.childNodes) {
-        chr.next(el.childNodes);
       }
-    })
-  ).subscribe();
+    } else if (nodeName === 'img') {
+      const imgSrc = el.attrs.find(item => item.name === 'src');
+      if (imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
+        o.ft.log('Found img src=' + imgSrc.value).dp();
+        output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.src!.startOffset + 'src="'.length));
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+        htmlOffset = el.sourceCodeLocation!.attrs?.src.endOffset! - 1;
 
-  output.push(sourceHtml.slice(htmlOffset));
+        const result$ = new rx.ReplaySubject<string>(1);
+        o.ft.imageToBeResolved(imgSrc.value, file).do(i.at.imageResolved).pipe(
+          rx.take(1),
+          rx.map(([, url]) => url)
+        ).subscribe(result$);
+        return output.push(result$);
+      }
+    } else if (headerSet.has(nodeName)) {
+      const text = lookupTextNodeIn(el);
+      const duplicateCount = headerTextDuplicationMap.get(text);
+      if (duplicateCount != null) {
+        headerTextDuplicationMap.set(text, duplicateCount + 1);
+      } else {
+        headerTextDuplicationMap.set(text, 0);
+      }
+      const hash = (await digestSha1(text)) + (duplicateCount != null ? duplicateCount + '' : '');
+      const posBeforeStartTagEnd = el.sourceCodeLocation!.startTag!.endOffset - 1;
+      output.push(sourceHtml.slice(htmlOffset, posBeforeStartTagEnd), ` id="mdt-${hash}" data-mdt `);
+      htmlOffset = posBeforeStartTagEnd;
+      toc.push({
+        level: 0,
+        tag: nodeName,
+        text: lookupTextNodeIn(el),
+        id: hash
+      });
+    } else if (nodeName === 'a') {
+      const hrefAttr = el.attrs.find(attr => attr.name === 'href');
+      if (hrefAttr?.value && hrefAttr.value.startsWith('.')) {
+        output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.href!.startOffset + 'href="'.length));
+        htmlOffset = el.sourceCodeLocation!.attrs!.href!.endOffset - 1;
+        const result$ = new rx.ReplaySubject<string>(1);
+        o.ft.linkToBeResolved(hrefAttr?.value, file).do(i.at.linkResolved).pipe(
+          rx.take(1),
+          rx.map(([, url]) => url),
+          rx.tap(result$)
+        ).subscribe();
 
-  return setIdleDuring(processor, rx.from(output).pipe(
-    rx.concatMap(item => typeof item === 'string' ? rx.of(JSON.stringify(item)) : item == null ? ' + img + ' : item),
-    rx.reduce<string, string[]>((acc, item) => {
-      acc.push(item);
-      return acc;
-    }, []),
-    rx.map(frags => {
-      return [frags.join(' + '), toc, mermaidCode] as const;
-    })
-  ));
+        return output.push(result$);
+      }
+    } else if (el.childNodes) {
+      for (const child of el.childNodes) {
+        await processHtmlNode(child);
+      }
+    }
+  }
+
+  return rx.concat(
+    rx.from(processHtmlNode(root)).pipe(rx.ignoreElements()),
+    new rx.Observable<never>(sub => {
+      output.push(sourceHtml.slice(htmlOffset));
+      sub.complete();
+    }),
+    setIdleDuring(
+      processor,
+      o.ft.onHtmlParsedSnippet(output).ddo(o.pt.htmlParsedSnippetAssembled).pipe(
+        rx.map(([, content]) => {
+          return [content, toc, mermaidCode] as const;
+        }),
+        rx.take(1)
+      )
+    )
+  );
+}
+
+export async function digestSha1(text: string) {
+  return btoa(String.fromCodePoint(...new Uint8Array(await globalThis.crypto.subtle.digest('SHA-1', textEncoder.encode(text)))));
 }

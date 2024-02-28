@@ -63,7 +63,7 @@ export function createTsConfig(file: string, browserOptions: ParialBrowserOption
       ...oldJson.angularCompilerOptions
     }
   };
-  setTsCompilerOptForNodePath(tsConfigFileDir, process.cwd(), tsjson.compilerOptions, {
+  setTsCompilerOptForNodePath(tsConfigFileDir, tsjson.compilerOptions, {
     noTypeRootsInPackages: true,
     workspaceDir: process.cwd()
   });

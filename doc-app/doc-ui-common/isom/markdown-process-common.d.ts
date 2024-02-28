@@ -1,3 +1,4 @@
+import * as rx from 'rxjs';
 import { WorkerControl } from '@wfh/reactivizer/dist/fork-join/node-worker';
 import { SingleActionFactory } from '@wfh/reactivizer';
 import { TOC } from './md-types';
@@ -25,6 +26,10 @@ export type MdOutputEvents = {
     /** Consumer should react and dispatach "anchorLinkResolved" */
     anchorLinkToBeResolved(linkSrc: string, mdFilePath: string): SingleActionFactory;
     htmlRendered(file: string, html: string): SingleActionFactory;
+    /** Implementation should intercept this message and reduce and respond it with message htmlParsedSnippetAssembled */
+    onHtmlParsedSnippet(snippets: Array<string | Promise<string> | rx.Observable<string>>): SingleActionFactory;
+    htmlParsedSnippetAssembled(content: string): SingleActionFactory;
 };
 export type MarkdownProcessor = WorkerControl<MdInputActions, MdOutputEvents>;
 export declare function setupReacting(markdownProcessor: MarkdownProcessor): void;
+export declare function digestSha1(text: string): Promise<string>;

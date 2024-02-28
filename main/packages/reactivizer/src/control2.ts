@@ -10,57 +10,62 @@ export type ActionFactory = {
 };
 
 export interface SingleActionFactory {
-  dp(...origActionMeta: ArrayOrTuple<ActionMeta | undefined>): void;
-  /** At the moment this method is called, the message is sent, not the moment that the returned
+  /** Dispatch message */
+  dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): void;
+  /**
+   * `Dispatch and observe` response message
+   * At the moment this method is called, the message is sent, not the moment that the returned
    * observable is subscribed.
    * Retuened is an observable of ReplaySuvbject(1), NOTE: if you are expecting more than one "associated"
    * responding messages, only first responsive message is recorded by ReplaySubject and returned,
    * see ddo<F> as alternative
    **/
-  do<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
-    origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
-  ): rx.Observable<InferMapParam<F>>;
+  do<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
+    actionMetaRelated?: ActionMeta | ArrayOrTuple<ActionMeta>
+  ): rx.Observable<[ActionMeta, ...P]>;
 
-  /** 
+  /**
+   * `Deferred dispatch and observe` response message.
    * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
-   * responding messages will be recieved
+   * responding messages will be recieved.
+   * An asyncronized form of this method is `rx.firstValueFrom(...)` which returns a Promise
    */
-  ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
-    origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
-  ): rx.Observable<InferMapParam<F>>;
+  ddo<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
+    actionMetaRelated?: ActionMeta | ArrayOrTuple<ActionMeta>
+  ): rx.Observable<[ActionMeta, ...P]>;
 }
 
 class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFactory {
-
   constructor(
     private type: K,
     private payload: InferPayload<I[K]>,
     private control: RxController2<I>
   ) {}
 
-  dp(...origActionMeta: ArrayOrTuple<ActionMeta | undefined>) {
-    const metas = origActionMeta.filter(m => m != null) as ActionMeta[];
+  dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>) {
+    const metas = actionMetaRelated.filter(m => m != null) as ActionMeta[];
     if (metas.length > 0)
-      this.control.dispatchForFactory(this.type)(metas, ...this.payload);
+      this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
     else
       this.control.dispatchFactory(this.type)(...this.payload);
   }
 
-  do<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
+  do<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
     referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ) {
     const action = this.control.createAction(this.type, this.payload);
 
     if (referActionMeta)
       action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : (referActionMeta as ActionMeta).i;
-    const r$ = new rx.ReplaySubject<InferMapParam<F>>(1);
+    const r$ = new rx.ReplaySubject<[ActionMeta, ...P]>(1);
     this.ddo(waitForAction$, referActionMeta).pipe(
       rx.take(1)
     ).subscribe(r$);
     return r$.asObservable();
   }
 
-  ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
+  // ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
+  ddo<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
     referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ) {
     const action = this.control.createAction(this.type, this.payload);
@@ -74,24 +79,23 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
           rx.map(actionOrPayload => {
             if (Array.isArray(actionOrPayload)) {
               const [actionMeta, ...payload] = actionOrPayload;
-              (actionMeta as Action<F>).p = payload;
-              return actionMeta as Action<F>;
+              (actionMeta as Action<any>).p = payload;
+              return actionMeta as Action<any>;
             }
-            return actionOrPayload;
+            return actionOrPayload as Action<any>;
           }),
           operator(action),
-          actionRelatedToAction<Action<F>>(action),
+          actionRelatedToAction(action),
           mapActionToPayload(),
           rx.take(1)
         ))
-      ),
+      ) as rx.Observable<[ActionMeta, ...P]>,
       new rx.Observable<never>(sub => {
         this.control.actionUpstream.next(action);
         sub.complete();
       })
     );
   }
-
 }
 
 export class RxController2<I> extends ControllerCore<I> {
@@ -250,6 +254,32 @@ export class RxController2<I> extends ControllerCore<I> {
       })
     ).subscribe();
     return sub;
+  }
+
+  /**
+   * Create a variant of calling .ft(...).dp(...)`
+   **/
+  createDispatcherFor<K extends keyof I>(type: K, ...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): (...params: InferPayload<I[K]>) => void {
+    return (...params) => (this.ft[type] as (...p: any[]) => SingleActionFactory)(...params).dp(...actionMetaRelated);
+  }
+
+  /**
+   * Create a variant of interface of functions `<I>.ft(...).dp(...)`
+   **/
+  createDispatchers(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): {[K in keyof I]: (...params: InferPayload<I[K]>) => void} {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    return new Proxy({} as {[K in keyof I]: (...params: InferPayload<I[K]>) => void}, {
+      get(_target, key, _rec) {
+        return self.createDispatcherFor(key as keyof I, ...actionMetaRelated);
+      },
+      has(_target, key) {
+        return Object.prototype.hasOwnProperty.call(self.ft, key);
+      },
+      ownKeys() {
+        return Object.keys(self.ft as object);
+      }
+    });
   }
 }
 

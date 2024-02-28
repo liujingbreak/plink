@@ -57,7 +57,7 @@ class ControllerCore {
                         const type = nameOfAction(action);
                         if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                             // eslint-disable-next-line no-console
-                            console.log(`%c ${this.logPrefix} rx:`, 'color: black; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                            console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
                         }
                     }) :
                     rx.tap(action => {
@@ -99,6 +99,7 @@ class ControllerCore {
     setName(name) {
         this.logPrefix = name !== null && name !== void 0 ? name : this.typePrefix.trim();
     }
+    /** This method is not meant to be used directly */
     dispatchFactory(type) {
         if (exports.has.call(this.dispatcher, type)) {
             return this.dispatcher[type];
@@ -111,6 +112,7 @@ class ControllerCore {
         this.dispatcher[type] = dispatch;
         return dispatch;
     }
+    /** This method is not meant to be used directly */
     dispatchForFactory(type) {
         if (exports.has.call(this.dispatcherFor, type)) {
             return this.dispatcherFor[type];

@@ -43,11 +43,10 @@
     "glur": "^1.1.2",
     "@types/glur": "^1.1.1",
     "transformation-matrix": "2.8.0",
-    "bezier-js": "^4.1.1",
-    "@types/md5": "2.3.2"
+    "bezier-js": "^4.1.1"
   },
   "dependencies": {
-    "md5": "2.3.0",
+    "http-proxy": "^1.18.1",
     "gl-matrix": "3.4.3"
   }
 }

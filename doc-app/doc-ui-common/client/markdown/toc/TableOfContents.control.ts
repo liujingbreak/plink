@@ -48,7 +48,8 @@ export type TocUIEvents = {
   onTocLayoutChange(mode: 'aside' | 'popup'): void;
 };
 
-const tocInputTableFor = ['setDataKey', 'onContentDomRef',
+const tocInputTableFor = [
+  'setDataKey', 'onContentDomRef',
   'setRouter', 'onScrollDetectorRef', 'setLayoutControl', 'scrollTocToVisible'
 ] as const;
 
@@ -62,7 +63,7 @@ export type TocUIEventTable = ActionTableDataType<TocUIEvents, typeof tocOutputT
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   const compositeBase = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
     name: 'markdown-toc',
-    debug: process.env.NODE_ENV === 'development',
+    debug: false, // process.env.NODE_ENV === 'development',
     inputTableFor: tocInputTableFor,
     outputTableFor: tocOutputTableFor
   });

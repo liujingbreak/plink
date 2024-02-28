@@ -1,37 +1,42 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import Path from 'path';
 import fs from 'fs';
 import {describe, it, expect}  from '@jest/globals';
-// import {initProcess} from '@wfh/plink';
+import {initProcess, initConfig, logConfig} from '@wfh/plink';
 import * as rx from 'rxjs';
-import * as markdownUtil from '../ts/markdown-loader-worker';
+import markdownLoader0 from '../ts/markdown-loader';
 
 describe('markdown-util', () => {
   beforeAll(() => {
-    // initProcess();
+    initProcess();
+    logConfig(initConfig({dev: true})());
   });
 
-  it('should be able to parse HTML with <img> tags', async () => {
-    const {testable: {parseHtml}} = require('../ts/markdown-loader-worker') as typeof markdownUtil;
-    let i = 0;
-    const {content} = await rx.firstValueFrom(parseHtml(`<html><body>
-      <img src="./foobar">
-      <div></div>
-      <img src="./hello-world">
-      <img src="https://w.g.com/foo-bar">
-      <h1>I am head 1</h1>
-    </body></html>`, imgSrc => Promise.resolve(`imgSrcVar${i++}`))
-    );
-
-    console.log(content);
-    expect(content.length).toBeGreaterThan(0);
-  });
-
-  it.skip('long html', async () => {
-    const html = fs.readFileSync(Path.resolve(__dirname, 'sample.html'), 'utf8');
-    const {testable: {parseHtml}} = require('../ts/markdown-loader-worker') as typeof markdownUtil;
-    let i = 0;
-    const {content} = await rx.firstValueFrom(parseHtml(html, imgSrc => Promise.resolve(' + imgSrcVar + ' + i++)));
-    console.log(content);
-  });
+  it('long markdown', async () => {
+    const {default: markdownLoader} = require('../dist/markdown-loader') as {default: typeof markdownLoader0};
+    const file = Path.resolve(__dirname, 'sample-markdown.md');
+    const md = fs.readFileSync(file, 'utf8');
+    const jestMock = jest.fn();
+    const done$ = new rx.ReplaySubject<[Error | undefined, string]>(1);
+    const mockMarkdownInstance = {
+      context: __dirname,
+      async() {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return (...args: any[]) => {
+          jestMock(...args);
+          done$.next(args as [any, any]);
+          done$.complete();
+        };
+      },
+      resourcePath: file
+    } as any;
+    void markdownLoader.call(mockMarkdownInstance, md, undefined);
+    return rx.firstValueFrom(done$.pipe(
+      rx.tap(([err, text]) => {
+        console.log(err, text);
+        expect(err).toBeNull();
+      })
+    ));
+  }, 15000);
 
 });

@@ -1,23 +1,36 @@
 import * as rx from 'rxjs';
-import { Action, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam } from './stream-core';
+import { Action, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
 export type ActionFactory = {
     [k: string]: (...args: any[]) => SingleActionFactory;
 };
 export interface SingleActionFactory {
-    dp(...origActionMeta: ArrayOrTuple<ActionMeta | undefined>): void;
-    /** At the moment this method is called, the message is sent, not the moment that the returned
+    /** Dispatch message */
+    dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): void;
+    /**
+     * `Dispatch and observe` response message
+     * At the moment this method is called, the message is sent, not the moment that the returned
      * observable is subscribed.
      * Retuened is an observable of ReplaySuvbject(1), NOTE: if you are expecting more than one "associated"
      * responding messages, only first responsive message is recorded by ReplaySubject and returned,
      * see ddo<F> as alternative
      **/
-    do<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
+    do<P extends [...any[]]>(waitForAction$: rx.Observable<{
+        i: Action<unknown>['i'];
+        t: Action<unknown>['t'];
+        p: P;
+    } | [ActionMeta, ...P]>, actionMetaRelated?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<[ActionMeta, ...P]>;
     /**
+     * `Deferred dispatch and observe` response message.
      * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
-     * responding messages will be recieved
+     * responding messages will be recieved.
+     * An asyncronized form of this method is `rx.firstValueFrom(...)` which returns a Promise
      */
-    ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>, origActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<InferMapParam<F>>;
+    ddo<P extends [...any[]]>(waitForAction$: rx.Observable<{
+        i: Action<unknown>['i'];
+        t: Action<unknown>['t'];
+        p: P;
+    } | [ActionMeta, ...P]>, actionMetaRelated?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<[ActionMeta, ...P]>;
 }
 export declare class RxController2<I> extends ControllerCore<I> {
     opts?: (CoreOptions<I> & {
@@ -46,6 +59,16 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
      */
     subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]>>;
+    /**
+     * Create a variant of calling .ft(...).dp(...)`
+     **/
+    createDispatcherFor<K extends keyof I>(type: K, ...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): (...params: InferPayload<I[K]>) => void;
+    /**
+     * Create a variant of interface of functions `<I>.ft(...).dp(...)`
+     **/
+    createDispatchers(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): {
+        [K in keyof I]: (...params: InferPayload<I[K]>) => void;
+    };
 }
 export declare class GroupedRxController2<I, K> extends RxController2<I> {
     key: K;

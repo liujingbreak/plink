@@ -21,12 +21,9 @@ function changeTsConfigFile(entryFile) {
     // (see create-react-app/packages/react-scripts/scripts/utils/verifyTypeScriptSetup.js)
     // therefore, initial paths is always empty.
     // const pathMapping: {[key: string]: string[]} = tsconfigJson.compilerOptions.paths = {};
-    if (tsconfigJson.compilerOptions.baseUrl == null) {
-        tsconfigJson.compilerOptions.baseUrl = './';
-    }
     tsconfigJson.compilerOptions.preserveSymlinks = false;
     // tsconfigJson.compilerOptions.paths = pathMapping;
-    (0, plink_1.setTsCompilerOptForNodePath)(tsconfigDir, './', tsconfigJson.compilerOptions, {
+    (0, plink_1.setTsCompilerOptForNodePath)(tsconfigDir, tsconfigJson.compilerOptions, {
         workspaceDir: plink_1.plinkEnv.workDir,
         noSymlinks: true
         // realPackagePaths: true

@@ -6,6 +6,9 @@ import { ActionTable } from './action-table';
 import { ReactorCompositeOpt } from './reactor-base';
 import { ActionFactoryOfPlainType } from './inferred-types';
 interface BaseEvents {
+    /** Internal use, when option `debug` is `true`, this message will be dispatched when
+     * ReactorComposite2 is instantiated */
+    _onNew(): SingleActionFactory;
     _onErrorFor(err: any): SingleActionFactory;
 }
 type LOE<LI extends readonly any[]> = readonly (LI[number] | '_onErrorFor')[];

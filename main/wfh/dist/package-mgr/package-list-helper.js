@@ -114,18 +114,18 @@ exports.workspacesOfDependencies = workspacesOfDependencies;
  * @param assigneeOptions
  * @param opts CompilerOptionSetOpt
  */
-function setTsCompilerOptForNodePath(tsconfigDir, baseUrl = './', assigneeOptions, opts = { enableTypeRoots: false }) {
+function setTsCompilerOptForNodePath(tsconfigDir, assigneeOptions, opts = { enableTypeRoots: false }) {
     // const {rootDir, plinkDir, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
     let symlinksDir;
     /** for paths mapping "*" */
     let pathsDirs = [];
     // workspace node_modules should be the first
-    const baseUrlAbsPath = path_1.default.resolve(tsconfigDir, baseUrl);
+    // const baseUrlAbsPath = Path.resolve(tsconfigDir, baseUrl);
     if (opts.realPackagePaths) {
         if (assigneeOptions.paths == null) {
             assigneeOptions.paths = {};
         }
-        Object.assign(assigneeOptions.paths, pathMappingForLinkedPkgs(baseUrlAbsPath));
+        Object.assign(assigneeOptions.paths, pathMappingForLinkedPkgs(tsconfigDir));
     }
     if (opts.workspaceDir != null) {
         symlinksDir = path_1.default.resolve(opts.workspaceDir, misc_1.plinkEnv.symlinkDirName);
@@ -141,45 +141,59 @@ function setTsCompilerOptForNodePath(tsconfigDir, baseUrl = './', assigneeOption
             pathsDirs.splice(idx, 1);
         }
     }
-    if (path_1.default.isAbsolute(baseUrl)) {
-        let relBaseUrl = path_1.default.relative(tsconfigDir, baseUrl);
-        if (!relBaseUrl.startsWith('.'))
-            relBaseUrl = './' + relBaseUrl;
-        baseUrl = relBaseUrl;
-    }
+    // if (Path.isAbsolute(baseUrl)) {
+    //   let relBaseUrl = Path.relative(tsconfigDir, baseUrl);
+    //   if (!relBaseUrl.startsWith('.'))
+    //     relBaseUrl = './' + relBaseUrl;
+    //   baseUrl = relBaseUrl;
+    // }
     if (assigneeOptions.paths == null)
         assigneeOptions.paths = {};
-    assigneeOptions.baseUrl = baseUrl.replace(/\\/g, '/');
+    // assigneeOptions.baseUrl = baseUrl.replace(/\\/g, '/');
     appendTypeRoots(pathsDirs, tsconfigDir, assigneeOptions, opts);
     return assigneeOptions;
 }
 exports.setTsCompilerOptForNodePath = setTsCompilerOptForNodePath;
+/** baseUrlAbsPath is no longer necessary for non-AMD module resolution, use tsconfig dir instead */
 function pathMappingForLinkedPkgs(baseUrlAbsPath) {
-    let drcpDir = ((0, index_1.getState)().linkedDrcp || (0, index_1.getState)().installedDrcp).realPath;
+    var _a;
     const pathMapping = {};
     for (const [name, { realPath, json }] of (0, index_1.getState)().srcPackages.entries() || []) {
         const tsDirs = (0, misc_1.getTscConfigOfPkg)(json);
-        const realDir = path_1.default.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
+        let realDir = path_1.default.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
         const typeFile = json.types;
         const realDestDir = path_1.default.posix.join(realDir, tsDirs.destDir);
-        if (typeFile &&
-            path_1.default.posix.join(realDir, typeFile).startsWith(realDestDir + '/')) {
-            // In case types file is inside compilation destination directory
-            const relTypeFile = path_1.default.basename(path_1.default.posix.relative(tsDirs.destDir, typeFile), '.d.ts');
-            const mapped = path_1.default.join(realDir, tsDirs.srcDir, relTypeFile).replace(/\\/g, '/');
-            pathMapping[name] = [mapped + '.ts', mapped + '.mts', mapped + '.cts'];
+        if (!realDir.startsWith('.')) {
+            realDir = './' + realDir;
         }
-        else if (typeFile) {
-            pathMapping[name] = [typeFile ? path_1.default.join(realDir, typeFile).replace(/\\/g, '/') : realDir];
+        if (typeFile) {
+            if (path_1.default.posix.join(realDir, typeFile).startsWith(realDestDir + '/')) {
+                // In case types file is inside compilation destination directory
+                const relTypeFile = path_1.default.basename(path_1.default.posix.relative(tsDirs.destDir, typeFile), '.d.ts');
+                let mapped = path_1.default.join(realDir, tsDirs.srcDir, relTypeFile).replace(/\\/g, '/');
+                if (!mapped.startsWith('.'))
+                    mapped = './' + mapped;
+                pathMapping[name] = [mapped + '.ts', mapped + '.mts', mapped + '.cts'];
+            }
+            else {
+                let mapped = typeFile ? path_1.default.join(realDir, typeFile).replace(/\\/g, '/') : realDir;
+                if (!mapped.startsWith('.'))
+                    mapped = './' + mapped;
+                pathMapping[name] = [mapped];
+            }
         }
         pathMapping[`${name}/${tsDirs.destDir}/*`.replace(/\/\//g, '/')] = [`${realDir}/${tsDirs.srcDir}/*`.replace(/\/\//g, '/')];
         // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
         pathMapping[name + '/*'] = [`${realDir}/*`];
     }
-    // if (pkgName !== '@wfh/plink') {
-    drcpDir = path_1.default.relative(baseUrlAbsPath, drcpDir).replace(/\\/g, '/');
-    pathMapping['@wfh/plink'] = [drcpDir + '/wfh/src/index.ts'];
-    pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/src/*'];
+    let drcpDir = (_a = (0, index_1.getState)().linkedDrcp) === null || _a === void 0 ? void 0 : _a.realPath;
+    if (drcpDir) {
+        drcpDir = path_1.default.relative(baseUrlAbsPath, drcpDir).replace(/\\/g, '/');
+        if (!drcpDir.startsWith('.'))
+            drcpDir = './' + drcpDir;
+        pathMapping['@wfh/plink'] = [drcpDir + '/wfh/src/index.ts'];
+        pathMapping['@wfh/plink/wfh/dist/*'] = [drcpDir + '/wfh/src/*'];
+    }
     return pathMapping;
 }
 /**

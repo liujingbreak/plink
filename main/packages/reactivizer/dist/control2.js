@@ -33,10 +33,10 @@ class SingleActionFactoryImpl {
         this.payload = payload;
         this.control = control;
     }
-    dp(...origActionMeta) {
-        const metas = origActionMeta.filter(m => m != null);
+    dp(...actionMetaRelated) {
+        const metas = actionMetaRelated.filter(m => m != null);
         if (metas.length > 0)
-            this.control.dispatchForFactory(this.type)(metas, ...this.payload);
+            this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
         else
             this.control.dispatchFactory(this.type)(...this.payload);
     }
@@ -48,6 +48,7 @@ class SingleActionFactoryImpl {
         this.ddo(waitForAction$, referActionMeta).pipe(rx.take(1)).subscribe(r$);
         return r$.asObservable();
     }
+    // ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
     ddo(waitForAction$, referActionMeta) {
         const action = this.control.createAction(this.type, this.payload);
         if (referActionMeta)
@@ -171,6 +172,30 @@ class RxController2 extends stream_core_1.ControllerCore {
             sub.actionUpstream.next(value);
         })).subscribe();
         return sub;
+    }
+    /**
+     * Create a variant of calling .ft(...).dp(...)`
+     **/
+    createDispatcherFor(type, ...actionMetaRelated) {
+        return (...params) => this.ft[type](...params).dp(...actionMetaRelated);
+    }
+    /**
+     * Create a variant of interface of functions `<I>.ft(...).dp(...)`
+     **/
+    createDispatchers(...actionMetaRelated) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const self = this;
+        return new Proxy({}, {
+            get(_target, key, _rec) {
+                return self.createDispatcherFor(key, ...actionMetaRelated);
+            },
+            has(_target, key) {
+                return Object.prototype.hasOwnProperty.call(self.ft, key);
+            },
+            ownKeys() {
+                return Object.keys(self.ft);
+            }
+        });
     }
 }
 exports.RxController2 = RxController2;

@@ -215,7 +215,7 @@ const log = logger.getLogger(pkgLog.name + '.createReplayReadableFactory');
 export function createReplayReadableFactory(
   readable: NodeJS.ReadableStream, transforms?: NodeJS.ReadWriteStream[],
   opts?: {debugInfo?: string; expectLen?: number}
-) {
+): () => stream.Readable {
   const buf$ = new rx.ReplaySubject<Buffer>();
   let cacheBufLen = 0;
   const cacheWriter = new stream.Writable({
@@ -276,6 +276,7 @@ export function createReplayReadableFactory(
 }
 
 /**
+ * @Deprecated
  * Use createBufferForHttpProxy() instead.
  *
  * This is not working for POST request according to my experience in Node 16.3.0, due to
