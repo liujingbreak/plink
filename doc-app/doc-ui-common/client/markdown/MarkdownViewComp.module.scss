@@ -5,6 +5,8 @@
 .switchAnim {
   // margin: 0 auto auto auto;
   min-width: 0;
+  flex: 1;
+  align-self: stretch;
 }
 .container {
   // display: flex;

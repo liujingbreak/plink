@@ -27,7 +27,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
     control.i.ft.setMermaidClassName(styles.mermaidDiagram).dp();
     return control;
   }, []);
-  const {outputTable, i, dispose} = viewControl;
+  const {outputTable, i, dispose, inputTable} = viewControl;
 
   const router = useRouter();
   React.useEffect(() => {
@@ -81,23 +81,35 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
         styles.markdownContent, 'markdown-body', 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-9-desktop',
         'mdc-layout-grid__cell--span-6-tablet', 'mdc-layout-grid__cell--span-6'
       )}></div>
-      {mdKey ? <TableOfContents className={cln(styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-3-desktop', 'mdc-layout-grid__cell--span-2-tablet', {'mdc-layout-grid': layout?.inputTable.getData().setDeviceSize[0] === 'phone'}) } markdownKey={mdKey} markdownViewCtl={viewControl}/> : '...'}
-      <IconButton className={styles.tocPopBtn}
-        onToggle={handleTogglePopup}
-        materialIcon="toc"
-        materialIconToggleOn="close"/>
+      {
+        mdKey ?
+          <TableOfContents className={cln(
+            styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-3-desktop', 'mdc-layout-grid__cell--span-2-tablet', {'mdc-layout-grid': layout?.inputTable.getData().setDeviceSize[0] === 'phone'}
+          ) }
+          markdownKey={mdKey}
+          markdownViewCtl={viewControl}/> :
+          '...'
+      }
+      {
+        inputTable.getData().hasToc ?
+          <IconButton className={styles.tocPopBtn}
+            onToggle={handleTogglePopup}
+            materialIcon="toc"
+            materialIconToggleOn="close"/> :
+          null
+      }
     </>;
   }, [handleTogglePopup, layout?.inputTable, viewControl]);
 
-  const templateData = props.mdKey ? switchAnimDataByKey.get(props.mdKey) : null;
-  console.log('props.mdKey', props.mdKey, templateData);
+  const [updatedKey, templateDataMap] = outputTable.getData().setSwitchAnimTemplates;
+
   return <>
     {outputTable.getData().setFileInputVisible[0] ? <div><FileInput>Select markdown file</FileInput></div> : null}
-    {props.mdKey && templateData ?
+    {updatedKey && templateDataMap ?
       <SwitchAnim type="translateY" debug={true} className={cls('switchAnim')}
         superSlow={false}
         innerClassName={cln(styles.container, 'mdc-layout-grid__inner')}
-        templateData={templateData} switchOnDistinct={props.mdKey} templateRenderer={templateRenderer} /> :
+        templateData={templateDataMap.get(updatedKey)} switchOnDistinct={updatedKey} templateRenderer={templateRenderer} /> :
       null}
   </>;
 });

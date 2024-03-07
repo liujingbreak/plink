@@ -1,25 +1,28 @@
 import * as rx from 'rxjs';
-import {ReactorCompositeMergeType, ActionMeta} from '@wfh/reactivizer';
+import {SingleActionFactory, ReactorCompositeMergeType2, ActionMeta} from '@wfh/reactivizer';
 import {getMinAndMax} from '@wfh/algorithms';
 import {TocControl, ItemState} from './TableOfContents.control';
 
 export interface TocHLActions {
-  setPosIndicatorRef(ref: HTMLDivElement | null): void;
-  updateSectionRectangleIntervals(sections: Record<string, [top: number, bottom: number]>): void;
+  setPosIndicatorRef(ref: HTMLDivElement | null): SingleActionFactory;
+  updateSectionRectangleIntervals(sections: Record<string, [top: number, bottom: number]>): SingleActionFactory;
 }
 
 interface TocHLEvents {
   /** key is id,*/
-  gotHeadingByIds(mapById: Map<string, readonly [index: number, el: HTMLElement]>, byIndex: {item: (i: number) => Element}): void;
-  onHeadingIntersectChange(isIntersecting: boolean, el: Element): void;
-  gotIntersectDirection(isDown: boolean): void;
-  scrolledOverTitle(id: string, el: HTMLElement, debugCase: number): void;
-  highlightTitle(id: string, el: HTMLElement): void;
-  unhighlightTitle(id: string, el: HTMLElement): void;
+  gotHeadingByIds(
+    mapById: Map<string, readonly [index: number, el: HTMLElement]>,
+    byIndex: {item: (i: number) => Element}
+  ): SingleActionFactory;
+  onHeadingIntersectChange(isIntersecting: boolean, el: Element): SingleActionFactory;
+  gotIntersectDirection(isDown: boolean): SingleActionFactory;
+  scrolledOverTitle(id: string, el: HTMLElement, debugCase: number): SingleActionFactory;
+  highlightTitle(id: string, el: HTMLElement): SingleActionFactory;
+  unhighlightTitle(id: string, el: HTMLElement): SingleActionFactory;
 }
 
 export function applyHighlightFeature(tocControl: TocControl) {
-  const tocTitleHighlight = tocControl as unknown as ReactorCompositeMergeType<TocControl, TocHLActions, TocHLEvents, ['setPosIndicatorRef']>;
+  const tocTitleHighlight = tocControl as unknown as ReactorCompositeMergeType2<TocControl, TocHLActions, TocHLEvents, ['setPosIndicatorRef']>;
   const outputTable = tocTitleHighlight.outputTable.addActions('gotHeadingByIds', 'highlightTitle');
   tocTitleHighlight.inputTable.addActions('setPosIndicatorRef');
   const {r, i, o} = tocTitleHighlight;
@@ -34,15 +37,15 @@ export function applyHighlightFeature(tocControl: TocControl) {
         const [id] = getMinAndMax(intersectionsInId.values(), (a, b) => byIds.get(a)![0] - byIds.get(b)![0]);
         if (id == null)
           throw new Error('Head element of id found in viewport does not exist: ' + [...intersectionsInId.values()].join(', '));
-        o.dpf.scrolledOverTitle(m, contentHeadIdToTocTitleId(id), byIds.get(id)![1], 0);
+        o.ft.scrolledOverTitle(contentHeadIdToTocTitleId(id), byIds.get(id)![1], 0).dp(m);
       } else {
         if (el.getBoundingClientRect().y < 0) {
           // In case of "user scrolls down"
-          o.dp.scrolledOverTitle(contentHeadIdToTocTitleId(el.id), el as HTMLElement, 1);
+          o.ft.scrolledOverTitle(contentHeadIdToTocTitleId(el.id), el as HTMLElement, 1).dp();
         } else {
           const [idx] = byIds.get(el.id)!;
-          const prevTitle = byIndex.item(idx - 1);
-          o.dp.scrolledOverTitle(contentHeadIdToTocTitleId(prevTitle.id), prevTitle as HTMLElement, 2);
+          const prevTitle = idx > 0 ? byIndex.item(idx - 1) : el;
+          o.ft.scrolledOverTitle(contentHeadIdToTocTitleId(prevTitle.id), prevTitle as HTMLElement, 2).dp();
         }
       }
     })
@@ -52,7 +55,7 @@ export function applyHighlightFeature(tocControl: TocControl) {
     rx.filter(([, done]) => done),
     rx.switchMap(([m]) => outputTable.l.setMarkdownBodyRef.pipe(
       rx.take(1),
-      rx.switchMap(([, container]) => new rx.Observable(sub => {
+      rx.switchMap(([, container]) => new rx.Observable(_sub => {
         const obs = new IntersectionObserver(entries => {
           for (const entry of entries) {
             if (entry.isIntersecting) {
@@ -60,7 +63,7 @@ export function applyHighlightFeature(tocControl: TocControl) {
             } else {
               intersectionsInId.delete(entry.target.id);
             }
-            o.dpf.onHeadingIntersectChange(m, entry.isIntersecting, entry.target);
+            o.ft.onHeadingIntersectChange(entry.isIntersecting, entry.target).dp(m);
           }
         }, {threshold: 1});
         const els = container.querySelectorAll('[data-mdt]');
@@ -70,7 +73,7 @@ export function applyHighlightFeature(tocControl: TocControl) {
             yield [el.id, [i, el as HTMLElement]] as const;
           }
         })());
-        o.dpf.gotHeadingByIds(m, headingElsById, els);
+        o.ft.gotHeadingByIds(headingElsById, els).dp(m);
         els.forEach(el => {
           obs.observe(el);
         });
@@ -102,14 +105,14 @@ export function applyHighlightFeature(tocControl: TocControl) {
       if (prev != null) {
         const [, id, pItem] = prev as typeof curr;
         if (pItem) {
-          o.dpf.unhighlightTitle(meta, id, pItem.titleDom!);
-          o.dpf.itemUpdated(meta, {...pItem, highlighted: false});
+          o.ft.unhighlightTitle(id, pItem.titleDom!).dp(meta);
+          o.ft.itemUpdated({...pItem, highlighted: false}).dp(meta);
         }
       }
       if (cItem) {
-        o.dpf.highlightTitle(meta, cId, cItem.titleDom!);
-        i.dpf.scrollTocToVisible(meta, contentHeadIdToTocTitleId(cId));
-        o.dpf.itemUpdated(meta, {...cItem, highlighted: true});
+        o.ft.highlightTitle(cId, cItem.titleDom!).dp(meta);
+        i.ft.scrollTocToVisible(contentHeadIdToTocTitleId(cId)).dp(meta);
+        o.ft.itemUpdated({...cItem, highlighted: true}).dp(meta);
       }
       return curr;
     }, null)
@@ -119,14 +122,14 @@ export function applyHighlightFeature(tocControl: TocControl) {
     rx.switchMap(([meta, id]) => outputTable.l.onTocLayoutChange.pipe(
       rx.switchMap(([, mode]) => mode === 'aside' ?
         new rx.Observable(() => {
-          i.dpf.scrollTocToVisible(meta, contentHeadIdToTocTitleId(id));
+          i.ft.scrollTocToVisible(contentHeadIdToTocTitleId(id)).dp(meta);
         }) :
         outputTable.l.handleTogglePopup.pipe(
           rx.filter(([, isOn]) => isOn),
           rx.take(1),
           rx.mergeMap(() => rx.timer(32)),
           rx.tap(() => {
-            i.dpf.scrollTocToVisible(meta, contentHeadIdToTocTitleId(id));
+            i.ft.scrollTocToVisible(contentHeadIdToTocTitleId(id)).dp(meta);
           })
         )
       )

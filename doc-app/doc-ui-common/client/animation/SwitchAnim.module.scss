@@ -4,12 +4,17 @@ $superSlowAnimDuration: 20s;
 
 .scope {
   position: relative;
+  display: flex;
+  align-items: stretch;
   &.full {
     display: flex;
     flex-direction: column;
     .movingBox {
       flex: 1;
     }
+  }
+  .movingBox {
+    align-items: stretch;
   }
   &.animate-opacity {
     .enterStart {

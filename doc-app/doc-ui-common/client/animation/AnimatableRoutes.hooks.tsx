@@ -5,7 +5,7 @@ import {ReactorComposite2, SingleActionFactory, RxController2} from '@wfh/reacti
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 
-type RouteActions = {
+export type RouteActions = {
   /** @param relativePath the path relative to "basenameOrParent" */
   navigateTo(relativePath: string): SingleActionFactory;
   /** @param relativePath the path relative to current "matchedRoute.location.pathname" */

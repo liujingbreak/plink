@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {ReactorComposite, ActionTableDataType} from '@wfh/reactivizer';
+import {ReactorComposite2, SingleActionFactory, ActionTableDataType} from '@wfh/reactivizer';
 import {useAppLayout} from '../../components/appLayout.control';
 import {Router} from '../../animation/AnimatableRoutes.hooks';
 import {markdownsControl} from '../markdownSlice';
@@ -18,38 +18,38 @@ export type ItemState = {
 } & Omit<TOC, 'children'>;
 
 export type TocUIActions = {
-  setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): void;
-  setDataKey(key: string): void;
-  // expand(id: string, isExpand: boolean): void;
-  setRouter(router: Router): void;
-  clicked(id: string): void;
-  onScrollDetectorRef(ref: HTMLDivElement | null): void;
-  onContentDomRef(ref: HTMLDivElement | null): void;
-  onContentScroll(): void;
-  setMarkdownViewCtl(viewControl: ReturnType<typeof createMarkdownViewControl>): void;
-  scrollTocToVisible(id: string): void;
-  setItemTitleElement(id: string, dom: HTMLElement): void;
+  setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): SingleActionFactory;
+  setDataKey(key: string): SingleActionFactory;
+  // expand(id: string, isExpand: boolean): SingleActionFactory;
+  setRouter(router: Router): SingleActionFactory;
+  clicked(id: string): SingleActionFactory;
+  onScrollDetectorRef(ref: HTMLDivElement | null): SingleActionFactory;
+  onContentDomRef(ref: HTMLDivElement | null): SingleActionFactory;
+  onContentScroll(): SingleActionFactory;
+  setMarkdownViewCtl(viewControl: ReturnType<typeof createMarkdownViewControl>): SingleActionFactory;
+  scrollTocToVisible(id: string): SingleActionFactory;
+  setItemTitleElement(id: string, dom: HTMLElement): SingleActionFactory;
 };
 
 export type TocUIEvents = {
-  changeFixedPosition(fixed: boolean): void;
-  handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
-  setMarkdownBodyRef(dom: HTMLDivElement): void;
+  changeFixedPosition(fixed: boolean): SingleActionFactory;
+  handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): SingleActionFactory;
+  setMarkdownBodyRef(dom: HTMLDivElement): SingleActionFactory;
 
   /** @param allIds is immutable */
-  itemsIdUpdated(tocLevelIds: string[], allIds: string[]): void;
-  itemUpdated(toc: ItemState): void;
+  itemsIdUpdated(tocLevelIds: string[], allIds: string[]): SingleActionFactory;
+  itemUpdated(toc: ItemState): SingleActionFactory;
 
-  loadRawItem(toc: TOC, levelDecrement?: number): void;
+  loadRawItem(toc: TOC, levelDecrement?: number): SingleActionFactory;
   /** mutable, do not rely on this field for dirty-check */
-  itemById(map: Map<string, ItemState>): void;
-  togglePopupClassName(cln: string): void;
-  mdHtmlScanned(done: boolean, key?: string): void;
-  onTocLayoutChange(mode: 'aside' | 'popup'): void;
+  itemById(map: Map<string, ItemState>): SingleActionFactory;
+  togglePopupClassName(cln: string): SingleActionFactory;
+  mdHtmlScanned(done: boolean, key?: string): SingleActionFactory;
+  onTocLayoutChange(mode: 'aside' | 'popup'): SingleActionFactory;
 };
 
 const tocInputTableFor = [
-  'setDataKey', 'onContentDomRef',
+  'setDataKey', 'onContentDomRef', 'setMarkdownViewCtl',
   'setRouter', 'onScrollDetectorRef', 'setLayoutControl', 'scrollTocToVisible'
 ] as const;
 
@@ -61,7 +61,7 @@ export const tocOutputTableFor = [
 export type TocUIEventTable = ActionTableDataType<TocUIEvents, typeof tocOutputTableFor>;
 
 export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
-  const compositeBase = new ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
+  const compositeBase = new ReactorComposite2<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>({
     name: 'markdown-toc',
     debug: false, // process.env.NODE_ENV === 'development',
     inputTableFor: tocInputTableFor,
@@ -69,22 +69,22 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   });
   const composite = applyHighlightFeature(compositeBase);
   const {i, o, r, outputTable, inputTable, labelError} = composite;
-  o.dp.changeFixedPosition(false);
-  o.dp.itemById(new Map());
-  o.dp.mdHtmlScanned(false);
+  o.ft.changeFixedPosition(false).dp();
+  o.ft.itemById(new Map()).dp();
+  o.ft.mdHtmlScanned(false).dp();
   let tocTitleIds = [] as string[];
 
   r('Recursively loadRowItem -> loadRowItem, itemUpdated', o.pt.loadRawItem.pipe(
     rx.tap(([m, toc, levelDecre]) => {
       tocTitleIds.push(toc.id);
-      o.dpf.itemUpdated(m, {
+      o.ft.itemUpdated({
         ...toc,
         level: levelDecre != null ? toc.level - levelDecre : toc.level,
         children: toc.children?.map(c => c.id)
-      });
+      }).dp(m);
       if (toc.children) {
         for (const chr of toc.children)
-          o.dpf.loadRawItem(m, chr, levelDecre ?? 0);
+          o.ft.loadRawItem(chr, levelDecre ?? 0).dp(m);
       }
     })
   ));
@@ -99,7 +99,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
         rx.switchMap(([, tocMdKey]) => key === tocMdKey ?
           rx.merge(
             ctl.i.pt.handleTogglePopup.pipe(
-              rx.tap(all => o.dpf.handleTogglePopup(...all)),
+              rx.tap(([m, ...all]) => o.ft.handleTogglePopup(...all).dp(m)),
               labelError('handleTogglePopup -> handleTogglePopup')
             ),
             ctl.outputTable.l.htmlRenderredFor.pipe(
@@ -109,7 +109,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
                 rx.take(1),
                 rx.tap(([m, dom]) => {
                   if (dom)
-                    o.dpf.setMarkdownBodyRef(m, dom);
+                    o.ft.setMarkdownBodyRef(dom).dp(m);
                 })
               )),
               labelError('setMarkdownBodyRef -> setMarkdownBodyRef')
@@ -120,31 +120,33 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     ))
   ));
 
-  r('setDataKey -> loadRowItem, reset mdHtmlScanned', i.pt.setDataKey.pipe(
+  r('setDataKey -> loadRowItem, reset mdHtmlScanned, itemsIdUpdated', i.pt.setDataKey.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
-    rx.tap(([m, key]) => o.dpf.mdHtmlScanned(m, false, key)),
+    rx.tap(([m, key]) => o.ft.mdHtmlScanned(false, key).dp(m)),
     rx.switchMap(([m, key]) => markdownsControl.outputTable.l.htmlByKey.pipe(
       rx.map(([, map]) => map.get(key)),
       rx.filter((data): data is NonNullable<typeof data> => data != null),
       rx.distinctUntilChanged(),
       rx.take(1),
-      rx.map(data => {
+      rx.withLatestFrom(inputTable.l.setMarkdownViewCtl),
+      rx.map(([data, [, markdownView]]) => {
         if (data.toc.length === 0) {
           tocTitleIds = [];
-          o.dpf.itemsIdUpdated(m, [], []);
+          o.ft.itemsIdUpdated([], []).dp(m);
           return;
         }
         // Do not display top level title element, if there is only 1 top level, instead we display 2nd level titles
         let items = data.toc;
         let levelDecre = 0;
-        if (data.toc.length <= 1) {
-          items = data.toc[0]?.children ?? [];
+        if (items.length <= 1) {
+          items = items[0]?.children ?? [];
           levelDecre = 1;
         }
         for (const toc of items) {
-          o.dpf.loadRawItem(m, toc, levelDecre);
+          o.ft.loadRawItem(toc, levelDecre).dp(m);
         }
-        o.dpf.itemsIdUpdated(m, items.map(t => t.id), tocTitleIds);
+        o.ft.itemsIdUpdated(items.map(t => t.id), tocTitleIds).dp(m);
+        markdownView.i.ft.hasToc(key, items.length > 0).dp(m);
       })
     ))
   ));
@@ -182,8 +184,8 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
             }
           }
           const r = [m, m2];
-          o.dpf.itemById(r, itemById);
-          o.dpf.mdHtmlScanned(r, true, mdKey);
+          o.ft.itemById(itemById).dp(...r);
+          o.ft.mdHtmlScanned(true, mdKey).dp(...r);
         })
       ))
     ));
@@ -193,7 +195,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
       rx.filter(([, r]) => r.control != null),
       rx.take(1),
       rx.tap(([, {matchedRoute, control}]) => {
-        control!.dp.navigateTo(matchedRoute!.location.pathname + '#' + id);
+        control!.ft.navigateTo(matchedRoute!.location.pathname + '#' + id).dp();
       })
     ))
   ));
@@ -225,7 +227,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
             // change icon button
             toggleIcon(false);
             // close TOC popup
-            o.dp.handleTogglePopup(false, toggleIcon);
+            o.ft.handleTogglePopup(false, toggleIcon).dp();
           }
           if (rect) {
             let targetY = Math.floor(rect.y - scrollable!.getBoundingClientRect().y + scrollable!.scrollTop);
@@ -278,7 +280,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   r('layout setDeviceSize -> ', i.pt.setLayoutControl.pipe(
     rx.switchMap(([, layout]) => layout.inputTable.l.setDeviceSize),
     rx.tap(([m, size]) => {
-      o.dpf.onTocLayoutChange(m, size === 'phone' ? 'popup' : 'aside');
+      o.ft.onTocLayoutChange(size === 'phone' ? 'popup' : 'aside').dp(m);
     })
   ));
 
@@ -286,7 +288,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     rx.filter(([, mode]) => mode === 'popup'),
     rx.switchMap(([, mode]) => {
       if (mode === 'popup') {
-        o.dp.changeFixedPosition(false);
+        o.ft.changeFixedPosition(false).dp();
         return rx.merge(
           inputTable.l.onContentDomRef.pipe(
             rx.filter(([, ref]) => ref != null),
@@ -299,14 +301,14 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
             rx.map(([_m, on]) => on),
             // eslint-disable-next-line multiline-ternary
             rx.concatMap(on => on ? rx.concat(
-              rx.defer(() => {o.dp.togglePopupClassName('toggleOnBegin'); return rx.EMPTY; }),
+              rx.defer(() => {o.ft.togglePopupClassName('toggleOnBegin').dp(); return rx.EMPTY; }),
               rx.timer(16),
-              rx.defer(() => {o.dp.togglePopupClassName('toggleOn'); return rx.EMPTY; }),
+              rx.defer(() => {o.ft.togglePopupClassName('toggleOn').dp(); return rx.EMPTY; }),
               rx.timer(300)
             ) : rx.concat(
-              rx.defer(() => {o.dp.togglePopupClassName('toggleOnBegin'); return rx.EMPTY; }),
+              rx.defer(() => {o.ft.togglePopupClassName('toggleOnBegin').dp(); return rx.EMPTY; }),
               rx.timer(300),
-              rx.defer(() => {o.dp.togglePopupClassName(''); return rx.EMPTY; }),
+              rx.defer(() => {o.ft.togglePopupClassName('').dp(); return rx.EMPTY; }),
               rx.timer(16)
             ))
           )
@@ -323,7 +325,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
         rx.filter(([, ref]) => ref != null),
         rx.switchMap(([, el]) => new rx.Observable(() => {
           const tocScrollDetector = new IntersectionObserver(entries => {
-            o.dp.changeFixedPosition(!entries[0].isIntersecting);
+            o.ft.changeFixedPosition(!entries[0].isIntersecting).dp();
           }, {threshold: 0});
           const target = el!;
           tocScrollDetector.observe(target);
@@ -383,4 +385,4 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
   return [i, () => composite.dispose(), () => state] as const;
 }
 
-export type TocControl = ReactorComposite<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>;
+export type TocControl = ReactorComposite2<TocUIActions, TocUIEvents, typeof tocInputTableFor, typeof tocOutputTableFor>;

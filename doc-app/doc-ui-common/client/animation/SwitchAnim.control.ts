@@ -51,7 +51,7 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
   const composite = new ReactorComposite2<SwitchActions, SwitchEvents, typeof inputTableFor, typeof outputTableFor>({
     name: 'switchAnim',
     debug,
-    // debugExcludeTypes: ['changeContent'],
+    debugExcludeTypes: ['changeContent'],
     inputTableFor, outputTableFor
   });
 
@@ -145,8 +145,8 @@ export function createControl(setState: (s: SwitchAnimOutputData) => void, debug
       if (content.dom) {
         const style = content.dom.style;
         style.boxSizing = 'border-box';
-        style.width = content.dom.clientWidth + 'px';
-        style.height = content.dom.clientHeight + 'px';
+        style.width = content.dom.parentElement!.clientWidth + 'px';
+        style.height = content.dom.parentElement!.clientHeight + 'px';
         style.top = '0px';
         style.left = '0px';
       }

@@ -269,8 +269,14 @@ export class RxController2<I> extends ControllerCore<I> {
   createDispatchers(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): {[K in keyof I]: (...params: InferPayload<I[K]>) => void} {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
+    const dispatchers = new Map<string | symbol, (...p: InferPayload<I[keyof I]>) => void>();
     return new Proxy({} as {[K in keyof I]: (...params: InferPayload<I[K]>) => void}, {
       get(_target, key, _rec) {
+        const existing = dispatchers.get(key);
+        if (existing)
+          return existing;
+        const d = self.createDispatcherFor(key as keyof I, ...actionMetaRelated);
+        dispatchers.set(key, d);
         return self.createDispatcherFor(key as keyof I, ...actionMetaRelated);
       },
       has(_target, key) {

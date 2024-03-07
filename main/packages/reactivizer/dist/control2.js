@@ -185,8 +185,14 @@ class RxController2 extends stream_core_1.ControllerCore {
     createDispatchers(...actionMetaRelated) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
+        const dispatchers = new Map();
         return new Proxy({}, {
             get(_target, key, _rec) {
+                const existing = dispatchers.get(key);
+                if (existing)
+                    return existing;
+                const d = self.createDispatcherFor(key, ...actionMetaRelated);
+                dispatchers.set(key, d);
                 return self.createDispatcherFor(key, ...actionMetaRelated);
             },
             has(_target, key) {

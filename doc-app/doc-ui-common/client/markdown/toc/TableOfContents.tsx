@@ -19,23 +19,24 @@ export type TocInputDispatcher = RxController<TocUIActions>['dp'];
 
 export const TableOfContents = React.memo<TableOfContentsProps>(props => {
   const [, touchUIState] = React.useState<any>({});
-  const [{dp}, destory, uiStateFac] = React.useMemo(() => createControl(touchUIState), []);
+  const composite = React.useMemo(() => createControl(touchUIState), []);
+  const [i, destory, uiStateFac] = composite;
   const uiState = uiStateFac();
 
   const router = useRouter();
   React.useEffect(() => {
     if (router) {
-      dp.setRouter(router);
+      i.ft.setRouter(router).dp();
     }
-  }, [dp, router]);
+  }, [i.ft, router]);
 
   React.useEffect(() => {
-    dp.setMarkdownViewCtl(props.markdownViewCtl);
-  }, [dp, props.markdownViewCtl]);
+    i.ft.setMarkdownViewCtl(props.markdownViewCtl).dp();
+  }, [i.ft, props.markdownViewCtl]);
 
   React.useEffect(() => {
-    dp.setDataKey(props.markdownKey);
-  }, [dp, props.markdownKey]);
+    i.ft.setDataKey(props.markdownKey).dp();
+  }, [i.ft, props.markdownKey]);
 
   const itemById = uiState?.itemById[0];
   const itemIds = uiState?.itemsIdUpdated[1];
@@ -44,13 +45,13 @@ export const TableOfContents = React.memo<TableOfContentsProps>(props => {
     if (itemById) {
       for (const key of itemById.keys()) {
         handlers.set(key, () => {
-          dp.clicked(key);
+          i.ft.clicked(key).dp();
         });
       }
     }
     return handlers;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dp, itemById, itemIds]); // itemIds is the only reliable field for change detection, it is immutable, `itemById` is mutable
+  }, [i.ft, itemById, itemIds]); // itemIds is the only reliable field for change detection, it is immutable, `itemById` is mutable
 
   const titleRefHandlers = React.useMemo(() => {
     const handlers = new Map<string, React.RefCallback<HTMLDivElement>>();
@@ -58,24 +59,25 @@ export const TableOfContents = React.memo<TableOfContentsProps>(props => {
       for (const key of itemById.keys()) {
         handlers.set(key, ref => {
           if (ref)
-            dp.setItemTitleElement(key, ref as HTMLElement);
+            i.ft.setItemTitleElement(key, ref as HTMLElement).dp();
         });
       }
     }
     return handlers;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dp, itemById, itemIds]); // itemIds is the only reliable field for change detection, it is immutable, `itemById` is mutable
+  }, [i.ft, itemById, itemIds]); // itemIds is the only reliable field for change detection, it is immutable, `itemById` is mutable
 
   React.useEffect(() => () => {destory(); }, [destory]);
 
   const layout = useAppLayout();
   React.useMemo(() => {
     if (layout) {
-      dp.setLayoutControl(layout);
+      i.ft.setLayoutControl(layout).dp();
     }
-  }, [dp, layout]);
+  }, [i.ft, layout]);
 
   const togglePopupClassName = uiState?.togglePopupClassName ?? [''];
+  const dp = React.useMemo(() => i.createDispatchers(), [i]);
 
   return uiState?.itemById && uiState?.itemById[0] && uiState.itemsIdUpdated[0] && uiState.itemsIdUpdated[0].length > 0 ?
     <div className={cln(

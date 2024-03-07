@@ -14,6 +14,8 @@ export type Actions = {
   setScrollTopHandler(cb: () => void): SingleActionFactory;
   handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): SingleActionFactory;
   setFileInputRef(el: HTMLInputElement | null): SingleActionFactory;
+  /** true if there are at least one head item in TOC list data */
+  hasToc(mdKey: string, yes: boolean): SingleActionFactory;
 };
 
 export interface Events {
@@ -22,15 +24,19 @@ export interface Events {
   htmlRenderredFor(key: string): SingleActionFactory;
   scrollToTop(): SingleActionFactory;
   setFileInputVisible(visible: boolean): SingleActionFactory;
+  setSwitchAnimTemplates(updatedKey: string | null, map: Map<string, {mdKey: string; onBodyRef(ref: HTMLDivElement | null): void}>): SingleActionFactory;
 }
 
 export function createMarkdownViewControl(touchUiState: (s: any) => void) {
   const inputTableFor = [
-    'setScrollTopHandler', 'setLayoutControl', 'setMarkdownKey',
+    'setScrollTopHandler', 'setLayoutControl', 'setMarkdownKey', 'hasToc',
     'setMermaidClassName', 'setRouter', 'setMarkdownBodyRef', 'setFileInputRef'
   ] as const;
 
-  const outputTableFor = ['setFileInputVisible', 'markdownDataLoaded', 'htmlRenderredFor'] as const;
+  const outputTableFor = [
+    'setFileInputVisible', 'markdownDataLoaded', 'htmlRenderredFor',
+    'setSwitchAnimTemplates'
+  ] as const;
 
   const composite = new ReactorComposite2<Actions, Events, typeof inputTableFor, typeof outputTableFor>({
     name: 'MarkdownView',
@@ -85,7 +91,7 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
               if (href?.startsWith('md-hash:')) {
                 el.setAttribute('href', '#');
                 const handleAnchor = (event: MouseEvent) => {
-                  router.control!.dp.navigateToRel(encodeURIComponent(href.slice('md-hash:'.length)));
+                  router.control!.ft.navigateToRel(encodeURIComponent(href.slice('md-hash:'.length))).dp();
                   // router.control!.dp.navigateTo(router.matchedRoute!.path);
                   event.stopPropagation();
                   event.preventDefault();
@@ -173,6 +179,27 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
     })
   ));
 
+  r('setMarkdownKey, markdownDataLoaded -> setSwitchAnimTemplates', i.pt.setMarkdownKey.pipe(
+    rx.concatMap(([m, key]) => outputTable.l.markdownDataLoaded.pipe(
+      actionRelatedToAction(m),
+      rx.take(1),
+      rx.withLatestFrom(outputTable.l.setSwitchAnimTemplates),
+      rx.tap(([, [, , templates]]) => {
+        if (key) {
+          templates.set(key, {
+            mdKey: key,
+            onBodyRef(ref) {
+              if (ref && key)
+                i.ft.setMarkdownBodyRef(ref, key).dp();
+            }
+          });
+          o.ft.setSwitchAnimTemplates(key, templates).dp(m);
+        }
+      })
+    ))
+  ));
+
+  o.ft.setSwitchAnimTemplates(null, new Map()).dp();
   return composite;
 }
 
