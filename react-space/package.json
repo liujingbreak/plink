@@ -38,7 +38,8 @@
     "@wfh/material-components-react": "1.0.0",
     "@wfh/reactivizer": "1.0.0",
     "@wfh/algorithms": "1.0.0",
-    "@wfh/resumes": "1.0.0"
+    "@wfh/resumes": "1.0.0",
+    "@wfh/markdown-base": "1.0.0"
   },
   "devDependencies": {
     "@wfh/plink-test": "1.0.0",

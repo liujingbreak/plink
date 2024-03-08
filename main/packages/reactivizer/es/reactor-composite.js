@@ -115,7 +115,6 @@ export class ReactorComposite2 extends DuplexController {
     catchErrorFor(...actionMetas) {
         return (upStream) => upStream.pipe(rx.catchError((err) => {
             this.o.ft._onErrorFor(err).dp(...actionMetas);
-            // this.errorSubject.next(['', err instanceof Error ? err : new Error(err), actionMetas]);
             return rx.EMPTY;
         }));
     }

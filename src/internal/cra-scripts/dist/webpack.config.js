@@ -95,9 +95,9 @@ function default_1(webpackEnv) {
     if (config.watchOptions == null)
         config.watchOptions = {};
     if (cmdOption.usePoll) {
-        config.watchOptions.poll = 1000;
+        config.watchOptions.poll = 1500;
     }
-    config.watchOptions.aggregateTimeout = 900;
+    config.watchOptions.aggregateTimeout = 700;
     config.watchOptions.ignored = /(?:\bnode_modules\b|^(?:\/(?:data(?:\/data)?)?)$)/;
     // config.watchOptions.followSymlinks = false;
     // config.resolve!.plugins.unshift(new PlinkWebpackResolvePlugin());

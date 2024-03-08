@@ -17,7 +17,7 @@ export type SwitchAnimProps<D = unknown> = BaseOptions & {
   templateRenderer?: (data: D) => React.ReactNode;
 };
 
-const SwitchAnim = React.memo<SwitchAnimProps<any>>(function(props) {
+const SwitchAnim = React.memo(function<D = any>(props: SwitchAnimProps<D>) {
   const [data, setData] = React.useState<SwitchAnimOutputData>();
   const composite = React.useMemo(() => {
     const composite = createControl(setData, props.debug);

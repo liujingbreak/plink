@@ -5,7 +5,7 @@ import * as op from 'rxjs/operators';
 import {Pool} from '@wfh/thread-promise-pool';
 import {log4File} from '@wfh/plink';
 // import type {ChildNode, Element, TextNode} from 'parse5/dist/cjs/tree-adapters/default';
-import {TOC} from '../isom/md-types';
+import {TOC} from '@wfh/markdown-base/isom/types';
 
 const log = log4File(__filename);
 

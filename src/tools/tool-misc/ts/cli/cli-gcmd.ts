@@ -48,9 +48,9 @@ export async function generate(packageName: string, cmdName: string, opts: CBOpt
   if (opts.dryRun) {
     log.info(chalk.cyan(pkJsonFile) + ' will be changed.');
   } else {
-    let text = fs.readFileSync(pkJsonFile, 'utf8');
+    const text = fs.readFileSync(pkJsonFile, 'utf8');
     const objAst = parse(text);
-    const plinkProp = objAst.properties.find(prop => prop.name.text === '"dr"')
+    const plinkProp = objAst.properties.find(prop => prop.name.text === '"dr"' || prop.name.text === '"plink"')
       || objAst.properties.find(prop => prop.name.text === '"plink"');
     if (plinkProp) {
       const drProp = plinkProp.value as ObjectAst;

@@ -66,7 +66,11 @@ const rx = __importStar(require("rxjs"));
 function setIdleDuring(workerCtl, waitingTask$) {
     const worker = workerCtl;
     worker.o.ft.wait().dp();
-    return rx.from(waitingTask$).pipe(rx.finalize(() => worker.o.ft.stopWaiting().dp()));
+    return rx.from(waitingTask$).pipe(rx.tap({
+        finalize() {
+            worker.o.ft.stopWaiting().dp();
+        }
+    }));
 }
 exports.setIdleDuring = setIdleDuring;
 /**

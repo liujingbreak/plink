@@ -133,8 +133,8 @@ async function tsc(argv, ts = typescript_1.default) {
         watcher: argv.poll ?
             {
                 usePolling: true,
-                interval: 1000,
-                binaryInterval: 2000
+                interval: 1500,
+                binaryInterval: 1500
             } :
             { usePolling: false }
     });

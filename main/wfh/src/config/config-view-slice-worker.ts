@@ -1,13 +1,43 @@
 import fs from 'fs';
 import ts from 'typescript';
+import rx from 'rxjs';
+import {createWorkerControl, setIdleDuring} from '@wfh/reactivizer/dist/fork-join/node-worker';
+import {SingleActionFactory} from '@wfh/reactivizer';
 import Selector from '../utils/ts-ast-query';
 import {PropertyMeta} from './config.types';
-// import {jsonToCompilerOptions} from '../ts-compiler';
 
-// let co: ts.CompilerOptions | undefined;
+interface WorkerInput {
+  parseDts(dtsFileBase: string, typeExport: string): SingleActionFactory;
+  parseDtsInWorker(dtsFileBase: string, typeExport: string): SingleActionFactory;
+  pareDtsDone: WorkerOutput['pareDtsDone'];
+}
+interface WorkerOutput {
+  pareDtsDone(metas: PropertyMeta[], dfsFile: string): SingleActionFactory;
+}
 
-export default async function(dtsFileBase: string, typeExport: string, _compilerOptions: any)
-: Promise<[metas: PropertyMeta[], dtsFile: string]> {
+export function createService() {
+  const service = createWorkerControl<WorkerInput, WorkerOutput>({
+    name: 'configViewSliceWorker'
+  });
+  const {i, o, r} = service;
+  r('parseDtsInWorker', i.pt.parseDtsInWorker.pipe(
+    rx.concatMap(async ([m, dtsFileBase, typeExport]) => {
+      const done$ = o.ft.fork('parseDts', dtsFileBase, typeExport).do(i.pt.pareDtsDone);
+      setIdleDuring(service, done$);
+      const results = await doParse(dtsFileBase, typeExport);
+      o.ft.pareDtsDone(...results);
+    })
+  ));
+  r('parseDts', i.pt.parseDts.pipe(
+    rx.concatMap(async ([m, dtsFileBase, typeExport]) => {
+      const results = await doParse(dtsFileBase, typeExport);
+      o.ft.pareDtsDone(...results).dp(m);
+    })
+  ));
+}
+
+export default async function doParse(dtsFileBase: string, typeExport: string)
+  : Promise<[metas: PropertyMeta[], dtsFile: string]> {
 
   const dtsFile = fs.existsSync(dtsFileBase + 'ts') ? dtsFileBase + '.ts' : dtsFileBase + '.d.ts';
 

@@ -1,9 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTocTree = exports.lookupTextNodeIn = void 0;
+exports.elementByTagName = exports.createTocTree = exports.lookupTextNodeIn = void 0;
 const tslib_1 = require("tslib");
 const rx = tslib_1.__importStar(require("rxjs"));
+// import {log4File} from '@wfh/plink';
+const parse5_1 = require("parse5");
 const findLastIndex_1 = tslib_1.__importDefault(require("lodash/findLastIndex"));
+// const log = log4File(__filename);
 function lookupTextNodeIn(el) {
     const chr = new rx.BehaviorSubject(el.childNodes || []);
     let text = '';
@@ -52,4 +55,32 @@ function createTocTree(input) {
     return root.children;
 }
 exports.createTocTree = createTocTree;
+function elementByTagName(html, elementTagName) {
+    return new rx.Observable(sub => {
+        let stop = false;
+        const targetTag = elementTagName.trim().toLowerCase();
+        const doc = (0, parse5_1.parse)(html, { sourceCodeLocationInfo: true });
+        function forNode(node) {
+            const nodeName = node.nodeName.trim().toLowerCase();
+            if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
+                return;
+            const el = node;
+            if (nodeName === targetTag) {
+                sub.next(el);
+            }
+            else if (el.childNodes) {
+                for (const child of el.childNodes) {
+                    forNode(child);
+                    // Im case consumer unscubscribes, stop synchronus producing
+                    if (stop) {
+                        break;
+                    }
+                }
+            }
+        }
+        forNode(doc);
+        return () => { stop = true; };
+    });
+}
+exports.elementByTagName = elementByTagName;
 //# sourceMappingURL=markdown-processor-helper.js.map

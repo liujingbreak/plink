@@ -171,7 +171,6 @@ export class ReactorComposite2<
     return (upStream: rx.Observable<T>): rx.Observable<T> => upStream.pipe(
       rx.catchError((err) => {
         (this.o as unknown as RxController2<BaseEvents>).ft._onErrorFor(err).dp(...actionMetas);
-        // this.errorSubject.next(['', err instanceof Error ? err : new Error(err), actionMetas]);
         return rx.EMPTY;
       })
     );

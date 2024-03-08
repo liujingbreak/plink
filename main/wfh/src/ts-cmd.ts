@@ -166,8 +166,8 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     watcher: argv.poll ?
       {
         usePolling: true,
-        interval: 1000,
-        binaryInterval: 2000
+        interval: 1500,
+        binaryInterval: 1500
       } :
       {usePolling: false}
   });

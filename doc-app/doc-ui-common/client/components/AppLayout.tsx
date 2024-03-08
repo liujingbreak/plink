@@ -27,7 +27,8 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
 
   const [uiState, setUiState] = React.useState<ActionTableDataType<InputActions, typeof inputTableFor> & ActionTableDataType<OutputEvents, typeof outputTableFor>>();
   const controller = React.useMemo(() => createControl(setUiState), []);
-  const {inputControl} = controller;
+  const {i} = controller;
+  const dispatcher = React.useMemo(() => i.createDispatchers(), [i]);
 
   React.useEffect(() => {
     if (props.parentDom) {
@@ -57,25 +58,22 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   React.useEffect(() => {
     const sub = scrollEvent$.pipe(
       op.throttleTime(150, undefined, {trailing: true}),
-      op.tap(event => inputControl.dp.onScroll(event))
+      op.tap(event => i.ft.onScroll(event).dp())
     ).subscribe();
 
     return () => sub.unsubscribe();
-  }, [inputControl.dp, scrollEvent$]);
+  }, [i.ft, scrollEvent$]);
 
   function renderMain(mainClasName: string) {
     // eslint-disable-next-line multiline-ternary
     return uiState ? <>
       {/* Backdrop style UI https://material.io/components/backdrop#usage */}
       <div className={cls(styles.backLayer, 'mdc-layout-size-' + uiState.setDeviceSize[0])}>
-        <div className={styles.progressBarContainer} ref={inputControl.dp.setLoadingBarRef}>
-          <LinearProgress className={styles.routeProgressBar} determinate={false} open={uiState.loadingVisible[0]}/>
-        </div>
-        <div ref={inputControl.dp.setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
+        <div ref={dispatcher.setFrontLayerRef} className={cls(styles.frontLayer, mainClasName)}
           onScroll={onScrollRaw}>
-          {// <div className={styles.scrollableTopEdge} ref={inputControl.dp.setTopEdgeRef}></div>
+          {// <div className={styles.scrollableTopEdge} ref={i.dp.setTopEdgeRef}></div>
           }
-          <div ref={inputControl.dp.setHeaderVisibilityDetectDom}></div>
+          <div ref={dispatcher.setHeaderVisibilityDetectDom}></div>
           {props.children}
           {uiState.updateFooter[0]
             ? <footer className={styles.footer}>
@@ -87,16 +85,20 @@ const AppLayout: React.FC<AppLayoutProps> = function(props) {
   }
 
   const content = uiState ?
-    <TopAppBar ref={inputControl.dp.setTopAppBarRef} classNameHeader={cx('app-bar-header', uiState.frontLayerClassName[0])}
-      classNameMain={cx('app-bar-main')} title={title} type={uiState.topbarType[0]}
-      renderMain={renderMain}
-      _onHeaderRef={inputControl.dp.setTopAppBarDomRef}
-    />
+    <>
+      <div className={styles.progressBarContainer} ref={dispatcher.setLoadingBarRef}>
+        <LinearProgress className={styles.routeProgressBar} determinate={false} open={uiState.loadingVisible[0]}/>
+      </div>
+      <TopAppBar ref={dispatcher.setTopAppBarRef} classNameHeader={cx('app-bar-header', uiState.frontLayerClassName[0])}
+        classNameMain={cx('app-bar-main')} title={title} type={uiState.topbarType[0]}
+        renderMain={renderMain}
+        _onHeaderRef={dispatcher.setTopAppBarDomRef}
+      /></>
     :
     null;
 
   return <Ctx.Provider value={controller}>
-    <MediaMatch onChange={inputControl.dp.setDeviceSize}/>
+    <MediaMatch onChange={dispatcher.setDeviceSize}/>
     {props.parentDom == null ? <div className={props.className || undefined} ref={containerRef}>{content}</div> : content}
   </Ctx.Provider>;
 };

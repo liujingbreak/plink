@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import { WorkerControl } from '@wfh/reactivizer/dist/fork-join/node-worker';
 import { SingleActionFactory } from '@wfh/reactivizer';
-import { TOC } from './md-types';
+import { TOC } from './types';
 export type MdInputActions = {
     forkProcessFile(markdownFileContent: string, filePath: string): SingleActionFactory;
     processFile(markdownFileContent: SharedArrayBuffer, filePath: string): SingleActionFactory;
@@ -13,7 +13,7 @@ export type MdInputActions = {
     }): SingleActionFactory;
     /** Consumer should dispatach to be related to "resolveImage" event */
     imageResolved(resultUrl: string): SingleActionFactory;
-    linkResolved(resultUrl: string): SingleActionFactory;
+    linkResolved(hash?: string): SingleActionFactory;
     /** Consumer should dispatch */
     anchorLinkResolved(url: string): SingleActionFactory;
 };

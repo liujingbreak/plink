@@ -128,12 +128,18 @@ function dfsAccessElement(processor, _processFileActionMeta, sourceHtml, file, r
         }
         else if (nodeName === 'a') {
             const hrefAttr = el.attrs.find(attr => attr.name === 'href');
-            if ((hrefAttr === null || hrefAttr === void 0 ? void 0 : hrefAttr.value) && hrefAttr.value.startsWith('.')) {
-                output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation.attrs.href.startOffset + 'href="'.length));
-                htmlOffset = el.sourceCodeLocation.attrs.href.endOffset - 1;
-                const result$ = new rx.ReplaySubject(1);
-                o.ft.linkToBeResolved(hrefAttr === null || hrefAttr === void 0 ? void 0 : hrefAttr.value, file).do(i.at.linkResolved).pipe(rx.take(1), rx.map(([, url]) => url), rx.tap(result$)).subscribe();
-                return output.push(result$);
+            if (hrefAttr === null || hrefAttr === void 0 ? void 0 : hrefAttr.value) {
+                // output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.href!.startOffset + 'href="'.length));
+                const insertPos = el.sourceCodeLocation.startTag.endOffset - 1;
+                output.push(sourceHtml.slice(htmlOffset, insertPos));
+                htmlOffset = insertPos;
+                // const result$ = new rx.ReplaySubject<string>(1);
+                await rx.firstValueFrom(o.ft.linkToBeResolved(hrefAttr === null || hrefAttr === void 0 ? void 0 : hrefAttr.value, file).do(i.at.linkResolved).pipe(rx.take(1), rx.map(([, hash]) => {
+                    if (hash) {
+                        output.push(` data-md-hash="${hash}"`);
+                    }
+                })));
+                // return output.push(result$);
             }
         }
         else if (el.childNodes) {

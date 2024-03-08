@@ -12,6 +12,6 @@ export declare function applyScheduler(broker: Broker<any, any>, opts: {
     threadMaxIdleTime?: number;
     workerFactory(): Worker | NodeWorker;
 }): {
-    ranksByWorkerNo: Map<number, [worker: "main" | Worker | NodeWorker, rank: number, workerNo: number]>;
-    tasksByWorkerNo: Map<number, [worker: "main" | Worker | NodeWorker, numTasks: number, workerNo: number]>;
+    ranksByWorkerNo: Map<number, [worker: NodeWorker | Worker | "main", rank: number, workerNo: number]>;
+    tasksByWorkerNo: Map<number, [worker: NodeWorker | Worker | "main", numTasks: number, workerNo: number]>;
 };

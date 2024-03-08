@@ -14,11 +14,11 @@ const ShowTopLoading: React.FC<ShowTopLoadingProps> = function() {
   const slice = useAppLayout();
   React.useEffect(() => {
     if (slice)
-      slice.i.dp.setLoadingVisible(true);
+      slice.i.ft.setLoadingVisible(true).dp();
 
     return () => {
       if (slice)
-        slice.i.dp.setLoadingVisible(false);
+        slice.i.ft.setLoadingVisible(false).dp();
     };
   }, [slice]);
   return <></>;

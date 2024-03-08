@@ -6,16 +6,10 @@ import {startCluster} from '../run-cluster';
 import {generate} from './cli-gcmd';
 
 const cliExt: CliExtension = (program) => {
-  // program.command('eslint <dir>')
-  // .description('Run eslint on ts and tsx files (except .d.ts file)', {dir: 'target source code directory'})
-  // .action(async dir => {
-  //   await (await import('../eslint')).eslint(dir);
-  // });
-
   const cmd = program.command('gcmd <package-name> <command-name>')
     .alias('gen-command')
     .description('Bootstrap a Plink command line implementation in specific package')
-  // .option('--for-template <templateName>', 'Create a template generator command', false)
+    // .option('--for-template <templateName>', 'Create a template generator command', false)
     .option('-d, --dry-run', 'Dryrun', false)
     .action(async (packageName: string, cmdName: string) => {
       await generate(packageName, cmdName, cmd.opts() );
@@ -33,12 +27,12 @@ const cliExt: CliExtension = (program) => {
 
   const cfgCmd = program.command('gcfg <file>').alias('gen-config')
     .option('-d, --dry-run', 'Dryrun', false)
-  // .option('-t, --type <file-type>', 'Configuation file type, valid types are "ts", "yaml", "json"', 'ts')
+    // .option('-t, --type <file-type>', 'Configuation file type, valid types are "ts", "yaml", "json"', 'ts')
     .description('Generate a workspace configuration file (Typescript file), used to override package settings', {
       file: 'Output configuration file path (with or without suffix name ".ts"), e.g. "conf/foobar.prod"'
     })
     .action(async (file: string) => {
-      await (await import('./cli-gcfg')).generateConfig(file, cfgCmd.opts() );
+      await (await import('./cli-gcfg.js')).generateConfig(file, cfgCmd.opts() );
     });
 
   const genCraCmd = program.command('cra-gen-pkg <path>')
@@ -50,7 +44,7 @@ const cliExt: CliExtension = (program) => {
       ' you may also use environment variable "BUILD_PATH" for create-react-app version above 4.0.3)')
     .option('-d, --dry-run', 'Do not generate files, just list new file names', false)
     .action(async (dir: string) => {
-      await (await import('./cli-cra-gen')).genPackage(dir, genCraCmd.opts().comp,
+      await (await import('./cli-cra-gen.js')).genPackage(dir, genCraCmd.opts().comp,
         genCraCmd.opts().feature, genCraCmd.opts().output, genCraCmd.opts().dryRun);
     });
 

@@ -8,7 +8,7 @@ import {SwitchAnim} from '../animation/SwitchAnim';
 import {useAppLayout} from '../components/appLayout.control';
 import {FileInput} from '../components/file-widgets/file-input';
 import {markdownsControl} from './markdownSlice';
-import {createMarkdownViewControl, Actions} from './markdownViewComp.control';
+import {createMarkdownViewControl, Actions, SwitchTemplateType} from './markdownViewComp.control';
 import styles from './MarkdownViewComp.module.scss';
 import {TableOfContents} from './toc/TableOfContents';
 
@@ -27,7 +27,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
     control.i.ft.setMermaidClassName(styles.mermaidDiagram).dp();
     return control;
   }, []);
-  const {outputTable, i, dispose, inputTable} = viewControl;
+  const {outputTable, i, dispose} = viewControl;
 
   const router = useRouter();
   React.useEffect(() => {
@@ -39,7 +39,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   React.useEffect(() => {
     if (layout) {
       i.ft.setLayoutControl(layout).dp();
-      i.ft.setScrollTopHandler(() => layout.i.dp.scrollTo(0, 0)).dp();
+      i.ft.setScrollTopHandler(() => layout.i.ft.scrollTo(0, 0).dp()).dp();
     }
   }, [i.ft, layout]);
 
@@ -59,28 +59,17 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
 
   React.useEffect(() => () => dispose(), [dispose]);
 
-  const switchAnimDataByKey = React.useMemo(() => new Map<string, {mdKey: string; onBodyRef(ref: HTMLDivElement | null): void}>(), []);
-  React.useEffect(() => {
-    if (props.mdKey && !switchAnimDataByKey.has(props.mdKey)) {
-      switchAnimDataByKey.set(props.mdKey, {
-        mdKey: props.mdKey,
-        onBodyRef(ref) {
-          if (ref && props.mdKey)
-            i.ft.setMarkdownBodyRef(ref, props.mdKey).dp();
-        }
-      });
-    }
-  }, [i.ft, props.mdKey, switchAnimDataByKey]);
-
   const handleTogglePopup = React.useCallback((...args: Parameters<Actions['handleTogglePopup']>) => {
     i.ft.handleTogglePopup(...args).dp();
   }, [i.ft]);
-  const templateRenderer = React.useCallback(function({mdKey, onBodyRef}: typeof switchAnimDataByKey extends Map<string, infer V> ? V : unknown) {
+  const templateRenderer = React.useCallback(function({mdKey, onBodyRef, hasToc, reactHtmlProp}: SwitchTemplateType) {
     return <>
       <div ref={onBodyRef} className={cln(
         styles.markdownContent, 'markdown-body', 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-9-desktop',
         'mdc-layout-grid__cell--span-6-tablet', 'mdc-layout-grid__cell--span-6'
-      )}></div>
+      )}
+      dangerouslySetInnerHTML={reactHtmlProp}
+      ></div>
       {
         mdKey ?
           <TableOfContents className={cln(
@@ -91,7 +80,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
           '...'
       }
       {
-        inputTable.getData().hasToc ?
+        hasToc ?
           <IconButton className={styles.tocPopBtn}
             onToggle={handleTogglePopup}
             materialIcon="toc"
@@ -109,7 +98,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
       <SwitchAnim type="translateY" debug={true} className={cls('switchAnim')}
         superSlow={false}
         innerClassName={cln(styles.container, 'mdc-layout-grid__inner')}
-        templateData={templateDataMap.get(updatedKey)} switchOnDistinct={updatedKey} templateRenderer={templateRenderer} /> :
+        templateData={templateDataMap.get(updatedKey)} switchOnDistinct={updatedKey} templateRenderer={templateRenderer as any} /> :
       null}
   </>;
 });

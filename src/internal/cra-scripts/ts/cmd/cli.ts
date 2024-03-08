@@ -15,7 +15,7 @@ const cli: CliExtension = (program) => {
     .description('Compile react application or library (work with create-react-app v5.0.1)')
     .argument('<app|lib|dll>', '"app" stands for building a complete application like create-react-app,\n' +
     '"lib" stands for building a library')
-    .argument('[packages_or_entries...]', '(multiple) target packages, the "scope" name part can be omitted, or entry file path (for DLL), or module name (for DLL)')
+    .argument('[packages_or_entries...]', '(multiple) target packages, the "scope" name part can be omitted, module name or entry file path. You may also provide a config property "setting[\'@wfh/cra-scripts\'].entries" instead')
     .option('-w, --watch', 'when argument is "lib", watch file changes and compile', false)
     .option('--rd, --ref-dll <manifest-file>', 'Reference to DLL manifest file, file can be absolute or relative path to "dist" directory', arrayOptionFn, [])
     .option('-i, --include <module-path-regex>',
@@ -45,8 +45,9 @@ const cli: CliExtension = (program) => {
 
 
   const StartCmd = program.command('cra-start')
-    .argument('<packages_or_entries...>', '(multiple) target packages, the "scope" name part can be omitted, or entry file path') .description('Run CRA start script for react application or library (work with create-react-app v5.0.1)')
-    .option('--rd, --ref-dll <manifest-file>', 'Reference to DLL manifest file, file can be absolute or relative path to "dist" directory', (v, p) => {p.push(v); return p;}, [] as string[])
+    .argument('[packages_or_entries...]', '(multiple) target packages, the "scope" name part can be omitted, module name or entry file path. You may also provide a config property "setting[\'@wfh/cra-scripts\'].entries" instead')
+    .description('Run CRA start script for react application or library (work with create-react-app v5.0.1)')
+    .option('--rd, --ref-dll <manifest-file>', 'Reference to DLL manifest file, file can be absolute or relative path to "dist" directory', (v, p) => {p.push(v); return p; }, [] as string[])
     .option('--use-poll, --poll', 'use Webpack watch option "poll"', false)
     .option('--no-ts-checker, --no-tsck', 'disable forked-ts-checker-webpack-plugin for Typescript', false)
     .action((entries) => {
@@ -106,7 +107,7 @@ function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib
   if (entries.length === 0 && getSetting().entries?.length != null) {
     entries = getSetting().entries ?? [];
   }
-  if (entries.length == 0) {
+  if (entries.length === 0) {
     throw new Error('Specifiy at least one "[packages_or_entries]" argument in command line or respective property in "-c" setting file');
   }
   const packageLocator = packageOfFileFactory();
@@ -128,7 +129,7 @@ function runReactScripts(cmdName: string, opts: BuildCliOpts, type: 'app' | 'lib
     const file = Path.resolve(entry);
     const pkg = packageLocator.getPkgOfFile(file)?.orig;
     if (pkg && (pkg.json.plink || pkg.json.dr)) {
-        return {pkg, file};
+      return {pkg, file};
     } else {
       return {file};
     }

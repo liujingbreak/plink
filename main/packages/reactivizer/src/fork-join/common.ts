@@ -46,7 +46,11 @@ export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: ReactorC
   const worker = workerCtl as unknown as ReactorComposite2<any, ForkWorkerOutput>;
   worker.o.ft.wait().dp();
   return rx.from(waitingTask$).pipe(
-    rx.finalize(() => worker.o.ft.stopWaiting().dp())
+    rx.tap({
+      finalize() {
+        worker.o.ft.stopWaiting().dp();
+      }
+    })
   );
 }
 

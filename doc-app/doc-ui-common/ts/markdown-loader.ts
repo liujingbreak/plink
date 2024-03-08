@@ -45,12 +45,12 @@ broker.r('newWorkerReady, (imageToBeResolved, linkToBeResolved)',
             if (mdMatch) {
               const absFile = Path.resolve(Path.dirname(file), href).replace(/\\/g, '/');
               const hash = await digestSha1(absFile);
-              workerInput.ft.linkResolved(JSON.stringify('md-hash:' + hash)).dp(m);
+              workerInput.ft.linkResolved(hash).dp(m);
               state.links.push([hash, absFile]);
               return;
             }
           }
-          workerInput.ft.linkResolved(JSON.stringify(href)).dp(m);
+          workerInput.ft.linkResolved().dp(m);
         })
       )
     ))

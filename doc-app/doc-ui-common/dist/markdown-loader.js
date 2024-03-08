@@ -31,12 +31,12 @@ broker.r('newWorkerReady, (imageToBeResolved, linkToBeResolved)', broker.outputT
         if (mdMatch) {
             const absFile = node_path_1.default.resolve(node_path_1.default.dirname(file), href).replace(/\\/g, '/');
             const hash = await (0, markdown_util_1.digestSha1)(absFile);
-            workerInput.ft.linkResolved(JSON.stringify('md-hash:' + hash)).dp(m);
+            workerInput.ft.linkResolved(hash).dp(m);
             state.links.push([hash, absFile]);
             return;
         }
     }
-    workerInput.ft.linkResolved(JSON.stringify(href)).dp(m);
+    workerInput.ft.linkResolved().dp(m);
 }))))));
 const markdownLoader = function (source, sourceMap) {
     const cb = this.async();

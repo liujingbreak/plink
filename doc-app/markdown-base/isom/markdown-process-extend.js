@@ -10,11 +10,7 @@ function setupReactingForPlain(markdownProcessor) {
     (0, markdown_process_common_1.setupReacting)(markdownProcessor);
     const { o } = markdownProcessor;
     o.interceptor$.next(a$ => rx.merge(a$.pipe(o.ofType('onHtmlParsedSnippet'), (0, reactivizer_1.mapActionToPayload)(), rx.mergeMap(([m, snippets]) => {
-        return rx.from(snippets).pipe(rx.concatMap(item => typeof item === 'string' ? rx.of(item) : item), 
-        // rx.tap(item => {
-        //   o.ft.log('==>', typeof item === 'string' ? item : typeof item).dp();
-        // }),
-        rx.reduce((acc, item) => {
+        return rx.from(snippets).pipe(rx.concatMap(item => typeof item === 'string' ? rx.of(item) : item), rx.reduce((acc, item) => {
             acc.push(item);
             return acc;
         }, []), rx.map(frags => {

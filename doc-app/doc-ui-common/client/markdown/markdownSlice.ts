@@ -1,6 +1,6 @@
 import {ReactorComposite2, SingleActionFactory} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
-import {LoaderRecivedData} from '@wfh/doc-ui-common/isom/md-types';
+import {LoaderRecivedData} from '@wfh/markdown-base/isom/types';
 
 type FileRegister = {[key: string]: () => Promise<LoaderRecivedData> | LoaderRecivedData};
 

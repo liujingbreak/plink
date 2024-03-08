@@ -4,7 +4,7 @@ import {SingleActionFactory, ActionMeta, str2ArrayBuffer, arrayBuffer2str} from 
 import MarkdownIt from 'markdown-it';
 import highlight from 'highlight.js';
 import {parse as parseHtml, DefaultTreeAdapterMap} from 'parse5';
-import {TOC} from './md-types';
+import {TOC} from './types';
 import {ChildNode, Element, lookupTextNodeIn, createTocTree} from './markdown-processor-helper';
 
 export type MdInputActions = {
@@ -13,7 +13,7 @@ export type MdInputActions = {
   processFileDone(res: {resultHtml: ArrayBuffer; toc: TOC[]; mermaid: ArrayBuffer[]; transferList: ArrayBuffer[]}): SingleActionFactory;
   /** Consumer should dispatach to be related to "resolveImage" event */
   imageResolved(resultUrl: string): SingleActionFactory;
-  linkResolved(resultUrl: string): SingleActionFactory;
+  linkResolved(hash?: string): SingleActionFactory;
   /** Consumer should dispatch */
   anchorLinkResolved(url: string): SingleActionFactory;
 };
@@ -182,17 +182,22 @@ function dfsAccessElement(
       });
     } else if (nodeName === 'a') {
       const hrefAttr = el.attrs.find(attr => attr.name === 'href');
-      if (hrefAttr?.value && hrefAttr.value.startsWith('.')) {
-        output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.href!.startOffset + 'href="'.length));
-        htmlOffset = el.sourceCodeLocation!.attrs!.href!.endOffset - 1;
-        const result$ = new rx.ReplaySubject<string>(1);
-        o.ft.linkToBeResolved(hrefAttr?.value, file).do(i.at.linkResolved).pipe(
+      if (hrefAttr?.value) {
+        // output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.href!.startOffset + 'href="'.length));
+        const insertPos = el.sourceCodeLocation!.startTag!.endOffset - 1;
+        output.push(sourceHtml.slice(htmlOffset, insertPos));
+        htmlOffset = insertPos;
+        // const result$ = new rx.ReplaySubject<string>(1);
+        await rx.firstValueFrom(o.ft.linkToBeResolved(hrefAttr?.value, file).do(i.at.linkResolved).pipe(
           rx.take(1),
-          rx.map(([, url]) => url),
-          rx.tap(result$)
-        ).subscribe();
+          rx.map(([, hash]) => {
+            if (hash) {
+              output.push(` data-md-hash="${hash}"`);
+            }
+          })
+        ));
 
-        return output.push(result$);
+        // return output.push(result$);
       }
     } else if (el.childNodes) {
       for (const child of el.childNodes) {

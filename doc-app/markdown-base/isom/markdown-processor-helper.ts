@@ -1,11 +1,14 @@
 import * as rx from 'rxjs';
-import type {DefaultTreeAdapterMap} from 'parse5';
+// import {log4File} from '@wfh/plink';
+import {parse as parseHtml, DefaultTreeAdapterMap} from 'parse5';
 import findLastIndex from 'lodash/findLastIndex';
-import {TOC} from '../isom/md-types';
+import {TOC} from '../isom/types';
 
 export type ChildNode = DefaultTreeAdapterMap['childNode'];
 export type Element = DefaultTreeAdapterMap['element'];
 export type TextNode = DefaultTreeAdapterMap['textNode'];
+
+// const log = log4File(__filename);
 
 export function lookupTextNodeIn(el: Element) {
   const chr = new rx.BehaviorSubject<ChildNode[]>(el.childNodes || []);
@@ -55,4 +58,31 @@ export function createTocTree(input: TOC[]) {
     byLevel.push(child);
   }
   return root.children!;
+}
+
+export function elementByTagName(html: string, elementTagName: string): rx.Observable<Element> {
+  return new rx.Observable<Element>(sub => {
+    let stop = false;
+    const targetTag = elementTagName.trim().toLowerCase();
+    const doc = parseHtml(html, {sourceCodeLocationInfo: true});
+    function forNode(node: ChildNode | DefaultTreeAdapterMap['document']) {
+      const nodeName = node.nodeName.trim().toLowerCase();
+      if (nodeName === '#text' || nodeName === '#comment' || nodeName === '#documentType')
+        return;
+      const el = node as Element;
+      if (nodeName === targetTag) {
+        sub.next(el);
+      } else if (el.childNodes) {
+        for (const child of el.childNodes) {
+          forNode(child);
+          // Im case consumer unscubscribes, stop synchronus producing
+          if (stop) {
+            break;
+          }
+        }
+      }
+    }
+    forNode(doc);
+    return () => {stop = true; };
+  });
 }

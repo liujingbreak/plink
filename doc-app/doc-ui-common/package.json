@@ -11,9 +11,7 @@
     "setting": {
       "value": "isom/doc-ui-common-setting.js#defaultSetting",
       "type": "isom/doc-ui-common-setting#DocUiCommonSetting"
-    },
-    "type": "server",
-    "serverEntry": "dist/server.js"
+    }
   },
   "repository": {
     "type": "git",
@@ -46,7 +44,6 @@
     "bezier-js": "^4.1.1"
   },
   "dependencies": {
-    "http-proxy": "^1.18.1",
     "gl-matrix": "3.4.3"
   }
 }

@@ -7,10 +7,10 @@ import chalk from 'chalk';
 import * as op from 'rxjs/operators';
 import * as rx from 'rxjs';
 import {PackageInfo, packageOfFileFactory, walkPackages} from './package-mgr/package-info-gathering';
-import { nodeInjector, webInjector } from './injector-factory';
+import {nodeInjector, webInjector} from './injector-factory';
 import _NodeApi from './package-mgr/node-package-api';
 import PackageInstance from './packageNodeInstance';
-import { orderPackages } from './package-priority-helper';
+import {orderPackages} from './package-priority-helper';
 import NodePackage from './packageNodeInstance';
 import type {default as ExtensionContext} from './package-mgr/node-package-api';
 import {createLazyPackageFileFinder, packages4Workspace} from './package-utils';
@@ -82,13 +82,13 @@ export function runServer(): {
     async shutdown() {
       const reverseOrderPkgExports = await started;
       log.info('Shutting down');
-      await rx.from(reverseOrderPkgExports).pipe(
+      await rx.lastValueFrom(rx.from(reverseOrderPkgExports).pipe(
         op.concatMap(({name, exp}) => {
           log.info('deactivate', name);
           if (_.isFunction(exp.deactivate)) {
             return rx.from(Promise.resolve(exp.deactivate())).pipe(
-              op.timeoutWith(5000, rx.of(`deactivate ${name} timeout`)),
-              op.catchError(err => {
+              rx.timeoutWith(5000, rx.of(`deactivate ${name} timeout`)),
+              rx.catchError(err => {
                 log.warn(err);
                 return rx.EMPTY;
               })
@@ -96,7 +96,7 @@ export function runServer(): {
           }
           return rx.EMPTY;
         })
-      ).toPromise();
+      ));
       log.info('Shutdown completed');
     }
   };

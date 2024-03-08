@@ -226,6 +226,7 @@ export async function analyseFiles(files: string[],
     verbose: false
   });
 
+  log.warn('analyseFiles in thread', files);
   return await threadPool.submitProcess<ReturnType<Context['toPlainObject']>>({
     file: Path.resolve(__dirname, 'cli-analyse-worker.js'),
     exportFn: 'dfsTraverseFiles',

@@ -192,6 +192,7 @@ async function analyseFiles(files, tsconfigFile, alias, ignore) {
         // initializer: {file: 'source-map-support/register'},
         verbose: false
     });
+    log.warn('analyseFiles in thread', files);
     return await threadPool.submitProcess({
         file: path_1.default.resolve(__dirname, 'cli-analyse-worker.js'),
         exportFn: 'dfsTraverseFiles',

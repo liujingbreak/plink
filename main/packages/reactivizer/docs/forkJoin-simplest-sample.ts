@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {createWorkerControlOfFn, createWorkerControl} from '@wfh/reactivizer/dist/fork-join/node-worker';
+import {createWorkerControlOfFn, createWorkerControl, setIdleDuring} from '@wfh/reactivizer/dist/fork-join/node-worker';
 import {SingleActionFactory} from '@wfh/reactivizer';
 // For browser environment web worker, import from "@wfh/reactivize/es/fork-join/forkJoin-web-worker" instead
 
@@ -67,7 +67,7 @@ export function createHandMadeParallelService() {
         ).do(i.at.computeReturned));
         // Inform the forkJoin scheduler that current worker is about to waiting
         // for Forked function returns and join, so that it can accept other task at same time.
-        await forkDone$;
+        await setIdleDuring.asPromise(myParallelService, forkDone$);
         o.ft.computeReturned().dp(m);
       }
     })
@@ -75,8 +75,8 @@ export function createHandMadeParallelService() {
 
   r('computeAllInWorker', i.pt.computeAllInWorker.pipe(
     rx.mergeMap(async ([m, data, offset, length]) => {
-      await fork(myParallelService, 'compute', [data, offset, length]);
-      o.dpf.computeAllInWorkerReturned(m);
+      await rx.firstValueFrom(o.ft.fork('compute', data, offset, length).do(i.pt.computeReturned));
+      o.ft.computeAllInWorkerReturned().dp(m);
     })
   ));
   return myParallelService;

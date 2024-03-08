@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { TOC } from '../isom/md-types';
+import { TOC } from '@wfh/markdown-base/isom/types';
 /**
  * Use Thread pool to parse Markdown file simultaneously
  * @param source

@@ -62,16 +62,16 @@ function runServer() {
         async shutdown() {
             const reverseOrderPkgExports = await started;
             log.info('Shutting down');
-            await rx.from(reverseOrderPkgExports).pipe(op.concatMap(({ name, exp }) => {
+            await rx.lastValueFrom(rx.from(reverseOrderPkgExports).pipe(op.concatMap(({ name, exp }) => {
                 log.info('deactivate', name);
                 if (_.isFunction(exp.deactivate)) {
-                    return rx.from(Promise.resolve(exp.deactivate())).pipe(op.timeoutWith(5000, rx.of(`deactivate ${name} timeout`)), op.catchError(err => {
+                    return rx.from(Promise.resolve(exp.deactivate())).pipe(rx.timeoutWith(5000, rx.of(`deactivate ${name} timeout`)), rx.catchError(err => {
                         log.warn(err);
                         return rx.EMPTY;
                     }));
                 }
                 return rx.EMPTY;
-            })).toPromise();
+            })));
             log.info('Shutdown completed');
         }
     };

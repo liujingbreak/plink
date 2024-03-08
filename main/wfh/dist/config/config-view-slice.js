@@ -51,17 +51,15 @@ store_1.stateFactory.addEpic((action$, state$) => {
         const pkgState = (0, package_mgr_1.getState)();
         const plinkPkg = pkgState.linkedDrcp ? pkgState.linkedDrcp : pkgState.installedDrcp;
         return Promise.all(Array.from((0, index_1.getPackageSettingFiles)(payload.workspaceKey, payload.packageName ? new Set([payload.packageName]) : undefined)).concat([['wfh/dist/config/config-slice', 'PlinkSettings', '', '', plinkPkg]])
-            .map(([typeFile, typeExport, , , pkg]) => {
+            .map(async ([typeFile, typeExport, , , pkg]) => {
             const dtsFileBase = path_1.default.resolve(pkg.realPath, typeFile);
-            return pool.submit({
+            const [propMetas, dtsFile] = await pool.submit({
                 file: path_1.default.resolve(__dirname, 'config-view-slice-worker.js'),
                 exportFn: 'default',
                 args: [dtsFileBase, typeExport /* , ConfigHandlerMgr.compilerOptions*/]
-            })
-                .then(([propMetas, dtsFile]) => {
-                log.debug(propMetas);
-                exports.dispatcher._packageSettingMetaLoaded([propMetas, path_1.default.relative(pkg.realPath, dtsFile), pkg]);
             });
+            log.debug(propMetas);
+            exports.dispatcher._packageSettingMetaLoaded([propMetas, path_1.default.relative(pkg.realPath, dtsFile), pkg]);
         }));
     }), op.tap(() => {
         exports.dispatcher.packageSettingsMetaLoaded();

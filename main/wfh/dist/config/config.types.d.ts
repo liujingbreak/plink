@@ -1,5 +1,5 @@
-import { PlinkSettings as PlinkSettings } from './config-slice';
 import { InjectorConfigHandler } from '../injector-factory';
+import { PlinkSettings } from './config-slice';
 export interface PropertyMeta {
     property: string;
     desc: string;
