@@ -65,7 +65,7 @@ function activate(ctx) {
     router.get('/probe', (req, res) => {
         const url = new URL('/plink/markdown/local', req.protocol + '://' + req.headers.host);
         url.searchParams.set('nocache', Math.random() + '');
-        url.searchParams.set('file', node_path_1.default.resolve(__dirname, '../__tests__/sample-markdown.md'));
+        url.searchParams.set('file', node_path_1.default.resolve(__dirname, '../../doc-ui-common/__tests__/sample-markdown.md'));
         log.info('redirect to ', url.toString());
         res.redirect(url.toString());
     });
@@ -182,15 +182,20 @@ function activate(ctx) {
             markdown_processor_main_1.markdownProcessor.dispatchErrorFor(e, m);
         }
     })), workerOutput.pt.linkToBeResolved.pipe(rx.mergeMap(async ([m, href, file]) => {
-        if (/^(?:\w+:)?\/\/.*?\.md$/.test(href)) {
+        if (/^(?:\w+:)?\/\/.*?$/.test(href)) {
             workerInput.ft.linkResolved().dp(m);
             return;
         }
-        const linkedFile = node_path_1.default.resolve(node_path_1.default.dirname(file), href);
-        const id = await digestSha1(linkedFile);
-        linkIdToFile.set(id, linkedFile);
-        linksOfFile.get(file).add(id);
-        workerInput.ft.linkResolved(id).dp(m);
+        else if (/\.md$/.test(href)) {
+            const linkedFile = node_path_1.default.resolve(node_path_1.default.dirname(file), href);
+            const id = await digestSha1(linkedFile);
+            linkIdToFile.set(id, linkedFile);
+            linksOfFile.get(file).add(id);
+            workerInput.ft.linkResolved(id).dp(m);
+        }
+        else {
+            workerInput.ft.linkResolved().dp(m);
+        }
     }))))));
     r('loadFile', i.pt.loadFile.pipe(rx.mergeMap(([m, file]) => rx.from(fs_1.default.promises.readFile(file, 'utf8')).pipe(rx.mergeMap(content => {
         return i.ft.forkProcessFile(content, file).do(o.at.processFileDone);

@@ -177,11 +177,11 @@ export function setupForMainWorker<
   I = Record<never, never>,
   O = Record<never, never>
 >(workerController: WorkerControl<I, O, any, any>,
-  opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
+  brokerCreationOptions: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
  ): Broker<I, O> {
 
-  const broker = createBroker(workerController, opts);
-  applyScheduler(broker, opts);
+  const broker = createBroker(workerController, brokerCreationOptions);
+  applyScheduler(broker, brokerCreationOptions);
   broker.i.ft.mainThreadInit().dp();
   return broker;
 }

@@ -48,6 +48,7 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
           const workerNo = minTreeNode.value[0];
           if (ranksByWorkerNo.get(workerNo) == null)
             throw new Error('ranksByWorkerNo has null for ' + workerNo);
+
           const [worker] = ranksByWorkerNo.get(workerNo)!;
           i.ft.workerAssigned(minTreeNode.value[0], worker, false, minTreeNode.key).dp(m);
         } else if (ranksByWorkerNo.size < maxNumOfWorker) {
@@ -66,6 +67,8 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
 
   r('workerAssigned -> changeWorkerRank()', i.pt.workerAssigned.pipe(
     rx.map(([m, workerNo, newWorker, isNew]) => {
+      if (opts.excludeCurrentThead === true && newWorker === 'main')
+        return;
       if (isNew) {
         ranksByWorkerNo.set(workerNo, [newWorker, 0, workerNo]);
         tasksByWorkerNo.set(workerNo, [newWorker, 0, workerNo]);

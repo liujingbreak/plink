@@ -3,6 +3,7 @@
  */
 import {BroadcastChannel} from 'worker_threads';
 import {AppenderModule, LoggingEvent} from 'log4js';
+import chalk from 'chalk';
 const {send: sendLoggingEvent} = require('log4js/lib/clustering') as {send(msg: LoggingEvent): void};
 const {deserialise} = require('log4js/lib/LoggingEvent') as {deserialise: (msg: string) => LoggingEvent};
 
@@ -12,6 +13,18 @@ const {deserialise} = require('log4js/lib/LoggingEvent') as {deserialise: (msg: 
 export const doNothingAppender: AppenderModule = {
   configure(_config, _layouts) {
     return function() {};
+  }
+};
+export const consoleLogAppender: AppenderModule = {
+  configure(_config, _layouts) {
+    return function(logEvent: LoggingEvent | string) {
+      // eslint-disable-next-line no-console
+      console.log(...(typeof logEvent === 'string' ?
+        [logEvent] :
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        [chalk[logEvent.level.colour as 'green'](`${logEvent.level.levelStr}>`), ...logEvent.data]
+      ));
+    };
   }
 };
 
@@ -30,7 +43,6 @@ log4jsThreadBroadcast.unref();
 
 export const workerThreadAppender: AppenderModule = {
   configure(_config, _layouts, _findAppender) {
-
     return function(logEvent: LoggingEvent | string) {
       log4jsThreadBroadcast?.postMessage({
         topic: 'log4js:message',
@@ -69,10 +81,10 @@ export function emitChildProcessLogMsg(msg: {topic?: string, data: string}, toPa
   return false;
 }
 
-export function emitThreadLogMsg(msg: {data?: {topic?: string, data: string}}) {
-  if (msg.data?.topic === 'log4js:message') {
-    const logEvent = msg.data.data;
-    sendLoggingEvent(deserialise(logEvent));
+export function emitThreadLogMsg(msg: {data: {topic?: string, data: string}}) {
+  if (msg.data.topic === 'log4js:message') {
+    const logEvent = msg.data;
+    sendLoggingEvent(deserialise(logEvent.data));
     return true;
   }
   return false;

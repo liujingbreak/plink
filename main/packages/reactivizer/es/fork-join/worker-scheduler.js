@@ -42,6 +42,8 @@ export function applyScheduler(broker, opts) {
         }
     })));
     r('workerAssigned -> changeWorkerRank()', i.pt.workerAssigned.pipe(rx.map(([m, workerNo, newWorker, isNew]) => {
+        if (opts.excludeCurrentThead === true && newWorker === 'main')
+            return;
         if (isNew) {
             ranksByWorkerNo.set(workerNo, [newWorker, 0, workerNo]);
             tasksByWorkerNo.set(workerNo, [newWorker, 0, workerNo]);

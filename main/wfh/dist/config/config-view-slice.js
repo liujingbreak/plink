@@ -3,14 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getStore = exports.getState = exports.dispatcher = exports.configViewSlice = void 0;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
-// import Selector from '../utils/ts-ast-query';
-const os_1 = tslib_1.__importDefault(require("os"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const log4js_1 = require("log4js");
 const package_mgr_1 = require("../package-mgr");
-const dist_1 = require("../../../packages/thread-promise-pool/dist");
+// import {Pool} from '../../../packages/thread-promise-pool/dist';
 const store_1 = require("../store");
+const config_view_slice_worker_main_1 = require("./config-view-slice-worker-main");
 const index_1 = require("./index");
 // import {ConfigHandlerMgr} from '../config-handler';
 const log = (0, log4js_1.getLogger)('plink.config-view-slice');
@@ -45,19 +44,16 @@ exports.configViewSlice = store_1.stateFactory.newSlice({
 });
 // type MapValue<M> = M extends Map<string, infer T> ? T : never;
 exports.dispatcher = store_1.stateFactory.bindActionCreators(exports.configViewSlice);
+const parallelService = (0, config_view_slice_worker_main_1.createMainWorkerAndBroker)();
 store_1.stateFactory.addEpic((action$, state$) => {
     return rx.merge(action$.pipe((0, store_1.ofPayloadAction)(exports.configViewSlice.actions.loadPackageSettingMeta), op.switchMap(({ payload }) => {
-        const pool = new dist_1.Pool(os_1.default.cpus().length - 1);
+        // const pool = new Pool(os.cpus().length - 1);
         const pkgState = (0, package_mgr_1.getState)();
         const plinkPkg = pkgState.linkedDrcp ? pkgState.linkedDrcp : pkgState.installedDrcp;
         return Promise.all(Array.from((0, index_1.getPackageSettingFiles)(payload.workspaceKey, payload.packageName ? new Set([payload.packageName]) : undefined)).concat([['wfh/dist/config/config-slice', 'PlinkSettings', '', '', plinkPkg]])
             .map(async ([typeFile, typeExport, , , pkg]) => {
             const dtsFileBase = path_1.default.resolve(pkg.realPath, typeFile);
-            const [propMetas, dtsFile] = await pool.submit({
-                file: path_1.default.resolve(__dirname, 'config-view-slice-worker.js'),
-                exportFn: 'default',
-                args: [dtsFileBase, typeExport /* , ConfigHandlerMgr.compilerOptions*/]
-            });
+            const [, propMetas, dtsFile] = await rx.firstValueFrom(parallelService.i.ft.parseDtsInWorker(dtsFileBase, typeExport).do(parallelService.o.pt.parseDtsDone));
             log.debug(propMetas);
             exports.dispatcher._packageSettingMetaLoaded([propMetas, path_1.default.relative(pkg.realPath, dtsFile), pkg]);
         }));

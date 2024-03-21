@@ -114,9 +114,9 @@ export function createBroker(workerController, opts) {
     })));
     return broker;
 }
-export function setupForMainWorker(workerController, opts) {
-    const broker = createBroker(workerController, opts);
-    applyScheduler(broker, opts);
+export function setupForMainWorker(workerController, brokerCreationOptions) {
+    const broker = createBroker(workerController, brokerCreationOptions);
+    applyScheduler(broker, brokerCreationOptions);
     broker.i.ft.mainThreadInit().dp();
     return broker;
 }

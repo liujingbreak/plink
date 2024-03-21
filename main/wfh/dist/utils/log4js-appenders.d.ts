@@ -8,6 +8,7 @@ import { AppenderModule } from 'log4js';
  * Log4js can handle cluster worker configuration, it will most likely ignore appenders, so it could be empty appender
  */
 export declare const doNothingAppender: AppenderModule;
+export declare const consoleLogAppender: AppenderModule;
 export declare const childProcessAppender: AppenderModule;
 export declare const log4jsThreadBroadcast: BroadcastChannel;
 export declare const workerThreadAppender: AppenderModule;
@@ -19,7 +20,7 @@ export declare function emitChildProcessLogMsg(msg: {
     data: string;
 }, toParent?: boolean): boolean;
 export declare function emitThreadLogMsg(msg: {
-    data?: {
+    data: {
         topic?: string;
         data: string;
     };

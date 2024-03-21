@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import {fromFetch} from 'rxjs/fetch';
 import {bootstrapRoutesWith} from '@wfh/doc-entry/dll/shell-entry';
-import {LoaderRecivedData} from '@wfh/doc-ui-common/isom/md-types';
+import {LoaderRecivedData} from '@wfh/markdown-base/isom/types';
 import loadable from '@loadable/component';
 import {markdownsControl} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
 import {ShowTopLoading} from '@wfh/doc-ui-common/client/components/ShowTopLoading';
@@ -19,7 +19,7 @@ bootstrapRoutesWith(() => {
   }, {fallback: <ShowTopLoading/>});
 
   const initialUrl = new URL(window.location.href); // There a query parameter "?file=" in URL
-  initialUrl.pathname = '/doc-ui-common/markdown-local/md';
+  initialUrl.pathname = '/markdown-base/markdown-local/md';
 
   markdownsControl.i.ft.registerFiles({
     local: () => importMarkdown(initialUrl.toString())
@@ -42,7 +42,7 @@ function importMarkdown(serverUrl: string) {
   }).pipe(
     rx.switchMap(async res => {
       if (res.ok) {
-        const data = await res.json() as LoaderRecivedData;
+        const data = (await res.json()) as LoaderRecivedData;
         if (data.linkHashes) {
           importMarkdownOfHashes(serverUrl, data.linkHashes);
         }
@@ -63,7 +63,7 @@ function importMarkdownOfHashes(serverUrl: string, hashes: string[]) {
   markdownsControl.i.ft.registerFiles(
     hashes.reduce(
       (acc, curr) => {
-        acc[curr] = () => importMarkdown(new URL('/doc-ui-common/markdown-local/linked-md/' + encodeURIComponent(curr), serverUrl).toString());
+        acc[curr] = () => importMarkdown(new URL('/markdown-base/markdown-local/linked-md/' + encodeURIComponent(curr), serverUrl).toString());
         return acc;
       }, {} as Record<string, () => Promise<LoaderRecivedData>>)).dp();
 }

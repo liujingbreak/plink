@@ -6,4 +6,4 @@ export * from './types';
 */
 export declare function createBroker<I = Record<never, never>, O = Record<never, never>>(workerController: WorkerControl<I, O, any, any>, opts?: ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>): Broker<I, O>;
 type ScheduleOptions = typeof applyScheduler extends (c: any, o: infer O) => any ? O : unknown;
-export declare function setupForMainWorker<I = Record<never, never>, O = Record<never, never>>(workerController: WorkerControl<I, O, any, any>, opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>): Broker<I, O>;
+export declare function setupForMainWorker<I = Record<never, never>, O = Record<never, never>>(workerController: WorkerControl<I, O, any, any>, brokerCreationOptions: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>): Broker<I, O>;

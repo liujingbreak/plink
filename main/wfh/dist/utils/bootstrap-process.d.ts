@@ -21,6 +21,7 @@ export declare function initConfig(options?: GlobalOptions): import("..").DrcpCo
  * @param _onShutdownSignal
  */
 export declare function initProcess(saveState?: store.StoreSetting['actionOnExit']): void;
+export declare function initWorkerThread(): void;
 /**
  * Initialize redux-store for Plink.
  *
@@ -35,3 +36,4 @@ export declare function initProcess(saveState?: store.StoreSetting['actionOnExit
  * @param syncState send changed state back to main process
  */
 export declare function initAsChildProcess(saveState?: store.StoreSetting['actionOnExit']): void;
+export declare function configDefaultLog(): void;

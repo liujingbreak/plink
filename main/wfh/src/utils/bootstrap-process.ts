@@ -10,8 +10,9 @@ import config from '../config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
 import {log4jsThreadBroadcast, emitThreadLogMsg, workerThreadAppender, childProcessAppender, doNothingAppender,
-  emitChildProcessLogMsg} from './log4js-appenders';
+  emitChildProcessLogMsg, consoleLogAppender} from './log4js-appenders';
 // import inspector from 'inspector';
+// inspector.open(9222, '0.0.0.0', true);
 
 
 const log = log4js.getLogger('plink.bootstrap-process');
@@ -20,23 +21,6 @@ let processInitialized = false;
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 export const exitHooks = [] as Array<() => (rx.ObservableInput<unknown> | void | number)>;
 
-process.on('uncaughtException', function(err) {
-  if ((err as NodeJS.ErrnoException).code === 'ECONNRESET') {
-    log.error('uncaughtException "ECONNRESET"', err);
-  } else {
-    log.error(`PID: ${process.pid} uncaughtException: `, err);
-    throw err; // let PM2 handle exception
-  }
-});
-
-process.on(`PID: ${process.pid} unhandledRejection`, err => {
-  if ((err as NodeJS.ErrnoException).code === 'ECONNRESET') {
-    log.error('unhandledRejection "ECONNRESET"', err);
-  } else {
-    log.error(`PID: ${process.pid} unhandledRejection: `, err);
-    throw err; // let PM2 handle exception
-  }
-});
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
  * If this function is called from a child process or thread worker of Plink,
@@ -68,6 +52,23 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   if (process.env.__plinkLogMainPid == null) {
     process.env.__plinkLogMainPid = process.pid + '';
   }
+  process.on('uncaughtException', function(err) {
+    if ((err as NodeJS.ErrnoException).code === 'ECONNRESET') {
+      log.error('uncaughtException "ECONNRESET"', err);
+    } else {
+      log.error(`PID: ${process.pid} uncaughtException: `, err);
+      throw err; // let PM2 handle exception
+    }
+  });
+
+  process.on(`PID: ${process.pid} unhandledRejection`, err => {
+    if ((err as NodeJS.ErrnoException).code === 'ECONNRESET') {
+      log.error('unhandledRejection "ECONNRESET"', err);
+    } else {
+      log.error(`PID: ${process.pid} unhandledRejection: `, err);
+      throw err; // let PM2 handle exception
+    }
+  });
   // if (process.env.__plinkLogMainPid !== process.pid + '') {
   //   console.log('open inspector on 9222 of PID:', process.pid);
   //   inspector.open(9222);
@@ -150,6 +151,14 @@ export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'non
   }
 }
 
+export function initWorkerThread() {
+  configDefaultLog();
+  const {dispatcher, stateFactory, startLogging} = require('../store') as typeof store;
+  startLogging();
+  stateFactory.configureStore();
+  dispatcher.changeActionOnExit('none');
+}
+
 /**
  * Initialize redux-store for Plink.
  * 
@@ -183,7 +192,7 @@ function interceptFork() {
   cluster.on('message', handler);
 }
 
-function configDefaultLog() {
+export function configDefaultLog() {
   if (cluster.isWorker) {
     // https://github.dev/log4js-node/log4js-node/blob/master/lib/clustering.js
     // if `disableClustering` is not `true`, log4js will ignore configuration and
@@ -199,18 +208,23 @@ function configDefaultLog() {
     });
   } else if (process.env.__plinkLogMainPid === process.pid + '') {
     if (isMainThread) {
-      // eslint-disable-next-line no-console
-      log4js.configure({
-        appenders: {
-          out: {
-            type: 'stdout',
-            layout: {type: 'pattern', pattern: '[P%z] %[%c%] - %m'}
+      try {
+        log4js.configure({
+          appenders: {
+            out: {
+              // The host environment like coc.nvim will crash on any `stdout` messages, I have to use `console.log` instead
+              // type: 'stdout',
+              type: consoleLogAppender,
+              layout: {type: 'pattern', pattern: '[P%z] %[%c%] - %m'}
+            }
+          },
+          categories: {
+            default: {appenders: ['out'], level: 'info'}
           }
-        },
-        categories: {
-          default: {appenders: ['out'], level: 'info'}
-        }
-      });
+        });
+      } catch (e) {
+        log.error(e);
+      }
       log4jsThreadBroadcast.onmessage = msg => emitThreadLogMsg(msg as any);
     } else {
       log4js.configure({

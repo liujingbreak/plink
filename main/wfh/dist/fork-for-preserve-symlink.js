@@ -2,6 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.forkFile = exports.workDirChangedByCli = exports.isWin32 = void 0;
 const tslib_1 = require("tslib");
+/**
+ * TODO: Remove this file to avoid confusion,
+ * the actual functionality of this file is to fork a new plink command process to use Node's "preserve symblink" option
+ */
 const path_1 = tslib_1.__importDefault(require("path"));
 const child_process_1 = require("child_process");
 const fs_1 = tslib_1.__importDefault(require("fs"));
@@ -17,7 +21,8 @@ function workDirChangedByCli() {
     const workdir = foundCmdOptIdx >= 0 ? path_1.default.resolve(misc_1.plinkEnv.rootDir, argv[foundCmdOptIdx + 1]) : null;
     if (workdir) {
         argv.splice(foundCmdOptIdx, 2);
-        // process.env.PLINK_WORK_DIR = workdir;
+        process.env.PLINK_WORK_DIR = workdir;
+        misc_1.plinkEnv.workDir = workdir;
     }
     return { workdir, argv };
 }

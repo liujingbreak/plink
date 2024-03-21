@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.emitThreadLogMsg = exports.emitChildProcessLogMsg = exports.workerThreadAppender = exports.log4jsThreadBroadcast = exports.childProcessAppender = exports.doNothingAppender = void 0;
+exports.emitThreadLogMsg = exports.emitChildProcessLogMsg = exports.workerThreadAppender = exports.log4jsThreadBroadcast = exports.childProcessAppender = exports.consoleLogAppender = exports.doNothingAppender = void 0;
+const tslib_1 = require("tslib");
 /**
  * https://log4js-node.github.io/log4js-node/writing-appenders.html
  */
 const worker_threads_1 = require("worker_threads");
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const { send: sendLoggingEvent } = require('log4js/lib/clustering');
 const { deserialise } = require('log4js/lib/LoggingEvent');
 /**
@@ -13,6 +15,17 @@ const { deserialise } = require('log4js/lib/LoggingEvent');
 exports.doNothingAppender = {
     configure(_config, _layouts) {
         return function () { };
+    }
+};
+exports.consoleLogAppender = {
+    configure(_config, _layouts) {
+        return function (logEvent) {
+            // eslint-disable-next-line no-console
+            console.log(...(typeof logEvent === 'string' ?
+                [logEvent] :
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                [chalk_1.default[logEvent.level.colour](`${logEvent.level.levelStr}>`), ...logEvent.data]));
+        };
     }
 };
 exports.childProcessAppender = {
@@ -66,10 +79,9 @@ function emitChildProcessLogMsg(msg, toParent = false) {
 }
 exports.emitChildProcessLogMsg = emitChildProcessLogMsg;
 function emitThreadLogMsg(msg) {
-    var _a;
-    if (((_a = msg.data) === null || _a === void 0 ? void 0 : _a.topic) === 'log4js:message') {
-        const logEvent = msg.data.data;
-        sendLoggingEvent(deserialise(logEvent));
+    if (msg.data.topic === 'log4js:message') {
+        const logEvent = msg.data;
+        sendLoggingEvent(deserialise(logEvent.data));
         return true;
     }
     return false;

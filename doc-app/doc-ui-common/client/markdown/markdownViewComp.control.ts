@@ -1,8 +1,8 @@
 import {SingleActionFactory, ReactorComposite2, actionRelatedToAction} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
+import {LoaderRecivedData} from '@wfh/markdown-base/isom/types';
 import {useAppLayout} from '../components/appLayout.control';
 import {Router} from '../animation/AnimatableRoutes.hooks';
-import {LoaderRecivedData} from '../../isom/md-types';
 import {markdownsControl} from './markdownSlice';
 
 export type Actions = {
@@ -183,7 +183,7 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
       rx.map(b => [map, b] as const)
     )),
     rx.switchMap(([[m, data], [, layout]]) => layout.outputTable.l.onTopAppBarRaisedShown.pipe(
-      rx.tap(([, raised]) => layout.i.ft.updateBarTitle(raised ? data.toc[0].text : '').dp(m))
+      rx.tap(([, raised]) => layout.i.ft.updateBarTitle((raised && data.toc[0]) ? data.toc[0].text : '').dp(m))
     ))
   ));
 

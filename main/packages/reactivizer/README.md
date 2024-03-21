@@ -12,10 +12,7 @@ contents
 ## 1. A brief introduction
 
 `@wfh/reactivizer` is a RxJS based Reactive Programming library for programming convenience.
-Like a lot of other `rx` series library, it provides some utility functions and classes
-that help to program our application in an opinionated Reactive programming style or paradigm at a low level.
-
-The idea is combining traditional object-oriented designed resuable software entity (Class/Object) with "event streaming" and reactive style.
+It introduces an opinionated style to program reusable logic in shape of **reative service**, you may consider it as a reactive enhanced of OOP.
 
 Unlike other "rx" based librarys,
 - @wfh/reactivizer does not emphasize contribution on either **frontend** or **backend** side, it is just a low level programming utility,
@@ -41,26 +38,26 @@ Some of the concepts and conventions are inspired by Apache kafka, Redux-observa
 
 ```ts
 import * as rx from 'rxjs';
-import {ReactorComposite} from '@wfh/reactivizer';
+import {ReactorComposite2, SingleActionFactory} from '@wfh/reactivizer';
 
 // input message
 type InputActions = {
-  greeting(byName: string): void;
-  askQuestion(topic: string, detial: string): void;
-  setLanguage(locale: string): void;
+  greeting(byName: string): SingleActionFactory;
+  askQuestion(topic: string, detial: string): SingleActionFactory;
+  setLanguage(locale: string): SingleActionFactory;
 };
 
 // output message
 type OutputEvents = {
-  replyGreeting(word: string): void;
-  answerQuestion(content: string): void;
+  replyGreeting(word: string): SingleActionFactory;
+  answerQuestion(content: string): SingleActionFactory;
 };
 
 export function createSample() {
   // define which actions should be stateful (treated as new ReplaySubject(1))
   const inputTableFor = ['setLanguage'] as const;
 
-  const sample = new ReactorComposite<InputActions, OutputEvent, typeof inputTableFor>({
+  const sample = new ReactorComposite2<InputActions, OutputEvent, typeof inputTableFor>({
     name: 'Sample',
     inputTableFor
   });

@@ -1,14 +1,15 @@
 import Path from 'path';
 // import Selector from '../utils/ts-ast-query';
-import os from 'os';
+// import os from 'os';
 import {PayloadAction} from '@reduxjs/toolkit';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {getLogger} from 'log4js';
 import {getState as getPkgMgrState, PackageInfo} from '../package-mgr';
-import {Pool} from '../../../packages/thread-promise-pool/dist';
+// import {Pool} from '../../../packages/thread-promise-pool/dist';
 import {stateFactory, ofPayloadAction, processExitAction$} from '../store';
 import {PropertyMeta} from './config.types';
+import {createMainWorkerAndBroker} from './config-view-slice-worker-main';
 import {getPackageSettingFiles} from './index';
 // import {ConfigHandlerMgr} from '../config-handler';
 const log = getLogger('plink.config-view-slice');
@@ -61,12 +62,13 @@ export const configViewSlice = stateFactory.newSlice({
 // type MapValue<M> = M extends Map<string, infer T> ? T : never;
 
 export const dispatcher = stateFactory.bindActionCreators(configViewSlice);
+const parallelService = createMainWorkerAndBroker();
 
 stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
   return rx.merge(
     action$.pipe(ofPayloadAction(configViewSlice.actions.loadPackageSettingMeta),
       op.switchMap(({payload}) => {
-        const pool = new Pool(os.cpus().length - 1);
+        // const pool = new Pool(os.cpus().length - 1);
         const pkgState = getPkgMgrState();
         const plinkPkg = pkgState.linkedDrcp ? pkgState.linkedDrcp : pkgState.installedDrcp!;
 
@@ -76,11 +78,9 @@ stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
           .map(async ([typeFile, typeExport, , , pkg]) => {
 
             const dtsFileBase = Path.resolve(pkg.realPath, typeFile);
-            const [propMetas, dtsFile] = await pool.submit<[metas: PropertyMeta[], dtsFile: string]>({
-              file: Path.resolve(__dirname, 'config-view-slice-worker.js'),
-              exportFn: 'default',
-              args: [dtsFileBase, typeExport /* , ConfigHandlerMgr.compilerOptions*/]
-            });
+            const [, propMetas, dtsFile] = await rx.firstValueFrom(
+              parallelService.i.ft.parseDtsInWorker(dtsFileBase, typeExport).do(parallelService.o.pt.parseDtsDone)
+            );
             log.debug(propMetas);
             dispatcher._packageSettingMetaLoaded([propMetas, Path.relative(pkg.realPath, dtsFile), pkg]);
           }));

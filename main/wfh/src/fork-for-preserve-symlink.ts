@@ -1,3 +1,7 @@
+/**
+ * TODO: Remove this file to avoid confusion,
+ * the actual functionality of this file is to fork a new plink command process to use Node's "preserve symblink" option
+ */
 import Path from 'path';
 import {fork, ForkOptions} from 'child_process';
 import fs from 'fs';
@@ -28,7 +32,8 @@ export function workDirChangedByCli() {
   const workdir = foundCmdOptIdx >= 0 ? Path.resolve(plinkEnv.rootDir,  argv[foundCmdOptIdx + 1]) : null;
   if (workdir) {
     argv.splice(foundCmdOptIdx, 2);
-    // process.env.PLINK_WORK_DIR = workdir;
+    process.env.PLINK_WORK_DIR = workdir;
+    plinkEnv.workDir = workdir;
   }
   return {workdir, argv};
 }

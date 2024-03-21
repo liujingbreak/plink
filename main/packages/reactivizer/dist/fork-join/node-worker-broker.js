@@ -144,9 +144,9 @@ function createBroker(workerController, opts) {
     return broker;
 }
 exports.createBroker = createBroker;
-function setupForMainWorker(workerController, opts) {
-    const broker = createBroker(workerController, opts);
-    (0, worker_scheduler_1.applyScheduler)(broker, opts);
+function setupForMainWorker(workerController, brokerCreationOptions) {
+    const broker = createBroker(workerController, brokerCreationOptions);
+    (0, worker_scheduler_1.applyScheduler)(broker, brokerCreationOptions);
     broker.i.ft.mainThreadInit().dp();
     return broker;
 }

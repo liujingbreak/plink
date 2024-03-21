@@ -171,23 +171,3 @@ export function startLogging() {
   ).subscribe();
 }
 
-/**
- * a listener registered on the 'beforeExit' event can make asynchronous calls, 
- * and thereby cause the Node.js process to continue.
- * The 'beforeExit' event is not emitted for conditions causing explicit termination,
- * such as calling process.exit() or uncaught exceptions.
- */
-// process.once('beforeExit', () => {
-  // dispatcher.processExit();
-// });
-
-// TEST async action for Thunk middleware
-// stateFactory.store$.subscribe(store => {
-//   if (store) {
-//     debugger;
-//     store.dispatch((async (dispatch: any) => {
-//       await new Promise(resolve => setTimeout(resolve, 500));
-//       dispatch({type: 'ok'});
-//     }) as any);
-//   }
-// });

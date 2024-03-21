@@ -34,7 +34,6 @@ export default function(pkgName?: string) {
       } else {
         const pkgs = Array.from(findPackagesByNames(state.packageNames!));
 
-        log.info('found', pkgs);
         for (let i = 0, l = pkgs.length ; i < l; i++) {
           const pkg = pkgs[i];
           const name = state.packageNames![i];
@@ -54,7 +53,6 @@ export default function(pkgName?: string) {
     })
   ).subscribe();
   dispatcher.loadPackageSettingMeta({workspaceKey: wskey, packageName: pkgName});
-  log.warn('>>>>>>');
 }
 
 function printPackage({name: pkgName, realPath}: PackageInfo) {
@@ -75,10 +73,12 @@ function printPackage({name: pkgName, realPath}: PackageInfo) {
 
   for (const prop of meta.properties) {
     const propMeta = state.propertyByName.get(pkgName + ',' + prop)!;
+    // eslint-disable-next-line no-console
     console.log('   ' + chalk.cyan(propMeta.property) + ': ' +
       (propMeta.optional ? chalk.gray('(optional) ') : '') + chalk.magenta(propMeta.type.replace(/\n/g, '\n  ')));
     // console.log('    ' + (propMeta.optional ? chalk.gray('  (optional) ') : '  ') + chalk.magenta(propMeta.type));
     if (propMeta.desc)
+      // eslint-disable-next-line no-console
       console.log('      - ' + propMeta.desc.trim().replace(/\n/g, '\n      '));
   }
 }

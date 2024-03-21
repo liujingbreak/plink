@@ -31,7 +31,6 @@ function default_1(pkgName) {
         }
         else {
             const pkgs = Array.from((0, utils_1.findPackagesByNames)(state.packageNames));
-            log.info('found', pkgs);
             for (let i = 0, l = pkgs.length; i < l; i++) {
                 const pkg = pkgs[i];
                 const name = state.packageNames[i];
@@ -50,7 +49,6 @@ function default_1(pkgName) {
         console.log(util.inspect(setting, false, 5));
     })).subscribe();
     config_view_slice_1.dispatcher.loadPackageSettingMeta({ workspaceKey: wskey, packageName: pkgName });
-    log.warn('>>>>>>');
 }
 exports.default = default_1;
 function printPackage({ name: pkgName, realPath }) {
@@ -67,10 +65,12 @@ function printPackage({ name: pkgName, realPath }) {
     console.log(tbl.toString());
     for (const prop of meta.properties) {
         const propMeta = state.propertyByName.get(pkgName + ',' + prop);
+        // eslint-disable-next-line no-console
         console.log('   ' + chalk_1.default.cyan(propMeta.property) + ': ' +
             (propMeta.optional ? chalk_1.default.gray('(optional) ') : '') + chalk_1.default.magenta(propMeta.type.replace(/\n/g, '\n  ')));
         // console.log('    ' + (propMeta.optional ? chalk.gray('  (optional) ') : '  ') + chalk.magenta(propMeta.type));
         if (propMeta.desc)
+            // eslint-disable-next-line no-console
             console.log('      - ' + propMeta.desc.trim().replace(/\n/g, '\n      '));
     }
 }

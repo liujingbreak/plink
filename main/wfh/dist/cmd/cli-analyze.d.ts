@@ -1,4 +1,4 @@
-import { Context } from './cli-analyse-worker';
+import { Context } from './cli-analyse-service';
 import { AnalyzeOptions } from './types';
 export default function (packages: string[], opts: AnalyzeOptions): void;
 export declare function printResult(result: NonNullable<AnalyzeState['result']>, opts: {

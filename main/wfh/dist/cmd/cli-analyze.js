@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyseFiles = exports.dispatcher = exports.getStore = exports.printResult = void 0;
 const tslib_1 = require("tslib");
-const os_1 = tslib_1.__importDefault(require("os"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const glob_1 = tslib_1.__importDefault(require("glob"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
@@ -12,15 +11,13 @@ const op = tslib_1.__importStar(require("rxjs/operators"));
 const rxjs_1 = require("rxjs");
 const log4js_1 = tslib_1.__importDefault(require("log4js"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const dist_1 = require("../../../packages/thread-promise-pool/dist");
 const misc_1 = require("../utils/misc");
 const store_1 = require("../store");
 const package_mgr_1 = require("../package-mgr");
 const misc_2 = require("../utils/misc");
 const utils_1 = require("./utils");
-// import config from '../config';
+const cli_analyse_main_1 = tslib_1.__importDefault(require("./cli-analyse-main"));
 const log = log4js_1.default.getLogger('plink.analyse');
-const cpus = os_1.default.cpus().length;
 function default_1(packages, opts) {
     const alias = opts.alias.map(item => {
         if (!item.startsWith('['))
@@ -173,6 +170,7 @@ store_1.stateFactory.addEpic((action$, state$) => {
         return src;
     }), (0, operators_1.ignoreElements)());
 });
+const mainWorker = (0, cli_analyse_main_1.default)();
 async function analyseFiles(files, tsconfigFile, alias, ignore) {
     const matchDones = files.map(pattern => new Promise((resolve, reject) => {
         (0, glob_1.default)(pattern, { nodir: true }, (err, matches) => {
@@ -188,16 +186,8 @@ async function analyseFiles(files, tsconfigFile, alias, ignore) {
         log.warn('No source files are found');
         return null;
     }
-    const threadPool = new dist_1.Pool(cpus - 1, 0, {
-        // initializer: {file: 'source-map-support/register'},
-        verbose: false
-    });
-    log.warn('analyseFiles in thread', files);
-    return await threadPool.submitProcess({
-        file: path_1.default.resolve(__dirname, 'cli-analyse-worker.js'),
-        exportFn: 'dfsTraverseFiles',
-        args: [files.map(p => path_1.default.resolve(p)), tsconfigFile, alias, ignore]
-    });
+    const [, result] = await (0, rxjs_1.firstValueFrom)(mainWorker.i.ft.forkDfsTraverseFiles(files.map(p => path_1.default.resolve(p)), tsconfigFile, alias, ignore).do(mainWorker.o.pt.doneDfsTraverseFiles));
+    return result;
 }
 exports.analyseFiles = analyseFiles;
 //# sourceMappingURL=cli-analyze.js.map

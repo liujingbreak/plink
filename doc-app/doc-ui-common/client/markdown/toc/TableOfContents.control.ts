@@ -1,10 +1,10 @@
 import * as rx from 'rxjs';
 import {ReactorComposite2, SingleActionFactory, ActionTableDataType} from '@wfh/reactivizer';
+import {TOC} from '@wfh/markdown-base/isom/types';
 import {useAppLayout} from '../../components/appLayout.control';
 import {Router} from '../../animation/AnimatableRoutes.hooks';
 import {markdownsControl} from '../markdownSlice';
 import {createMarkdownViewControl} from '../markdownViewComp.control';
-import {TOC} from '../../../isom/md-types';
 import {applyHighlightFeature} from './TableOfContents.title-highlight';
 
 // const desktopAppTitleBarHeight = 64;

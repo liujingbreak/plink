@@ -1,25 +1,22 @@
-import os from 'os';
 import Path from 'path';
 import glob from 'glob';
 import _ from 'lodash';
 // import { PayloadAction } from '@reduxjs/toolkit';
 import { ignoreElements, catchError, map, mergeMap} from 'rxjs/operators';
 import * as op from 'rxjs/operators';
-import {merge} from 'rxjs';
+import {merge, firstValueFrom} from 'rxjs';
 import log4js from 'log4js';
 import chalk from 'chalk';
-import {Pool} from '../../../packages/thread-promise-pool/dist';
 import {createCliTable} from '../utils/misc';
 import { stateFactory, ofPayloadAction, createReducers } from '../store';
 import {getState} from '../package-mgr';
 import {getTscConfigOfPkg} from '../utils/misc';
 import {findPackagesByNames} from './utils';
-import {Context} from './cli-analyse-worker';
+import {Context} from './cli-analyse-service';
+import createServiceMainWorker from './cli-analyse-main';
 import {AnalyzeOptions} from './types';
-// import config from '../config';
 
 const log = log4js.getLogger('plink.analyse');
-const cpus = os.cpus().length;
 
 export default function(packages: string[], opts: AnalyzeOptions) {
   const alias: [reg: string, replace: string][] =
@@ -201,7 +198,7 @@ stateFactory.addEpic<{analyze: AnalyzeState}>((action$, state$) => {
   );
 });
 
-
+const mainWorker = createServiceMainWorker();
 export async function analyseFiles(files: string[],
   tsconfigFile: string | undefined,
   alias: [pattern: string, replace: string][],
@@ -221,16 +218,9 @@ export async function analyseFiles(files: string[],
     log.warn('No source files are found');
     return null;
   }
-  const threadPool = new Pool(cpus - 1, 0, {
-    // initializer: {file: 'source-map-support/register'},
-    verbose: false
-  });
 
-  log.warn('analyseFiles in thread', files);
-  return await threadPool.submitProcess<ReturnType<Context['toPlainObject']>>({
-    file: Path.resolve(__dirname, 'cli-analyse-worker.js'),
-    exportFn: 'dfsTraverseFiles',
-    args: [files.map(p => Path.resolve(p)), tsconfigFile, alias, ignore]
-  });
-
+  const [, result] = await firstValueFrom(mainWorker.i.ft.forkDfsTraverseFiles(files.map(p => Path.resolve(p)), tsconfigFile, alias, ignore).do(
+    mainWorker.o.pt.doneDfsTraverseFiles
+  ));
+  return result;
 }

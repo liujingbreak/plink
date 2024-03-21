@@ -1,0 +1,1 @@
+{"version":3,"file":"config-view-slice-worker-worker.js","sourceRoot":"","sources":["../../src/config/config-view-slice-worker-worker.ts"],"names":[],"mappings":";;AAAA,yEAAyD;AAEzD,IAAA,wCAAa,EAAC,KAAK,CAAC,CAAC","sourcesContent":["import {createService} from './config-view-slice-worker';\n\ncreateService(false);\n"]}

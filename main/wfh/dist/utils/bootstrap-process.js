@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initAsChildProcess = exports.initProcess = exports.initConfig = exports.exitHooks = void 0;
+exports.configDefaultLog = exports.initAsChildProcess = exports.initWorkerThread = exports.initProcess = exports.initConfig = exports.exitHooks = void 0;
 const tslib_1 = require("tslib");
 require("../node-path");
 const node_cluster_1 = tslib_1.__importDefault(require("node:cluster"));
@@ -12,28 +12,11 @@ const op = tslib_1.__importStar(require("rxjs/operators"));
 const config_1 = tslib_1.__importDefault(require("../config"));
 const log4js_appenders_1 = require("./log4js-appenders");
 // import inspector from 'inspector';
+// inspector.open(9222, '0.0.0.0', true);
 const log = log4js_1.default.getLogger('plink.bootstrap-process');
 let processInitialized = false;
 /** When process is on 'SIGINT' and "beforeExit", all functions will be executed */
 exports.exitHooks = [];
-process.on('uncaughtException', function (err) {
-    if (err.code === 'ECONNRESET') {
-        log.error('uncaughtException "ECONNRESET"', err);
-    }
-    else {
-        log.error(`PID: ${process.pid} uncaughtException: `, err);
-        throw err; // let PM2 handle exception
-    }
-});
-process.on(`PID: ${process.pid} unhandledRejection`, err => {
-    if (err.code === 'ECONNRESET') {
-        log.error('unhandledRejection "ECONNRESET"', err);
-    }
-    else {
-        log.error(`PID: ${process.pid} unhandledRejection: `, err);
-        throw err; // let PM2 handle exception
-    }
-});
 /**
  * Must invoke initProcess() or initAsChildProcess() before this function.
  * If this function is called from a child process or thread worker of Plink,
@@ -64,6 +47,24 @@ function initProcess(saveState = 'none') {
     if (process.env.__plinkLogMainPid == null) {
         process.env.__plinkLogMainPid = process.pid + '';
     }
+    process.on('uncaughtException', function (err) {
+        if (err.code === 'ECONNRESET') {
+            log.error('uncaughtException "ECONNRESET"', err);
+        }
+        else {
+            log.error(`PID: ${process.pid} uncaughtException: `, err);
+            throw err; // let PM2 handle exception
+        }
+    });
+    process.on(`PID: ${process.pid} unhandledRejection`, err => {
+        if (err.code === 'ECONNRESET') {
+            log.error('unhandledRejection "ECONNRESET"', err);
+        }
+        else {
+            log.error(`PID: ${process.pid} unhandledRejection: `, err);
+            throw err; // let PM2 handle exception
+        }
+    });
     // if (process.env.__plinkLogMainPid !== process.pid + '') {
     //   console.log('open inspector on 9222 of PID:', process.pid);
     //   inspector.open(9222);
@@ -134,6 +135,14 @@ function initProcess(saveState = 'none') {
     }
 }
 exports.initProcess = initProcess;
+function initWorkerThread() {
+    configDefaultLog();
+    const { dispatcher, stateFactory, startLogging } = require('../store');
+    startLogging();
+    stateFactory.configureStore();
+    dispatcher.changeActionOnExit('none');
+}
+exports.initWorkerThread = initWorkerThread;
 /**
  * Initialize redux-store for Plink.
  *
@@ -182,18 +191,24 @@ function configDefaultLog() {
     }
     else if (process.env.__plinkLogMainPid === process.pid + '') {
         if (node_worker_threads_1.isMainThread) {
-            // eslint-disable-next-line no-console
-            log4js_1.default.configure({
-                appenders: {
-                    out: {
-                        type: 'stdout',
-                        layout: { type: 'pattern', pattern: '[P%z] %[%c%] - %m' }
+            try {
+                log4js_1.default.configure({
+                    appenders: {
+                        out: {
+                            // The host environment like coc.nvim will crash on any `stdout` messages, I have to use `console.log` instead
+                            // type: 'stdout',
+                            type: log4js_appenders_1.consoleLogAppender,
+                            layout: { type: 'pattern', pattern: '[P%z] %[%c%] - %m' }
+                        }
+                    },
+                    categories: {
+                        default: { appenders: ['out'], level: 'info' }
                     }
-                },
-                categories: {
-                    default: { appenders: ['out'], level: 'info' }
-                }
-            });
+                });
+            }
+            catch (e) {
+                log.error(e);
+            }
             log4js_appenders_1.log4jsThreadBroadcast.onmessage = msg => (0, log4js_appenders_1.emitThreadLogMsg)(msg);
         }
         else {
@@ -238,4 +253,5 @@ function configDefaultLog() {
      - %] end a coloured block
      */
 }
+exports.configDefaultLog = configDefaultLog;
 //# sourceMappingURL=bootstrap-process.js.map
