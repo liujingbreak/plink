@@ -197,7 +197,7 @@ function configDefaultLog() {
                         out: {
                             // The host environment like coc.nvim will crash on any `stdout` messages, I have to use `console.log` instead
                             // type: 'stdout',
-                            type: log4js_appenders_1.consoleLogAppender,
+                            type: 'console',
                             layout: { type: 'pattern', pattern: '[P%z] %[%c%] - %m' }
                         }
                     },

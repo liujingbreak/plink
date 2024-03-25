@@ -10,7 +10,7 @@ import config from '../config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
 import {log4jsThreadBroadcast, emitThreadLogMsg, workerThreadAppender, childProcessAppender, doNothingAppender,
-  emitChildProcessLogMsg, consoleLogAppender} from './log4js-appenders';
+  emitChildProcessLogMsg} from './log4js-appenders';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
@@ -214,7 +214,7 @@ export function configDefaultLog() {
             out: {
               // The host environment like coc.nvim will crash on any `stdout` messages, I have to use `console.log` instead
               // type: 'stdout',
-              type: consoleLogAppender,
+              type: 'console',
               layout: {type: 'pattern', pattern: '[P%z] %[%c%] - %m'}
             }
           },

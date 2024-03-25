@@ -3,12 +3,12 @@
  * https://log4js-node.github.io/log4js-node/writing-appenders.html
  */
 import { BroadcastChannel } from 'worker_threads';
-import { AppenderModule } from 'log4js';
+import { AppenderModule, ConsoleAppender } from 'log4js';
+export { ConsoleAppender as consoleLogAppender };
 /**
  * Log4js can handle cluster worker configuration, it will most likely ignore appenders, so it could be empty appender
  */
 export declare const doNothingAppender: AppenderModule;
-export declare const consoleLogAppender: AppenderModule;
 export declare const childProcessAppender: AppenderModule;
 export declare const log4jsThreadBroadcast: BroadcastChannel;
 export declare const workerThreadAppender: AppenderModule;

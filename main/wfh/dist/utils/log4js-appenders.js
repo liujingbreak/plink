@@ -1,12 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.emitThreadLogMsg = exports.emitChildProcessLogMsg = exports.workerThreadAppender = exports.log4jsThreadBroadcast = exports.childProcessAppender = exports.consoleLogAppender = exports.doNothingAppender = void 0;
-const tslib_1 = require("tslib");
+exports.emitThreadLogMsg = exports.emitChildProcessLogMsg = exports.workerThreadAppender = exports.log4jsThreadBroadcast = exports.childProcessAppender = exports.doNothingAppender = void 0;
 /**
  * https://log4js-node.github.io/log4js-node/writing-appenders.html
  */
 const worker_threads_1 = require("worker_threads");
-const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const { send: sendLoggingEvent } = require('log4js/lib/clustering');
 const { deserialise } = require('log4js/lib/LoggingEvent');
 /**
@@ -17,17 +15,18 @@ exports.doNothingAppender = {
         return function () { };
     }
 };
-exports.consoleLogAppender = {
-    configure(_config, _layouts) {
-        return function (logEvent) {
-            // eslint-disable-next-line no-console
-            console.log(...(typeof logEvent === 'string' ?
-                [logEvent] :
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                [chalk_1.default[logEvent.level.colour](`${logEvent.level.levelStr}>`), ...logEvent.data]));
-        };
-    }
-};
+// export const consoleLogAppender: AppenderModule = {
+//   configure(_config, _layouts) {
+//     return function(logEvent: LoggingEvent | string) {
+//       // eslint-disable-next-line no-console
+//       console.log(...(typeof logEvent === 'string' ?
+//         [logEvent] :
+//         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+//         [chalk[logEvent.level.colour as 'green'](`${logEvent.level.levelStr}>`), ...logEvent.data]
+//       ));
+//     };
+//   }
+// };
 exports.childProcessAppender = {
     configure(_config, _layouts, _findAppender) {
         // const layout = config.layout ? layouts.layout(config.layout.type, config.layout) : layouts.coloredLayout;

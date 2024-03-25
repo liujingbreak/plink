@@ -2,11 +2,11 @@
  * https://log4js-node.github.io/log4js-node/writing-appenders.html
  */
 import {BroadcastChannel} from 'worker_threads';
-import {AppenderModule, LoggingEvent} from 'log4js';
-import chalk from 'chalk';
+import {AppenderModule, LoggingEvent, ConsoleAppender} from 'log4js';
 const {send: sendLoggingEvent} = require('log4js/lib/clustering') as {send(msg: LoggingEvent): void};
 const {deserialise} = require('log4js/lib/LoggingEvent') as {deserialise: (msg: string) => LoggingEvent};
 
+export {ConsoleAppender as consoleLogAppender};
 /**
  * Log4js can handle cluster worker configuration, it will most likely ignore appenders, so it could be empty appender
  */
@@ -15,18 +15,18 @@ export const doNothingAppender: AppenderModule = {
     return function() {};
   }
 };
-export const consoleLogAppender: AppenderModule = {
-  configure(_config, _layouts) {
-    return function(logEvent: LoggingEvent | string) {
-      // eslint-disable-next-line no-console
-      console.log(...(typeof logEvent === 'string' ?
-        [logEvent] :
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        [chalk[logEvent.level.colour as 'green'](`${logEvent.level.levelStr}>`), ...logEvent.data]
-      ));
-    };
-  }
-};
+// export const consoleLogAppender: AppenderModule = {
+//   configure(_config, _layouts) {
+//     return function(logEvent: LoggingEvent | string) {
+//       // eslint-disable-next-line no-console
+//       console.log(...(typeof logEvent === 'string' ?
+//         [logEvent] :
+//         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+//         [chalk[logEvent.level.colour as 'green'](`${logEvent.level.levelStr}>`), ...logEvent.data]
+//       ));
+//     };
+//   }
+// };
 
 export const childProcessAppender: AppenderModule = {
   configure(_config, _layouts, _findAppender) {
