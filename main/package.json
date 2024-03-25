@@ -5,7 +5,8 @@
   "main": "wfh/dist/index.js",
   "types": "wfh/dist/index.d.ts",
   "bin": {
-    "plink": "bin/drcp.js"
+    "plink": "bin/drcp.js",
+    "plink2": "wfh/dist/plink2/cmd-client.js"
   },
   "dr": {},
   "scripts": {
@@ -61,7 +62,7 @@
     "log4js": "~6.6.1",
     "cfonts": "~2.8.6",
     "tslib": "^2.5.0",
-    "@types/node": "^18.16.3",
+    "@types/node": "^20.12.2",
     "serialize-javascript": "~5.0.1",
     "@types/serialize-javascript": "~5.0.0",
     "strip-ansi": "~6.0.0",

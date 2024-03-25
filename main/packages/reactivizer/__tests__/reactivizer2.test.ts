@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {SingleActionFactory, ReactorComposite2} from '../src';
+import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives} from '../src';
 
 const inputTableFor = ['message3'] as const;
 
@@ -98,6 +98,56 @@ describe('reactivizer2', () => {
 
     expect(mock.mock.calls[0]).toEqual(['message3 data', 'data2']);
   }, 10000);
+
+  it('actionRelatedToActionRelatives', () => {
+    const service = new ReactorComposite2<BaseActions, BaseResponse>();
+    const {i, o, r} = service;
+    r('message1 -> reply1, reply2', i.pt.message1.pipe(
+      rx.tap(([m]) => {
+        o.ft.reply1('hello', 'world').dp(m);
+        o.ft.reply2('world2').dp(m);
+      })
+    ));
+
+    const mock = jest.fn();
+    r('reply1', o.pt.reply1.pipe(
+      rx.mergeMap(([m]) => o.pt.reply2.pipe(
+        actionRelatedToActionRelatives(m),
+        rx.map(([, msg]) => mock(msg))
+      ))
+    ));
+
+    o.ft.reply2('yes').dp();
+    i.ft.message1().dp();
+    expect(mock.mock.calls[0][0]).toBe('world2');
+    expect(mock.mock.calls.length).toBe(1);
+  });
+
+  it('actionRelatedToActionRelatives in case of mutliple action relatives', () => {
+    const service = new ReactorComposite2<BaseActions, BaseResponse>({debug: true});
+    const {i, o, r} = service;
+    r('message1 -> reply1, reply2', i.pt.message1.pipe(
+      rx.withLatestFrom(i.pt.message2),
+      rx.tap(([[m], [m2]]) => {
+        o.ft.reply1('hello', 'world').dp(m, m2);
+        o.ft.reply2('world2').dp(m, m2);
+      })
+    ));
+
+    const mock = jest.fn();
+    r('reply1', o.pt.reply1.pipe(
+      rx.mergeMap(([m]) => o.pt.reply2.pipe(
+        actionRelatedToActionRelatives(m),
+        rx.map(([, msg]) => mock(msg))
+      ))
+    ));
+
+    o.ft.reply2('yes').dp();
+    i.ft.message2('message2').dp();
+    i.ft.message1().dp();
+    expect(mock.mock.calls[0][0]).toBe('world2');
+    expect(mock.mock.calls.length).toBe(1);
+  });
 });
 
 interface BaseActions {

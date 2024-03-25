@@ -82,7 +82,7 @@ export class WordLexer extends BaseLexer<WordTokenType> {
   }
 }
 
-export function boxString(text: string, lineWidth = 70, whitespaceWrap = true): string {
+export function boxString(text: string, lineWidth = process.stdout.columns, whitespaceWrap = true): string {
   const tb = createCliTable({
     colWidths: [lineWidth],
     wordWrap: whitespaceWrap,

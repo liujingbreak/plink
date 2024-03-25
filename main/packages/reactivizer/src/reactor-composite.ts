@@ -103,7 +103,7 @@ export class ReactorComposite2<
       })
     ).subscribe();
     this.dispose = () => {
-      this.o.actionUpstream.next(this.o.createAction('Reactors finalized' as any));
+      this.o.actionUpstream.next(this.o.createAction('ReactorsDisposed' as any));
       this.destory$.next();
     };
   }
@@ -176,9 +176,12 @@ export class ReactorComposite2<
     );
   }
 
-  /** Respond an error to actions specified by "actionMeta" */
-  dispatchErrorFor(err: any, ...actionMetas: ActionMeta[]) {
-    (this.o as unknown as RxController2<BaseEvents>).ft._onErrorFor(err).dp(...actionMetas);
+  /** Respond an error to actions specified by "actionMeta",
+   * be aware that this message is not an Observable's "error" message,
+   * it will not terminate observable stream
+   */
+  dispatchErrorFor(err: any, actionMeta: ActionMeta, ...moreActionMetas: ActionMeta[]) {
+    (this.o as unknown as RxController2<BaseEvents>).ft._onErrorFor(err).dp(actionMeta, ...moreActionMetas);
   }
 
   protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {

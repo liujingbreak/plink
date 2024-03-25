@@ -10,4 +10,4 @@ process.on('exit', (code) => {
     chalk.green(`${code !== 0 ? 'Failed' : 'Done'} in ${new Date().getTime() - startTime} ms`));
 });
 
-void createCommands(startTime);
+void createCommands(process.argv.splice(2));

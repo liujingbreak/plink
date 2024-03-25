@@ -170,4 +170,17 @@ function actionMetaToStr(action) {
     return `(i: ${i}${r != null ? `, r: ${Array.isArray(r) ? [...r.values()].toString() : r}` : ''})`;
 }
 exports.actionMetaToStr = actionMetaToStr;
+// function flattenActionMeta(meta: ActionMeta | ArrayOrTuple<ActionMeta>): NonNullable<ActionMeta['r']> {
+//   if (Array.isArray(meta))
+//     return meta.map(s => flattenActionMeta(s)).flat();
+//   const m = meta as ActionMeta;
+//   const r = [m.i];
+//   if (m.r) {
+//     if (Array.isArray(m.r))
+//       r.push(...m.r);
+//     else
+//       r.push(m.r);
+//   }
+//   return r;
+// }
 //# sourceMappingURL=stream-core.js.map

@@ -79,7 +79,7 @@ class WordLexer extends base_LLn_parser_1.BaseLexer {
     }
 }
 exports.WordLexer = WordLexer;
-function boxString(text, lineWidth = 70, whitespaceWrap = true) {
+function boxString(text, lineWidth = process.stdout.columns, whitespaceWrap = true) {
     const tb = createCliTable({
         colWidths: [lineWidth],
         wordWrap: whitespaceWrap,

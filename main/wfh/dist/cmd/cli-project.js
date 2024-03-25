@@ -8,6 +8,7 @@ const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const log4js_1 = tslib_1.__importDefault(require("log4js"));
 // import * as rx from 'rxjs';
 const rxjs_1 = require("rxjs");
+const rx = tslib_1.__importStar(require("rxjs"));
 // import {map, take} from 'rxjs/operators';
 const package_mgr_1 = require("../package-mgr");
 const misc_1 = require("../utils/misc");
@@ -21,7 +22,7 @@ const log = log4js_1.default.getLogger('plink.project');
  * @param dirs
  */
 async function default_1(opts, action, dirs) {
-    void listProject(undefined, true);
+    // await listProject(undefined, true);
     switch (action) {
         case 'add':
             store_1.dispatcher.changeActionOnExit('save');
@@ -43,14 +44,12 @@ async function default_1(opts, action, dirs) {
             break;
         default:
             try {
-                log.info('## start', package_mgr_1.slice.name);
                 await listProject();
             }
             catch (e) {
                 log.error(e);
             }
     }
-    log.info('## command out');
 }
 exports.default = default_1;
 function listProject(projects, afterChange = false) {
@@ -60,7 +59,7 @@ function listProject(projects, afterChange = false) {
             lodash_1.default.difference(b.project2Packages, a.project2Packages).length === 0 &&
             lodash_1.default.difference(a.srcDir2Packages, b.srcDir2Packages).length === 0 &&
             lodash_1.default.difference(b.srcDir2Packages, a.srcDir2Packages).length === 0;
-    }), afterChange ? (0, rxjs_1.skip)(1) : (0, rxjs_1.map)(s => s), (0, rxjs_1.map)(s => {
+    }), afterChange ? (0, rxjs_1.skip)(1) : rx.map(s => s), (0, rxjs_1.map)(s => {
         printProjects(s.project2Packages, s.srcDir2Packages);
     }), (0, rxjs_1.take)(1)));
 }

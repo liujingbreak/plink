@@ -55,8 +55,11 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
      */
     labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T>;
     catchErrorFor<T>(...actionMetas: ActionMeta[]): (upStream: rx.Observable<T>) => rx.Observable<T>;
-    /** Respond an error to actions specified by "actionMeta" */
-    dispatchErrorFor(err: any, ...actionMetas: ActionMeta[]): void;
+    /** Respond an error to actions specified by "actionMeta",
+     * be aware that this message is not an Observable's "error" message,
+     * it will not terminate observable stream
+     */
+    dispatchErrorFor(err: any, actionMeta: ActionMeta, ...moreActionMetas: ActionMeta[]): void;
     protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     protected logError(label: string, err: any): void;
     protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;

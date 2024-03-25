@@ -10,9 +10,9 @@ class SingleActionFactoryImpl {
     dp(...actionMetaRelated) {
         const metas = actionMetaRelated.filter(m => m != null);
         if (metas.length > 0)
-            this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
+            return this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
         else
-            this.control.dispatchFactory(this.type)(...this.payload);
+            return this.control.dispatchFactory(this.type)(...this.payload);
     }
     do(waitForAction$, referActionMeta) {
         const action = this.control.createAction(this.type, this.payload);
@@ -24,10 +24,12 @@ class SingleActionFactoryImpl {
     }
     // ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
     ddo(waitForAction$, referActionMeta) {
-        const action = this.control.createAction(this.type, this.payload);
-        if (referActionMeta)
-            action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : referActionMeta.i;
-        return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
+        return new rx.Observable(sub => {
+            const action = this.control.createAction(this.type, this.payload);
+            if (referActionMeta)
+                action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : referActionMeta.i;
+            sub.next(action);
+        }).pipe(rx.mergeMap(action => rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
             if (Array.isArray(actionOrPayload)) {
                 const [actionMeta, ...payload] = actionOrPayload;
                 actionMeta.p = payload;
@@ -37,7 +39,7 @@ class SingleActionFactoryImpl {
         }), operator(action), actionRelatedToAction(action), mapActionToPayload(), rx.take(1)))), new rx.Observable(sub => {
             this.control.actionUpstream.next(action);
             sub.complete();
-        }));
+        }))));
     }
 }
 export class RxController2 extends ControllerCore {

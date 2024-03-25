@@ -4,8 +4,9 @@ import _ from 'lodash';
 import log4js from 'log4js';
 // import * as rx from 'rxjs';
 import {distinctUntilChanged, map, skip, take, firstValueFrom} from 'rxjs';
+import * as rx from 'rxjs';
 // import {map, take} from 'rxjs/operators';
-import {actionDispatcher as pkgActions, getStore, slice} from '../package-mgr';
+import {actionDispatcher as pkgActions, getStore} from '../package-mgr';
 import {boxString, getRootDir} from '../utils/misc';
 import {dispatcher as storeSettingDispatcher} from '../store';
 // import { writeFile } from './utils';
@@ -17,7 +18,7 @@ const log = log4js.getLogger('plink.project');
  * @param dirs 
  */
 export default async function(opts: {isSrcDir: boolean}, action?: 'add' | 'remove', dirs?: string[]) {
-  void listProject(undefined, true);
+  // await listProject(undefined, true);
   switch (action) {
     case 'add':
       storeSettingDispatcher.changeActionOnExit('save');
@@ -39,13 +40,11 @@ export default async function(opts: {isSrcDir: boolean}, action?: 'add' | 'remov
       break;
     default:
       try {
-        log.info('## start', slice.name);
         await listProject();
       } catch (e) {
         log.error(e);
       }
   }
-  log.info('## command out');
 }
 
 export function listProject(projects?: string[], afterChange = false) {
@@ -59,7 +58,7 @@ export function listProject(projects?: string[], afterChange = false) {
       _.difference(a.srcDir2Packages, b.srcDir2Packages).length === 0 &&
       _.difference(b.srcDir2Packages, a.srcDir2Packages).length === 0;
     }),
-    afterChange ? skip(1) : map(s => s),
+    afterChange ? skip(1) : rx.map(s => s),
     map(s => {
       printProjects(s.project2Packages, s.srcDir2Packages);
     }),

@@ -77,11 +77,11 @@ export function listModuleSymlinks(
  */
 export async function symlinkAsync(linkTarget: string, link: string) {
   try {
-    if (fs.lstatSync(link).isSymbolicLink() && Path.resolve(Path.dirname(link), fs.readlinkSync(link)) === linkTarget) {
+    if ((await fs.promises.lstat(link)).isSymbolicLink() && Path.resolve(Path.dirname(link), (await fs.promises.readlink(link))) === linkTarget) {
       // console.log('exits', link);
       return;
     }
-     // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console
     console.log(`remove ${link}`);
     fs.unlinkSync(link);
   } catch (ex) {
@@ -122,7 +122,7 @@ export async function recreateSymlink(link: string, target: string): Promise<boo
   try {
     if ((await lstatAsync(link)).isSymbolicLink() &&
       !fs.existsSync(Path.resolve(Path.dirname(link), fs.readlinkSync(link)))
-      ) {
+    ) {
       await unlinkAsync(link);
       return false;
     }

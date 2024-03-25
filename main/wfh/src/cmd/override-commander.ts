@@ -293,7 +293,8 @@ export class CommandOverrider {
       try {
         filePath = Path.resolve(plinkEnv.workDir, 'node_modules', pk.name + '/' + pkgFilePath);
         this.ctx.currClieCreatorFile = filePath;
-        const subCmdFactory: CliExtension = funcName ? require(filePath)[funcName] :
+        const subCmdFactory: CliExtension = funcName ?
+          require(filePath)[funcName] :
           require(filePath);
         subCmdFactory(this.program as PlinkCommand);
         this.pkgMetasMap.set(pk.name, commandMetaInfos);

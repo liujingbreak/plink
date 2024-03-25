@@ -8,7 +8,7 @@ declare global {
     }
 }
 export declare const isWin32: boolean;
-export declare function workDirChangedByCli(): {
+export declare function workDirChangedByCli(argv?: string[]): {
     workdir: string | null;
     argv: string[];
 };

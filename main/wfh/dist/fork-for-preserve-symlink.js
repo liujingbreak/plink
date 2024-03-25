@@ -15,8 +15,8 @@ const op = tslib_1.__importStar(require("rxjs/operators"));
 const misc_1 = require("./utils/misc");
 exports.isWin32 = os_1.default.platform().indexOf('win32') >= 0;
 // const log = log4js.getLogger('plink.fork-for-preserver-symlink');
-function workDirChangedByCli() {
-    const argv = process.argv.slice(2);
+function workDirChangedByCli(argv = process.argv.slice(2)) {
+    // const argv = process.argv.slice(2);
     const foundCmdOptIdx = argv.findIndex(arg => arg === '--cwd' || arg === '--space');
     const workdir = foundCmdOptIdx >= 0 ? path_1.default.resolve(misc_1.plinkEnv.rootDir, argv[foundCmdOptIdx + 1]) : null;
     if (workdir) {

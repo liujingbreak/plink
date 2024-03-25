@@ -10,5 +10,5 @@ process.on('exit', (code) => {
     console.log((process.send || !worker_threads_1.isMainThread ? `[P${process.pid}.T${worker_threads_1.threadId}] ` : '') +
         chalk_1.default.green(`${code !== 0 ? 'Failed' : 'Done'} in ${new Date().getTime() - startTime} ms`));
 });
-void (0, cli_1.createCommands)(startTime);
+void (0, cli_1.createCommands)(process.argv.splice(2));
 //# sourceMappingURL=_cmd-bootstrap.js.map

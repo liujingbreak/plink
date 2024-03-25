@@ -6,7 +6,7 @@ export type ActionFactory = {
 };
 export interface SingleActionFactory {
     /** Dispatch message */
-    dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): void;
+    dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): Action<unknown>;
     /**
      * `Dispatch and observe` response message
      * At the moment this method is called, the message is sent, not the moment that the returned

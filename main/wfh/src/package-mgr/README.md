@@ -1,4 +1,16 @@
-# Package Link core
+# PLink 2 package, workspace, dependency management
+## Features
+- Monorepo of multile soure code packages, source code packages can be organized in arbitrary directory structure
+- Multiple dependency installing space
+(the directory where contains package.json file and in which supposed to be run `npm instsll`, `npm run`), in this way
+ , allow multiple scopes of dependency trees.
+- Allow dependency reference to source packages which is located outside of current monorepo
+- Extensible command line tool
+- Source package symlinks generating.
+- Typescript tsconfig.json file auto-generating
+
+~~~~~~~~ Below is PLink 1 relevant ~~~~~~~~
+## Package Link core
 
 ### Entities
 

@@ -26,7 +26,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.actionRelatedToAction = exports.GroupedRxController = exports.RxController = void 0;
+exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.actionRelatedToActionRelatives = exports.actionRelatedToAction = exports.GroupedRxController = exports.RxController = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 __exportStar(require("./stream-core"), exports);
@@ -199,7 +199,9 @@ class GroupedRxController extends RxController {
     }
 }
 exports.GroupedRxController = GroupedRxController;
-/** Rx operator function */
+/** Rx operator function, filter action or payload stream by:
+ *  action ID (Action['i'])
+ **/
 function actionRelatedToAction(actionOrMeta) {
     return function (up) {
         let isPayload;
@@ -212,6 +214,41 @@ function actionRelatedToAction(actionOrMeta) {
     };
 }
 exports.actionRelatedToAction = actionRelatedToAction;
+/** Rx operator function, filter action or payload stream by:
+ *  action's reference IDs (Action['r'])
+ **/
+function actionRelatedToActionRelatives(actionOrMeta) {
+    return function (up) {
+        let isPayload;
+        return up.pipe(rx.filter(a => {
+            if (isPayload == null)
+                isPayload = Array.isArray(a);
+            const m = isPayload ? a[0] : a;
+            if (m.r == null || actionOrMeta.r == null)
+                return false;
+            if (!Array.isArray(m.r)) {
+                if (!Array.isArray(actionOrMeta.r)) {
+                    return m.r === actionOrMeta.r;
+                }
+                else {
+                    return actionOrMeta.r.some(item => item === m.r);
+                }
+            }
+            else {
+                if (Array.isArray(actionOrMeta.r)) {
+                    return m.r.some(item => actionOrMeta.r.some(ai => ai === item));
+                }
+                else {
+                    return m.r.some(item => actionOrMeta.r === item);
+                }
+            }
+            // const left = Array.isArray(m.r) ? m.r : [m.r];
+            // const right = Array.isArray(actionOrMeta.r) ? actionOrMeta.r : [actionOrMeta.r];
+            // return left.some(lItem => right.some(rItem => rItem === lItem));
+        }));
+    };
+}
+exports.actionRelatedToActionRelatives = actionRelatedToActionRelatives;
 function throwErrorOnRelated(actionOrMeta) {
     return function (up) {
         return up.pipe(rx.map(actionOrPayload => {

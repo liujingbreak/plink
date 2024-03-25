@@ -11,7 +11,7 @@ export type ActionFactory = {
 
 export interface SingleActionFactory {
   /** Dispatch message */
-  dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): void;
+  dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): Action<unknown>;
   /**
    * `Dispatch and observe` response message
    * At the moment this method is called, the message is sent, not the moment that the returned
@@ -45,9 +45,9 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
   dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>) {
     const metas = actionMetaRelated.filter(m => m != null) as ActionMeta[];
     if (metas.length > 0)
-      this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
+      return this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
     else
-      this.control.dispatchFactory(this.type)(...this.payload);
+      return this.control.dispatchFactory(this.type)(...this.payload);
   }
 
   do<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
@@ -68,32 +68,35 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
   ddo<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
     referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
   ) {
-    const action = this.control.createAction(this.type, this.payload);
-
-    if (referActionMeta)
-      action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : (referActionMeta as ActionMeta).i;
-    return rx.merge(
-      this.control.doOperator$.pipe(
-        rx.take(1),
-        rx.switchMap(operator => waitForAction$.pipe(
-          rx.map(actionOrPayload => {
-            if (Array.isArray(actionOrPayload)) {
-              const [actionMeta, ...payload] = actionOrPayload;
-              (actionMeta as Action<any>).p = payload;
-              return actionMeta as Action<any>;
-            }
-            return actionOrPayload as Action<any>;
-          }),
-          operator(action),
-          actionRelatedToAction(action),
-          mapActionToPayload(),
-          rx.take(1)
-        ))
-      ) as rx.Observable<[ActionMeta, ...P]>,
-      new rx.Observable<never>(sub => {
-        this.control.actionUpstream.next(action);
-        sub.complete();
-      })
+    return new rx.Observable<Action<I[K]>>(sub => {
+      const action = this.control.createAction(this.type, this.payload);
+      if (referActionMeta)
+        action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : (referActionMeta as ActionMeta).i;
+      sub.next(action);
+    }).pipe(
+      rx.mergeMap(action => rx.merge(
+        this.control.doOperator$.pipe(
+          rx.take(1),
+          rx.switchMap(operator => waitForAction$.pipe(
+            rx.map(actionOrPayload => {
+              if (Array.isArray(actionOrPayload)) {
+                const [actionMeta, ...payload] = actionOrPayload;
+                (actionMeta as Action<any>).p = payload;
+                return actionMeta as Action<any>;
+              }
+              return actionOrPayload as Action<any>;
+            }),
+            operator(action),
+            actionRelatedToAction(action),
+            mapActionToPayload(),
+            rx.take(1)
+          ))
+        ) as rx.Observable<[ActionMeta, ...P]>,
+        new rx.Observable<never>(sub => {
+          this.control.actionUpstream.next(action);
+          sub.complete();
+        })
+      ))
     );
   }
 }

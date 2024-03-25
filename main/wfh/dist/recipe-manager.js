@@ -6,13 +6,13 @@ const tslib_1 = require("tslib");
 /**
  * To avoid cyclic referecing, This file should not depends on package-mgr/index !!!
  */
-const _ = tslib_1.__importStar(require("lodash"));
 const Path = tslib_1.__importStar(require("path"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const rxjs_1 = require("rxjs");
 const fs = tslib_1.__importStar(require("fs-extra"));
+const operators_1 = require("rxjs/operators");
 const find_package_1 = tslib_1.__importDefault(require("./package-mgr/find-package"));
 // import * as rwPackageJson from './rwPackageJson';
-const operators_1 = require("rxjs/operators");
 let projectList = [];
 let linkPatterns = [];
 function setProjectList(list) {
@@ -59,7 +59,7 @@ function* allSrcDirs() {
             pat = pat.slice(0, -3);
         else if (pat.endsWith('/*'))
             pat = pat.slice(0, -2);
-        pat = _.trimStart(pat, '.');
+        pat = lodash_1.default.trimStart(pat, '.');
         yield { srcDir: pat };
     }
 }
@@ -69,8 +69,8 @@ function* srcDirsOfProject(projectDir) {
     const pkJsonFile = Path.resolve(projectDir, 'package.json');
     // const recipeSrcMapping: {[recipe: string]: string} = {};
     let nameSrcSetting = {};
-    let normalizedPrjName = Path.resolve(projectDir).replace(/[\/\\]/g, '.');
-    normalizedPrjName = _.trim(normalizedPrjName, '.');
+    let normalizedPrjName = Path.resolve(projectDir).replace(/[/\\]/g, '.');
+    normalizedPrjName = lodash_1.default.trim(normalizedPrjName, '.');
     if (fs.existsSync(pkJsonFile)) {
         const pkjson = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
         if (pkjson.packages) {
@@ -79,7 +79,7 @@ function* srcDirsOfProject(projectDir) {
                     pat = pat.slice(0, -3);
                 else if (pat.endsWith('/*'))
                     pat = pat.slice(0, -2);
-                pat = _.trimStart(pat, '.');
+                pat = lodash_1.default.trimStart(pat, '.');
                 yield Path.resolve(projectDir, pat);
                 // nameSrcSetting[config.resolve(
                 //   'destDir', `recipes/${pkjson.name}${pat.length > 0 ? '.' : ''}${pat.replace(/[\/\\]/g, '.')}.recipe`)] =

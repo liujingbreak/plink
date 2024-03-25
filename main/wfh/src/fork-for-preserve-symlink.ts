@@ -26,8 +26,8 @@ declare global {
 export const isWin32 = os.platform().indexOf('win32') >= 0;
 // const log = log4js.getLogger('plink.fork-for-preserver-symlink');
 
-export function workDirChangedByCli() {
-  const argv = process.argv.slice(2);
+export function workDirChangedByCli(argv = process.argv.slice(2)) {
+  // const argv = process.argv.slice(2);
   const foundCmdOptIdx =  argv.findIndex(arg => arg === '--cwd' || arg === '--space');
   const workdir = foundCmdOptIdx >= 0 ? Path.resolve(plinkEnv.rootDir,  argv[foundCmdOptIdx + 1]) : null;
   if (workdir) {

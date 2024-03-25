@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCommands = exports.cliPackageArgDesc = void 0;
+exports.parseCommand = exports.defineCommander = exports.createCommands = exports.cliPackageArgDesc = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /// <reference path="./cfont.d.ts" />
@@ -27,14 +27,19 @@ const pk = require('../../../package.json');
 const log = (0, log4js_1.getLogger)('plink.cli');
 exports.cliPackageArgDesc = 'Single or multiple package names, the "scope" name part can be omitted,' +
     'if the scope name (the part between "@" "/") are listed configuration property "packageScopes"';
-async function createCommands(startTime) {
+async function createCommands(argv, manualExitProcess) {
+    const program = await defineCommander(manualExitProcess);
+    await parseCommand(program, argv);
+}
+exports.createCommands = createCommands;
+async function defineCommander(manualExitProcess) {
     process.title = 'Plink';
     // const {stateFactory}: typeof store = require('../store');
     await import('./cli-slice.js');
     let cliExtensions;
     const program = new commander_1.default.Command('plink')
         .description(chalk_1.default.cyan('A pluggable monorepo and multi-repo management tool'))
-        .action((args) => {
+        .action((_args) => {
         // eslint-disable-next-line no-console
         console.log((0, misc_1.sexyFont)('PLink').string);
         // eslint-disable-next-line no-console
@@ -57,7 +62,10 @@ async function createCommands(startTime) {
         // eslint-disable-next-line no-console
         console.log('\n', chalk_1.default.bgRed('Please determine a sub command listed above'));
         checkPlinkVersion();
-        process.nextTick(() => process.exit(1));
+        if (!manualExitProcess) {
+            process.exitCode = 1;
+            // process.nextTick(() => process.exit(1));
+        }
     });
     program.addHelpText('before', (0, misc_1.sexyFont)('PLink').string);
     (0, override_commander_1.withCwdOption)(program);
@@ -73,15 +81,15 @@ async function createCommands(startTime) {
                 overrider.nameStyler = str => chalk_1.default.green(str);
                 spaceOnlySubCommands(program);
                 overrider.nameStyler = undefined;
-                subComands(program);
+                subComands(program, manualExitProcess);
             });
         }
         else {
-            overrider.forPackage(null, subComands);
+            overrider.forPackage(null, (...args) => subComands(...args, manualExitProcess));
         }
     }
     else {
-        overrider.forPackage(null, subComands);
+        overrider.forPackage(null, (...args) => subComands(...args, manualExitProcess));
     }
     if (process.env.PLINK_SAFE !== 'true') {
         overrider.nameStyler = str => chalk_1.default.cyan(str);
@@ -93,8 +101,12 @@ async function createCommands(startTime) {
         console.log('Value of environment varaible "PLINK_SAFE" is true, skip loading extension');
     }
     overrider.appendGlobalOptions(false);
+    return program;
+}
+exports.defineCommander = defineCommander;
+async function parseCommand(program, argv) {
     try {
-        await program.parseAsync(process.argv, { from: 'node' });
+        await program.parseAsync(argv, { from: 'user' });
     }
     catch (e) {
         log.error('Failed to execute command due to: ' + chalk_1.default.redBright(e.message), e);
@@ -104,36 +116,47 @@ async function createCommands(startTime) {
         throw e;
     }
 }
-exports.createCommands = createCommands;
+exports.parseCommand = parseCommand;
 let skipVersionCheck = false;
-function subComands(program) {
+function subComands(program, manualExitProcess) {
     process.on('beforeExit', () => {
         if (skipVersionCheck)
             return;
         skipVersionCheck = true;
-        if (process.send == null) {
-            // process is not a forked child process
-            checkPlinkVersion();
-        }
     });
     /** command init
      */
-    const initCmd = program.command('init').alias('sync')
-        .description('Initialize and update work directory, generate basic configuration files for project and component packages,' +
-        ' calculate hoisted transitive dependencies, and run "npm install" in current directory.' +
-        ' (All NPM config environment variables will affect dependency installation, see https://docs.npmjs.com/cli/v7/using-npm/config#environment-variables)')
-        .argument('[work-directory]', 'A relative or abosolute directory path, use "." to determine current directory,\n  ommitting this argument meaning:\n' +
-        '  - If current directory is already a "work directory", update it.\n' +
-        '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
-        ' directory.')
-        .option('-f, --force', 'Force run "npm install" in specific workspace directory, this is not same as npm install option "-f" ', false)
-        // .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
-        .action((workspace) => {
-        // eslint-disable-next-line no-console
-        console.log((0, misc_1.sexyFont)('PLink').string);
-        require('./cli-init').default(initCmd.opts(), workspace);
-    });
-    addNpmInstallOption(initCmd);
+    if (manualExitProcess) {
+        const newSyncCmd = program.command('sync')
+            .description('Install dependencies for workspace tree')
+            .argument('[work-directory]', 'A relative or abosolute directory path, use "." to determine current directory,\n  ommitting this argument meaning:\n' +
+            '  - If current directory is already a "work directory", update it.\n' +
+            '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
+            ' directory.')
+            .option('-f, --force', 'Force run "npm install" in specific workspace directory, this is not same as npm install option "-f" ', false)
+            .action((workspace) => {
+        });
+        addNpmInstallOption(newSyncCmd);
+        addNpmInstallOption(newSyncCmd);
+    }
+    else {
+        const initCmd = program.command('init').alias('sync')
+            .description('Initialize and update work directory, generate basic configuration files for project and component packages,' +
+            ' calculate hoisted transitive dependencies, and run "npm install" in current directory.' +
+            ' (All NPM config environment variables will affect dependency installation, see https://docs.npmjs.com/cli/v7/using-npm/config#environment-variables)')
+            .argument('[work-directory]', 'A relative or abosolute directory path, use "." to determine current directory,\n  ommitting this argument meaning:\n' +
+            '  - If current directory is already a "work directory", update it.\n' +
+            '  - If current directory is not a work directory (maybe at repo\'s root directory), update the latest updated work' +
+            ' directory.')
+            .option('-f, --force', 'Force run "npm install" in specific workspace directory, this is not same as npm install option "-f" ', false)
+            // .option('--lint-hook, --lh', 'Create a git push hook for code lint', false)
+            .action((workspace) => {
+            // eslint-disable-next-line no-console
+            console.log((0, misc_1.sexyFont)('PLink').string);
+            require('./cli-init').default(initCmd.opts(), workspace);
+        });
+        addNpmInstallOption(initCmd);
+    }
     /**
      * command project
      */
@@ -316,9 +339,18 @@ function subComands(program) {
     const updateDirCmd = program.command('update-dir')
         .description('Run this command to sync internal state when whole workspace directory is renamed or moved.\n' +
         'Because we store absolute path info of each package in internal state, and it will become invalid after you rename or move directory')
-        .action((workspace) => {
+        .action((_workspace) => {
         require('./cli-ls').checkDir(updateDirCmd.opts());
     });
+    if (manualExitProcess) {
+        program.command('stop').description('Stop server daemon process')
+            .action(async () => {
+            // eslint-disable-next-line no-console
+            console.log('Bye!');
+            await new Promise(resolve => setImmediate(() => resolve()));
+            manualExitProcess();
+        });
+    }
 }
 function spaceOnlySubCommands(program) {
     /**
@@ -390,7 +422,7 @@ function spaceOnlySubCommands(program) {
     // chalk.green('node_modules/package-dir/dist/foobar.ts#myFunction') +
     // ', relative or absolute path\n');
 }
-function loadExtensionCommand(program, ws, overrider) {
+function loadExtensionCommand(_program, ws, overrider) {
     if (ws == null)
         return [];
     (0, package_runner_1.initInjectorForNodePackages)();

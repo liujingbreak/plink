@@ -67,7 +67,7 @@ export class ReactorComposite2 extends DuplexController {
             return src;
         })).subscribe();
         this.dispose = () => {
-            this.o.actionUpstream.next(this.o.createAction('Reactors finalized'));
+            this.o.actionUpstream.next(this.o.createAction('ReactorsDisposed'));
             this.destory$.next();
         };
     }
@@ -118,9 +118,12 @@ export class ReactorComposite2 extends DuplexController {
             return rx.EMPTY;
         }));
     }
-    /** Respond an error to actions specified by "actionMeta" */
-    dispatchErrorFor(err, ...actionMetas) {
-        this.o.ft._onErrorFor(err).dp(...actionMetas);
+    /** Respond an error to actions specified by "actionMeta",
+     * be aware that this message is not an Observable's "error" message,
+     * it will not terminate observable stream
+     */
+    dispatchErrorFor(err, actionMeta, ...moreActionMetas) {
+        this.o.ft._onErrorFor(err).dp(actionMeta, ...moreActionMetas);
     }
     reactivizeFunction(key, func, funcThisRef) {
         const resolveFuncKey = key + 'Resolved';

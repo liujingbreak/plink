@@ -168,7 +168,9 @@ export class GroupedRxController extends RxController {
         this.key = key;
     }
 }
-/** Rx operator function */
+/** Rx operator function, filter action or payload stream by:
+ *  action ID (Action['i'])
+ **/
 export function actionRelatedToAction(actionOrMeta) {
     return function (up) {
         let isPayload;
@@ -177,6 +179,40 @@ export function actionRelatedToAction(actionOrMeta) {
                 isPayload = Array.isArray(a);
             const m = isPayload ? a[0] : a;
             return (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i));
+        }));
+    };
+}
+/** Rx operator function, filter action or payload stream by:
+ *  action's reference IDs (Action['r'])
+ **/
+export function actionRelatedToActionRelatives(actionOrMeta) {
+    return function (up) {
+        let isPayload;
+        return up.pipe(rx.filter(a => {
+            if (isPayload == null)
+                isPayload = Array.isArray(a);
+            const m = isPayload ? a[0] : a;
+            if (m.r == null || actionOrMeta.r == null)
+                return false;
+            if (!Array.isArray(m.r)) {
+                if (!Array.isArray(actionOrMeta.r)) {
+                    return m.r === actionOrMeta.r;
+                }
+                else {
+                    return actionOrMeta.r.some(item => item === m.r);
+                }
+            }
+            else {
+                if (Array.isArray(actionOrMeta.r)) {
+                    return m.r.some(item => actionOrMeta.r.some(ai => ai === item));
+                }
+                else {
+                    return m.r.some(item => actionOrMeta.r === item);
+                }
+            }
+            // const left = Array.isArray(m.r) ? m.r : [m.r];
+            // const right = Array.isArray(actionOrMeta.r) ? actionOrMeta.r : [actionOrMeta.r];
+            // return left.some(lItem => right.some(rItem => rItem === lItem));
         }));
     };
 }

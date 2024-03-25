@@ -2,13 +2,13 @@
 /**
  * To avoid cyclic referecing, This file should not depends on package-mgr/index !!!
  */
-import * as _ from 'lodash';
 import * as Path from 'path';
+import _ from 'lodash';
 import {from, Observable} from 'rxjs';
 import * as fs from 'fs-extra';
+import {map, mergeMap} from 'rxjs/operators';
 import findPackageJson from './package-mgr/find-package';
 // import * as rwPackageJson from './rwPackageJson';
-import {map, mergeMap} from 'rxjs/operators';
 
 let projectList: string[] = [];
 let linkPatterns: string[] = [];
@@ -56,7 +56,7 @@ export function eachRecipeSrc(projectDir: string | EachRecipeSrcCallback,
   }
 }
 
-export function* allSrcDirs() {
+export function* allSrcDirs(): Generator<{srcDir: string; projDir?: string}, void, unknown> {
   for (const projDir of projectList) {
     for (const srcDir of srcDirsOfProject(projDir)) {
       yield {srcDir, projDir};
@@ -78,7 +78,7 @@ function* srcDirsOfProject(projectDir: string) {
   // const recipeSrcMapping: {[recipe: string]: string} = {};
   let nameSrcSetting: {[key: string]: string} = {};
 
-  let normalizedPrjName = Path.resolve(projectDir).replace(/[\/\\]/g, '.');
+  let normalizedPrjName = Path.resolve(projectDir).replace(/[/\\]/g, '.');
   normalizedPrjName = _.trim(normalizedPrjName, '.');
   if (fs.existsSync(pkJsonFile)) {
     const pkjson = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8'));
@@ -126,10 +126,10 @@ export type EachRecipeCallback = (recipeDir: string,
 /**
  * @returns Observable of tuple [project, package.json file]
  */
-export function scanPackages(): Observable<[string | undefined, string, string]> {
+export function scanPackages() {
   return from(allSrcDirs()).pipe(
     mergeMap(({srcDir, projDir}) => findPackageJson(srcDir, false).pipe(
-      map(jsonFile => [projDir, jsonFile, srcDir] as [string | undefined, string, string])
+      map(jsonFile => [projDir, jsonFile, srcDir] as const)
     ))
   );
 }

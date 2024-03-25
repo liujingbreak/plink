@@ -1,0 +1,1 @@
+{"version":3,"file":"package-mgr2-utils.js","sourceRoot":"","sources":["../../src/package-mgr/package-mgr2-utils.ts"],"names":[],"mappings":"","sourcesContent":["export interface PackageJsonInterf {\n  version: string;\n  name: string;\n  devDependencies?: {[nm: string]: string};\n  peerDependencies?: {[nm: string]: string};\n  dependencies?: {[nm: string]: string};\n}\n"]}

@@ -249,7 +249,8 @@ class CommandOverrider {
             try {
                 filePath = path_1.default.resolve(misc_1.plinkEnv.workDir, 'node_modules', pk.name + '/' + pkgFilePath);
                 this.ctx.currClieCreatorFile = filePath;
-                const subCmdFactory = funcName ? require(filePath)[funcName] :
+                const subCmdFactory = funcName ?
+                    require(filePath)[funcName] :
                     require(filePath);
                 subCmdFactory(this.program);
                 this.pkgMetasMap.set(pk.name, commandMetaInfos);
