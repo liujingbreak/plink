@@ -55,7 +55,8 @@
     }
   },
   "include": [
-    "wfh/src/**/*.ts",
+    "./wfh/src/**/*.ts",
+    "./wfh/__tests__/**/*.ts",
     "./packages/redux-toolkit-observable/**/*.ts",
     "./packages/thread-promise-pool/ts/**/*.ts",
     "./packages/reactive-terminal-ui/src/**/*.ts",

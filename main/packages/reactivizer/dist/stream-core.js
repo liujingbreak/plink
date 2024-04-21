@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.actionMetaToStr = exports.nameOfAction = exports.ControllerCore = exports.has = void 0;
+exports.assignActionReferParam = exports.actionMetaToStr = exports.nameOfAction = exports.ControllerCore = exports.has = void 0;
 const rx = __importStar(require("rxjs"));
 let SEQ = 1;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
@@ -119,7 +119,7 @@ class ControllerCore {
         }
         const dispatch = (metas, ...params) => {
             const action = this.createAction(type, params);
-            action.r = Array.isArray(metas) ? metas.map(m => m.i) : metas.i;
+            assignActionReferParam(action, metas);
             this.actionUpstream.next(action);
             return action;
         };
@@ -148,6 +148,9 @@ class ControllerCore {
             return up.pipe(rx.filter((a) => matchTypes.every(matchType => a.t !== matchType)));
         };
     }
+    isType(action, type) {
+        return action.t === this.typePrefix + type;
+    }
     connect() {
         this.connectableAction$.connect();
     }
@@ -170,17 +173,11 @@ function actionMetaToStr(action) {
     return `(i: ${i}${r != null ? `, r: ${Array.isArray(r) ? [...r.values()].toString() : r}` : ''})`;
 }
 exports.actionMetaToStr = actionMetaToStr;
-// function flattenActionMeta(meta: ActionMeta | ArrayOrTuple<ActionMeta>): NonNullable<ActionMeta['r']> {
-//   if (Array.isArray(meta))
-//     return meta.map(s => flattenActionMeta(s)).flat();
-//   const m = meta as ActionMeta;
-//   const r = [m.i];
-//   if (m.r) {
-//     if (Array.isArray(m.r))
-//       r.push(...m.r);
-//     else
-//       r.push(m.r);
-//   }
-//   return r;
-// }
+function assignActionReferParam(action, metas) {
+    action.r = Array.isArray(metas) ?
+        metas.flatMap(m => Array.isArray(m) ? m : m != null ? [m] : []).map(m => typeof m === 'number' ? m : m.i) :
+        typeof metas === 'number' ? metas : metas.i;
+    return action;
+}
+exports.assignActionReferParam = assignActionReferParam;
 //# sourceMappingURL=stream-core.js.map

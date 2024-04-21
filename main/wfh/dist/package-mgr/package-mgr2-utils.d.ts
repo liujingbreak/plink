@@ -1,3 +1,4 @@
+import { PackageInfo } from '../index';
 export interface PackageJsonInterf {
     version: string;
     name: string;
@@ -11,3 +12,4 @@ export interface PackageJsonInterf {
         [nm: string]: string;
     };
 }
+export declare function createPackageInfo(pkJsonFile: string, isInstalled?: boolean): PackageInfo;

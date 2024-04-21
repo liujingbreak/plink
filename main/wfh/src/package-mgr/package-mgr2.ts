@@ -1,18 +1,16 @@
-/* eslint-disable @typescript-eslint/indent */
 import Path from 'node:path';
 import fs from 'node:fs';
+import util from 'util';
 import * as rx from 'rxjs';
-import {getLogger} from 'log4js';
-import {ReactorComposite2, SingleActionFactory, ActionMeta, actionRelatedToAction} from '../../../packages/reactivizer';
+import {ReactorComposite2, SingleActionFactory, actionRelatedToAction, actionRelatedToActionRelatives} from '../../../packages/reactivizer';
 import {symlinkAsync} from '../utils/symlinks';
-import {RootPackageJson, externalProjects, externalSourceDirs, projPkgMap, srcPkgMap, allPackages,
-  spacePkgMap} from './package-mgr2-model';
-import {PackageJsonInterf} from './package-mgr2-utils';
-import {NpmOptions, PackageInfo, createPackageInfo} from './index';
+import {RootPackageJson, createStoreService} from './package-mgr2-model';
+import {PackageJsonInterf, createPackageInfo} from './package-mgr2-utils';
+import {NpmOptions, PackageInfo} from './index';
 
-const log = getLogger('plink.package-mgr2');
+// const log = getLogger('plink.package-mgr2');
 
-type PackagesInput = {
+type PackageMgrActions = {
   /** scan current project,
    * Related by actions: rootPackageJson
    **/
@@ -21,177 +19,158 @@ type PackagesInput = {
   syncWorkspace(workspace: string, npmOpts: NpmOptions): SingleActionFactory;
 };
 
-// interface PackagesChangeTable {
-//   npmInstallOpt(data: NpmOptions): SingleActionFactory;
-//   inited(d: boolean): SingleActionFactory;
-//   srcPackages(d: Map<string, PackageInfo>): SingleActionFactory;
-//   /** Key is relative path to root workspace */
-//   workspaces(d: Map<string, WorkspaceState>): SingleActionFactory;
-//   /** key of current "workspaces" */
-//   currWorkspace(d?: string | null): SingleActionFactory;
-//   project2Packages(data: Map<string, string[]>): SingleActionFactory;
-//   srcDir2Packages(data: Map<string, string[]>): SingleActionFactory;
-//   /** Drcp is the original name of Plink project */
-//   linkedDrcp(data?: PackageInfo | null): SingleActionFactory;
-//   linkedDrcpProject(data?: string | null): SingleActionFactory;
-//   installedDrcp(data?: PackageInfo | null): SingleActionFactory;
-//   gitIgnores(data: {[file: string]: string[]}): SingleActionFactory;
-//   isInChina(data?: boolean): SingleActionFactory;
-//   /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
-//   workspaceUpdateChecksum(data: number): SingleActionFactory;
-//   packagesUpdateChecksum(data: number): SingleActionFactory;
-//   /** workspace key */
-//   lastCreatedWorkspace(data?: string): SingleActionFactory;
-// }
-
-interface PackagesChanges {
-  /** project loaded state from file, relates to input action "scan" */
-  rootPackageJson(json: RootPackageJson): SingleActionFactory;
-  rootDir(dir: string): SingleActionFactory;
-  onProjectLinked(projDir: string): SingleActionFactory;
-  onProjectUnlinked(projDir: string): SingleActionFactory;
-  onDirLinked(dir: string): SingleActionFactory;
-  onDirUnlinked(dir: string): SingleActionFactory;
-  onPackageRemoved(projOrDirKey: string, pkg: PackageInfo): SingleActionFactory;
-  onPackageAdded(projOrDirKey: string, pkg: PackageInfo): SingleActionFactory;
-  /** For now, it only means the location of package directory is changed */
-  onPackageChanged(pkgName: string): SingleActionFactory;
-  onSpaceRemoved(wsKey: string): SingleActionFactory;
-  /** "dependencies, devDependencies" property of package.json were changed */
-  onSpaceAddOrUpdated(wsKey: string, json: PackageJsonInterf): SingleActionFactory;
-  onSpacePackageAdded(wsKey: string, packageName: string): SingleActionFactory;
-  onSpacePackageRemoved(wsKey: string, packageName: string): SingleActionFactory;
-}
-
 interface PackagesInternalSteps {
   checkSpace(wsKey: string): SingleActionFactory;
   createOrChangeSymlink(linkTarget: string, link: string): SingleActionFactory;
-  removeSymlink(link: string): SingleActionFactory;
-  didScan(): SingleActionFactory;
-  didCheckSpace(): SingleActionFactory;
+  didRemoveSymlink(link: string): SingleActionFactory;
+  didScanSource(): SingleActionFactory;
+  didPackagesScan(changedOrAdded: PackageInfo[], deleted: PackageInfo[]): SingleActionFactory;
+  didCheckSpaces(): SingleActionFactory;
   didSymlinkCreation(): SingleActionFactory;
-  didAllSymlinks(count: number): SingleActionFactory;
+  didAllSymlinks(countCreated: number, countDeleted: number): SingleActionFactory;
 }
 
-// const packageChangesTable = ['onPackageUpdated', 'onPackageUpdated', 'onSpaceRemoved', 'onSpaceUpdated'] as const;
-
-interface PackagesEvents extends PackagesChanges {
-  onScanned(): SingleActionFactory;
-  currentSpace(wsKey: string): SingleActionFactory;
+interface PackageMgrEvents extends PackagesInternalSteps {
+  /** related to input action "scan" */
+  onScanCompleted(): SingleActionFactory;
+  rootPackageJson(json: RootPackageJson): SingleActionFactory;
+  rootDir(dir: string): SingleActionFactory;
+  onProjectLinked(projDir: string): SingleActionFactory;
+  onDirLinked(dir: string): SingleActionFactory;
+  onSpacePackageRemoved(wsKey: string, packageName: string): SingleActionFactory;
+  // currentSpace(wsKey: string): SingleActionFactory;
 }
 
 const inputTableFor = ['scan'] as const;
-const outputTableFor = [
-  'rootPackageJson', 'rootDir'
-  // 'currentSpace', 'inited', 'workspaces', 'project2Packages', 'srcDir2Packages', 'srcPackages',
-  // 'gitIgnores', 'workspaceUpdateChecksum', 'packagesUpdateChecksum', 'npmInstallOpt', 'currWorkspace',
-  // 'linkedDrcp', 'linkedDrcpProject', 'installedDrcp', 'isInChina'
-] as const;
+const outputTableFor = ['rootPackageJson', 'rootDir'] as const;
 
-export const packagesService = new ReactorComposite2<PackagesInput, PackagesEvents & PackagesInternalSteps, typeof inputTableFor, typeof outputTableFor>({
+const packagesService = new ReactorComposite2<PackageMgrActions, PackageMgrEvents, typeof inputTableFor, typeof outputTableFor>({
   name: 'PackageMgr2',
+  debug: true,
   inputTableFor,
   outputTableFor,
-  log(msg, ...obj) {
-    log.info(msg, ...obj);
+  debugExcludeTypes: ['didSymlinkCreation', 'createOrChangeSymlink'],
+  log(...obj) {
+    // eslint-disable-next-line no-console
+    console.log(...obj.map(value => typeof value === 'string' ? value : util.inspect(value, false, 0)));
   }
 });
 
-const {i, o, r, outputTable} = packagesService;
-r('scan -> rootDir, onProjectLinked, onProjectUnlinked, onDirLinked, onDirUnlinked, rootPackageJson, onSpaceRemoved, checkSpace', i.pt.scan.pipe(
+const {service, spacePkgMap, allPackages} = createStoreService(packagesService);
+export {spacePkgMap, service, allPackages};
+
+const {i, o, r, outputTable} = service;
+
+r('scan, didScanSource, didAllSymlinks -> rootDir, onProjectLinked, onDirLinked, rootPackageJson, removeSpace, checkSpace', i.pt.scan.pipe(
   rx.concatMap(async ([m, rootDir]) => {
     try {
-      const didAllSymlinks = rx.firstValueFrom(o.pt.didAllSymlinks.pipe(actionRelatedToAction(m)));
+      // const didAllSymlinks = rx.firstValueFrom(o.pt.didAllSymlinks.pipe(actionRelatedToAction(m)));
       o.ft.rootDir(rootDir).dp(m);
-      o.ft.onProjectLinked(rootDir).dp(m);
       const content = await fs.promises.readFile(Path.join(rootDir, 'package.json'), 'utf8');
       const pjson = JSON.parse(content) as RootPackageJson;
+      i.ft.updateBegin().dp(m);
+      const waitForScan = rx.firstValueFrom(o.pt.didScanSource.pipe(
+        actionRelatedToAction(m)
+      ));
+
       if (pjson.externalRepo) {
-        for (const k of externalProjects.keys()) {
-          externalProjects.set(k, false);
-        }
         for (const dir of pjson.externalRepo) {
-          const d = Path.resolve(rootDir, dir);
-          if (externalProjects.has(d)) {
-            o.ft.onProjectLinked(d).dp(m);
-            externalProjects.set(d, true);
-          }
-        }
-        for (const [k, active] of externalProjects.entries()) {
-          if (!active) {
-            o.ft.onProjectUnlinked(k);
-            externalProjects.delete(k);
-          }
+          o.ft.onProjectLinked(dir).dp(m);
         }
       }
       if (pjson.externalDir) {
-        for (const k of externalSourceDirs.keys()) {
-          externalSourceDirs.set(k, false);
-        }
-        for (const dir of pjson.externalDir) {
-          const d = Path.resolve(rootDir, dir);
-          if (externalSourceDirs.has(d)) {
-            o.ft.onDirLinked(d).dp(m);
-            externalSourceDirs.set(d, true);
-          }
-        }
-        for (const [k, active] of externalSourceDirs.entries()) {
-          if (!active) {
-            o.ft.onDirUnlinked(k);
-            externalSourceDirs.delete(k);
-          }
+        for (const d of pjson.externalDir) {
+          o.ft.onDirLinked(d).dp(m);
         }
       }
+      o.ft.onProjectLinked('').dp(m);
+      i.ft.updateEnd().dp(m);
       o.ft.rootPackageJson(pjson).dp(m);
-      // check spaces
-      await rx.firstValueFrom(rx.from(spacePkgMap.keys()).pipe(
-        rx.mergeMap(async name => {
-          try {
-            const stat = await fs.promises.stat(Path.resolve(rootDir, name));
-            if (!stat.isDirectory()) {
-              o.ft.onSpaceRemoved(name).dp(m);
-            } else {
-              o.ft.checkSpace(name).dp(m);
-            }
-          } catch (e) {
-            o.ft.onSpaceRemoved(name).dp(m);
-          }
-        })
-      ));
-      await didAllSymlinks;
+      await Promise.all([
+        waitForScan,
+        // check spaces
+        spacePkgMap.size > 0 ?
+          rx.firstValueFrom(rx.from(spacePkgMap.keys()).pipe(
+            rx.mergeMap(async name => {
+              try {
+                const stat = await fs.promises.stat(Path.resolve(rootDir, name));
+                if (!stat.isDirectory()) {
+                  i.ft.removeSpace(name).dp(m);
+                } else {
+                  await rx.firstValueFrom(
+                    o.ft.checkSpace(name).do(o.pt.didCheckSpaces, m));
+                }
+              } catch (e) {
+                i.ft.removeSpace(name).dp(m);
+              }
+            })
+          )) :
+          Promise.resolve()
+      ]);
+      // await didAllSymlinks;
+      o.ft.onScanCompleted().dp(m);
     } catch (e) {
       packagesService.dispatchErrorFor(e, m);
     }
   })
 ));
 
-r('syncWorkspace ->', i.pt.syncWorkspace.pipe(
-  rx.groupBy(([, wsKey]) => wsKey),
-  rx.mergeMap(group => group.pipe(
-    rx.concatMap(([m, wsKey]) => {
-    })
+r('onSourcPackageRemoved ->', o.pt.onSourcPackageRemoved.pipe(
+  rx.mergeMap(a => outputTable.l.rootDir.pipe(
+    rx.map(b => [a, b] as const),
+    rx.take(1)
+  )),
+  rx.mergeMap(([[m, pkgs], [, rootDir]]) => rx.from(pkgs).pipe(
+    rx.mergeMap(pkg => rx.from(spacePkgMap.keys()).pipe(
+      rx.mergeMap(async ws => {
+        const link = Path.resolve(rootDir, ws, 'node_modules', pkg.name);
+        try {
+          if ((await fs.promises.lstat(link)).isDirectory()) {
+            await fs.promises.unlink(link);
+            o.ft.didRemoveSymlink(link).dp(m.r);
+          }
+        } catch (e) {
+          return console.log(e);
+        }
+      })
+    ))
   ))
 ));
 
-r('onProjectLinked, onDirLinked, rootPackageJson -> onPackageAdded, onPackageRemoved, onPackageChanged, didScan',
+r('syncWorkspace ->', i.pt.syncWorkspace.pipe(
+  // rx.groupBy(([, wsKey]) => wsKey),
+  // rx.mergeMap(group => group.pipe(
+  //   rx.concatMap(([m, wsKey]) => {
+  //   })
+  // ))
+));
+
+r('onProjectLinked, onDirLinked, rootPackageJson -> didScanSource',
   rx.from(import('../recipe-manager.js')).pipe(
-    rx.switchMap(rm => rx.forkJoin([
-      o.pt.onProjectLinked.pipe(
-        rx.windowWhen(() => o.pt.rootPackageJson),
-        rx.concatMap(group => group.pipe(
-          rx.reduce((arr, [, dirPattern]) => {
-            arr.push(dirPattern);
+    rx.mergeMap(rm => i.pt.updateBegin.pipe(
+      rx.mergeMap(([m]) => outputTable.l.rootDir.pipe(
+        rx.map(([, rootDir]) => [m, rootDir] as const)
+      )),
+      rx.switchMap(([m, rootDir]) => rx.forkJoin([
+        o.pt.onProjectLinked.pipe(
+          actionRelatedToActionRelatives(m),
+          rx.takeUntil(i.pt.updateEnd.pipe(
+            actionRelatedToActionRelatives(m)
+          )),
+          rx.reduce((arr, [, dir]) => {
+            arr.push(Path.resolve(rootDir, dir));
             return arr;
           }, [] as string[]),
           rx.map(dirs => {
             rm.setProjectList(dirs);
             return true;
           })
-        ))
-      ),
-      o.pt.onDirLinked.pipe(
-        rx.windowWhen(() => o.pt.rootPackageJson),
-        rx.concatMap(group => group.pipe(
+        ),
+        o.pt.onDirLinked.pipe(
+          actionRelatedToActionRelatives(m),
+          rx.takeUntil(i.pt.updateEnd.pipe(
+            actionRelatedToActionRelatives(m)
+          )),
           rx.reduce((arr, [, dirPattern]) => {
             arr.push(dirPattern);
             return arr;
@@ -200,192 +179,144 @@ r('onProjectLinked, onDirLinked, rootPackageJson -> onPackageAdded, onPackageRem
             rm.setLinkPatterns(dirs);
             return true;
           })
-        )
-      )),
-      o.pt.rootPackageJson
-    ]).pipe(
-      rx.mergeMap(([, , [m2]]) => {
-        const m = {i: m2.r as ActionMeta['i']};
-        const packageToBeDeleted = new Set<string>(allPackages.keys());
-        return rx.concat(
-          rm.scanPackages().pipe(
-            rx.map(([proj, jsonFile, srcDir]) => {
-              const info = createPackageInfo(jsonFile, false);
-              if (info.json.dr == null && info.json.plink == null)
-                return;
+        ),
+        rx.of(m)
+      ]).pipe(
+        rx.mergeMap(([, , m]) => {
+          // const packageToBeDeleted = new Set<string>(allPackages.keys());
+          return rx.concat(
+            rm.scanPackages().pipe(
+              rx.map(([proj, jsonFile, srcDir]) => {
+                const info = createPackageInfo(jsonFile, false);
+                if (info.json.dr == null && info.json.plink == null)
+                  return;
 
-              const pkName = info.name;
-              allPackages.set(pkName, info);
-              packageToBeDeleted.delete(pkName);
-              if (proj) {
-                if (!projPkgMap.has(proj))
-                  projPkgMap.set(proj, [] as string[]);
+                if (proj) {
+                  i.ft.addPackageToProject(proj, 'repo', info).dp(m);
 
-                if (!allPackages.has(pkName)) {
-                  o.ft.onPackageAdded(proj, info).dp(m);
-                } else if (allPackages.get(pkName)?.realPath !== info.realPath) {
-                  o.ft.onPackageChanged(pkName).dp(m);
+                } else if (srcDir) {
+                  i.ft.addPackageToProject(srcDir, 'dir', info).dp(m);
+                } else {
+                  // eslint-disable-next-line no-console
+                  console.log(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`, info.json);
                 }
-                projPkgMap.get(proj)!.push(pkName);
-              } else if (srcDir) {
-                if (!srcPkgMap.has(srcDir))
-                  srcPkgMap.set(srcDir, []);
-
-                srcPkgMap.get(srcDir)!.push(pkName);
-                if (!allPackages.has(pkName)) {
-                  o.ft.onPackageAdded(srcDir, info).dp(m);
-                } else if (allPackages.get(pkName)?.realPath !== info.realPath) {
-                  o.ft.onPackageChanged(pkName).dp(m);
-                }
-              } else {
-                log.debug(`Package of ${jsonFile} is skipped (due to no "dr" or "plink" property)`, info.json);
-              }
+              })
+            ),
+            new rx.Observable(sub => {
+              o.ft.didScanSource().dp(m.r);
+              sub.complete();
             })
-          ),
-          new rx.Observable(sub => {
-            // dispatch onPackageRemoved
-            for (const delkey of packageToBeDeleted) {
-              const pkg = allPackages.get(delkey);
-              allPackages.delete(delkey);
-              let foundProject = false;
-              for (const [proj, pkgs] of projPkgMap.entries()) {
-                const idx = pkgs.indexOf(delkey);
-                if (idx >= 0) {
-                  o.ft.onPackageRemoved(proj, pkg!).dp(m);
-                  pkgs.splice(idx, 1);
-                  foundProject = true;
-                  break;
-                }
-              }
-              if (!foundProject) {
-                for (const [proj, pkgs] of srcPkgMap.entries()) {
-                  const idx = pkgs.indexOf(delkey);
-                  if (idx >= 0) {
-                    o.ft.onPackageRemoved(proj, pkg!).dp();
-                    pkgs.splice(idx, 1);
-                    foundProject = true;
-                    break;
-                  }
-                }
-              }
-            }
-            o.ft.didScan().dp(m);
-            sub.complete();
-          })
-        );
-      })
+          );
+        })
+      ))
     ))
   ));
 
-r('checkSpace, rootDir -> onSpaceAddOrUpdated, onSpacePackageAdded, onSpacePackageRemoved, didCheckSpace', o.pt.checkSpace.pipe(
+r('checkSpace, rootDir -> updatePackagesOfSpace, onSpacePackageRemoved, didCheckSpaces', o.pt.checkSpace.pipe(
   rx.mergeMap(a => outputTable.l.rootDir.pipe(
     rx.filter(([, dir]) => dir != null),
     rx.take(1),
     rx.map(b => [a, b] as const)
   )),
   rx.concatMap(async ([[mOfCheckSpace, spaceDir], [, rootDir]]) => {
-    const m = {i: mOfCheckSpace.r as number};
-    const spaceKey = Path.relative(rootDir, spaceDir);
-    const spacePkgJsonFile = Path.resolve(rootDir, spaceDir, 'package.json');
+    const spaceKey = Path.relative(rootDir, Path.resolve(rootDir, spaceDir));
+    const spacePkgJsonFile = Path.resolve(rootDir, spaceKey, 'package.json');
     const content = await fs.promises.readFile(spacePkgJsonFile, 'utf8');
     const json = JSON.parse(content) as PackageJsonInterf;
-    if (!spacePkgMap.has(spaceKey))
-      o.ft.onSpaceAddOrUpdated(spaceKey, json).dp(m);
-    else {
-      const existing = spacePkgMap.get(spaceKey);
-      const toDelete = new Set(existing);
-      if (json.dependencies) {
-        for (const [key] of Object.entries(json.dependencies)) {
-          if (!toDelete.has(key)) {
-            o.ft.onSpacePackageAdded(spaceKey, key).dp(m);
-          } else {
-            toDelete.delete(key);
-          }
-        }
-      }
-      if (json.devDependencies) {
-        for (const [key] of Object.entries(json.devDependencies)) {
-          if (!toDelete.has(key)) {
-            o.ft.onSpacePackageAdded(spaceKey, key).dp(m);
-          } else {
-            toDelete.delete(key);
-          }
-        }
-      }
-      for (const key of toDelete) {
-        o.ft.onSpacePackageRemoved(spaceKey, key).dp(m);
-      }
-    }
-    o.ft.didCheckSpace().dp(m);
+    i.ft.updatePackagesOfSpace(spaceKey, (json.dependencies ? Object.keys(json.dependencies) : []).concat(
+      json.devDependencies ? Object.keys(json.devDependencies) : []
+    )).dp(mOfCheckSpace.r);
+    o.ft.didCheckSpaces().dp(mOfCheckSpace);
   })
 ));
 
-r('onSpaceRemoved', o.pt.onSpaceRemoved.pipe(
-  rx.map(([, name]) => spacePkgMap.delete(name))
-));
-
-r('onSpacePackageAdded, onPackageChanged -> createOrChangeSymlink', rx.merge(
-  o.pt.onPackageChanged.pipe(
-    rx.mergeMap(([m, pkName]) => {
-      return rx.from(spacePkgMap.entries()).pipe(
-        rx.filter(([, packageSet]) => packageSet.has(pkName)),
-        rx.map(([wsKey]) => [m, wsKey, pkName] as const)
-      );
-    })
-  ),
-  o.pt.onSpacePackageAdded
-).pipe(
-  rx.groupBy(([m]) => m.r),
-  rx.mergeMap(grouped => grouped.pipe(
-    // take until didScan and didCheckSpace were both emitted for group's key
-    rx.takeUntil(rx.merge(o.pt.didScan, o.pt.didCheckSpace).pipe(
-      rx.filter(([mOfDidScan]) => mOfDidScan.r === grouped.key),
-      rx.take(2),
-      rx.count()
-    )),
-    rx.mergeMap(a => outputTable.l.rootDir.pipe(
-      rx.map(([, b]) => [...a, b] as const),
+/*
+r('didPackagesScan, didCheckSpaces, rootDir, didSymlinkCreation -> createOrChangeSymlink, didAllSymlinks', o.pt.didPackagesScan.pipe(
+  rx.mergeMap(([m, changedPackages, removed]) => rx.combineLatest([
+    o.pt.didCheckSpaces.pipe(
+      rx.filter(([m2]) => m.r === m2.r),
       rx.take(1)
-    )),
-    rx.mergeMap(([m, wsKey, pkgName, rootDir]) => o.ft.createOrChangeSymlink(
-      allPackages.get(pkgName)!.realPath,
-      Path.resolve(rootDir, wsKey, 'node_modules', pkgName)
-    ).do(o.pt.didSymlinkCreation, m).pipe(
+    ),
+    outputTable.l.rootDir.pipe(
       rx.take(1)
-    )),
-    rx.count(),
-    rx.map(count => o.ft.didAllSymlinks(count).dp({i: grouped.key as ActionMeta['i']}))
-  ))
-));
+    )
+  ]).pipe(
+    rx.map(([, [, rootDir]]) => [m, changedPackages, removed, rootDir] as const)
+  )),
+  rx.mergeMap(([m, packages, removed, rootDir]) => {
+    const needCreateLinks = new Set<[spaceKey: string, packageName: string]>();
+    const needDeleteLinks = new Set<[spaceKey: string, packageName: string]>();
+    for (const changedPackage of packages) {
+      for (const [spaceKey, spacePkgStates] of spacePkgMap) {
+        if (spacePkgStates.has(changedPackage.name)) {
+          needCreateLinks.add([spaceKey, changedPackage.name]);
+        }
+      }
+    }
 
-r('onSpacePackageRemoved', o.pt.onSpacePackageRemoved.pipe(
+    for (const p of removed) {
+      for (const [spaceKey, spacePkgStates] of spacePkgMap) {
+        if (spacePkgStates.has(p.name)) {
+          spacePkgStates.delete(p.name);
+          needDeleteLinks.add([spaceKey, p.name]);
+        }
+      }
+    }
+
+    // for (const [spaceKey, spacePkgStates] of spacePkgMap) {
+    //   for (const spacePkgState of spacePkgStates.values()) {
+    //     if (allPackages.has(spacePkgState.name) && spacePkgState.symlinkCreated !== true) {
+    //       needCreateLinks.add([spaceKey, spacePkgState.name]);
+    //     }
+    //   }
+    // }
+    return rx.zip(
+      rx.from(needCreateLinks).pipe(
+        rx.mergeMap(([space, pkg]) => o.ft.createOrChangeSymlink(
+          allPackages.get(pkg)!.realPath,
+          Path.resolve(rootDir, space, 'node_modules', pkg)
+        ).ddo(o.pt.didSymlinkCreation).pipe(rx.take(1))),
+        rx.count()
+      ),
+      rx.from(needDeleteLinks).pipe(
+        rx.mergeMap(([space, pkg]) => fs.promises.unlink(Path.resolve(rootDir, space, 'node_modules', pkg))),
+        rx.count()
+      )
+    ).pipe(
+      rx.map(([count, count2]) => o.ft.didAllSymlinks(count, count2).dp({i: m.r as ActionMeta['i']}))
+    );
+  })
+));
+*/
+
+r('onSpacePackageRemoved ->', o.pt.onSpacePackageRemoved.pipe(
   rx.mergeMap(a => outputTable.l.rootDir.pipe(
     rx.map(([, b]) => [...a, b] as const),
     rx.take(1)
   )),
-  rx.mergeMap(([m, wsKey, pkName, rootDir]) => {
+  rx.mergeMap(([, wsKey, pkName, rootDir]) => {
     return fs.promises.unlink(Path.resolve(rootDir, wsKey, 'node_modules', pkName));
   })
 ));
 
-r('createOrChangeSymlink', o.pt.createOrChangeSymlink.pipe(
+r('createOrChangeSymlink ->', o.pt.createOrChangeSymlink.pipe(
   rx.mergeMap(([m, targetPath, linkPath]) => symlinkAsync(targetPath, linkPath)
     .finally(() => o.ft.didSymlinkCreation().dp(m)))
 ));
 
-function createDependencies(dependencies: Record<string, string> | undefined, srcPackages: Map<string, PackageInfo>) {
-  const sourceDeps = [] as [string, string][];
-  const toInstallDeps = {} as Record<string, string>;
-  for (const pair of Object.entries<string>(dependencies || {})) {
-    const [name, ver] = pair;
-    const pkgInfo = srcPackages.get(name);
-    if (pkgInfo) {
-      sourceDeps.push(pair);
-      toInstallDeps[name] = pkgInfo.realPath;
-    } else {
-      toInstallDeps[name] = ver;
-    }
-  }
+// function createDependencies(dependencies: Record<string, string> | undefined, srcPackages: Map<string, PackageInfo>) {
+//   const sourceDeps = [] as [string, string][];
+//   const toInstallDeps = {} as Record<string, string>;
+//   for (const pair of Object.entries<string>(dependencies || {})) {
+//     const [name, ver] = pair;
+//     const pkgInfo = srcPackages.get(name);
+//     if (pkgInfo) {
+//       sourceDeps.push(pair);
+//       toInstallDeps[name] = pkgInfo.realPath;
+//     } else {
+//       toInstallDeps[name] = ver;
+//     }
+//   }
 
-  return [sourceDeps, toInstallDeps] as const;
-}
+//   return [sourceDeps, toInstallDeps] as const;
+// }

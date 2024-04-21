@@ -4,6 +4,7 @@ import stream from 'node:stream';
 import * as cp from 'node:child_process';
 import { SingleActionFactory, ReactorComposite2 } from '../../../packages/reactivizer';
 import { CmdEntryChildProcessEvents } from './cmd.types';
+export declare function lookupPlinkRoot(cwd: string): string | undefined;
 interface ProcessActions {
     getProcessFor(cwd: string): SingleActionFactory;
     sendCommand(screenSize: [number, number], cwd: string, cmd: string[], ouput: stream.Writable): SingleActionFactory;

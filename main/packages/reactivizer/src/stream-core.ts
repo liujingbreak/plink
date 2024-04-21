@@ -9,7 +9,7 @@ export type InferMapParam<F> = [ActionMeta, ...InferPayload<F>];
 export type ActionMeta = {
   /** id */
   i: number;
-  /** reference to other actions */
+  /** The ActionMeta['i'] of other actions that is referred to by this action */
   r?: number | number[];
 };
 
@@ -26,7 +26,7 @@ export type Action<F> = {
 
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<F>;
 export type DispatchFor<F> =
-  (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<F>;
+  (origActionMeta: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>, ...params: InferPayload<F>) => Action<F>;
 
 export type CoreOptions<I> = {
   name?: string;
@@ -165,9 +165,9 @@ export class ControllerCore<I> {
     if (has.call(this.dispatcherFor, type)) {
       return this.dispatcherFor[type];
     }
-    const dispatch = (metas: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<I[keyof I]>) => {
+    const dispatch = (metas: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>, ...params: InferPayload<I[keyof I]>) => {
       const action = this.createAction(type, params);
-      action.r = Array.isArray(metas) ? metas.map(m => m.i) : (metas as ActionMeta).i;
+      assignActionReferParam(action, metas);
       this.actionUpstream.next(action);
       return action;
     };
@@ -203,6 +203,11 @@ export class ControllerCore<I> {
       );
     };
   }
+
+  isType<K extends keyof I>(action: Action<I[keyof I]>, type: K): action is Action<I[K]> {
+    return action.t === this.typePrefix + (type as string);
+  }
+
   connect() {
     this.connectableAction$.connect();
   }
@@ -227,17 +232,10 @@ export function actionMetaToStr(action: ActionMeta) {
   return `(i: ${i}${r != null ? `, r: ${Array.isArray(r) ? [...r.values()].toString() : r}` : ''})`;
 }
 
-// function flattenActionMeta(meta: ActionMeta | ArrayOrTuple<ActionMeta>): NonNullable<ActionMeta['r']> {
-//   if (Array.isArray(meta))
-//     return meta.map(s => flattenActionMeta(s)).flat();
+export function assignActionReferParam(action: Action<any>, metas: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>) {
+  action.r = Array.isArray(metas) ?
+    metas.flatMap(m => Array.isArray(m) ? m : m != null ? [m] : []).map(m => typeof m === 'number' ? m : m.i) :
+    typeof metas === 'number' ? metas : (metas as ActionMeta).i;
+  return action;
+}
 
-//   const m = meta as ActionMeta;
-//   const r = [m.i];
-//   if (m.r) {
-//     if (Array.isArray(m.r))
-//       r.push(...m.r);
-//     else
-//       r.push(m.r);
-//   }
-//   return r;
-// }

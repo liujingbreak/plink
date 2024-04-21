@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createProcessService = void 0;
+exports.createProcessService = exports.lookupPlinkRoot = void 0;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const Path = tslib_1.__importStar(require("node:path"));
@@ -23,6 +23,7 @@ function lookupPlinkRoot(cwd) {
     }
     return plinkRoot;
 }
+exports.lookupPlinkRoot = lookupPlinkRoot;
 function createProcessService(log) {
     const mainPlinkRoot = lookupPlinkRoot(process.cwd());
     const plinkProcessByDir = new Map();

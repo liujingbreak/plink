@@ -10,7 +10,6 @@ const Path = tslib_1.__importStar(require("path"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const rxjs_1 = require("rxjs");
 const fs = tslib_1.__importStar(require("fs-extra"));
-const operators_1 = require("rxjs/operators");
 const find_package_1 = tslib_1.__importDefault(require("./package-mgr/find-package"));
 // import * as rwPackageJson from './rwPackageJson';
 let projectList = [];
@@ -114,7 +113,7 @@ function* srcDirsOfProject(projectDir) {
  * @returns Observable of tuple [project, package.json file]
  */
 function scanPackages() {
-    return (0, rxjs_1.from)(allSrcDirs()).pipe((0, operators_1.mergeMap)(({ srcDir, projDir }) => (0, find_package_1.default)(srcDir, false).pipe((0, operators_1.map)(jsonFile => [projDir, jsonFile, srcDir]))));
+    return (0, rxjs_1.from)(allSrcDirs()).pipe((0, rxjs_1.mergeMap)(({ srcDir, projDir }) => (0, find_package_1.default)(srcDir, false).pipe((0, rxjs_1.map)(jsonFile => [projDir, jsonFile, srcDir]))));
 }
 exports.scanPackages = scanPackages;
 //# sourceMappingURL=recipe-manager.js.map

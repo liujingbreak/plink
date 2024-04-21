@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
-import {InferPayload, InferMapParam,
+import {InferPayload, InferMapParam, Action,
   has, actionMetaToStr} from './stream-core';
-import {RxController} from './control';
+import {RxController, mapActionToPayload} from './control';
 import {RxController2} from './control2';
 import {ActionTableDataType, PayloadByType} from './inferred-types';
 
@@ -138,5 +138,31 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
           }
           return p;
         });
+  }
+}
+
+/** Consider it as Apache Kafka's KTable */
+export class ActionDataTable<I, T extends keyof I, K> {
+  snapshot: Map<K, Action<I[T]>> = new Map();
+  l = this.latestPayload;
+
+  constructor(private source$: rx.Observable<Action<I[T]>>, private keySelector: (action: Action<I[T]>) => K) {}
+
+  latestAction(key: K): rx.Observable<Action<I[T]>> {
+    const future$ = this.source$.pipe(
+      rx.filter(a => this.keySelector(a) === key)
+    );
+    if (this.snapshot.has(key)) {
+      // replay last action
+      return rx.concat(rx.of(this.snapshot.get(key)!), future$);
+    } else {
+      return future$;
+    }
+  }
+
+  latestPayload(key: K) {
+    return this.latestAction(key).pipe(
+      mapActionToPayload()
+    );
   }
 }

@@ -1,53 +1,32 @@
-import { ReactorComposite2, SingleActionFactory, ActionTableDataType } from '../../../packages/reactivizer';
-import { NpmOptions, PackageInfo, WorkspaceState } from './index';
-type PackagesInput = {
-    /** load project state from file */
-    loadCache(): SingleActionFactory;
-    /** scan current project */
-    scan(): SingleActionFactory;
+import { ReactorComposite2, SingleActionFactory } from '../../../packages/reactivizer';
+import { RootPackageJson } from './package-mgr2-model';
+import { NpmOptions, PackageInfo } from './index';
+type PackageMgrActions = {
+    /** scan current project,
+     * Related by actions: rootPackageJson
+     **/
+    scan(rootDir: string): SingleActionFactory;
     /** Create symlinks and install dependency */
-    syncWorkspace(workspace: string): SingleActionFactory;
+    syncWorkspace(workspace: string, npmOpts: NpmOptions): SingleActionFactory;
 };
-interface PackagesChangeTable {
-    npmInstallOpt(data: NpmOptions): SingleActionFactory;
-    inited(d: boolean): SingleActionFactory;
-    srcPackages(d: Map<string, PackageInfo>): SingleActionFactory;
-    /** Key is relative path to root workspace */
-    workspaces(d: Map<string, WorkspaceState>): SingleActionFactory;
-    /** key of current "workspaces" */
-    currWorkspace(d?: string | null): SingleActionFactory;
-    project2Packages(data: Map<string, string[]>): SingleActionFactory;
-    srcDir2Packages(data: Map<string, string[]>): SingleActionFactory;
-    /** Drcp is the original name of Plink project */
-    linkedDrcp(data?: PackageInfo | null): SingleActionFactory;
-    linkedDrcpProject(data?: string | null): SingleActionFactory;
-    installedDrcp(data?: PackageInfo | null): SingleActionFactory;
-    gitIgnores(data: {
-        [file: string]: string[];
-    }): SingleActionFactory;
-    isInChina(data?: boolean): SingleActionFactory;
-    /** Everytime a hoist workspace state calculation is basically done, it is increased by 1 */
-    workspaceUpdateChecksum(data: number): SingleActionFactory;
-    packagesUpdateChecksum(data: number): SingleActionFactory;
-    /** workspace key */
-    lastCreatedWorkspace(data?: string): SingleActionFactory;
+interface PackagesInternalSteps {
+    checkSpace(wsKey: string): SingleActionFactory;
+    createOrChangeSymlink(linkTarget: string, link: string): SingleActionFactory;
+    didRemoveSymlink(link: string): SingleActionFactory;
+    didScanSource(): SingleActionFactory;
+    didPackagesScan(changedOrAdded: PackageInfo[], deleted: PackageInfo[]): SingleActionFactory;
+    didCheckSpaces(): SingleActionFactory;
+    didSymlinkCreation(): SingleActionFactory;
+    didAllSymlinks(countCreated: number, countDeleted: number): SingleActionFactory;
 }
-interface PackagesChanges {
+interface PackageMgrEvents extends PackagesInternalSteps {
+    /** related to input action "scan" */
+    onScanCompleted(): SingleActionFactory;
+    rootPackageJson(json: RootPackageJson): SingleActionFactory;
+    rootDir(dir: string): SingleActionFactory;
     onProjectLinked(projDir: string): SingleActionFactory;
-    onProjectUnlinked(projDir: string): SingleActionFactory;
     onDirLinked(dir: string): SingleActionFactory;
-    onDirUnlinked(dir: string): SingleActionFactory;
-    onPackageRemoved(projOrDirKey: string, pkg: PackageInfo): SingleActionFactory;
-    /** package.json is changed */
-    onPackageUpdated(projOrDirKey: string, pkg: PackageInfo): SingleActionFactory;
-    onSpaceRemoved(wsKey: string): SingleActionFactory;
-    /** "dependencies, devDependencies" property of package.json were changed */
-    onSpaceUpdated(wsKey: string): SingleActionFactory;
+    onSpacePackageRemoved(wsKey: string, packageName: string): SingleActionFactory;
 }
-declare const packageChangesTable: readonly ["onPackageUpdated", "onPackageUpdated", "onSpaceRemoved", "onSpaceUpdated"];
-interface PackagesEvents extends PackagesChangeTable {
-    onScanned(changes: ActionTableDataType<PackagesChanges, typeof packageChangesTable>): SingleActionFactory;
-    currentSpace(wsKey: string): SingleActionFactory;
-}
-export declare const packagesService: ReactorComposite2<PackagesInput, PackagesEvents, [], readonly ["currentSpace", "inited", "workspaces", "project2Packages", "srcDir2Packages", "srcPackages", "gitIgnores", "workspaceUpdateChecksum", "packagesUpdateChecksum", "npmInstallOpt", "currWorkspace", "linkedDrcp", "linkedDrcpProject", "installedDrcp", "isInChina"]>;
-export {};
+declare const service: import("../../../packages/reactivizer").ReactorCompositeMergeType2<ReactorComposite2<PackageMgrActions, PackageMgrEvents, readonly ["scan"], readonly ["rootPackageJson", "rootDir"]>, import("./package-mgr2-model").PackageManager2ModelAction, import("./package-mgr2-model").PackageManager2ModuleEvent, readonly [], readonly []>, spacePkgMap: Map<string, Set<string>>, allPackages: Map<string, PackageInfo>;
+export { spacePkgMap, service, allPackages };

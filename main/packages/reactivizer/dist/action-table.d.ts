@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { InferPayload, InferMapParam } from './stream-core';
+import { InferPayload, InferMapParam, Action } from './stream-core';
 import { RxController } from './control';
 import { RxController2 } from './control2';
 import { ActionTableDataType, PayloadByType } from './inferred-types';
@@ -25,4 +25,14 @@ export declare class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
     private onAddActions;
     getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I[K]> | undefined;
     protected debugLogLatestActionOperator<K extends keyof I, P extends InferMapParam<I[K]>>(type: K): rx.OperatorFunction<P, P>;
+}
+/** Consider it as Apache Kafka's KTable */
+export declare class ActionDataTable<I, T extends keyof I, K> {
+    private source$;
+    private keySelector;
+    snapshot: Map<K, Action<I[T]>>;
+    l: (key: K) => rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
+    constructor(source$: rx.Observable<Action<I[T]>>, keySelector: (action: Action<I[T]>) => K);
+    latestAction(key: K): rx.Observable<Action<I[T]>>;
+    latestPayload(key: K): rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
 }

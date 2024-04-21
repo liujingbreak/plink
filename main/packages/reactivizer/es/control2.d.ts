@@ -1,12 +1,13 @@
 import * as rx from 'rxjs';
 import { Action, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
+import { ActionDataTable } from './action-table';
 export type ActionFactory = {
     [k: string]: (...args: any[]) => SingleActionFactory;
 };
 export interface SingleActionFactory {
     /** Dispatch message */
-    dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): Action<unknown>;
+    dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | ActionMeta['r']>): Action<unknown>;
     /**
      * `Dispatch and observe` response message
      * At the moment this method is called, the message is sent, not the moment that the returned
@@ -19,7 +20,7 @@ export interface SingleActionFactory {
         i: Action<unknown>['i'];
         t: Action<unknown>['t'];
         p: P;
-    } | [ActionMeta, ...P]>, actionMetaRelated?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<[ActionMeta, ...P]>;
+    } | [ActionMeta, ...P]>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
     /**
      * `Deferred dispatch and observe` response message.
      * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
@@ -30,7 +31,7 @@ export interface SingleActionFactory {
         i: Action<unknown>['i'];
         t: Action<unknown>['t'];
         p: P;
-    } | [ActionMeta, ...P]>, actionMetaRelated?: ActionMeta | ArrayOrTuple<ActionMeta>): rx.Observable<[ActionMeta, ...P]>;
+    } | [ActionMeta, ...P]>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
 }
 export declare class RxController2<I> extends ControllerCore<I> {
     opts?: (CoreOptions<I> & {
@@ -56,9 +57,14 @@ export declare class RxController2<I> extends ControllerCore<I> {
      */
     subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]>>;
     /**
+     * Create an very simple and naive version Apache Kafka KTable like "observable Map<K, Action>",
+     * a table which retains latest action by "key"
+     **/
+    createDataTable<T extends keyof I, K>(actionType: T, keySelector: (action: Action<I[T]>) => K): ActionDataTable<I, T, K>;
+    /**
      * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
      */
-    subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]>>;
+    subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>): RxController2<Omit<I, KS[number]>>;
     /**
      * Create a variant of calling .ft(...).dp(...)`
      **/

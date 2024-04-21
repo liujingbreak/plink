@@ -93,7 +93,7 @@ export class ControllerCore {
         }
         const dispatch = (metas, ...params) => {
             const action = this.createAction(type, params);
-            action.r = Array.isArray(metas) ? metas.map(m => m.i) : metas.i;
+            assignActionReferParam(action, metas);
             this.actionUpstream.next(action);
             return action;
         };
@@ -122,6 +122,9 @@ export class ControllerCore {
             return up.pipe(rx.filter((a) => matchTypes.every(matchType => a.t !== matchType)));
         };
     }
+    isType(action, type) {
+        return action.t === this.typePrefix + type;
+    }
     connect() {
         this.connectableAction$.connect();
     }
@@ -141,17 +144,10 @@ export function actionMetaToStr(action) {
     const { r, i } = action;
     return `(i: ${i}${r != null ? `, r: ${Array.isArray(r) ? [...r.values()].toString() : r}` : ''})`;
 }
-// function flattenActionMeta(meta: ActionMeta | ArrayOrTuple<ActionMeta>): NonNullable<ActionMeta['r']> {
-//   if (Array.isArray(meta))
-//     return meta.map(s => flattenActionMeta(s)).flat();
-//   const m = meta as ActionMeta;
-//   const r = [m.i];
-//   if (m.r) {
-//     if (Array.isArray(m.r))
-//       r.push(...m.r);
-//     else
-//       r.push(m.r);
-//   }
-//   return r;
-// }
+export function assignActionReferParam(action, metas) {
+    action.r = Array.isArray(metas) ?
+        metas.flatMap(m => Array.isArray(m) ? m : m != null ? [m] : []).map(m => typeof m === 'number' ? m : m.i) :
+        typeof metas === 'number' ? metas : metas.i;
+    return action;
+}
 //# sourceMappingURL=stream-core.js.map

@@ -4,9 +4,8 @@
  */
 import * as Path from 'path';
 import _ from 'lodash';
-import {from, Observable} from 'rxjs';
+import {from, map, mergeMap} from 'rxjs';
 import * as fs from 'fs-extra';
-import {map, mergeMap} from 'rxjs/operators';
 import findPackageJson from './package-mgr/find-package';
 // import * as rwPackageJson from './rwPackageJson';
 

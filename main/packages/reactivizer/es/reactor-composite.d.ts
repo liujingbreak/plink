@@ -4,7 +4,7 @@ import { SingleActionFactory } from './control2';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 import { ReactorCompositeOpt } from './reactor-base';
-import { ActionFactoryOfPlainType } from './inferred-types';
+import { ActionFactoryOfPlainType, ReactorCompositeMergeType2 } from './inferred-types';
 interface BaseEvents {
     /** Internal use, when option `debug` is `true`, this message will be dispatched when
      * ReactorComposite2 is instantiated */
@@ -64,4 +64,16 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
     protected logError(label: string, err: any): void;
     protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;
 }
+declare class ExtendHelper<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> {
+    private defineFn;
+    private optsOverride;
+    define(fn: (composite: ReactorComposite2<I, O, LI, LO>) => any): this;
+    options(override: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>): this;
+    to<G extends ReactorComposite2<any, any, any, any>>(base: G): ReactorCompositeMergeType2<G, I, O, LI, LO>;
+}
+/**
+ * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar meaning of inheritance in OO programming
+ */
+export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(definition: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
+export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>, definition: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
 export {};

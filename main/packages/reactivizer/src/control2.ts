@@ -1,9 +1,10 @@
 import * as rx from 'rxjs';
 import {Action, InferPayload, ActionMeta,
   ArrayOrTuple, ControllerCore, CoreOptions,
-  nameOfAction, InferMapParam} from './stream-core';
+  nameOfAction, InferMapParam, assignActionReferParam} from './stream-core';
 import {mapActionToPayload, actionRelatedToAction} from './control';
 import {PayloadByType, ActionByType} from './inferred-types';
+import {ActionDataTable} from './action-table';
 
 export type ActionFactory = {
   [k: string]: (...args: any[]) => SingleActionFactory;
@@ -11,7 +12,7 @@ export type ActionFactory = {
 
 export interface SingleActionFactory {
   /** Dispatch message */
-  dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): Action<unknown>;
+  dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | ActionMeta['r']>): Action<unknown>;
   /**
    * `Dispatch and observe` response message
    * At the moment this method is called, the message is sent, not the moment that the returned
@@ -20,8 +21,9 @@ export interface SingleActionFactory {
    * responding messages, only first responsive message is recorded by ReplaySubject and returned,
    * see ddo<F> as alternative
    **/
-  do<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
-    actionMetaRelated?: ActionMeta | ArrayOrTuple<ActionMeta>
+  do<P extends [...any[]]>(
+    waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
+    referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
   ): rx.Observable<[ActionMeta, ...P]>;
 
   /**
@@ -31,7 +33,7 @@ export interface SingleActionFactory {
    * An asyncronized form of this method is `rx.firstValueFrom(...)` which returns a Promise
    */
   ddo<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
-    actionMetaRelated?: ActionMeta | ArrayOrTuple<ActionMeta>
+    referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
   ): rx.Observable<[ActionMeta, ...P]>;
 }
 
@@ -42,8 +44,8 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
     private control: RxController2<I>
   ) {}
 
-  dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>) {
-    const metas = actionMetaRelated.filter(m => m != null) as ActionMeta[];
+  dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | ActionMeta['r']>) {
+    const metas = actionMetaRelated.filter(m => m != null);
     if (metas.length > 0)
       return this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
     else
@@ -51,14 +53,15 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
   }
 
   do<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
-    referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
+    referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
   ) {
     const action = this.control.createAction(this.type, this.payload);
 
-    if (referActionMeta)
-      action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : (referActionMeta as ActionMeta).i;
+    if (referAction) {
+      assignActionReferParam(action, referAction);
+    }
     const r$ = new rx.ReplaySubject<[ActionMeta, ...P]>(1);
-    this.ddo(waitForAction$, referActionMeta).pipe(
+    this.ddo(waitForAction$, referAction).pipe(
       rx.take(1)
     ).subscribe(r$);
     return r$.asObservable();
@@ -66,12 +69,13 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
 
   // ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
   ddo<P extends [...any[]]>(waitForAction$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
-    referActionMeta?: ActionMeta | ArrayOrTuple<ActionMeta>
+    referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
   ) {
     return new rx.Observable<Action<I[K]>>(sub => {
       const action = this.control.createAction(this.type, this.payload);
-      if (referActionMeta)
-        action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : (referActionMeta as ActionMeta).i;
+      if (referAction) {
+        assignActionReferParam(action, referAction);
+      }
       sub.next(action);
     }).pipe(
       rx.mergeMap(action => rx.merge(
@@ -232,7 +236,7 @@ export class RxController2<I> extends ControllerCore<I> {
   /**
    * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
    */
-  subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
+  subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]>> {
     const sub = new RxController2<Pick<I, KS[number]>>(opts);
     const typeSet = new Set(actionTypes);
     this.action$.pipe(
@@ -245,10 +249,18 @@ export class RxController2<I> extends ControllerCore<I> {
   }
 
   /**
+   * Create an very simple and naive version Apache Kafka KTable like "observable Map<K, Action>",
+   * a table which retains latest action by "key"
+   **/
+  createDataTable<T extends keyof I, K>(actionType: T, keySelector: (action: Action<I[T]>) => K) {
+    return new ActionDataTable(this.at[actionType], keySelector);
+  }
+
+  /**
    * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
    */
-  subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
-    const sub = new RxController2<Pick<I, KS[number]>>(opts);
+  subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>): RxController2<Omit<I, KS[number]>> {
+    const sub = new RxController2<Omit<I, KS[number]>>(opts);
     const typeSet = new Set(excludeActionTypes);
     this.action$.pipe(
       rx.filter(a => !typeSet.has(nameOfAction(a))),

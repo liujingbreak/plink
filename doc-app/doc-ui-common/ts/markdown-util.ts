@@ -18,10 +18,10 @@ let threadPool: Pool;
  */
 export function markdownToHtml(
   source: string,
-  srcFile: string,
+  _srcFile: string,
   resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
-  resolveLink?: (link: string) => rx.Observable<string> | string):
-rx.Observable<{toc: TOC[]; content: string}> {
+  _resolveLink?: (link: string) => rx.Observable<string> | string):
+  rx.Observable<{toc: TOC[]; content: string}> {
   if (threadPool == null) {
     threadPool = new Pool(os.cpus().length > 1 ? os.cpus().length - 1 : 3, 1000);
   }

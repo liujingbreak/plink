@@ -12,6 +12,7 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
 var _ActionTable_latestPayloadsByName$;
 import * as rx from 'rxjs';
 import { has, actionMetaToStr } from './stream-core';
+import { mapActionToPayload } from './control';
 const EMPTY_ARRY = [];
 export class ActionTable {
     get dataChange$() {
@@ -123,4 +124,26 @@ export class ActionTable {
     }
 }
 _ActionTable_latestPayloadsByName$ = new WeakMap();
+/** Consider it as Apache Kafka's KTable */
+export class ActionDataTable {
+    constructor(source$, keySelector) {
+        this.source$ = source$;
+        this.keySelector = keySelector;
+        this.snapshot = new Map();
+        this.l = this.latestPayload;
+    }
+    latestAction(key) {
+        const future$ = this.source$.pipe(rx.filter(a => this.keySelector(a) === key));
+        if (this.snapshot.has(key)) {
+            // replay last action
+            return rx.concat(rx.of(this.snapshot.get(key)), future$);
+        }
+        else {
+            return future$;
+        }
+    }
+    latestPayload(key) {
+        return this.latestAction(key).pipe(mapActionToPayload());
+    }
+}
 //# sourceMappingURL=action-table.js.map

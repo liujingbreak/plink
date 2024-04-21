@@ -171,4 +171,75 @@ export class ReactorComposite2 extends DuplexController {
         }));
     }
 }
+class ExtendHelper {
+    define(fn) {
+        this.defineFn = fn;
+        return this;
+    }
+    options(override) {
+        this.optsOverride = override;
+        return this;
+    }
+    to(base) {
+        if (this.optsOverride) {
+            const opt = this.optsOverride;
+            if (opt.inputTableFor) {
+                base.inputTable.addActions(...opt.inputTableFor);
+            }
+            if (opt.outputTableFor) {
+                base.outputTable.addActions(...opt.outputTableFor);
+            }
+            if (opt.debugIncludeTypes) {
+                if (base.i.debugIncludeSet) {
+                    for (const item of opt.debugIncludeTypes) {
+                        base.i.debugIncludeSet.add(item);
+                    }
+                }
+                else {
+                    base.i.debugIncludeSet = new Set(opt.debugIncludeTypes);
+                }
+                if (base.o.debugIncludeSet) {
+                    for (const item of opt.debugIncludeTypes) {
+                        base.o.debugIncludeSet.add(item);
+                    }
+                }
+                else {
+                    base.o.debugIncludeSet = new Set(opt.debugIncludeTypes);
+                }
+            }
+            if (opt.debugExcludeTypes) {
+                if (base.i.debugExcludeSet) {
+                    for (const item of opt.debugExcludeTypes) {
+                        base.i.debugExcludeSet.add(item);
+                    }
+                }
+                else {
+                    base.i.debugExcludeSet = new Set(opt.debugIncludeTypes);
+                }
+                if (base.o.debugExcludeSet) {
+                    for (const item of opt.debugExcludeTypes) {
+                        base.o.debugExcludeSet.add(item);
+                    }
+                }
+                else {
+                    base.o.debugExcludeSet = new Set(opt.debugExcludeTypes);
+                }
+            }
+        }
+        if (this.defineFn)
+            this.defineFn(base);
+        return base;
+    }
+}
+export function patch(optionsOrDef, definition) {
+    const helper = new ExtendHelper();
+    if (definition) {
+        helper.options(optionsOrDef);
+        helper.define(definition);
+    }
+    else {
+        helper.define(optionsOrDef);
+    }
+    return helper;
+}
 //# sourceMappingURL=reactor-composite.js.map

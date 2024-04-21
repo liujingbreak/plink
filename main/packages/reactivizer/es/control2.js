@@ -1,6 +1,7 @@
 import * as rx from 'rxjs';
-import { ControllerCore, nameOfAction } from './stream-core';
+import { ControllerCore, nameOfAction, assignActionReferParam } from './stream-core';
 import { mapActionToPayload, actionRelatedToAction } from './control';
+import { ActionDataTable } from './action-table';
 class SingleActionFactoryImpl {
     constructor(type, payload, control) {
         this.type = type;
@@ -14,20 +15,22 @@ class SingleActionFactoryImpl {
         else
             return this.control.dispatchFactory(this.type)(...this.payload);
     }
-    do(waitForAction$, referActionMeta) {
+    do(waitForAction$, referAction) {
         const action = this.control.createAction(this.type, this.payload);
-        if (referActionMeta)
-            action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : referActionMeta.i;
+        if (referAction) {
+            assignActionReferParam(action, referAction);
+        }
         const r$ = new rx.ReplaySubject(1);
-        this.ddo(waitForAction$, referActionMeta).pipe(rx.take(1)).subscribe(r$);
+        this.ddo(waitForAction$, referAction).pipe(rx.take(1)).subscribe(r$);
         return r$.asObservable();
     }
     // ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
-    ddo(waitForAction$, referActionMeta) {
+    ddo(waitForAction$, referAction) {
         return new rx.Observable(sub => {
             const action = this.control.createAction(this.type, this.payload);
-            if (referActionMeta)
-                action.r = Array.isArray(referActionMeta) ? referActionMeta.map(m => m.i) : referActionMeta.i;
+            if (referAction) {
+                assignActionReferParam(action, referAction);
+            }
             sub.next(action);
         }).pipe(rx.mergeMap(action => rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
             if (Array.isArray(actionOrPayload)) {
@@ -137,6 +140,13 @@ export class RxController2 extends ControllerCore {
             sub.actionUpstream.next(value);
         })).subscribe();
         return sub;
+    }
+    /**
+     * Create an very simple and naive version Apache Kafka KTable like "observable Map<K, Action>",
+     * a table which retains latest action by "key"
+     **/
+    createDataTable(actionType, keySelector) {
+        return new ActionDataTable(this.at[actionType], keySelector);
     }
     /**
      * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`

@@ -6,7 +6,7 @@ export type InferMapParam<F> = [ActionMeta, ...InferPayload<F>];
 export type ActionMeta = {
     /** id */
     i: number;
-    /** reference to other actions */
+    /** The ActionMeta['i'] of other actions that is referred to by this action */
     r?: number | number[];
 };
 export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
@@ -17,7 +17,7 @@ export type Action<F> = {
     p: InferPayload<F>;
 } & ActionMeta;
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<F>;
-export type DispatchFor<F> = (origActionMeta: ActionMeta | ArrayOrTuple<ActionMeta>, ...params: InferPayload<F>) => Action<F>;
+export type DispatchFor<F> = (origActionMeta: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>, ...params: InferPayload<F>) => Action<F>;
 export type CoreOptions<I> = {
     name?: string;
     /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
@@ -64,6 +64,7 @@ export declare class ControllerCore<I> {
     dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I[K]>;
     ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[T[number]]>>;
     notOfType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[Exclude<keyof I, T[number]>]>>;
+    isType<K extends keyof I>(action: Action<I[keyof I]>, type: K): action is Action<I[K]>;
     connect(): void;
 }
 /**
@@ -74,3 +75,4 @@ export declare class ControllerCore<I> {
  */
 export declare function nameOfAction<I = ActionFunctions>(action: Pick<Action<I[keyof I]>, 't'>): keyof I;
 export declare function actionMetaToStr(action: ActionMeta): string;
+export declare function assignActionReferParam(action: Action<any>, metas: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): Action<any>;

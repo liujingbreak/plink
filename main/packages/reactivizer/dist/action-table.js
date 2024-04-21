@@ -35,9 +35,10 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
 };
 var _ActionTable_latestPayloadsByName$;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ActionTable = void 0;
+exports.ActionDataTable = exports.ActionTable = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
+const control_1 = require("./control");
 const EMPTY_ARRY = [];
 class ActionTable {
     get dataChange$() {
@@ -150,4 +151,27 @@ class ActionTable {
 }
 exports.ActionTable = ActionTable;
 _ActionTable_latestPayloadsByName$ = new WeakMap();
+/** Consider it as Apache Kafka's KTable */
+class ActionDataTable {
+    constructor(source$, keySelector) {
+        this.source$ = source$;
+        this.keySelector = keySelector;
+        this.snapshot = new Map();
+        this.l = this.latestPayload;
+    }
+    latestAction(key) {
+        const future$ = this.source$.pipe(rx.filter(a => this.keySelector(a) === key));
+        if (this.snapshot.has(key)) {
+            // replay last action
+            return rx.concat(rx.of(this.snapshot.get(key)), future$);
+        }
+        else {
+            return future$;
+        }
+    }
+    latestPayload(key) {
+        return this.latestAction(key).pipe((0, control_1.mapActionToPayload)());
+    }
+}
+exports.ActionDataTable = ActionDataTable;
 //# sourceMappingURL=action-table.js.map

@@ -15,7 +15,7 @@ interface ProcessState {
   ready: boolean;
 }
 
-function lookupPlinkRoot(cwd: string) {
+export function lookupPlinkRoot(cwd: string) {
   const {root} = Path.parse(cwd);
   let plinkRoot: string | undefined;
   while (cwd !== root) {

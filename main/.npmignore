@@ -6,7 +6,7 @@ package-lock.json
 /packages/src/**
 /wfh/spec
 /wfh/src
-**/__test__/**
+**/__tests__/**
 /redux-toolkit-observable/*.ts
 /thread-promise-pool/ts
 /wfh/doc

@@ -71,7 +71,7 @@ exports.listModuleSymlinks = listModuleSymlinks;
  */
 async function symlinkAsync(linkTarget, link) {
     try {
-        if (fs.lstatSync(link).isSymbolicLink() && path_1.default.resolve(path_1.default.dirname(link), fs.readlinkSync(link)) === linkTarget) {
+        if ((await fs.promises.lstat(link)).isSymbolicLink() && path_1.default.resolve(path_1.default.dirname(link), (await fs.promises.readlink(link))) === linkTarget) {
             // console.log('exits', link);
             return;
         }
