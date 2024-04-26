@@ -145,7 +145,7 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
         ))
     ));
 
-  r('', i.pt.setMarkdownBodyRef.pipe(
+  r('setMarkdownBodyRef', i.pt.setMarkdownBodyRef.pipe(
     rx.tap(([, div, key]) => {
       if (div) {
         markdownRefBykey.set(key, div);
@@ -218,28 +218,6 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
       return rx.EMPTY;
     })
   ));
-
-  // r('setMarkdownKey, markdownDataLoaded -> setSwitchAnimTemplates', i.pt.setMarkdownKey.pipe(
-  //   rx.concatMap(([m, key]) => outputTable.l.markdownDataLoaded.pipe(
-  //     actionRelatedToAction(m),
-  //     rx.take(1),
-  //     rx.withLatestFrom(outputTable.l.setSwitchAnimTemplates),
-  //     rx.tap(([[, {html}], [, , templates]]) => {
-  //       if (key) {
-  //         templates.set(key, {
-  //           mdKey: key,
-  //           onBodyRef(ref) {
-  //             if (ref && key)
-  //               i.ft.setMarkdownBodyRef(ref, key).dp();
-  //           },
-  //           reactHtmlProp: {__html: html},
-  //           hasToc: false
-  //         });
-  //         o.ft.setSwitchAnimTemplates(key, templates).dp(m);
-  //       }
-  //     })
-  //   ))
-  // ));
 
   r('hasToc -> setSwitchAnimTemplates', i.pt.hasToc.pipe(
     rx.switchMap(([m, key, yes]) => outputTable.l.setSwitchAnimTemplates.pipe(

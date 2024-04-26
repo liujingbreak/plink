@@ -195,7 +195,8 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
       rx.filter(([, r]) => r.control != null),
       rx.take(1),
       rx.tap(([, {matchedRoute, control}]) => {
-        control!.ft.navigateTo(matchedRoute!.location.pathname + '#' + id).dp();
+        const loc = matchedRoute!.location;
+        control!.ft.navigateTo(loc.pathname + loc.search + '#' + id).dp();
       })
     ))
   ));
@@ -284,7 +285,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  r('onTocLayoutChange(popup), handleTogglePopup -> togglePopupClassName', outputTable.l.onTocLayoutChange.pipe(
+  r('onTocLayoutChange(popup), handleTogglePopup -> changeFixedPosition, togglePopupClassName', outputTable.l.onTocLayoutChange.pipe(
     rx.filter(([, mode]) => mode === 'popup'),
     rx.switchMap(([, mode]) => {
       if (mode === 'popup') {
@@ -319,7 +320,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
     })
   ));
 
-  r('onTocLayoutChange(aside) -> changeFixedPosition', outputTable.l.onTocLayoutChange.pipe(
+  r('onTocLayoutChange(aside), onScrollDetectorRef -> changeFixedPosition', outputTable.l.onTocLayoutChange.pipe(
     rx.switchMap(([, mode]) => mode === 'aside' ?
       inputTable.l.onScrollDetectorRef.pipe(
         rx.filter(([, ref]) => ref != null),
@@ -336,7 +337,7 @@ export function createControl(uiDirtyCheck: (immutableObj: any) => any) {
 
   // let tocContentTopToScreenEdge = 0;
 
-  r('When changeFixedPosition', outputTable.l.onTocLayoutChange.pipe(
+  r('onTocLayoutChange, changeFixedPosition, onContentDomRef -> (set contentRef style)', outputTable.l.onTocLayoutChange.pipe(
     rx.switchMap(([, mode]) => mode === 'aside' ?
       outputTable.l.changeFixedPosition.pipe(
         rx.withLatestFrom(

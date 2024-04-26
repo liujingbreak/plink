@@ -62,6 +62,8 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   const handleTogglePopup = React.useCallback((...args: Parameters<Actions['handleTogglePopup']>) => {
     i.ft.handleTogglePopup(...args).dp();
   }, [i.ft]);
+
+  const deviceSize = layout?.inputTable.getData().setDeviceSize[0];
   const templateRenderer = React.useCallback(function({mdKey, onBodyRef, hasToc, reactHtmlProp}: SwitchTemplateType) {
     return <>
       <div ref={onBodyRef} className={cln(
@@ -73,7 +75,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
       {
         mdKey ?
           <TableOfContents className={cln(
-            styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-3-desktop', 'mdc-layout-grid__cell--span-2-tablet', {'mdc-layout-grid': layout?.inputTable.getData().setDeviceSize[0] === 'phone'}
+            styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-3-desktop', 'mdc-layout-grid__cell--span-2-tablet', {'mdc-layout-grid': deviceSize === 'phone'}
           ) }
           markdownKey={mdKey}
           markdownViewCtl={viewControl}/> :
@@ -88,7 +90,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
           null
       }
     </>;
-  }, [handleTogglePopup, layout?.inputTable, viewControl]);
+  }, [handleTogglePopup, deviceSize, viewControl]);
 
   const [updatedKey, templateDataMap] = outputTable.getData().setSwitchAnimTemplates;
 
