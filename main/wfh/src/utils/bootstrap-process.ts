@@ -6,7 +6,6 @@ import log4js from 'log4js';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import config from '../config';
-// import logConfig from '../log-config';
 import {GlobalOptions} from '../cmd/types';
 import * as store from '../store';
 import {log4jsThreadBroadcast, emitThreadLogMsg, workerThreadAppender, childProcessAppender, doNothingAppender,
@@ -40,7 +39,7 @@ export function initConfig(options: GlobalOptions = {}) {
  * - Initialize redux-store for Plink
  * 
  * DO NOT fork a child process on this function
- * @param _onShutdownSignal 
+ * @param _onShutdownSignal
  */
 export function initProcess(saveState: store.StoreSetting['actionOnExit'] = 'none') {
   if (processInitialized) {

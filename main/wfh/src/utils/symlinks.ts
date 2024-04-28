@@ -3,14 +3,12 @@ import * as fs from 'fs';
 import Path from 'path';
 import util from 'util';
 import os from 'os';
+import _ from 'lodash';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
-// import {getWorkDir} from './misc';
 
 export const isWin32 = os.platform().indexOf('win32') >= 0;
-// export const readdirAsync = util.promisify(fs.readdir);
 export const lstatAsync = util.promisify(fs.lstat);
-// export const _symlinkAsync = util.promisify(fs.symlink);
 export const unlinkAsync = util.promisify(fs.unlink);
 
 /**
@@ -63,6 +61,7 @@ export function listModuleSymlinks(
     let isSymlink = false;
     try {
       isSymlink = fs.lstatSync(file).isSymbolicLink();
+    // eslint-disable-next-line no-empty
     } catch (e) {}
     if (isSymlink) {
       await Promise.resolve(onFound(file));
@@ -72,14 +71,18 @@ export function listModuleSymlinks(
 
 /**
  * Do check existing symlink, recreate a new one if existing one is invalid symlink
- * @param linkTarget 
- * @param link 
+ * @param linkTarget
+ * @param link
+ * @return false if symlink is not created, probably due to there is existing symlink
  */
 export async function symlinkAsync(linkTarget: string, link: string) {
   try {
-    if ((await fs.promises.lstat(link)).isSymbolicLink() && Path.resolve(Path.dirname(link), (await fs.promises.readlink(link))) === linkTarget) {
+    const linkValue = (await fs.promises.lstat(link)).isSymbolicLink() ? await fs.promises.readlink(link) : null;
+    const existingLink = linkValue ? _.trimEnd(Path.resolve(Path.dirname(link), linkValue), Path.sep) : null;
+    // console.log('existing symlink', existingLink, ' compare to', linkTarget);
+    if (existingLink === Path.resolve(linkTarget)) {
       // console.log('exits', link);
-      return;
+      return false;
     }
     // eslint-disable-next-line no-console
     console.log(`remove ${link}`);
@@ -90,10 +93,11 @@ export async function symlinkAsync(linkTarget: string, link: string) {
   }
   // eslint-disable-next-line no-console
   console.log(`create symlink ${link} --> ${linkTarget}`);
-  return fs.promises.symlink(
-    Path.relative(Path.dirname(link), linkTarget),
+  await fs.promises.symlink(
+    Path.relative(Path.dirname(link), Path.resolve(linkTarget)),
     link, isWin32 ? 'junction' : 'dir'
   );
+  return true;
 }
 
 export async function validateLink(link: string, deleteAll = false): Promise<boolean> {

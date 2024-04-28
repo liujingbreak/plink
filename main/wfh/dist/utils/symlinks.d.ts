@@ -13,8 +13,9 @@ export declare function listModuleSymlinks(parentDir: string, onFound: (link: st
  * Do check existing symlink, recreate a new one if existing one is invalid symlink
  * @param linkTarget
  * @param link
+ * @return false if symlink is not created, probably due to there is existing symlink
  */
-export declare function symlinkAsync(linkTarget: string, link: string): Promise<void>;
+export declare function symlinkAsync(linkTarget: string, link: string): Promise<boolean>;
 export declare function validateLink(link: string, deleteAll?: boolean): Promise<boolean>;
 /**
  * Delete symlink or file/directory if it is invalid symlink or pointing to nonexisting target

@@ -100,7 +100,6 @@ export const defaultSetting: PackageSettingInterf<AssetsProcesserSetting> = (cli
     },
     fallbackIndexHtml: {'^/[^/?#.]+': '<%=match[0]%>/index.html'},
     httpProxy: {},
-    httpProxyWithCache: {},
     fetchMailServer: null,
     serveIndex: false,
     requireToken: false

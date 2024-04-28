@@ -86,9 +86,9 @@ the type parameter tells the shape of input and output messages, the `inputTable
 i.ft.<inputMessage>(...parameter).dp();
 ```
 - `i` stands for the **input** message stream controller
-- `ft` is abbrevation of "factoryByType", which is a map of factory functions of input or output stream controller
-- calling `i.ft.<inputMessage>(...parameter)` to use the factory function to create a **message**
-- Continue to call `.dp()` will dispatch this message to down stream.
+- `ft` means "factory by type", which is a map of factory functions of input or output stream controllers
+- Invoke `i.ft.<inputMessage>(...parameter)` to create a **message**.
+- Continue to call `.dp()` will _dispatch_ this message to down stream.
 
 And if we are expecting a result from an _Reactive Service_, it can be written like,
 ```ts
@@ -96,11 +96,15 @@ i.ft.greeting('comrade').do(o.pt.replyGreeting).pipe(
   rx.take(1)
 ).subscribe(result => console.log(result));
 ```
-So it means, "send a `greeting` message to service and subscribe to a response message `replyGreeting`"
-It returns an Observable, you may turn it into any other form you like if you are proficient in RxJS, e.g. as Promise,
+So it means, "send a `greeting` message to service and subscribe to a response message `replyGreeting`".
+And it returns an Observable, you may turn it into any other form you like if you are proficient in RxJS, e.g. as Promise,
 ```ts
 const result = await rx.firstValueFrom(i.ft.greeting('comrade').do(o.pt.replyGreeting));
 ```
+
+- `r('description...', ...)` is a "reactor"
+its job is _subscribing_ to _Observable_ stream of specified **message**, and play side effects or dispatch more output messages.
+You may consider it as equivalent to _method_ body in OOP, if _message_ is the method name.
 
 #### 1.2.2. Or you may turn a plain object into reactive reusable entity
 
@@ -140,8 +144,8 @@ myRxService.o.pt.greetingResolved.pipe(
 myRxService.i.dispatcher.greeting('Tommy', 'Hi');
 ```
 
-## 2. Understand by comparing with plain object-oriented programming
-[Further reading](./docs/compare-with-OOP.md)
+## 2. Introduction
+[Further reading](./docs/introduction.md)
 
 
 > Document site is under construction, author is also working on implementing a version in Java.

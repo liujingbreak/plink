@@ -8,7 +8,7 @@ import {WorkspaceState, PackageInfo, getState} from '../package-mgr';
 import * as _bootstrap from '../utils/bootstrap-process';
 import {plinkEnv} from '../utils/misc';
 import {arrayOptionFn} from './utils';
-import { OurCommandMetadata } from './types';
+import {OurCommandMetadata} from './types';
 import {cliActionDispatcher} from './cli-slice';
 export {commander};
 
@@ -183,7 +183,7 @@ export class PlinkCommand extends commander.Command {
   }
 
   description(str?: string,
-    argsDescription?: { [argName: string]: string }) {
+    argsDescription?: {[argName: string]: string}) {
     if (str !== undefined) {
       const plinkMeta = this.ctx.metaMap.get(this)!;
       plinkMeta.desc = str;

@@ -7,13 +7,11 @@ const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const util_1 = tslib_1.__importDefault(require("util"));
 const os_1 = tslib_1.__importDefault(require("os"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
-// import {getWorkDir} from './misc';
 exports.isWin32 = os_1.default.platform().indexOf('win32') >= 0;
-// export const readdirAsync = util.promisify(fs.readdir);
 exports.lstatAsync = util_1.default.promisify(fs.lstat);
-// export const _symlinkAsync = util.promisify(fs.symlink);
 exports.unlinkAsync = util_1.default.promisify(fs.unlink);
 /**
  * Return all deleted symlinks
@@ -56,6 +54,7 @@ function listModuleSymlinks(parentDir, onFound) {
         let isSymlink = false;
         try {
             isSymlink = fs.lstatSync(file).isSymbolicLink();
+            // eslint-disable-next-line no-empty
         }
         catch (e) { }
         if (isSymlink) {
@@ -68,12 +67,16 @@ exports.listModuleSymlinks = listModuleSymlinks;
  * Do check existing symlink, recreate a new one if existing one is invalid symlink
  * @param linkTarget
  * @param link
+ * @return false if symlink is not created, probably due to there is existing symlink
  */
 async function symlinkAsync(linkTarget, link) {
     try {
-        if ((await fs.promises.lstat(link)).isSymbolicLink() && path_1.default.resolve(path_1.default.dirname(link), (await fs.promises.readlink(link))) === linkTarget) {
+        const linkValue = (await fs.promises.lstat(link)).isSymbolicLink() ? await fs.promises.readlink(link) : null;
+        const existingLink = linkValue ? lodash_1.default.trimEnd(path_1.default.resolve(path_1.default.dirname(link), linkValue), path_1.default.sep) : null;
+        // console.log('existing symlink', existingLink, ' compare to', linkTarget);
+        if (existingLink === path_1.default.resolve(linkTarget)) {
             // console.log('exits', link);
-            return;
+            return false;
         }
         // eslint-disable-next-line no-console
         console.log(`remove ${link}`);
@@ -85,7 +88,8 @@ async function symlinkAsync(linkTarget, link) {
     }
     // eslint-disable-next-line no-console
     console.log(`create symlink ${link} --> ${linkTarget}`);
-    return fs.promises.symlink(path_1.default.relative(path_1.default.dirname(link), linkTarget), link, exports.isWin32 ? 'junction' : 'dir');
+    await fs.promises.symlink(path_1.default.relative(path_1.default.dirname(link), path_1.default.resolve(linkTarget)), link, exports.isWin32 ? 'junction' : 'dir');
+    return true;
 }
 exports.symlinkAsync = symlinkAsync;
 async function validateLink(link, deleteAll = false) {

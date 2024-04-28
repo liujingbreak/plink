@@ -1,12 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
 import { ControllerCore, nameOfAction, assignActionReferParam } from './stream-core';
 import { mapActionToPayload, actionRelatedToAction } from './control';
 import { ActionDataTable } from './action-table';
+import { timeoutLog } from './utils';
 class SingleActionFactoryImpl {
-    constructor(type, payload, control) {
+    constructor(type, payload, control, opts = { slowDispatchObservableTime: 20000 }) {
         this.type = type;
         this.payload = payload;
         this.control = control;
+        this.opts = opts;
     }
     dp(...actionMetaRelated) {
         const metas = actionMetaRelated.filter(m => m != null);
@@ -32,17 +35,22 @@ class SingleActionFactoryImpl {
                 assignActionReferParam(action, referAction);
             }
             sub.next(action);
-        }).pipe(rx.mergeMap(action => rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
-            if (Array.isArray(actionOrPayload)) {
-                const [actionMeta, ...payload] = actionOrPayload;
-                actionMeta.p = payload;
-                return actionMeta;
-            }
-            return actionOrPayload;
-        }), operator(action), actionRelatedToAction(action), mapActionToPayload(), rx.take(1)))), new rx.Observable(sub => {
-            this.control.actionUpstream.next(action);
-            sub.complete();
-        }))));
+        }).pipe(rx.mergeMap(action => {
+            var _a;
+            return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
+                if (Array.isArray(actionOrPayload)) {
+                    const [actionMeta, ...payload] = actionOrPayload;
+                    actionMeta.p = payload;
+                    return actionMeta;
+                }
+                return actionOrPayload;
+            }), operator(action), actionRelatedToAction(action), mapActionToPayload(), rx.take(1))), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
+            // eslint-disable-next-line no-console
+            this.opts.slowLog ? () => this.opts.slowLog() : () => console.log('Slow observable action detected'))), new rx.Observable(sub => {
+                this.control.actionUpstream.next(action);
+                sub.complete();
+            }));
+        }));
     }
 }
 export class RxController2 extends ControllerCore {
@@ -99,7 +107,19 @@ export class RxController2 extends ControllerCore {
                     return factories.get(key);
                 }
                 const fn = (...args) => {
-                    return new SingleActionFactoryImpl(key, args, self);
+                    return new SingleActionFactoryImpl(key, args, self, {
+                        slowLog() {
+                            var _a;
+                            const msg = `Detected a slow responding message of dispatched action of "${key}"`;
+                            if ((_a = self.opts) === null || _a === void 0 ? void 0 : _a.log) {
+                                self.opts.log(msg);
+                            }
+                            else {
+                                // eslint-disable-next-line no-console
+                                console.log(msg);
+                            }
+                        }
+                    });
                 };
                 factories.set(key, fn);
                 return fn;

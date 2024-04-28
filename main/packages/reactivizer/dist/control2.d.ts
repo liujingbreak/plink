@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { Action, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions } from './stream-core';
+import { Action, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
 import { ActionDataTable } from './action-table';
 export type ActionFactory = {
@@ -60,7 +60,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * Create an very simple and naive version Apache Kafka KTable like "observable Map<K, Action>",
      * a table which retains latest action by "key"
      **/
-    createDataTable<T extends keyof I, K>(actionType: T, keySelector: (action: Action<I[T]>) => K): ActionDataTable<I, T, K>;
+    createDataTable<T extends keyof I, K>(actionType: T, keySelector: (action: InferMapParam<I[T]>) => K): ActionDataTable<I, T, K>;
     /**
      * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
      */

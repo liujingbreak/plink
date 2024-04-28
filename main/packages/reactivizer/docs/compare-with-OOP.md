@@ -1,6 +1,6 @@
-## 2. Understand by comparing with plain object-oriented programming
+## 3. Understand by comparing with plain object-oriented programming
 
-### 2.1 Concepts introduction
+### 3.1 Concepts introduction
 
 OOP languages permit higher level of abstraction for solving real-life problems, along with a lot of design patterns it is widely understood by majority of software engineers.
 OOP combines the data structures and algorithms of a reusable software entity inside the same box, e.g. "Class".

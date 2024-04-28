@@ -143,26 +143,35 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
 
 /** Consider it as Apache Kafka's KTable */
 export class ActionDataTable<I, T extends keyof I, K> {
-  snapshot: Map<K, Action<I[T]>> = new Map();
-  l = this.latestPayload;
+  snapshot: Map<K, InferMapParam<I[T]>> = new Map();
+  /** Alias of latestPayload */
+  l = this.latestPayloadOf;
+  private future$: rx.Observable<InferMapParam<I[T]>>;
 
-  constructor(private source$: rx.Observable<Action<I[T]>>, private keySelector: (action: Action<I[T]>) => K) {}
-
-  latestAction(key: K): rx.Observable<Action<I[T]>> {
-    const future$ = this.source$.pipe(
-      rx.filter(a => this.keySelector(a) === key)
+  constructor(private source$: rx.Observable<Action<I[T]>>, private keySelector: (payload: InferMapParam<I[T]>) => K) {
+    this.future$ = this.source$.pipe(
+      mapActionToPayload(),
+      rx.share()
     );
-    if (this.snapshot.has(key)) {
-      // replay last action
-      return rx.concat(rx.of(this.snapshot.get(key)!), future$);
-    } else {
-      return future$;
-    }
+    this.future$.subscribe(payload => {
+      const key = keySelector(payload);
+      this.snapshot.set(key, payload);
+    });
   }
 
-  latestPayload(key: K) {
-    return this.latestAction(key).pipe(
-      mapActionToPayload()
-    );
+  latestPayloadOf(key: K) {
+    if (this.snapshot.has(key)) {
+      // replay last action
+      return rx.concat(
+        rx.of(this.snapshot.get(key)!),
+        this.future$.pipe(
+          rx.filter(p => this.keySelector(p) === key)
+        )
+      );
+    } else {
+      return this.future$.pipe(
+        rx.filter(p => this.keySelector(p) === key)
+      );
+    }
   }
 }

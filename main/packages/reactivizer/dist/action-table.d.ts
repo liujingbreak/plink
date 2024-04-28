@@ -30,9 +30,10 @@ export declare class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
 export declare class ActionDataTable<I, T extends keyof I, K> {
     private source$;
     private keySelector;
-    snapshot: Map<K, Action<I[T]>>;
+    snapshot: Map<K, InferMapParam<I[T]>>;
+    /** Alias of latestPayload */
     l: (key: K) => rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
-    constructor(source$: rx.Observable<Action<I[T]>>, keySelector: (action: Action<I[T]>) => K);
-    latestAction(key: K): rx.Observable<Action<I[T]>>;
-    latestPayload(key: K): rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
+    private future$;
+    constructor(source$: rx.Observable<Action<I[T]>>, keySelector: (payload: InferMapParam<I[T]>) => K);
+    latestPayloadOf(key: K): rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
 }

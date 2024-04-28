@@ -107,8 +107,8 @@ function findRootDir(distDir: string, currDir: string) {
 /**
  * if cwd is not root directory, then append NODE_PATH with <cwd>/node_modules:<rootDir>/symlinks,
  * otherwise append NODE_PATH with <rootDir>/node_modules
- * @param rootDir 
- * @param isDrcpSymlink 
+ * @param rootDir
+ * @param isDrcpSymlink
  */
 function setupNodePath(currDir: string, rootDir: string, symlinksDir: string | null, plinkDir: string) {
   const pathArray = calcNodePaths(rootDir, symlinksDir, currDir, plinkDir);

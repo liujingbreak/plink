@@ -157,20 +157,22 @@ class ActionDataTable {
         this.source$ = source$;
         this.keySelector = keySelector;
         this.snapshot = new Map();
-        this.l = this.latestPayload;
+        /** Alias of latestPayload */
+        this.l = this.latestPayloadOf;
+        this.future$ = this.source$.pipe((0, control_1.mapActionToPayload)(), rx.share());
+        this.future$.subscribe(payload => {
+            const key = keySelector(payload);
+            this.snapshot.set(key, payload);
+        });
     }
-    latestAction(key) {
-        const future$ = this.source$.pipe(rx.filter(a => this.keySelector(a) === key));
+    latestPayloadOf(key) {
         if (this.snapshot.has(key)) {
             // replay last action
-            return rx.concat(rx.of(this.snapshot.get(key)), future$);
+            return rx.concat(rx.of(this.snapshot.get(key)), this.future$.pipe(rx.filter(p => this.keySelector(p) === key)));
         }
         else {
-            return future$;
+            return this.future$.pipe(rx.filter(p => this.keySelector(p) === key));
         }
-    }
-    latestPayload(key) {
-        return this.latestAction(key).pipe((0, control_1.mapActionToPayload)());
     }
 }
 exports.ActionDataTable = ActionDataTable;

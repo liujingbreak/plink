@@ -24,15 +24,18 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deserializeAction2 = exports.GroupedRxController2 = exports.RxController2 = void 0;
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 const control_1 = require("./control");
 const action_table_1 = require("./action-table");
+const utils_1 = require("./utils");
 class SingleActionFactoryImpl {
-    constructor(type, payload, control) {
+    constructor(type, payload, control, opts = { slowDispatchObservableTime: 20000 }) {
         this.type = type;
         this.payload = payload;
         this.control = control;
+        this.opts = opts;
     }
     dp(...actionMetaRelated) {
         const metas = actionMetaRelated.filter(m => m != null);
@@ -58,17 +61,22 @@ class SingleActionFactoryImpl {
                 (0, stream_core_1.assignActionReferParam)(action, referAction);
             }
             sub.next(action);
-        }).pipe(rx.mergeMap(action => rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
-            if (Array.isArray(actionOrPayload)) {
-                const [actionMeta, ...payload] = actionOrPayload;
-                actionMeta.p = payload;
-                return actionMeta;
-            }
-            return actionOrPayload;
-        }), operator(action), (0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1)))), new rx.Observable(sub => {
-            this.control.actionUpstream.next(action);
-            sub.complete();
-        }))));
+        }).pipe(rx.mergeMap(action => {
+            var _a;
+            return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
+                if (Array.isArray(actionOrPayload)) {
+                    const [actionMeta, ...payload] = actionOrPayload;
+                    actionMeta.p = payload;
+                    return actionMeta;
+                }
+                return actionOrPayload;
+            }), operator(action), (0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
+            // eslint-disable-next-line no-console
+            this.opts.slowLog ? () => this.opts.slowLog() : () => console.log('Slow observable action detected'))), new rx.Observable(sub => {
+                this.control.actionUpstream.next(action);
+                sub.complete();
+            }));
+        }));
     }
 }
 class RxController2 extends stream_core_1.ControllerCore {
@@ -125,7 +133,19 @@ class RxController2 extends stream_core_1.ControllerCore {
                     return factories.get(key);
                 }
                 const fn = (...args) => {
-                    return new SingleActionFactoryImpl(key, args, self);
+                    return new SingleActionFactoryImpl(key, args, self, {
+                        slowLog() {
+                            var _a;
+                            const msg = `Detected a slow responding message of dispatched action of "${key}"`;
+                            if ((_a = self.opts) === null || _a === void 0 ? void 0 : _a.log) {
+                                self.opts.log(msg);
+                            }
+                            else {
+                                // eslint-disable-next-line no-console
+                                console.log(msg);
+                            }
+                        }
+                    });
                 };
                 factories.set(key, fn);
                 return fn;

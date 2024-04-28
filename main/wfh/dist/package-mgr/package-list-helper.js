@@ -115,12 +115,9 @@ exports.workspacesOfDependencies = workspacesOfDependencies;
  * @param opts CompilerOptionSetOpt
  */
 function setTsCompilerOptForNodePath(tsconfigDir, assigneeOptions, opts = { enableTypeRoots: false }) {
-    // const {rootDir, plinkDir, symlinkDirName} = JSON.parse(process.env.__plink!) as PlinkEnv;
     let symlinksDir;
     /** for paths mapping "*" */
     let pathsDirs = [];
-    // workspace node_modules should be the first
-    // const baseUrlAbsPath = Path.resolve(tsconfigDir, baseUrl);
     if (opts.realPackagePaths) {
         if (assigneeOptions.paths == null) {
             assigneeOptions.paths = {};
@@ -141,15 +138,8 @@ function setTsCompilerOptForNodePath(tsconfigDir, assigneeOptions, opts = { enab
             pathsDirs.splice(idx, 1);
         }
     }
-    // if (Path.isAbsolute(baseUrl)) {
-    //   let relBaseUrl = Path.relative(tsconfigDir, baseUrl);
-    //   if (!relBaseUrl.startsWith('.'))
-    //     relBaseUrl = './' + relBaseUrl;
-    //   baseUrl = relBaseUrl;
-    // }
     if (assigneeOptions.paths == null)
         assigneeOptions.paths = {};
-    // assigneeOptions.baseUrl = baseUrl.replace(/\\/g, '/');
     appendTypeRoots(pathsDirs, tsconfigDir, assigneeOptions, opts);
     return assigneeOptions;
 }

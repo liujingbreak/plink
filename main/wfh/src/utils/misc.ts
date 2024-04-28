@@ -82,7 +82,7 @@ export class WordLexer extends BaseLexer<WordTokenType> {
   }
 }
 
-export function boxString(text: string, lineWidth = process.stdout.columns, whitespaceWrap = true): string {
+export function boxString(text: string, lineWidth = process.stdout.columns - 2, whitespaceWrap = true): string {
   const tb = createCliTable({
     colWidths: [lineWidth],
     wordWrap: whitespaceWrap,
@@ -90,40 +90,6 @@ export function boxString(text: string, lineWidth = process.stdout.columns, whit
   });
   tb.push(...text.split(/\n\r?/).map(item => [item]));
   return tb.toString();
-  // const lexer = new WordLexer(text);
-
-  // lineWidth = lineWidth - 4;
-  // let updated = `+${'-'.repeat(lineWidth + 2)}+\n`;
-  // let column = 0;
-  // for (const word of lexer) {
-  //   if (word.type === WordTokenType.word || word.type === WordTokenType.eos || word.type === WordTokenType.other ||
-  //     word.type === WordTokenType.tab) {
-  //     if (column === 0) {
-  //       updated += '| ';
-  //     }
-  //     if (column + word.text.length > lineWidth) {
-  //       updated += ' '.repeat(lineWidth - column);
-  //       updated += ' |\n| ';
-  //       // pad
-  //       column = 0;
-  //     }
-  //     updated += word.type === WordTokenType.tab ? '  ' : word.text;
-  //     column += word.type === WordTokenType.tab ? 2 : word.text.length;
-  //   } else if (word.type === WordTokenType.eol) {
-  //     if (column === 0) {
-  //       updated += '| ';
-  //     }
-  //     updated += ' '.repeat(lineWidth - column);
-  //     updated += ' |\n';
-  //     column = 0;
-  //   }
-  // }
-  // if (column !== 0) {
-  //   updated += ' '.repeat(lineWidth - column);
-  //   updated += ' |\n';
-  // }
-  // updated += `+${'-'.repeat(lineWidth + 2)}+`;
-  // return updated.replace(/^(?=.)/mg, '  ');
 }
 
 export function sexyFont(text: string, color = '#99a329', font: cfonts.FontOption['font'] = 'block') {

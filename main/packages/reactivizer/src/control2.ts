@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
 import {Action, InferPayload, ActionMeta,
   ArrayOrTuple, ControllerCore, CoreOptions,
@@ -5,6 +6,7 @@ import {Action, InferPayload, ActionMeta,
 import {mapActionToPayload, actionRelatedToAction} from './control';
 import {PayloadByType, ActionByType} from './inferred-types';
 import {ActionDataTable} from './action-table';
+import {timeoutLog} from './utils';
 
 export type ActionFactory = {
   [k: string]: (...args: any[]) => SingleActionFactory;
@@ -41,7 +43,13 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
   constructor(
     private type: K,
     private payload: InferPayload<I[K]>,
-    private control: RxController2<I>
+    private control: RxController2<I>,
+    private opts: {
+      /** default: 20000 ms */
+      slowDispatchObservableTime?: number;
+      /** Print a log message or any slow responding message of a dispatched action */
+      slowLog?(): void;
+    } = {slowDispatchObservableTime: 20000}
   ) {}
 
   dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | ActionMeta['r']>) {
@@ -92,10 +100,15 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
             }),
             operator(action),
             actionRelatedToAction(action),
-            mapActionToPayload(),
+            mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...P]>,
             rx.take(1)
-          ))
-        ) as rx.Observable<[ActionMeta, ...P]>,
+          )),
+          timeoutLog<[ActionMeta, ...P]>(
+            this.opts.slowDispatchObservableTime ?? 20000,
+            // eslint-disable-next-line no-console
+            this.opts.slowLog ? () => this.opts.slowLog!() : () => console.log('Slow observable action detected')
+          )
+        ),
         new rx.Observable<never>(sub => {
           this.control.actionUpstream.next(action);
           sub.complete();
@@ -181,7 +194,17 @@ export class RxController2<I> extends ControllerCore<I> {
           return factories.get(key);
         }
         const fn = (...args: InferPayload<I[keyof I]>): SingleActionFactory => {
-          return new SingleActionFactoryImpl(key as keyof I, args, self);
+          return new SingleActionFactoryImpl(key as keyof I, args, self, {
+            slowLog() {
+              const msg = `Detected a slow responding message of dispatched action of "${key as string}"`;
+              if (self.opts?.log) {
+                self.opts!.log(msg);
+              } else {
+                // eslint-disable-next-line no-console
+                console.log(msg);
+              }
+            }
+          });
         };
         factories.set(key, fn);
         return fn;
@@ -252,7 +275,7 @@ export class RxController2<I> extends ControllerCore<I> {
    * Create an very simple and naive version Apache Kafka KTable like "observable Map<K, Action>",
    * a table which retains latest action by "key"
    **/
-  createDataTable<T extends keyof I, K>(actionType: T, keySelector: (action: Action<I[T]>) => K) {
+  createDataTable<T extends keyof I, K>(actionType: T, keySelector: (action: InferMapParam<I[T]>) => K) {
     return new ActionDataTable(this.at[actionType], keySelector);
   }
 
