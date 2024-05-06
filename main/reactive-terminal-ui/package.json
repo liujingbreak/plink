@@ -1,0 +1,22 @@
+{
+  "name": "@wfh/reactive-terminal-ui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "plink": {
+    "tsc": {
+      "src": "src",
+      "dest": "dist"
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+  },
+  "peerDependencies": {
+    "rxjs": "^7.8.1"
+  },
+  "author": "Liu Jing",
+  "license": "MIT"
+}

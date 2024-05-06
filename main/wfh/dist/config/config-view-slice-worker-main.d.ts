@@ -1,1 +1,0 @@
-export declare function createMainWorkerAndBroker(debug?: boolean): import("../../../packages/reactivizer/dist/fork-join/types").WorkerControl<import("./config-view-slice-worker").WorkerInput, import("./config-view-slice-worker").WorkerOutput, readonly [], readonly []>;

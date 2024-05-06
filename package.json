@@ -5,31 +5,32 @@
   "private": true,
   "packages": [
     "src",
-    "main/packages",
+    "main",
     "doc-app",
     "server-tool-space/conf",
     "conf"
   ],
+  "workspaces": [
+    "main/plink",
+    "main/algorithms",
+    "main/plink-cli",
+    "main/reactive-terminal-ui",
+    "main/reactivizer",
+    "main/eslint-config",
+    "main/redux-toolkit-observable",
+    "main/require-injector",
+    "main/thread-promise-pool"
+  ],
   "plink": {
-    "noModuleSymlink": ["main/packages"]
+    "externalRepo": ["../cvs"],
+    "## noModuleSymlink": ["main/packages"]
   },
   "scripts": {
     "plink": "plink",
     "link-plink": "node main/bin/link.js",
-    "lint-wfh": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/wfh/src",
-    "lint-redux": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",
-    "lint-thread": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
-    "lint-main-file": "eslint --no-eslintrc -c main/.eslintrc.js",
-    "lint-other": "eslint --no-eslintrc -c .eslintrc.js"
-  },
-  "devDependencies": {
-    "typescript": "^5.3.3",
-    "eslint-config-react-app": "^7.0.1",
-    "@typescript-eslint/eslint-plugin-tslint": "^6.4.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-jsdoc": "^37.7.1",
-    "eslint-plugin-prefer-arrow": "^1.2.3",
-    "tslint": "^6.1.3"
-  },
-  "externalRepo": ["../cvs"]
+    "lint-wfh": "eslint --no-eslintrc -c .eslintrc.js --ext .ts main/plink/wfh/src",
+    "lint-redux": "eslint --no-eslintrc -c .eslintrc.js --ext .ts main/redux-toolkit-observable",
+    "lint-thread": "eslint --no-eslintrc -c .eslintrc.js --ext .ts main/thread-promise-pool",
+    "lint-file": "eslint --no-eslintrc -c .eslintrc.js"
+  }
 }
