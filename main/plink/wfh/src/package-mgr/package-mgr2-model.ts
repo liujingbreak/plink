@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {SingleActionFactory, ReactorComposite2, patch, actionRelatedToAction} from '@wfh/reactivizer';
+import {SingleActionFactory, ReactorComposite2, patch, actionRelatedToActionRelatives, actionRelatedToAction} from '@wfh/reactivizer';
 import {PackageInfo} from './index';
 
 export interface RepoPackageJson {
@@ -80,7 +80,7 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
             }
           }),
           rx.takeUntil(i.pt.updatePackagesEnd.pipe(
-            actionRelatedToAction(m)
+            actionRelatedToActionRelatives(m)
           )),
           rx.count(),
           rx.map(() => {

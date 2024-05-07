@@ -3,7 +3,6 @@
 import stream from 'node:stream';
 import * as cp from 'node:child_process';
 import { SingleActionFactory, ReactorComposite2 } from '@wfh/reactivizer';
-import { CmdEntryChildProcessEvents } from './cmd.types';
 export declare function lookupPlinkRoot(cwd: string): string | undefined;
 interface ProcessActions {
     getProcessFor(cwd: string): SingleActionFactory;
@@ -11,11 +10,10 @@ interface ProcessActions {
     interrupt(cwd: string): SingleActionFactory;
 }
 interface ProcessEvents {
-    onCommanderInited: CmdEntryChildProcessEvents['onCommanderInited'];
     processFor(p: cp.ChildProcess | 'main', rootDir: string): SingleActionFactory;
     /** ActionMeta is related to processFor */
     onChildProcessReady(plinkRootDir: string): SingleActionFactory;
     onCommandDoneAnyway(): SingleActionFactory;
 }
-export declare function createProcessService(log: (...m: any[]) => void): ReactorComposite2<ProcessActions, ProcessEvents, [], readonly ["onCommanderInited"]>;
+export declare function createProcessManager(log: (...m: any[]) => void): ReactorComposite2<ProcessActions, ProcessEvents, readonly [], readonly []>;
 export {};

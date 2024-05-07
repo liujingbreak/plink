@@ -6,9 +6,9 @@ import * as rx from 'rxjs';
 import {SingleActionFactory, ReactorComposite2, ActionMeta, Action, actionRelatedToAction,
   actionRelatedToActionRelatives, serializeAction, deserializeAction2} from '@wfh/reactivizer';
 import {workDirChangedByCli} from '../fork-for-preserve-symlink';
-import {defineCommander, parseCommand} from '../cmd/cli';
-import {CmdEntryChildProcessEvents, CmdEntryChildProcessInput, outputTableForCmdEntryProcEvents as outputTableFor} from './cmd.types';
+import {CmdChildProcessEvents, CmdChildProcessInput} from './cmd.types';
 import {setupTTY} from './process-common';
+import {service as serverChildProcess4CurrProc} from './server-child-process-entry';
 
 interface ProcessState {
   process: 'main' | cp.ChildProcess;
@@ -35,7 +35,7 @@ interface ProcessActions {
 }
 
 interface ProcessEvents {
-  onCommanderInited: CmdEntryChildProcessEvents['onCommanderInited'];
+  // onMainCommanderInited: CmdChildProcessEvents['onCommanderInited'];
   processFor(p: cp.ChildProcess | 'main', rootDir: string): SingleActionFactory;
   /** ActionMeta is related to processFor */
   onChildProcessReady(plinkRootDir: string): SingleActionFactory;
@@ -45,29 +45,24 @@ interface ProcessEvents {
 export function createProcessManager(log: (...m: any[]) => void) {
   const mainPlinkRoot = lookupPlinkRoot(process.cwd());
   const plinkProcessByDir = new Map<string, ProcessState>();
-  if (mainPlinkRoot)
+  if (mainPlinkRoot)  {
     plinkProcessByDir.set(mainPlinkRoot, {process: 'main', ready: true});
+    serverChildProcess4CurrProc.i.ft.setRootDir(mainPlinkRoot).dp();
+  } else {
+    throw new Error('can not find @wfh/plink directory in');
+  }
 
-  const processManager = new ReactorComposite2<ProcessActions, ProcessEvents, [], typeof outputTableFor>({
+  const processManager = new ReactorComposite2<ProcessActions, ProcessEvents>({
     name: 'server-process',
-    debug: true,
-    outputTableFor,
-    log
+    debug: true
   });
   /** Child process service */
-  const cpService = new ReactorComposite2<CmdEntryChildProcessInput, CmdEntryChildProcessEvents>({
+  const cpService = new ReactorComposite2<CmdChildProcessInput, CmdChildProcessEvents>({
     name: 'cmdChildProcessProcProxy',
-    debug: true,
-    log
+    debug: true
   });
 
   const {i, o, r} = processManager;
-
-  r('init commander', rx.from(defineCommander(() => {
-    cpService.o.ft.onShutdown().dp();
-  })).pipe(
-    rx.tap(program => o.ft.onCommanderInited(program).dp())
-  ));
 
   r('getProcessFor -> processFor', i.pt.getProcessFor.pipe(
     rx.map(([m, dir]) => {
@@ -105,34 +100,35 @@ export function createProcessManager(log: (...m: any[]) => void) {
   r('sendCommand (childProcess.onCommandDone, onCommandError) -> childProcess.doCommand',
     i.pt.sendCommand.pipe(
       // Join process creation information
-      rx.mergeMap(([m, [cols, rows], cwd, cmd, output]) => rx.combineLatest([
-        i.ft.getProcessFor(cwd).ddo(o.pt.processFor),
-        processManager.outputTable.l.onCommanderInited
-      ]).pipe(
-        rx.take(1),
-        rx.map(([[, p, rootDir], [, commanderOfMainProc]]) => [m, cols, rows, cmd, output, p, rootDir, commanderOfMainProc, cwd] as const)
-      )
-      ),
+      rx.mergeMap(([m, [cols, rows], cwd, cmd, output]) =>
+        i.ft.getProcessFor(cwd).ddo(o.pt.processFor).pipe(
+          rx.take(1),
+          rx.map(([, p, rootDir]) => [
+            m, cols, rows, cmd, output, p,
+            rootDir, cwd
+          ] as const)
+        )),
       rx.groupBy(([, , , , , , rootDir]) => rootDir),
       rx.mergeMap(grouped => grouped.pipe(
         // Using concatMap: commands should be queued up by correspoding child process or rootDir
-        rx.concatMap(([m, cols, rows, cmd, output, p, rootDir, commanderOfMainProc, cwd]) => {
+        rx.concatMap(([m, cols, rows, cmd, output, p, rootDir, cwd]) => {
           if (p === 'main') {
             setupTTY(cols, rows);
-            Object.assign(process.stdout, output);
-            Object.assign(process.stderr, output);
-            process.chdir(cwd);
-            workDirChangedByCli(cmd);
-            return rx.from(parseCommand(commanderOfMainProc, cmd)).pipe(
-              rx.catchError(err => {
-                processManager.dispatchErrorFor(err, m);
-                return rx.EMPTY;
-              }),
-              rx.finalize(() => {
-                cpService.o.ft.onCommandDone().dp(m);
-                o.ft.onCommandDoneAnyway().dp(m);
-              })
-            );
+            if (process.cwd() !== cwd) {
+              process.chdir(cwd);
+              workDirChangedByCli(cmd);
+            }
+            return serverChildProcess4CurrProc.i.ft.doCommand(cols, rows, cwd, cmd)
+              .ddo(serverChildProcess4CurrProc.o.pt.onCommandDone).pipe(
+                rx.take(1),
+                rx.catchError(err => {
+                  processManager.dispatchErrorFor(err, m);
+                  return rx.EMPTY;
+                }),
+                rx.finalize(() => {
+                  o.ft.onCommandDoneAnyway().dp(m);
+                })
+              );
           } else {
             p.stdout!.pipe(output);
             p.stderr!.pipe(output);
@@ -184,7 +180,10 @@ export function createProcessManager(log: (...m: any[]) => void) {
       ))
     ));
 
-  r('onShutdown', cpService.o.pt.onShutdown.pipe(
+  r('onShutdown -> dispose', rx.merge(
+    serverChildProcess4CurrProc.o.pt.onShutdown,
+    cpService.o.pt.onShutdown
+  ).pipe(
     rx.concatMap(() => rx.timer(500)),
     rx.mergeMap(() =>
       rx.from(plinkProcessByDir.entries()).pipe(
@@ -215,7 +214,7 @@ export function createProcessManager(log: (...m: any[]) => void) {
       rx.take(1),
       rx.map(([, ...param]) => [m, ...param] as const)
     )),
-    rx.groupBy(([, , root]) => root),
+    rx.groupBy(([, , root]) => root)
     // rx.mergeMap(g$ => g$.pipe(
     //   rx.exhaustMap(([, p, rootDir]) => {
     //     if (p === 'main') {
@@ -232,7 +231,8 @@ export function createProcessManager(log: (...m: any[]) => void) {
       stdio: 'pipe',
       detached: true
     });
-    log('fork new process', p.pid);
+    // eslint-disable-next-line no-console
+    console.log('server-process fork new process', p.pid);
 
     p.on('exit', (_code) => {
       plinkProcessByDir.delete(dir);
@@ -241,7 +241,7 @@ export function createProcessManager(log: (...m: any[]) => void) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if ((msg as any).type === 'rx:message') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-        const action = (msg as any).content as Action<CmdEntryChildProcessEvents[keyof CmdEntryChildProcessEvents]>;
+        const action = (msg as any).content as Action<CmdChildProcessEvents[keyof CmdChildProcessEvents]>;
         if (action.r == null)
           action.r = m.i;
         deserializeAction2(action, cpService.o);

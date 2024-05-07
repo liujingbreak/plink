@@ -102,7 +102,7 @@ export function runServer(): {
   };
 }
 
-const apiCache: Record<string, _NodeApi> = {};
+const apiCache = new Map<string, _NodeApi>();
 // const packageTree = new DirTree<PackageInstance>();
 
 /**
@@ -204,7 +204,7 @@ export function initInjectorForNodePackages(): [PackageInfo, _NodeApi] {
 
   proto.findPackageByFile = getPkgOfFile;
   proto.getNodeApiForPackage = function(packageInstance: PackageInstance) {
-    return getApiForPackage(packageInstance, NodeApi);
+    return getApiForPackage(packageInstance, NodeApi)!;
   };
   proto.browserInjector = webInjector;
   packageInfo.allModules.forEach(pk => {
@@ -236,7 +236,7 @@ export function prepareLazyNodeInjector(argv?: {[key: string]: any}) {
   });
   proto.findPackageByFile = createLazyPackageFileFinder();
   proto.getNodeApiForPackage = function(packageInstance: NodePackage) {
-    return getApiForPackage(packageInstance, NodeApi);
+    return getApiForPackage(packageInstance, NodeApi)!;
   };
   nodeInjector.fromRoot()
   // .alias('log4js', Path.resolve(config().rootPath, 'node_modules/log4js'))
@@ -307,13 +307,13 @@ function setupRequireInjects(pkInstance: PackageInstance, NodeApi: typeof _NodeA
 }
 
 function getApiForPackage(pkInstance: NodePackage, NodeApi: typeof _NodeApi) {
-  if (_.has(apiCache, pkInstance.longName)) {
+  if (apiCache.has(pkInstance.longName)) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return apiCache[pkInstance.longName];
+    return apiCache.get(pkInstance.longName);
   }
 
   const api = new NodeApi(pkInstance.longName, pkInstance);
-  apiCache[pkInstance.longName] = api;
+  apiCache.set(pkInstance.longName, api);
   api.default = api; // For ES6 import syntax
   return api;
 }

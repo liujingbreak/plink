@@ -29,7 +29,7 @@ function addupConfigs(onEachYaml) {
             if (!m)
                 return;
             const env = m[1];
-            if (!lodash_1.default.has(componentConfigs4Env, env))
+            if (componentConfigs4Env[env] == null)
                 componentConfigs4Env[env] = { browserSideConfigProp: [] };
             _addupCompConfigProp(componentConfigs4Env[env], name, componentConfigs4Env[env].browserSideConfigProp, value);
         });

@@ -77,7 +77,7 @@ function runServer() {
     };
 }
 exports.runServer = runServer;
-const apiCache = {};
+const apiCache = new Map();
 // const packageTree = new DirTree<PackageInstance>();
 /**
  * Lazily init injector for packages and run specific package only,
@@ -264,12 +264,12 @@ function setupRequireInjects(pkInstance, NodeApi) {
     }
 }
 function getApiForPackage(pkInstance, NodeApi) {
-    if (_.has(apiCache, pkInstance.longName)) {
+    if (apiCache.has(pkInstance.longName)) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return apiCache[pkInstance.longName];
+        return apiCache.get(pkInstance.longName);
     }
     const api = new NodeApi(pkInstance.longName, pkInstance);
-    apiCache[pkInstance.longName] = api;
+    apiCache.set(pkInstance.longName, api);
     api.default = api; // For ES6 import syntax
     return api;
 }

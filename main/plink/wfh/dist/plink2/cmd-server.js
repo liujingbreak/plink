@@ -19,14 +19,24 @@ process.on('exit', (code) => {
     console.log((process.send || !worker_threads_1.isMainThread ? `[P${process.pid}.T${worker_threads_1.threadId}] ` : '') +
         chalk_1.default.green(`${code !== 0 ? 'Failed' : 'Done'} in ${new Date().getTime() - startTime} ms`));
 });
-const fout = fs_1.default.createWriteStream('plink-daemon.log', {
-    flags: 'a',
-    encoding: 'binary'
-});
+let fout = process.stdout;
+if (process.argv.every(arg => arg !== '--print-std')) {
+    console.log('Redirect ouput to file');
+    fout = fs_1.default.createWriteStream('plink-daemon.log', {
+        flags: 'a',
+        encoding: 'utf8'
+    });
+    const { createCurrentProcessOutputReader } = require('./server-process-stdout');
+    const [mainProcessStdoutReader4FileOut] = createCurrentProcessOutputReader();
+    mainProcessStdoutReader4FileOut.pipe(fout);
+}
+else {
+    console.log('Show output in terminal');
+}
 const inputTableFor = ['setTTYSize'];
 const outputTableFor = ['isStarted'];
-process.stdout.on('data', chunk => fout.write(chunk));
-function reatorLog(msg, ...args) {
+// process.stdout.on('data', chunk => fout.write(chunk));
+function reactorLog(msg, ...args) {
     fout.write(new Date().toLocaleTimeString());
     fout.write(' ');
     fout.write(msg);
@@ -40,10 +50,10 @@ const service = new reactivizer_1.ReactorComposite2({
     name: 'PlinkCliServer',
     inputTableFor,
     outputTableFor,
-    log: reatorLog,
+    // log: reactorLog,
     debug: true
 });
-const processService = (0, server_process_1.createProcessService)(reatorLog);
+const processManager = (0, server_process_1.createProcessManager)(reactorLog);
 const { i, o, r, inputTable } = service;
 let server;
 r('start', i.pt.start.pipe(rx.exhaustMap(([m, port]) => {
@@ -65,6 +75,7 @@ r('start', i.pt.start.pipe(rx.exhaustMap(([m, port]) => {
                 else {
                     buf.push(str);
                 }
+                console.log(':: on request data', str, buf);
             });
             req.on('end', () => {
                 o.ft.onRequestLine(req, res, buf.join('')).dp();
@@ -82,7 +93,7 @@ r('start', i.pt.start.pipe(rx.exhaustMap(([m, port]) => {
         server.listen(actPort);
     }));
 })));
-r('processService.onChildProcessExit', processService.destory$.pipe(rx.exhaustMap(() => service.outputTable.l.isStarted.pipe(rx.filter(([, yes]) => yes), rx.take(1), rx.concatMap(() => rx.timer(500)), rx.map(() => {
+r('processManager.onChildProcessExit', processManager.destory$.pipe(rx.exhaustMap(() => service.outputTable.l.isStarted.pipe(rx.filter(([, yes]) => yes), rx.take(1), rx.concatMap(() => rx.timer(500)), rx.map(() => {
     service.dispose();
     server === null || server === void 0 ? void 0 : server.close();
 })))));
@@ -98,7 +109,7 @@ r('onRequestLine', o.pt.onRequestLine.pipe(rx.mergeMap(([m, , res, line]) => {
     }
     const [dir, args] = json;
     if (args[0] === 'SIGINT') {
-        processService.i.ft.interrupt(dir).dp(m);
+        processManager.i.ft.interrupt(dir).dp(m);
         res.end();
         return rx.EMPTY;
     }
@@ -113,7 +124,7 @@ r('onRequestLine', o.pt.onRequestLine.pipe(rx.mergeMap(([m, , res, line]) => {
             cb();
         }
     });
-    return processService.i.ft.sendCommand(inputTable.getData().setTTYSize, dir, args, out).ddo(processService.o.pt.onCommandDoneAnyway).pipe(rx.take(1), rx.finalize(() => {
+    return processManager.i.ft.sendCommand(inputTable.getData().setTTYSize, dir, args, out).ddo(processManager.o.pt.onCommandDoneAnyway).pipe(rx.take(1), rx.finalize(() => {
         void Promise.resolve().then(() => res.end());
     }));
 })));

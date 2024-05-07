@@ -158,14 +158,14 @@ class ActionDataTable {
         this.keySelector = keySelector;
         this.snapshot = new Map();
         /** Alias of latestPayload */
-        this.l = this.latestPayloadOf;
+        this.ofKey = this.getPayloadStreamOfKey;
         this.future$ = this.source$.pipe((0, control_1.mapActionToPayload)(), rx.share());
         this.future$.subscribe(payload => {
             const key = keySelector(payload);
             this.snapshot.set(key, payload);
         });
     }
-    latestPayloadOf(key) {
+    getPayloadStreamOfKey(key) {
         if (this.snapshot.has(key)) {
             // replay last action
             return rx.concat(rx.of(this.snapshot.get(key)), this.future$.pipe(rx.filter(p => this.keySelector(p) === key)));

@@ -32,8 +32,8 @@ export function addupConfigs(onEachYaml: (file: string, configContent: string) =
       if (!m)
         return;
       const env = m[1];
-      if (!_.has(componentConfigs4Env, env))
-        componentConfigs4Env[env] = {browserSideConfigProp: []};
+      if (componentConfigs4Env[env] == null)
+        componentConfigs4Env[env] = {browserSideConfigProp: [] as string[]};
       _addupCompConfigProp(componentConfigs4Env[env], name, componentConfigs4Env[env].browserSideConfigProp, value);
     });
 

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createProcessService = exports.lookupPlinkRoot = void 0;
+exports.createProcessManager = exports.lookupPlinkRoot = void 0;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const Path = tslib_1.__importStar(require("node:path"));
@@ -8,9 +8,8 @@ const cp = tslib_1.__importStar(require("node:child_process"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const fork_for_preserve_symlink_1 = require("../fork-for-preserve-symlink");
-const cli_1 = require("../cmd/cli");
-const cmd_types_1 = require("./cmd.types");
 const process_common_1 = require("./process-common");
+const server_child_process_entry_1 = require("./server-child-process-entry");
 function lookupPlinkRoot(cwd) {
     const { root } = Path.parse(cwd);
     let plinkRoot;
@@ -24,31 +23,30 @@ function lookupPlinkRoot(cwd) {
     return plinkRoot;
 }
 exports.lookupPlinkRoot = lookupPlinkRoot;
-function createProcessService(log) {
+function createProcessManager(log) {
     const mainPlinkRoot = lookupPlinkRoot(process.cwd());
     const plinkProcessByDir = new Map();
-    if (mainPlinkRoot)
+    if (mainPlinkRoot) {
         plinkProcessByDir.set(mainPlinkRoot, { process: 'main', ready: true });
-    const processService = new reactivizer_1.ReactorComposite2({
+        server_child_process_entry_1.service.i.ft.setRootDir(mainPlinkRoot).dp();
+    }
+    else {
+        throw new Error('can not find @wfh/plink directory in');
+    }
+    const processManager = new reactivizer_1.ReactorComposite2({
         name: 'server-process',
-        debug: true,
-        outputTableFor: cmd_types_1.outputTableForCmdEntryProcEvents,
-        log
+        debug: true
     });
     /** Child process service */
     const cpService = new reactivizer_1.ReactorComposite2({
         name: 'cmdChildProcessProcProxy',
-        debug: true,
-        log
+        debug: true
     });
-    const { i, o, r } = processService;
-    r('init commander', rx.from((0, cli_1.defineCommander)(() => {
-        cpService.o.ft.onShutdown().dp();
-    })).pipe(rx.tap(program => o.ft.onCommanderInited(program).dp())));
+    const { i, o, r } = processManager;
     r('getProcessFor -> processFor', i.pt.getProcessFor.pipe(rx.map(([m, dir]) => {
         const root = lookupPlinkRoot(Path.resolve(dir));
         if (root == null) {
-            processService.dispatchErrorFor(new Error(`No installed PLink found for ${dir}`), m);
+            processManager.dispatchErrorFor(new Error(`No installed PLink found for ${dir}`), m);
         }
         return [m, root];
     }), rx.filter(([, root]) => root != null), rx.groupBy(([, dir]) => dir), rx.mergeMap(grouped$ => {
@@ -67,31 +65,31 @@ function createProcessService(log) {
                     o.ft.processFor(childProcess, dir).dp(m);
                 }
                 catch (e) {
-                    processService.dispatchErrorFor(e, m);
+                    processManager.dispatchErrorFor(e, m);
                 }
             }
         }));
     })));
     r('sendCommand (childProcess.onCommandDone, onCommandError) -> childProcess.doCommand', i.pt.sendCommand.pipe(
     // Join process creation information
-    rx.mergeMap(([m, [cols, rows], cwd, cmd, output]) => rx.combineLatest([
-        i.ft.getProcessFor(cwd).ddo(o.pt.processFor),
-        processService.outputTable.l.onCommanderInited
-    ]).pipe(rx.take(1), rx.map(([[, p, rootDir], [, commanderOfMainProc]]) => [m, cols, rows, cmd, output, p, rootDir, commanderOfMainProc, cwd]))), rx.groupBy(([, , , , , , rootDir]) => rootDir), rx.mergeMap(grouped => grouped.pipe(
+    rx.mergeMap(([m, [cols, rows], cwd, cmd, output]) => i.ft.getProcessFor(cwd).ddo(o.pt.processFor).pipe(rx.take(1), rx.map(([, p, rootDir]) => [
+        m, cols, rows, cmd, output, p,
+        rootDir, cwd
+    ]))), rx.groupBy(([, , , , , , rootDir]) => rootDir), rx.mergeMap(grouped => grouped.pipe(
     // Using concatMap: commands should be queued up by correspoding child process or rootDir
-    rx.concatMap(([m, cols, rows, cmd, output, p, rootDir, commanderOfMainProc, cwd]) => {
+    rx.concatMap(([m, cols, rows, cmd, output, p, rootDir, cwd]) => {
         var _a;
         if (p === 'main') {
             (0, process_common_1.setupTTY)(cols, rows);
-            Object.assign(process.stdout, output);
-            Object.assign(process.stderr, output);
-            process.chdir(cwd);
-            (0, fork_for_preserve_symlink_1.workDirChangedByCli)(cmd);
-            return rx.from((0, cli_1.parseCommand)(commanderOfMainProc, cmd)).pipe(rx.catchError(err => {
-                processService.dispatchErrorFor(err, m);
+            if (process.cwd() !== cwd) {
+                process.chdir(cwd);
+                (0, fork_for_preserve_symlink_1.workDirChangedByCli)(cmd);
+            }
+            return server_child_process_entry_1.service.i.ft.doCommand(cols, rows, cwd, cmd)
+                .ddo(server_child_process_entry_1.service.o.pt.onCommandDone).pipe(rx.take(1), rx.catchError(err => {
+                processManager.dispatchErrorFor(err, m);
                 return rx.EMPTY;
             }), rx.finalize(() => {
-                cpService.o.ft.onCommandDone().dp(m);
                 o.ft.onCommandDoneAnyway().dp(m);
             }));
         }
@@ -121,24 +119,34 @@ function createProcessService(log) {
         plinkProcessByDir.get(dir).ready = true;
         o.ft.onChildProcessReady(dir).dp(m);
     }), rx.take(1)))));
-    r('onShutdown', cpService.o.pt.onShutdown.pipe(rx.concatMap(() => rx.timer(500)), rx.mergeMap(() => rx.from(plinkProcessByDir.entries()).pipe(rx.mergeMap(([dir, { ready, process: child }]) => (child === 'main' ?
+    r('onShutdown -> dispose', rx.merge(server_child_process_entry_1.service.o.pt.onShutdown, cpService.o.pt.onShutdown).pipe(rx.concatMap(() => rx.timer(500)), rx.mergeMap(() => rx.from(plinkProcessByDir.entries()).pipe(rx.mergeMap(([dir, { ready, process: child }]) => (child === 'main' ?
         rx.of(null) :
         ready ?
             rx.of(child) :
             o.pt.onChildProcessReady.pipe(rx.filter(([, d]) => dir === d), rx.take(1), rx.map(() => child)))), rx.filter(isChild => isChild != null), rx.map(child => child.kill('SIGINT')), rx.finalize(() => {
         setTimeout(() => {
-            processService.dispose();
+            processManager.dispose();
             cpService.dispose();
         }, 20);
     })))));
-    r('interrupt', i.pt.interrupt.pipe(rx.mergeMap(([m, cwd]) => i.ft.getProcessFor(cwd).ddo(o.pt.processFor, m).pipe(rx.take(1), rx.map(([, ...param]) => [m, ...param]))), rx.groupBy(([, , root]) => root)));
+    r('interrupt', i.pt.interrupt.pipe(rx.mergeMap(([m, cwd]) => i.ft.getProcessFor(cwd).ddo(o.pt.processFor, m).pipe(rx.take(1), rx.map(([, ...param]) => [m, ...param]))), rx.groupBy(([, , root]) => root)
+    // rx.mergeMap(g$ => g$.pipe(
+    //   rx.exhaustMap(([, p, rootDir]) => {
+    //     if (p === 'main') {
+    //       i.ft.sendCommand([150, 50], rootDir, ['stop'], new );
+    //     } else 
+    //     // TODO
+    //   })
+    // ))
+    ));
     function createChildProcess(m, dir) {
         const p = cp.fork(plinkServerModule, ['' + m.i], {
             cwd: dir,
             stdio: 'pipe',
             detached: true
         });
-        log('fork new process', p.pid);
+        // eslint-disable-next-line no-console
+        console.log('server-process fork new process', p.pid);
         p.on('exit', (_code) => {
             plinkProcessByDir.delete(dir);
         });
@@ -157,7 +165,7 @@ function createProcessService(log) {
         //     rx.map(() => o.ft.onCommandDone().dp(m))
         //   ),
         //   processEvents.pt.onCommandError.pipe(
-        //     rx.map(([, err]) => processService.dispatchErrorFor(err, m))
+        //     rx.map(([, err]) => processManager.dispatchErrorFor(err, m))
         //   )
         // ).subscribe();
         return new Promise((resolve, rej) => {
@@ -165,8 +173,8 @@ function createProcessService(log) {
             p.on('spawn', () => resolve(p));
         });
     }
-    return processService;
+    return processManager;
 }
-exports.createProcessService = createProcessService;
+exports.createProcessManager = createProcessManager;
 const plinkServerModule = Path.resolve(__dirname, 'server-child-process-entry.js');
 //# sourceMappingURL=server-process.js.map

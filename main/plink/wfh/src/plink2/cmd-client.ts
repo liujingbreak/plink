@@ -1,4 +1,4 @@
-import {fork} from 'node:child_process';
+import * as child_process from 'node:child_process';
 import Path from 'path';
 import * as http from 'node:http';
 import chalk from 'chalk';
@@ -66,9 +66,14 @@ r('onReqError -> onConnRefused', o.pt.onReqError.pipe(
 
 r('startCmdServer, onConnRefused -> request()', o.pt.startCmdServer.pipe(
   rx.concatMap(([m]) => {
-    const cp = fork(Path.resolve(__dirname, 'cmd-server.js'), {
+    // const cp = fork(Path.resolve(__dirname, 'cmd-server.js'), {
+    //   stdio: 'ignore',
+    //   detached: true
+    // });
+    const cp = child_process.spawn('node', [Path.resolve(__dirname, 'cmd-server.js')], {
+      detached: true,
       stdio: 'ignore',
-      detached: true
+      shell: process.platform === 'win32'
     });
     cp.unref();
     cp.on('spawn', () => {
@@ -81,7 +86,7 @@ r('startCmdServer, onConnRefused -> request()', o.pt.startCmdServer.pipe(
         o.pt.onConnRefused.pipe(
           rx.concatMap(() => rx.timer(1000)),
           rx.map((_, idx) => {
-            if (idx < 3) {
+            if (idx < 10) {
               o.ft.requesting().dp(m);
             } else {
               console.error('Can not connect to daemon process');

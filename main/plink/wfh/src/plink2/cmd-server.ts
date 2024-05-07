@@ -9,10 +9,12 @@ import chalk from 'chalk';
 import {SingleActionFactory, ReactorComposite2} from '@wfh/reactivizer';
 import {initProcess} from '../utils/bootstrap-process';
 import {createProcessManager} from './server-process';
+import * as sps0 from './server-process-stdout';
 
 const startTime = new Date().getTime();
 process.env.__plinkLogMainPid = process.pid + '';
 initProcess('save');
+
 process.on('exit', (code) => {
   // eslint-disable-next-line no-console
   console.log((process.send || !isMainThread ? `[P${process.pid}.T${threadId}] ` : '') +
@@ -25,10 +27,20 @@ interface ServerInput {
   setTTYSize(col: number, rows: number): SingleActionFactory;
 }
 
-const fout = fs.createWriteStream('plink-daemon.log', {
-  flags: 'a',
-  encoding: 'binary'
-});
+let fout = process.stdout as stream.Writable;
+
+if (process.argv.every(arg => arg !== '--print-std')) {
+  console.log('Redirect ouput to file');
+  fout = fs.createWriteStream('plink-daemon.log', {
+    flags: 'a',
+    encoding: 'utf8'
+  });
+  const {createCurrentProcessOutputReader} = require('./server-process-stdout') as typeof sps0;
+  const [mainProcessStdoutReader4FileOut] = createCurrentProcessOutputReader();
+  mainProcessStdoutReader4FileOut.pipe(fout);
+} else {
+  console.log('Show output in terminal');
+}
 
 interface ServerEvents {
   started(port: number): SingleActionFactory;
@@ -44,9 +56,9 @@ const inputTableFor = ['setTTYSize'] as const;
 
 const outputTableFor = ['isStarted'] as const;
 
-process.stdout.on('data', chunk => fout.write(chunk));
+// process.stdout.on('data', chunk => fout.write(chunk));
 
-function reatorLog(msg: string, ...args: any[]) {
+function reactorLog(msg: string, ...args: any[]) {
   fout.write(new Date().toLocaleTimeString());
   fout.write(' ');
   fout.write(msg);
@@ -61,11 +73,11 @@ const service = new ReactorComposite2<ServerInput, ServerEvents, typeof inputTab
   name: 'PlinkCliServer',
   inputTableFor,
   outputTableFor,
-  log: reatorLog,
+  // log: reactorLog,
   debug: true
 });
 
-const processManager = createProcessManager(reatorLog);
+const processManager = createProcessManager(reactorLog);
 
 const {i, o, r, inputTable} = service;
 let server: http.Server | undefined;
@@ -94,6 +106,7 @@ r('start', i.pt.start.pipe(
             } else {
               buf.push(str);
             }
+            console.log(':: on request data', str, buf);
           });
           req.on('end', () => {
             o.ft.onRequestLine(req, res, buf.join('')).dp();

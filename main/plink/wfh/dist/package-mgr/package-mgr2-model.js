@@ -30,7 +30,7 @@ function createStoreService(base) {
                 else {
                     projPkgMap.set(proj, new Set([pkg.name]));
                 }
-            }), rx.takeUntil(i.pt.updatePackagesEnd.pipe((0, reactivizer_1.actionRelatedToAction)(m))), rx.count(), rx.map(() => {
+            }), rx.takeUntil(i.pt.updatePackagesEnd.pipe((0, reactivizer_1.actionRelatedToActionRelatives)(m))), rx.count(), rx.map(() => {
                 if (useless.size > 0) {
                     o.ft.onSourcPackageRemoved(useless.values()).dp(m.r);
                 }

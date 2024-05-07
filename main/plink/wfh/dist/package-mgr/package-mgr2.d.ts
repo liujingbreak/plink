@@ -35,7 +35,6 @@ interface PackageMgrEvents extends PackagesInternalSteps, PackageMgrFileEvents {
     onScanCompleted(): SingleActionFactory;
     onSpaceSynced(spaceKey: string): SingleActionFactory;
     rootPackageJson(json: RepoPackageJson): SingleActionFactory;
-    repoPkgJson(projKey: string, json: RepoPackageJson): SingleActionFactory;
     /** @param dirs each directory string must ends with path.sep */
     repoNoModuleSymlinkDirs(projDir: string, dirs: string[]): SingleActionFactory;
     rootDir(dir: string): SingleActionFactory;
@@ -45,5 +44,5 @@ interface PackageMgrEvents extends PackagesInternalSteps, PackageMgrFileEvents {
     linkedDrcp(pkgInfo: PackageInfo | null): SingleActionFactory;
     installedDrcp(pkgInfo: PackageInfo | null): SingleActionFactory;
 }
-declare const service: import("@wfh/reactivizer").ReactorCompositeMergeType2<ReactorComposite2<PackageMgrActions, PackageMgrEvents, readonly ["scan"], readonly ["rootPackageJson", "rootDir", "linkedDrcp", "installedDrcp"]>, import("./package-mgr2-model").PackageManager2ModelAction, import("./package-mgr2-model").PackageManager2ModuleEvent, readonly ["switchToSpace"], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>;
-export { service };
+export declare function createPackageMgrService(): import("@wfh/reactivizer").ReactorCompositeMergeType2<ReactorComposite2<PackageMgrActions, PackageMgrEvents, readonly ["scan"], readonly ["rootPackageJson", "rootDir", "linkedDrcp", "installedDrcp"]>, import("./package-mgr2-model").PackageManager2ModelAction, import("./package-mgr2-model").PackageManager2ModuleEvent, readonly ["switchToSpace"], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>;
+export {};

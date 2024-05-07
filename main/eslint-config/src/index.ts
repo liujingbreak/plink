@@ -4,6 +4,7 @@ import reactAppCfg from 'eslint-config-react-app';
 const reactOverride = reactAppCfg.overrides[0];
 
 class Configurable {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   rule = {
     root: true,
     ...reactAppCfg,

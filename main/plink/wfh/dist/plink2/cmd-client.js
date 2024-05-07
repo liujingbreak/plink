@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-const node_child_process_1 = require("node:child_process");
+const child_process = tslib_1.__importStar(require("node:child_process"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const http = tslib_1.__importStar(require("node:http"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
@@ -33,9 +33,14 @@ r('onReqError -> onConnRefused', o.pt.onReqError.pipe(rx.map(([, err]) => {
     }
 })));
 r('startCmdServer, onConnRefused -> request()', o.pt.startCmdServer.pipe(rx.concatMap(([m]) => {
-    const cp = (0, node_child_process_1.fork)(path_1.default.resolve(__dirname, 'cmd-server.js'), {
+    // const cp = fork(Path.resolve(__dirname, 'cmd-server.js'), {
+    //   stdio: 'ignore',
+    //   detached: true
+    // });
+    const cp = child_process.spawn('node', [path_1.default.resolve(__dirname, 'cmd-server.js')], {
+        detached: true,
         stdio: 'ignore',
-        detached: true
+        shell: process.platform === 'win32'
     });
     cp.unref();
     cp.on('spawn', () => {
@@ -43,7 +48,7 @@ r('startCmdServer, onConnRefused -> request()', o.pt.startCmdServer.pipe(rx.conc
         console.log('daemon process ID:', chalk_1.default.cyan(cp.pid));
     });
     return rx.concat(rx.timer(1500), rx.merge(o.pt.onConnRefused.pipe(rx.concatMap(() => rx.timer(1000)), rx.map((_, idx) => {
-        if (idx < 3) {
+        if (idx < 10) {
             o.ft.requesting().dp(m);
         }
         else {

@@ -32,8 +32,8 @@ export declare class ActionDataTable<I, T extends keyof I, K> {
     private keySelector;
     snapshot: Map<K, InferMapParam<I[T]>>;
     /** Alias of latestPayload */
-    l: (key: K) => rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
+    ofKey: (key: K) => rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
     private future$;
     constructor(source$: rx.Observable<Action<I[T]>>, keySelector: (payload: InferMapParam<I[T]>) => K);
-    latestPayloadOf(key: K): rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
+    getPayloadStreamOfKey(key: K): rx.Observable<[import("./stream-core").ActionMeta, ...InferPayload<I[T]>]>;
 }

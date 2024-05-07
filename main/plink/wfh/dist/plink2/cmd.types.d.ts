@@ -8,14 +8,15 @@ export interface ChildProcessCmdMsg {
     cwd: string;
     args: string[];
 }
-export interface CmdEntryChildProcessInput {
+export interface CmdChildProcessInput {
+    /** only main commander process (current process) needs this message, those real child process takes `process.cwd` */
+    setRootDir(dir: string): SingleActionFactory;
     doCommand(cols: number, rows: number, cwd: string, cmd: string[]): SingleActionFactory;
 }
-export interface CmdEntryChildProcessEvents {
+export interface CmdChildProcessEvents {
     onCommanderInited(commander: ReturnType<typeof defineCommander> extends Promise<infer T> ? T : unknown): SingleActionFactory;
     onCommandDone(): SingleActionFactory;
     onCommandError(error: string): SingleActionFactory;
     onShutdown(): SingleActionFactory;
     onReady(): SingleActionFactory;
 }
-export declare const outputTableForCmdEntryProcEvents: readonly ["onCommanderInited"];
