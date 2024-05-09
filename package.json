@@ -14,6 +14,7 @@
     "main/plink",
     "main/algorithms",
     "main/plink-cli",
+    "main/plink-test",
     "main/reactive-terminal-ui",
     "main/reactivizer",
     "main/eslint-config",

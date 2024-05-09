@@ -7,6 +7,7 @@ import {mapActionToPayload, actionRelatedToAction} from './control';
 import {PayloadByType, ActionByType} from './inferred-types';
 import {ActionDataTable} from './action-table';
 import {timeoutLog} from './utils';
+// import {addConfigurable} from './global-config';
 
 export type ActionFactory = {
   [k: string]: (...args: any[]) => SingleActionFactory;
@@ -135,6 +136,7 @@ export class RxController2<I> extends ControllerCore<I> {
 
   constructor(public opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
     super(opts);
+    // addConfigurable(this);
     const actionsByType = new Map<string | symbol, rx.Observable<Action<I[keyof I]>>>();
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -197,7 +199,7 @@ export class RxController2<I> extends ControllerCore<I> {
         const fn = (...args: InferPayload<I[keyof I]>): SingleActionFactory => {
           return new SingleActionFactoryImpl(key as keyof I, args, self, {
             slowLog() {
-              const msg = `Detected a slow responding message of dispatched action of "${key as string}"`;
+              const msg = `Detected a slow responding message of dispatched action of "${self.logPrefix} ${key as string}"`;
               if (self.opts?.log) {
                 self.opts!.log(msg);
               } else {
@@ -225,7 +227,21 @@ export class RxController2<I> extends ControllerCore<I> {
     return this.action$.pipe(
       rx.groupBy(keySelector),
       rx.map(grouped => {
-        const groupedRxCtl = new GroupedRxController2<I, K>(grouped.key, {...(groupedCtlOptionsFn ? groupedCtlOptionsFn(grouped.key) : {}), autoConnect: false});
+        const opts = groupedCtlOptionsFn ?
+          groupedCtlOptionsFn(grouped.key) :
+          this.opts ?
+            Object.entries(this.opts)
+              .filter(([p]) => p !== 'name' && p !== 'autoConnect')
+              .reduce((obj, [p, v]) => {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                obj[p as keyof CoreOptions<I>] = v as any;
+                return obj;
+              }, {} as CoreOptions<I>) :
+            {};
+
+        const groupedRxCtl = new GroupedRxController2<I, K>(
+          grouped.key,
+          {...opts, autoConnect: false});
 
         // connect to source actionUpstream only when it is subscribed
         rx.concat(

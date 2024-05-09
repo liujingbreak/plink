@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-export function timeoutLog(millseconds, log) {
+export function timeoutLog(millseconds, callbackOnTimeout) {
     return function (up) {
         let hasValue = false;
         return rx.merge(up.pipe(rx.map(v => {
@@ -7,7 +7,7 @@ export function timeoutLog(millseconds, log) {
             return v;
         })), rx.timer(millseconds).pipe(rx.map(() => {
             if (!hasValue) {
-                log();
+                callbackOnTimeout();
             }
         }), rx.take(1), rx.ignoreElements()));
     };

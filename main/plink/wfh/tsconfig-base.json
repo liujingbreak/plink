@@ -22,7 +22,7 @@
     "skipLibCheck": true,
     "newLine": "lf",
     "lib": [
-      "ES2017",
+      "ESNext",
       "DOM"
     ],
     "jsx": "preserve",

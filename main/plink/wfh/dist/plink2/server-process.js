@@ -1,8 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createProcessManager = exports.lookupPlinkRoot = void 0;
+exports.createProcessManager = void 0;
 const tslib_1 = require("tslib");
-const fs_1 = tslib_1.__importDefault(require("fs"));
 const Path = tslib_1.__importStar(require("node:path"));
 const cp = tslib_1.__importStar(require("node:child_process"));
 const rx = tslib_1.__importStar(require("rxjs"));
@@ -10,41 +9,37 @@ const reactivizer_1 = require("@wfh/reactivizer");
 const fork_for_preserve_symlink_1 = require("../fork-for-preserve-symlink");
 const process_common_1 = require("./process-common");
 const server_child_process_entry_1 = require("./server-child-process-entry");
-function lookupPlinkRoot(cwd) {
-    const { root } = Path.parse(cwd);
-    let plinkRoot;
-    while (cwd !== root) {
-        if (fs_1.default.existsSync(Path.join(cwd, 'node_modules/@wfh/plink'))) {
-            plinkRoot = cwd;
-            break;
-        }
-        cwd = Path.dirname(cwd);
-    }
-    return plinkRoot;
-}
-exports.lookupPlinkRoot = lookupPlinkRoot;
+const server_process_stdout_1 = require("./server-process-stdout");
+const cmd_model_1 = require("./cmd-model");
+const process_common_2 = require("./process-common");
 function createProcessManager(log) {
-    const mainPlinkRoot = lookupPlinkRoot(process.cwd());
+    const mainPlinkRoot = (0, process_common_2.lookupPlinkRoot)(process.cwd());
     const plinkProcessByDir = new Map();
     if (mainPlinkRoot) {
         plinkProcessByDir.set(mainPlinkRoot, { process: 'main', ready: true });
-        server_child_process_entry_1.service.i.ft.setRootDir(mainPlinkRoot).dp();
+        server_child_process_entry_1.service.i.ft.setRootDir(mainPlinkRoot, log).dp();
     }
     else {
         throw new Error('can not find @wfh/plink directory in');
     }
     const processManager = new reactivizer_1.ReactorComposite2({
         name: 'server-process',
-        debug: true
+        debug: false,
+        log
     });
     /** Child process service */
     const cpService = new reactivizer_1.ReactorComposite2({
         name: 'cmdChildProcessProcProxy',
-        debug: true
+        debug: false,
+        log
     });
     const { i, o, r } = processManager;
+    r('cmdModelService.enableRxMessageTrace ->', cmd_model_1.cmdModelService.inputTable.l.enableRxMessageTrace.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([, enabled]) => {
+        processManager.config({ debug: enabled });
+        cpService.config({ debug: enabled });
+    })));
     r('getProcessFor -> processFor', i.pt.getProcessFor.pipe(rx.map(([m, dir]) => {
-        const root = lookupPlinkRoot(Path.resolve(dir));
+        const root = (0, process_common_2.lookupPlinkRoot)(Path.resolve(dir));
         if (root == null) {
             processManager.dispatchErrorFor(new Error(`No installed PLink found for ${dir}`), m);
         }
@@ -85,11 +80,14 @@ function createProcessManager(log) {
                 process.chdir(cwd);
                 (0, fork_for_preserve_symlink_1.workDirChangedByCli)(cmd);
             }
+            const [stdout, stopReadStdout] = (0, server_process_stdout_1.createCurrentProcessOutputReader)(true);
+            stdout.pipe(output);
             return server_child_process_entry_1.service.i.ft.doCommand(cols, rows, cwd, cmd)
-                .ddo(server_child_process_entry_1.service.o.pt.onCommandDone).pipe(rx.take(1), rx.catchError(err => {
+                .ddo(server_child_process_entry_1.service.o.pt.onCommandDone).pipe(rx.take(1), rx.timeout(60000), rx.catchError(err => {
                 processManager.dispatchErrorFor(err, m);
                 return rx.EMPTY;
             }), rx.finalize(() => {
+                stopReadStdout();
                 o.ft.onCommandDoneAnyway().dp(m);
             }));
         }

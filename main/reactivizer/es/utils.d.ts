@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-export declare function timeoutLog<T>(millseconds: number, log: () => void): (up: rx.Observable<T>) => rx.Observable<T>;
+export declare function timeoutLog<T>(millseconds: number, callbackOnTimeout: () => void): (up: rx.Observable<T>) => rx.Observable<T>;
 /**
  * Turn string to web worker transferable `ArrayBuffer`
  */

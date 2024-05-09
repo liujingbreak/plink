@@ -185,7 +185,7 @@ export function languageServices( ts: any = _ts, opts: {
   formatDiagnosticFileName?(path: string): string;
   transformSourceFile?(path: string, content: string): string;
   watcher?: chokidar.WatchOptions;
-  tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]>;
+  tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]> | (() => _ts.CompilerOptions);
 } = {}
 ) {
   const ts0 = ts as typeof _ts;
@@ -202,7 +202,7 @@ export function languageServices( ts: any = _ts, opts: {
     getNewLine: () => _ts.sys.newLine
   };
 
-  const co = plinkNodeJsCompilerOption(ts0, opts.tscOpts);
+  const co = typeof opts.tscOpts === 'function' ? opts.tscOpts() : plinkNodeJsCompilerOption(ts0, opts.tscOpts);
 
   const serviceHost: _ts.LanguageServiceHost = {
     ...ts0.sys, // Important, default language service host does not implement methods like fileExists
@@ -290,8 +290,10 @@ export function languageServices( ts: any = _ts, opts: {
     )
   ));
 
-  const state$ = rx.combineLatest([outputTable.l.fileChanged, outputTable.l.versionsUpdated,
-    outputTable.l.fileContentCache, outputTable.l.unemittedUpdated]).pipe(
+  const state$ = rx.combineLatest([
+    outputTable.l.fileChanged, outputTable.l.versionsUpdated,
+    outputTable.l.fileContentCache, outputTable.l.unemittedUpdated
+  ]).pipe(
     rx.map(([[, files], [, versions], [, fileContentCache], [, unemitted]]) => [files, versions, fileContentCache, unemitted] as const)
   );
 

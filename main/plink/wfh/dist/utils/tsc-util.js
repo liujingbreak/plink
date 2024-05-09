@@ -111,7 +111,7 @@ function languageServices(ts = typescript_1.default, opts = {}) {
         getCurrentDirectory: typescript_1.default.sys.getCurrentDirectory,
         getNewLine: () => typescript_1.default.sys.newLine
     };
-    const co = plinkNodeJsCompilerOption(ts0, opts.tscOpts);
+    const co = typeof opts.tscOpts === 'function' ? opts.tscOpts() : plinkNodeJsCompilerOption(ts0, opts.tscOpts);
     const serviceHost = Object.assign(Object.assign({}, ts0.sys), { // Important, default language service host does not implement methods like fileExists
         getScriptFileNames() {
             return Array.from(outputTable.getData().fileChanged[0].values());
@@ -179,8 +179,10 @@ function languageServices(ts = typescript_1.default, opts = {}) {
             });
         };
     }))));
-    const state$ = rx.combineLatest([outputTable.l.fileChanged, outputTable.l.versionsUpdated,
-        outputTable.l.fileContentCache, outputTable.l.unemittedUpdated]).pipe(rx.map(([[, files], [, versions], [, fileContentCache], [, unemitted]]) => [files, versions, fileContentCache, unemitted]));
+    const state$ = rx.combineLatest([
+        outputTable.l.fileChanged, outputTable.l.versionsUpdated,
+        outputTable.l.fileContentCache, outputTable.l.unemittedUpdated
+    ]).pipe(rx.map(([[, files], [, versions], [, fileContentCache], [, unemitted]]) => [files, versions, fileContentCache, unemitted]));
     r('addSourceFile', i.pt.addSourceFile.pipe(rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)), rx.switchMap(([m, fileName, sync, content]) => {
         return state$.pipe(rx.take(1), rx.map(([files, versions, fileContentCache, unemitted]) => {
             files.add(fileName);

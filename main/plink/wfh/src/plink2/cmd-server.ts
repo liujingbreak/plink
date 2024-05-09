@@ -30,16 +30,15 @@ interface ServerInput {
 let fout = process.stdout as stream.Writable;
 
 if (process.argv.every(arg => arg !== '--print-std')) {
+  // eslint-disable-next-line no-console
   console.log('Redirect ouput to file');
   fout = fs.createWriteStream('plink-daemon.log', {
     flags: 'a',
-    encoding: 'utf8'
+    encoding: 'binary' // output chunk is most likely Buffer object
   });
   const {createCurrentProcessOutputReader} = require('./server-process-stdout') as typeof sps0;
   const [mainProcessStdoutReader4FileOut] = createCurrentProcessOutputReader();
   mainProcessStdoutReader4FileOut.pipe(fout);
-} else {
-  console.log('Show output in terminal');
 }
 
 interface ServerEvents {
@@ -70,11 +69,14 @@ function reactorLog(msg: string, ...args: any[]) {
 }
 
 const service = new ReactorComposite2<ServerInput, ServerEvents, typeof inputTableFor, typeof outputTableFor>({
-  name: 'PlinkCliServer',
+  name: 'cmd-server',
   inputTableFor,
   outputTableFor,
-  // log: reactorLog,
-  debug: true
+  log(msg, ...objs) {
+    // eslint-disable-next-line no-console
+    console.log(msg, ...objs.map(it => util.inspect(it, false, 0)));
+  },
+  debug: false
 });
 
 const processManager = createProcessManager(reactorLog);
@@ -106,7 +108,6 @@ r('start', i.pt.start.pipe(
             } else {
               buf.push(str);
             }
-            console.log(':: on request data', str, buf);
           });
           req.on('end', () => {
             o.ft.onRequestLine(req, res, buf.join('')).dp();
@@ -139,7 +140,7 @@ r('processManager.onChildProcessExit', processManager.destory$.pipe(
   ))
 ));
 
-r('onRequestLine', o.pt.onRequestLine.pipe(
+r('onRequestLine -> processManager.sendCommand', o.pt.onRequestLine.pipe(
   rx.mergeMap(([m, , res, line]) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json = JSON.parse(line);
@@ -159,7 +160,6 @@ r('onRequestLine', o.pt.onRequestLine.pipe(
     const out = new stream.Writable({
       write(chunk, _enc, cb) {
         res.write(chunk);
-        fout.write(chunk);
         cb();
       },
       final(cb) {
@@ -181,4 +181,3 @@ r('onRequestLine', o.pt.onRequestLine.pipe(
 
 i.ft.setTTYSize(150, 50).dp();
 i.ft.start().dp();
-

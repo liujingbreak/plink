@@ -10,3 +10,5 @@ node_modules
 /tsconfig.json
 *.bak
 /package-lock.json
+*/workspaces
+.plink.install.json

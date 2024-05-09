@@ -25,65 +25,82 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.assignActionReferParam = exports.actionMetaToStr = exports.nameOfAction = exports.ControllerCore = exports.has = void 0;
 const rx = __importStar(require("rxjs"));
+const global_config_1 = require("./global-config");
 let SEQ = 1;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 exports.has = Object.prototype.hasOwnProperty;
 class ControllerCore {
     constructor(opts) {
-        var _a;
         this.opts = opts;
         this.actionUpstream = new rx.Subject();
         /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
         this.interceptor$ = new rx.BehaviorSubject(a => a);
         this.typePrefix = '#' + SEQ++ + ' ';
-        this.logPrefix = ''; // TODO: a better identity to distinguish threads
+        this.logPrefix = '';
+        this.debugExcludeSet = new Set();
+        this.configChange = new rx.Subject();
         this.dispatcher = {};
         this.dispatcherFor = {};
         this.actionSubDispatcher = new rx.Subject();
         this.actionUnsubDispatcher = new rx.Subject();
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
-        this.debugExcludeSet = new Set((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : []);
-        this.debugIncludeSet = (opts === null || opts === void 0 ? void 0 : opts.debugIncludeTypes) ? new Set(opts.debugIncludeTypes) : null;
-        const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
-            ? this.actionUpstream.pipe((opts === null || opts === void 0 ? void 0 : opts.log) ?
-                rx.tap(action => {
-                    const type = nameOfAction(action);
-                    if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                        opts.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-                    }
-                }) :
-                (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                    rx.tap(action => {
-                        const type = nameOfAction(action);
-                        if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                            // eslint-disable-next-line no-console
-                            console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-                        }
-                    }) :
-                    rx.tap(action => {
-                        const type = nameOfAction(action);
-                        if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                            // eslint-disable-next-line no-console
-                            console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-                        }
-                    }))
-            : this.actionUpstream;
-        this.connectableAction$ = rx.connectable(this.interceptor$.pipe(rx.switchMap(interceptor => interceptor ?
-            debuggableAction$.pipe(interceptor) :
-            debuggableAction$)));
+        const actionPipeEmitter = new rx.ReplaySubject(1);
         this.action$ = rx.merge(
         // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
         // subscribed, since it will be subscribed along together with "connectableAction$"
-        this.connectableAction$, new rx.Observable(sub => {
+        actionPipeEmitter, new rx.Observable(sub => {
             // Notify that action$ is subscribed
             this.actionSubDispatcher.next();
             sub.complete();
-        })).pipe(rx.finalize(() => {
+        })).pipe(rx.switchMap(down => down), rx.finalize(() => {
             this.actionUnsubDispatcher.next();
         }), rx.share());
-        if ((opts === null || opts === void 0 ? void 0 : opts.autoConnect) == null || (opts === null || opts === void 0 ? void 0 : opts.autoConnect)) {
-            this.connectableAction$.connect();
-        }
+        this.configChange.pipe(rx.map(props => {
+            var _a, _b;
+            if (props.has('debugIncludeTypes')) {
+                this.debugIncludeSet = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) ? new Set(this.opts.debugIncludeTypes) : null;
+            }
+            if (props.has('debugExcludeTypes')) {
+                this.debugExcludeSet = new Set((_b = this.opts.debugExcludeTypes) !== null && _b !== void 0 ? _b : []);
+            }
+            if (props.has('debug') || props.has('log')) {
+                const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
+                    ? this.actionUpstream.pipe((opts === null || opts === void 0 ? void 0 : opts.log) ?
+                        rx.tap(action => {
+                            const type = nameOfAction(action);
+                            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                                opts.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                            }
+                        }) :
+                        (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+                            rx.tap(action => {
+                                const type = nameOfAction(action);
+                                if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                                    // eslint-disable-next-line no-console
+                                    console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                                }
+                            }) :
+                            rx.tap(action => {
+                                const type = nameOfAction(action);
+                                if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                                    // eslint-disable-next-line no-console
+                                    console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                                }
+                            }))
+                    : this.actionUpstream;
+                this.connectableAction$ = rx.connectable(this.interceptor$.pipe(rx.switchMap(interceptor => interceptor ?
+                    debuggableAction$.pipe(interceptor) :
+                    debuggableAction$)));
+                actionPipeEmitter.next(this.connectableAction$);
+                if ((opts === null || opts === void 0 ? void 0 : opts.autoConnect) == null || (opts === null || opts === void 0 ? void 0 : opts.autoConnect)) {
+                    this.connectableAction$.connect();
+                }
+            }
+        }), rx.catchError((err, src) => {
+            console.error('streamCore', err);
+            return src;
+        })).subscribe();
+        this.config(opts ? Object.assign(Object.assign({}, global_config_1.defaultConfig), opts) : Object.assign({}, global_config_1.defaultConfig));
         this.actionSubscribed$ = this.actionSubDispatcher.asObservable();
         this.actionUnsubscribed$ = this.actionUnsubDispatcher.asObservable();
     }
@@ -98,6 +115,27 @@ class ControllerCore {
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name) {
         this.logPrefix = name !== null && name !== void 0 ? name : this.typePrefix.trim();
+    }
+    config(opts) {
+        var _a;
+        if (this.lastConfig == null)
+            this.lastConfig = {};
+        const changedProperties = new Set();
+        for (const [p, v] of Object.entries(opts)) {
+            if (v !== ((_a = this.lastConfig) === null || _a === void 0 ? void 0 : _a[p])) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                this.lastConfig[p] = v;
+                changedProperties.add(p);
+            }
+        }
+        // for (const [p, v] of Object.entries(this.lastConfig)) {
+        //   if (v !== undefined && !has.call(opts, p as keyof RxControlConfigType)) {
+        //     delete this.lastConfig[p as keyof RxControlConfigType];
+        //     changedProperties.add(p as keyof RxControlConfigType);
+        //   }
+        // }
+        if (changedProperties.size > 0)
+            this.configChange.next(changedProperties);
     }
     /** This method is not meant to be used directly */
     dispatchFactory(type) {
@@ -126,14 +164,6 @@ class ControllerCore {
         this.dispatcherFor[type] = dispatch;
         return dispatch;
     }
-    // updateInterceptor(
-    //   factory: (
-    //     previous: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
-    //   ) => (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
-    // ) {
-    //   const newInterceptor = factory(this.interceptor$.getValue());
-    //   this.interceptor$.next(newInterceptor);
-    // }
     // eslint-disable-next-line space-before-function-paren
     ofType(...types) {
         return (up) => {
@@ -152,7 +182,7 @@ class ControllerCore {
         return action.t === this.typePrefix + type;
     }
     connect() {
-        this.connectableAction$.connect();
+        rx.concat(rx.of(this.connectableAction$), this.configChange).pipe(rx.filter(() => this.connectableAction$ != null), rx.map(() => this.connectableAction$), rx.take(1)).subscribe(() => this.connectableAction$.connect());
     }
 }
 exports.ControllerCore = ControllerCore;

@@ -87,6 +87,7 @@ class RxController2 extends stream_core_1.ControllerCore {
          * you don't need to use this Subject directory, it is meant to be extended by Reactivizer internally
          * */
         this.doOperator$ = new rx.BehaviorSubject((_dispatchingAction) => input => input);
+        // addConfigurable(this);
         const actionsByType = new Map();
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
@@ -136,7 +137,7 @@ class RxController2 extends stream_core_1.ControllerCore {
                     return new SingleActionFactoryImpl(key, args, self, {
                         slowLog() {
                             var _a;
-                            const msg = `Detected a slow responding message of dispatched action of "${key}"`;
+                            const msg = `Detected a slow responding message of dispatched action of "${self.logPrefix} ${key}"`;
                             if ((_a = self.opts) === null || _a === void 0 ? void 0 : _a.log) {
                                 self.opts.log(msg);
                             }
@@ -161,7 +162,18 @@ class RxController2 extends stream_core_1.ControllerCore {
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy(keySelector, groupedCtlOptionsFn) {
         return this.action$.pipe(rx.groupBy(keySelector), rx.map(grouped => {
-            const groupedRxCtl = new GroupedRxController2(grouped.key, Object.assign(Object.assign({}, (groupedCtlOptionsFn ? groupedCtlOptionsFn(grouped.key) : {})), { autoConnect: false }));
+            const opts = groupedCtlOptionsFn ?
+                groupedCtlOptionsFn(grouped.key) :
+                this.opts ?
+                    Object.entries(this.opts)
+                        .filter(([p]) => p !== 'name' && p !== 'autoConnect')
+                        .reduce((obj, [p, v]) => {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                        obj[p] = v;
+                        return obj;
+                    }, {}) :
+                    {};
+            const groupedRxCtl = new GroupedRxController2(grouped.key, Object.assign(Object.assign({}, opts), { autoConnect: false }));
             // connect to source actionUpstream only when it is subscribed
             rx.concat(groupedRxCtl.actionSubscribed$.pipe(rx.tap(() => {
                 groupedRxCtl.connect();

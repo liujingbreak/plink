@@ -75,7 +75,25 @@ export class ReactorComposite2<
     if (opts?.outputTableFor && opts?.outputTableFor.length > 0) {
       this.oTable = new ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
     }
-    this.o.pt._onErrorFor.pipe(
+    rx.merge(
+      this.o.pt._onErrorFor.pipe(
+        rx.catchError((err, src) => {
+          if (this.opts?.log)
+            this.opts.log(err);
+          else
+            console.error(err);
+          return src;
+        })
+      ),
+      this.reactorSubj.pipe(
+        rx.mergeMap(([label, downStream, noError]) => {
+          if (noError == null || !noError) {
+            downStream = this.handleError(downStream, label);
+          }
+          return downStream;
+        })
+      )
+    ).pipe(
       rx.takeUntil(this.destory$),
       rx.catchError((err, src) => {
         if (this.opts?.log)
@@ -102,6 +120,7 @@ export class ReactorComposite2<
         return src;
       })
     ).subscribe();
+
     this.dispose = () => {
       this.o.actionUpstream.next(this.o.createAction('ReactorsDisposed' as any));
       this.destory$.next();
@@ -116,7 +135,24 @@ export class ReactorComposite2<
     this.dispose();
   }
 
-
+  /**
+   * For properties "inputTableFor", "outputTableFor", the elements inside them are considered as being added new action
+   * keys to existing action table's structure
+   */
+  config(opts: Omit<ReactorCompositeOpt<I, O, LI, LO>, 'name' | 'autoConnect'>) {
+    if (opts.inputTableFor) {
+      this.inputTable.addActions(...opts.inputTableFor);
+    }
+    if (opts.outputTableFor) {
+      this.outputTable.addActions(...opts.outputTableFor);
+    }
+    super.config(Object.entries(opts).reduce((obj, [p, v]) => {
+      if (p !== 'inputTableFor' && p !== 'outputTableFor') {
+        obj[p as keyof typeof opts] = v as any;
+      }
+      return obj;
+    }, {} as typeof opts));
+  }
   // eslint-disable-next-line space-before-function-paren
   reactivize<F extends ActionFunctions>(fObject: F) {
     const funcs = Object.entries(fObject);
@@ -265,47 +301,55 @@ class ExtendHelper<
 
   to<G extends ReactorComposite2<any, any, any, any>>(base: G) {
     if (this.optsOverride) {
-      const opt = this.optsOverride;
-      if (opt.inputTableFor) {
-        base.inputTable.addActions(...opt.inputTableFor);
+      const opts = {...this.optsOverride};
+      if (this.optsOverride.debugIncludeTypes) {
+        opts.debugIncludeTypes = this.optsOverride.debugIncludeTypes.concat(base.i.opts?.debugIncludeTypes as any[] ?? []);
       }
-      if (opt.outputTableFor) {
-        base.outputTable.addActions(...opt.outputTableFor);
+      if (this.optsOverride.debugExcludeTypes) {
+        opts.debugExcludeTypes = this.optsOverride.debugExcludeTypes.concat(base.i.opts?.debugExcludeTypes as any[] ?? []);
       }
-      if (opt.debugIncludeTypes) {
-        if (base.i.debugIncludeSet) {
-          for (const item of opt.debugIncludeTypes) {
-            base.i.debugIncludeSet.add(item);
-          }
-        } else {
-          base.i.debugIncludeSet = new Set(opt.debugIncludeTypes);
-        }
+      base.config(opts);
+      // const opt = this.optsOverride;
+      // if (opt.inputTableFor) {
+      //   base.inputTable.addActions(...opt.inputTableFor);
+      // }
+      // if (opt.outputTableFor) {
+      //   base.outputTable.addActions(...opt.outputTableFor);
+      // }
+      // if (opt.debugIncludeTypes) {
+      //   if (base.i.debugIncludeSet) {
+      //     for (const item of opt.debugIncludeTypes) {
+      //       base.i.debugIncludeSet.add(item);
+      //     }
+      //   } else {
+      //     base.i.debugIncludeSet = new Set(opt.debugIncludeTypes);
+      //   }
 
-        if (base.o.debugIncludeSet) {
-          for (const item of opt.debugIncludeTypes) {
-            base.o.debugIncludeSet.add(item);
-          }
-        } else {
-          base.o.debugIncludeSet = new Set(opt.debugIncludeTypes);
-        }
-      }
-      if (opt.debugExcludeTypes) {
-        if (base.i.debugExcludeSet) {
-          for (const item of opt.debugExcludeTypes) {
-            base.i.debugExcludeSet.add(item);
-          }
-        } else {
-          base.i.debugExcludeSet = new Set(opt.debugIncludeTypes);
-        }
+      //   if (base.o.debugIncludeSet) {
+      //     for (const item of opt.debugIncludeTypes) {
+      //       base.o.debugIncludeSet.add(item);
+      //     }
+      //   } else {
+      //     base.o.debugIncludeSet = new Set(opt.debugIncludeTypes);
+      //   }
+      // }
+      // if (opt.debugExcludeTypes) {
+      //   if (base.i.debugExcludeSet) {
+      //     for (const item of opt.debugExcludeTypes) {
+      //       base.i.debugExcludeSet.add(item);
+      //     }
+      //   } else {
+      //     base.i.debugExcludeSet = new Set(opt.debugIncludeTypes);
+      //   }
 
-        if (base.o.debugExcludeSet) {
-          for (const item of opt.debugExcludeTypes) {
-            base.o.debugExcludeSet.add(item);
-          }
-        } else {
-          base.o.debugExcludeSet = new Set(opt.debugExcludeTypes);
-        }
-      }
+      //   if (base.o.debugExcludeSet) {
+      //     for (const item of opt.debugExcludeTypes) {
+      //       base.o.debugExcludeSet.add(item);
+      //     }
+      //   } else {
+      //     base.o.debugExcludeSet = new Set(opt.debugExcludeTypes);
+      //   }
+      // }
     }
     if (this.defineFn)
       this.defineFn(base);

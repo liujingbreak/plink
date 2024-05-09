@@ -39,6 +39,7 @@
   "engines": {
     "node": ">=4.0.0"
   },
+  "plink": true,
   "author": "Liu Jing",
   "license": "MIT",
   "bugs": {

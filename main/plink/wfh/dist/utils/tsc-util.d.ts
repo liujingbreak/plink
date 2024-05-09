@@ -50,7 +50,7 @@ export declare function languageServices(ts?: any, opts?: {
     formatDiagnosticFileName?(path: string): string;
     transformSourceFile?(path: string, content: string): string;
     watcher?: chokidar.WatchOptions;
-    tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]>;
+    tscOpts?: NonNullable<Parameters<typeof plinkNodeJsCompilerOption>[1]> | (() => _ts.CompilerOptions);
 }): ReactorComposite2<LangServiceActionCreator, LangServiceEvents, [], readonly ["versionsUpdated", "fileChanged", "unemittedUpdated", "setStopped", "fileContentCache"]>;
 export declare function registerNode(): void;
 export declare function test(dir: string): void;

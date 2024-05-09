@@ -10,7 +10,7 @@ export interface ChildProcessCmdMsg {
 }
 export interface CmdChildProcessInput {
     /** only main commander process (current process) needs this message, those real child process takes `process.cwd` */
-    setRootDir(dir: string): SingleActionFactory;
+    setRootDir(dir: string, log: (...msg: any) => void): SingleActionFactory;
     doCommand(cols: number, rows: number, cwd: string, cmd: string[]): SingleActionFactory;
 }
 export interface CmdChildProcessEvents {

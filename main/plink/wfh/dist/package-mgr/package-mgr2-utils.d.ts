@@ -1,5 +1,5 @@
 import { PackageInfo } from '../index';
-import { CompilerOptions } from './package-list-helper';
+import { CompilerOptions, CompilerOptionSetOpt } from './package-list-helper';
 export interface PackageJsonInterf {
     version: string;
     name: string;
@@ -23,3 +23,4 @@ export declare function createTsConfigForRepos(plinkPkgDir: string, isPlinkLinke
     exclude: string[];
     compilerOptions?: Partial<CompilerOptions> | undefined;
 }], void, unknown>;
+export declare function setTsCompilerOpts(tsconfigDir: string, assigneeOptions: Partial<CompilerOptions>, plinkRootDir: string, workspaceDir: string, srcPackages: Map<string, PackageInfo>, spaceDependedPkgs: Iterable<PackageInfo>, plinkSourcePkgDir?: string | null, opts?: Omit<CompilerOptionSetOpt, 'workspaceDir'>): CompilerOptions;

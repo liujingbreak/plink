@@ -4,6 +4,7 @@ import _ from 'lodash';
 import {PackageInfo} from '../index';
 import {closestCommonParentDir, getTscConfigOfPkg} from '../utils/misc';
 import {CompilerOptions, CompilerOptionSetOpt} from './package-list-helper';
+import {DirTree} from '../plink2/dir-tree';
 
 export interface PackageJsonInterf {
   version: string;
@@ -30,7 +31,7 @@ function createPackageInfoWithJson(pkJsonFile: string, json: PackageInfo['json']
     scope: m![1],
     path,
     json,
-    realPath: fs.realpathSync(Path.dirname(pkJsonFile)),
+    realPath: path,
     isInstalled
   };
   return pkInfo;
@@ -68,7 +69,7 @@ export function* createTsConfigForRepos(
     const tsjson: {extends?: string; include: string[]; exclude: string[]; compilerOptions?: Partial<CompilerOptions>} = {
       extends: undefined,
       include,
-      exclude: ['**/node_modules', '**/node_modules.*']
+      exclude: ['**/node_modules/**.*', '**/*.d.ts']
     };
     tsjson.extends = Path.relative(proj, baseTsConfigFile);
     if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
@@ -88,7 +89,7 @@ export function* createTsConfigForRepos(
       declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
       paths: {...extraPathMapping}
     };
-    setTsCompilerOptForNodePath(proj, tsjson.compilerOptions, plinkRootDir, workspaceDir, srcPackages,
+    setTsCompilerOpts(proj, tsjson.compilerOptions, plinkRootDir, workspaceDir, srcPackages,
       spaceDependedPkgs, isPlinkLinked ? plinkPkgDir : null, {
         enableTypeRoots: true,
         realPackagePaths: true
@@ -97,7 +98,7 @@ export function* createTsConfigForRepos(
   }
 }
 
-function setTsCompilerOptForNodePath(
+export function setTsCompilerOpts(
   tsconfigDir: string,
   assigneeOptions: Partial<CompilerOptions>,
   plinkRootDir: string,
@@ -149,6 +150,9 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath: string, srcPackages: Map<strin
   const pathMapping: {[key: string]: string[]} = {};
 
   for (const {name, realPath, json} of srcPackages.values()) {
+    if (name === '@wfh/plink') {
+      continue;
+    }
     const tsDirs = getTscConfigOfPkg(json);
     let realDir = Path.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
     const typeFile = json.types as string;
@@ -234,4 +238,25 @@ function typeRootsInPackages(spaceDependedPkgs: Iterable<PackageInfo>) {
     }
   }
   return dirs;
+}
+
+export class PlinkPackageLookup {
+  dirMap: DirTree<string> | undefined;
+
+  fromTsconfig(baseDir: string, json: {compilerOptions: {paths: Record<string, string[]>}}) {
+    const pkgPathMap = new Map<string, string>();
+    for (const [key, list] of Object.entries(json.compilerOptions.paths)) {
+      const match = /^((?:@[^/]+\/)?\/[^/]+)\/\*/.exec(key);
+      if (match) {
+        const path = list[0];
+        const relPath = /^.(?!\/\*)\/\*/.exec(path);
+        if (relPath) {
+          const pkgName = match[1];
+          pkgPathMap.set(pkgName, Path.resolve(baseDir, relPath[1]));
+          this.dirMap?.putData(relPath[1], pkgName);
+        }
+      }
+    }
+    console.log('package -> path', pkgPathMap);
+  }
 }

@@ -1,4 +1,5 @@
 import * as rx from 'rxjs';
+import { RxControlConfigType } from './global-config';
 export type ActionFunctions = Record<string, any>;
 export type EmptyActionFunctions = Record<string, never>;
 export type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
@@ -26,13 +27,20 @@ export type CoreOptions<I> = {
     * Refer to [https://rxjs.dev/api/index/function/connectable](https://rxjs.dev/api/index/function/connectable)
     * */
     autoConnect?: boolean;
+    /** default is `false`, setting `true` will print message in console log */
     debug?: boolean;
     /** Log all actions whose type is listed in this property, by default "undefined" means actions of all types will be logged. */
-    debugIncludeTypes?: (keyof I)[];
+    debugIncludeTypes?: (keyof I)[] | null;
     /** Exclude actions of specific types from "debugIncludeTypes" */
     debugExcludeTypes?: (keyof I)[];
+    /**
+     * "full" - print full message content, including "type" and "payload" tuple
+     * "noParam" - print message type, without payload tuple
+     */
     logStyle?: 'full' | 'noParam';
-    log?: (msg: string, ...objs: any[]) => unknown;
+    /** Use a customized log function
+     */
+    log?: null | ((msg: string, ...objs: any[]) => unknown);
 };
 export declare const has: (v: PropertyKey) => boolean;
 export declare class ControllerCore<I> {
@@ -43,21 +51,24 @@ export declare class ControllerCore<I> {
     typePrefix: string;
     logPrefix: string;
     action$: rx.Observable<Action<I[keyof I]>>;
-    debugIncludeSet: Set<string | number | symbol> | null;
+    debugIncludeSet: Set<string | number | symbol> | null | undefined;
     debugExcludeSet: Set<string | number | symbol>;
     /** Event when `action$` is first time subscribed */
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
+    configChange: rx.Subject<Set<"debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
     protected actionSubDispatcher: rx.Subject<void>;
     protected actionUnsubDispatcher: rx.Subject<void>;
     private connectableAction$;
+    private lastConfig;
     constructor(opts?: CoreOptions<I> | undefined);
     createAction<J = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J[K]>;
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name: string | null | undefined): void;
+    config(opts: RxControlConfigType<I>): void;
     /** This method is not meant to be used directly */
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]>;
     /** This method is not meant to be used directly */

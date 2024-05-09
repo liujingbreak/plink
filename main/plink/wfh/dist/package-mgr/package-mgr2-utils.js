@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTsConfigForRepos = exports.createPackageInfo = void 0;
+exports.setTsCompilerOpts = exports.createTsConfigForRepos = exports.createPackageInfo = void 0;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
@@ -21,7 +21,7 @@ function createPackageInfoWithJson(pkJsonFile, json, isInstalled = false) {
         scope: m[1],
         path,
         json,
-        realPath: node_fs_1.default.realpathSync(node_path_1.default.dirname(pkJsonFile)),
+        realPath: path,
         isInstalled
     };
     return pkInfo;
@@ -47,7 +47,7 @@ function* createTsConfigForRepos(plinkPkgDir, isPlinkLinked, workspaceDir, repoD
         const tsjson = {
             extends: undefined,
             include,
-            exclude: ['**/node_modules', '**/node_modules.*']
+            exclude: ['**/node_modules/**.*', '**/*.d.ts']
         };
         tsjson.extends = node_path_1.default.relative(proj, baseTsConfigFile);
         if (!node_path_1.default.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
@@ -66,7 +66,7 @@ function* createTsConfigForRepos(plinkPkgDir, isPlinkLinked, workspaceDir, repoD
             declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
             paths: Object.assign({}, extraPathMapping)
         };
-        setTsCompilerOptForNodePath(proj, tsjson.compilerOptions, plinkRootDir, workspaceDir, srcPackages, spaceDependedPkgs, isPlinkLinked ? plinkPkgDir : null, {
+        setTsCompilerOpts(proj, tsjson.compilerOptions, plinkRootDir, workspaceDir, srcPackages, spaceDependedPkgs, isPlinkLinked ? plinkPkgDir : null, {
             enableTypeRoots: true,
             realPackagePaths: true
         });
@@ -74,7 +74,7 @@ function* createTsConfigForRepos(plinkPkgDir, isPlinkLinked, workspaceDir, repoD
     }
 }
 exports.createTsConfigForRepos = createTsConfigForRepos;
-function setTsCompilerOptForNodePath(tsconfigDir, assigneeOptions, plinkRootDir, workspaceDir, srcPackages, spaceDependedPkgs, plinkSourcePkgDir, opts = { enableTypeRoots: false }) {
+function setTsCompilerOpts(tsconfigDir, assigneeOptions, plinkRootDir, workspaceDir, srcPackages, spaceDependedPkgs, plinkSourcePkgDir, opts = { enableTypeRoots: false }) {
     /** for paths mapping "*" */
     let pathsDirs = [];
     if (opts.realPackagePaths) {
@@ -104,9 +104,13 @@ function setTsCompilerOptForNodePath(tsconfigDir, assigneeOptions, plinkRootDir,
     appendTypeRoots(pathsDirs, tsconfigDir, spaceDependedPkgs, assigneeOptions, opts);
     return assigneeOptions;
 }
+exports.setTsCompilerOpts = setTsCompilerOpts;
 function pathMappingForLinkedPkgs(baseUrlAbsPath, srcPackages, plinkSourcePkgDir) {
     const pathMapping = {};
     for (const { name, realPath, json } of srcPackages.values()) {
+        if (name === '@wfh/plink') {
+            continue;
+        }
         const tsDirs = (0, misc_1.getTscConfigOfPkg)(json);
         let realDir = node_path_1.default.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
         const typeFile = json.types;

@@ -51,10 +51,10 @@ function createStoreService(base) {
             o.ft.data_spaceDependencyMap(spaceDependencyMap).dp(m);
         })));
         r('removeSpace -> [spacePkgMap], [spaceDependencyMap]', i.pt.removeSpace.pipe(rx.map(([m, key]) => {
-            spacePkgMap.delete(key);
-            spaceDependencyMap.delete(key);
-            o.ft.data_spaceDependencyMap(spaceDependencyMap).dp(m);
-            o.ft.data_spacePkgMap(spacePkgMap).dp(m);
+            if (spacePkgMap.delete(key))
+                o.ft.data_spacePkgMap(spacePkgMap).dp(m);
+            if (spaceDependencyMap.delete(key))
+                o.ft.data_spaceDependencyMap(spaceDependencyMap).dp(m);
         })));
         r('deletePackageOfSpace', i.pt.deletePackageOfSpace.pipe(rx.map(([m, key, pkg]) => {
             const pkgSet = spacePkgMap.get(key);
@@ -80,10 +80,10 @@ function createStoreService(base) {
         //   })
         // ));
         i.ft.switchToSpace(null).dp();
-        o.ft.data_spacePkgMap(spacePkgMap);
-        o.ft.data_spaceDependencyMap(spaceDependencyMap);
-        o.ft.data_allPackages(allPackages);
-        o.ft.data_projPkgMap(projPkgMap);
+        o.ft.data_spacePkgMap(spacePkgMap).dp();
+        o.ft.data_spaceDependencyMap(spaceDependencyMap).dp();
+        o.ft.data_allPackages(allPackages).dp();
+        o.ft.data_projPkgMap(projPkgMap).dp();
     }).to(base);
     return {
         // projPkgMap,

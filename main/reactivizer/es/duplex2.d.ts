@@ -1,5 +1,6 @@
 import { CoreOptions } from './stream-core';
 import { RxController2 } from './control2';
+import { RxControlConfigType } from './global-config';
 export type DuplexOptions<I = Record<string, never>> = CoreOptions<I>;
 export declare class DuplexController<I, O> {
     /** input actions controller, abbrevation name of "inputControl" */
@@ -12,4 +13,5 @@ export declare class DuplexController<I, O> {
     constructor(opts?: DuplexOptions<I & O>);
     /** Invoke `setName` on RxController */
     setName(value: string): void;
+    config(opts: RxControlConfigType<I & O>): void;
 }

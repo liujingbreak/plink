@@ -6,9 +6,12 @@ import {ReactorComposite2, serializeAction, deserializeAction2} from '@wfh/react
 import {initProcess} from '../utils/bootstrap-process';
 import {parseCommand} from '../cmd/cli';
 import {workDirChangedByCli} from '../fork-for-preserve-symlink';
+import {cmdModelService} from './cmd-model';
 import {define as defineCommand} from './cmd-definition';
 import {CmdChildProcessInput, CmdChildProcessEvents} from './cmd.types';
 import {setupTTY} from './process-common';
+// import inspector from 'inspector';
+// inspector.open(9222);
 
 const startTime = new Date().getTime();
 
@@ -33,9 +36,18 @@ const inputTableFor = ['setRootDir'] as const;
 const outputTableFor = ['onCommanderInited'] as const;
 export const service = new ReactorComposite2<CmdChildProcessInput, CmdChildProcessEvents, typeof inputTableFor, typeof outputTableFor>({
   name: 'server-child-process-entry',
-  debug: true,
+  debug: false,
   inputTableFor,
-  outputTableFor
+  outputTableFor,
+  log(msg, ...objs) {
+    // const [, logger] = service.inputTable.getData().setRootDir;
+    // if (logger) {
+    //   logger(msg, ...objs);
+    // } else {
+    // eslint-disable-next-line no-console
+    console.log(msg, ...objs.map(it => util.inspect(it, false, 0)));
+    // }
+  }
 });
 
 const {i, o, r, outputTable} = service;
@@ -49,6 +61,13 @@ const rootDir$ = (process.send ?
 r('setRootDir? -> onCommanderInited', rootDir$.pipe(
   rx.mergeMap(dir => defineCommand(dir, () => o.ft.onShutdown().dp())),
   rx.tap(program => o.ft.onCommanderInited(program).dp())
+));
+
+r('cmdModelService.enableRxMessageTrace ->', cmdModelService.inputTable.l.enableRxMessageTrace.pipe(
+  rx.distinctUntilChanged(([, a], [, b]) => a === b),
+  rx.map(([, enabled]) => {
+    service.config({debug: enabled});
+  })
 ));
 
 r('doCommand -> onCommandDone', i.pt.doCommand.pipe(
@@ -67,6 +86,7 @@ r('doCommand -> onCommandDone', i.pt.doCommand.pipe(
       o.ft.onCommandDone().dp(m);
     } catch (err) {
       o.ft.onCommandError(util.inspect(err)).dp(m);
+      service.dispatchErrorFor(err, m);
     }
   })
 ));

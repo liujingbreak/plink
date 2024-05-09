@@ -44,7 +44,19 @@ export class ReactorComposite2 extends DuplexController {
         if ((opts === null || opts === void 0 ? void 0 : opts.outputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.outputTableFor.length) > 0) {
             this.oTable = new ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
         }
-        this.o.pt._onErrorFor.pipe(rx.takeUntil(this.destory$), rx.catchError((err, src) => {
+        rx.merge(this.o.pt._onErrorFor.pipe(rx.catchError((err, src) => {
+            var _a;
+            if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
+                this.opts.log(err);
+            else
+                console.error(err);
+            return src;
+        })), this.reactorSubj.pipe(rx.mergeMap(([label, downStream, noError]) => {
+            if (noError == null || !noError) {
+                downStream = this.handleError(downStream, label);
+            }
+            return downStream;
+        }))).pipe(rx.takeUntil(this.destory$), rx.catchError((err, src) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
@@ -76,6 +88,24 @@ export class ReactorComposite2 extends DuplexController {
     /** @deprecated call dispose() instead */
     destory() {
         this.dispose();
+    }
+    /**
+     * For properties "inputTableFor", "outputTableFor", the elements inside them are considered as being added new action
+     * keys to existing action table's structure
+     */
+    config(opts) {
+        if (opts.inputTableFor) {
+            this.inputTable.addActions(...opts.inputTableFor);
+        }
+        if (opts.outputTableFor) {
+            this.outputTable.addActions(...opts.outputTableFor);
+        }
+        super.config(Object.entries(opts).reduce((obj, [p, v]) => {
+            if (p !== 'inputTableFor' && p !== 'outputTableFor') {
+                obj[p] = v;
+            }
+            return obj;
+        }, {}));
     }
     // eslint-disable-next-line space-before-function-paren
     reactivize(fObject) {
@@ -181,50 +211,55 @@ class ExtendHelper {
         return this;
     }
     to(base) {
+        var _a, _b, _c, _d;
         if (this.optsOverride) {
-            const opt = this.optsOverride;
-            if (opt.inputTableFor) {
-                base.inputTable.addActions(...opt.inputTableFor);
+            const opts = Object.assign({}, this.optsOverride);
+            if (this.optsOverride.debugIncludeTypes) {
+                opts.debugIncludeTypes = this.optsOverride.debugIncludeTypes.concat((_b = (_a = base.i.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) !== null && _b !== void 0 ? _b : []);
             }
-            if (opt.outputTableFor) {
-                base.outputTable.addActions(...opt.outputTableFor);
+            if (this.optsOverride.debugExcludeTypes) {
+                opts.debugExcludeTypes = this.optsOverride.debugExcludeTypes.concat((_d = (_c = base.i.opts) === null || _c === void 0 ? void 0 : _c.debugExcludeTypes) !== null && _d !== void 0 ? _d : []);
             }
-            if (opt.debugIncludeTypes) {
-                if (base.i.debugIncludeSet) {
-                    for (const item of opt.debugIncludeTypes) {
-                        base.i.debugIncludeSet.add(item);
-                    }
-                }
-                else {
-                    base.i.debugIncludeSet = new Set(opt.debugIncludeTypes);
-                }
-                if (base.o.debugIncludeSet) {
-                    for (const item of opt.debugIncludeTypes) {
-                        base.o.debugIncludeSet.add(item);
-                    }
-                }
-                else {
-                    base.o.debugIncludeSet = new Set(opt.debugIncludeTypes);
-                }
-            }
-            if (opt.debugExcludeTypes) {
-                if (base.i.debugExcludeSet) {
-                    for (const item of opt.debugExcludeTypes) {
-                        base.i.debugExcludeSet.add(item);
-                    }
-                }
-                else {
-                    base.i.debugExcludeSet = new Set(opt.debugIncludeTypes);
-                }
-                if (base.o.debugExcludeSet) {
-                    for (const item of opt.debugExcludeTypes) {
-                        base.o.debugExcludeSet.add(item);
-                    }
-                }
-                else {
-                    base.o.debugExcludeSet = new Set(opt.debugExcludeTypes);
-                }
-            }
+            base.config(opts);
+            // const opt = this.optsOverride;
+            // if (opt.inputTableFor) {
+            //   base.inputTable.addActions(...opt.inputTableFor);
+            // }
+            // if (opt.outputTableFor) {
+            //   base.outputTable.addActions(...opt.outputTableFor);
+            // }
+            // if (opt.debugIncludeTypes) {
+            //   if (base.i.debugIncludeSet) {
+            //     for (const item of opt.debugIncludeTypes) {
+            //       base.i.debugIncludeSet.add(item);
+            //     }
+            //   } else {
+            //     base.i.debugIncludeSet = new Set(opt.debugIncludeTypes);
+            //   }
+            //   if (base.o.debugIncludeSet) {
+            //     for (const item of opt.debugIncludeTypes) {
+            //       base.o.debugIncludeSet.add(item);
+            //     }
+            //   } else {
+            //     base.o.debugIncludeSet = new Set(opt.debugIncludeTypes);
+            //   }
+            // }
+            // if (opt.debugExcludeTypes) {
+            //   if (base.i.debugExcludeSet) {
+            //     for (const item of opt.debugExcludeTypes) {
+            //       base.i.debugExcludeSet.add(item);
+            //     }
+            //   } else {
+            //     base.i.debugExcludeSet = new Set(opt.debugIncludeTypes);
+            //   }
+            //   if (base.o.debugExcludeSet) {
+            //     for (const item of opt.debugExcludeTypes) {
+            //       base.o.debugExcludeSet.add(item);
+            //     }
+            //   } else {
+            //     base.o.debugExcludeSet = new Set(opt.debugExcludeTypes);
+            //   }
+            // }
         }
         if (this.defineFn)
             this.defineFn(base);

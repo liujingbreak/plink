@@ -21,7 +21,7 @@ export interface RepoPackageJson {
     };
 }
 export interface PackageManager2ModelAction {
-    switchToSpace(spaceKey: string | null): SingleActionFactory;
+    switchToSpace(spaceKeyOrDir: string | null): SingleActionFactory;
     updatePackagesBegin(): SingleActionFactory;
     addPackageToProject(proj: string, projectType: 'repo' | 'dir', pkg: PackageInfo): SingleActionFactory;
     updatePackagesEnd(): SingleActionFactory;

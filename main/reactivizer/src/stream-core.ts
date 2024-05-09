@@ -1,4 +1,5 @@
 import * as rx from 'rxjs';
+import {RxControlConfigType, defaultConfig} from './global-config';
 
 export type ActionFunctions = Record<string, any>; // instead of A indexed access type, since a "class type" can not be assigned to "Indexed access type with function type property"
 export type EmptyActionFunctions = Record<string, never>;
@@ -36,13 +37,20 @@ export type CoreOptions<I> = {
   * Refer to [https://rxjs.dev/api/index/function/connectable](https://rxjs.dev/api/index/function/connectable)
   * */
   autoConnect?: boolean;
+  /** default is `false`, setting `true` will print message in console log */
   debug?: boolean;
   /** Log all actions whose type is listed in this property, by default "undefined" means actions of all types will be logged. */
-  debugIncludeTypes?: (keyof I)[];
+  debugIncludeTypes?: (keyof I)[] | null;
   /** Exclude actions of specific types from "debugIncludeTypes" */
   debugExcludeTypes?: (keyof I)[];
+  /**
+   * "full" - print full message content, including "type" and "payload" tuple
+   * "noParam" - print message type, without payload tuple
+   */
   logStyle?: 'full' | 'noParam';
-  log?: (msg: string, ...objs: any[]) => unknown;
+  /** Use a customized log function
+   */
+  log?: null | ((msg: string, ...objs: any[]) => unknown);
 };
 
 let SEQ = 1;
@@ -55,79 +63,102 @@ export class ControllerCore<I> {
   /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
   interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>(a => a);
   typePrefix = '#' + SEQ++ + ' ';
-  logPrefix = ''; // TODO: a better identity to distinguish threads
+  logPrefix = '';
   action$: rx.Observable<Action<I[keyof I]>>;
-  debugIncludeSet: Set<string | number | symbol> | null;
-  debugExcludeSet: Set<string | number | symbol>;
+  debugIncludeSet: Set<string | number | symbol> | null | undefined;
+  debugExcludeSet: Set<string | number | symbol> = new Set();
 
   /** Event when `action$` is first time subscribed */
   actionSubscribed$: rx.Observable<void>;
   /** Event when `action$` is entirely unsubscribed by all observers */
   actionUnsubscribed$: rx.Observable<void>;
+  configChange = new rx.Subject<Set<keyof RxControlConfigType<I>>>();
+
   protected dispatcher = {} as {[K in keyof I]: Dispatch<I[K]>};
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[K]>};
   protected actionSubDispatcher = new rx.Subject<void>();
   protected actionUnsubDispatcher = new rx.Subject<void>();
-  private connectableAction$: rx.Connectable<Action<I[keyof I]>>;
+  private connectableAction$: rx.Connectable<Action<I[keyof I]>> | undefined;
+  private lastConfig: RxControlConfigType<I> | undefined;
 
   constructor(public opts?: CoreOptions<I>) {
     this.setName(opts?.name);
-    this.debugExcludeSet = new Set(opts?.debugExcludeTypes ?? []);
-    this.debugIncludeSet = opts?.debugIncludeTypes ? new Set(opts.debugIncludeTypes) : null;
-
-    const debuggableAction$ = opts?.debug
-      ? this.actionUpstream.pipe(
-        opts?.log ?
-          rx.tap(action => {
-            const type = nameOfAction(action);
-            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-              opts.log!(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-            }
-          }) :
-          (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-            rx.tap(action => {
-              const type = nameOfAction(action);
-              if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                // eslint-disable-next-line no-console
-                console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;',
-                  type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-              }
-            }) :
-            rx.tap(action => {
-              const type = nameOfAction(action);
-              if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                // eslint-disable-next-line no-console
-                console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-              }
-            })
-      )
-      : this.actionUpstream;
-
-    this.connectableAction$ = rx.connectable(this.interceptor$.pipe(
-      rx.switchMap(interceptor => interceptor ?
-        debuggableAction$.pipe(interceptor) :
-        debuggableAction$)
-    ));
-
+    const actionPipeEmitter = new rx.ReplaySubject<rx.Observable<Action<I[keyof I]>>>(1);
     this.action$ = rx.merge(
       // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
       // subscribed, since it will be subscribed along together with "connectableAction$"
-      this.connectableAction$,
+      actionPipeEmitter,
       new rx.Observable<never>(sub => {
         // Notify that action$ is subscribed
         this.actionSubDispatcher.next();
         sub.complete();
       })
     ).pipe(
+      rx.switchMap(down => down),
       rx.finalize(() => {
         this.actionUnsubDispatcher.next();
       }),
       rx.share()
     );
 
-    if (opts?.autoConnect == null || opts?.autoConnect) {
-      this.connectableAction$.connect();
-    }
+    this.configChange.pipe(
+      rx.map(props => {
+        if (props.has('debugIncludeTypes')) {
+          this.debugIncludeSet = this.opts?.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null;
+        }
+        if (props.has('debugExcludeTypes')) {
+          this.debugExcludeSet = new Set(this.opts!.debugExcludeTypes ?? []);
+        }
+        if (props.has('debug') || props.has('log')) {
+          const debuggableAction$ = opts?.debug
+            ? this.actionUpstream.pipe(
+              opts?.log ?
+                rx.tap(action => {
+                  const type = nameOfAction(action);
+                  if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                    opts.log!(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                  }
+                }) :
+                (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+                  rx.tap(action => {
+                    const type = nameOfAction(action);
+                    if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                      // eslint-disable-next-line no-console
+                      console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;',
+                        type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                    }
+                  }) :
+                  rx.tap(action => {
+                    const type = nameOfAction(action);
+                    if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                      // eslint-disable-next-line no-console
+                      console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                    }
+                  })
+            )
+            : this.actionUpstream;
+
+          this.connectableAction$ = rx.connectable(this.interceptor$.pipe(
+            rx.switchMap(interceptor => interceptor ?
+              debuggableAction$.pipe(interceptor) :
+              debuggableAction$)
+          ));
+          actionPipeEmitter.next(this.connectableAction$);
+
+          if (opts?.autoConnect == null || opts?.autoConnect) {
+            this.connectableAction$.connect();
+          }
+        }
+      }),
+      rx.catchError((err, src) => {
+        console.error('streamCore', err);
+        return src;
+      })
+    ).subscribe();
+
+    this.config(opts ?
+      {...defaultConfig as RxControlConfigType<I>, ...opts} :
+      {...defaultConfig as RxControlConfigType<I>});
     this.actionSubscribed$ = this.actionSubDispatcher.asObservable();
     this.actionUnsubscribed$ = this.actionUnsubDispatcher.asObservable();
   }
@@ -144,6 +175,27 @@ export class ControllerCore<I> {
   /** change the "name" as previous specified in CoreOptions of constructor */
   setName(name: string | null | undefined) {
     this.logPrefix = name ?? this.typePrefix.trim();
+  }
+
+  config(opts: RxControlConfigType<I>) {
+    if (this.lastConfig == null)
+      this.lastConfig = {} as CoreOptions<I>;
+    const changedProperties = new Set<keyof RxControlConfigType>();
+    for (const [p, v] of Object.entries(opts)) {
+      if (v !== this.lastConfig?.[p as keyof RxControlConfigType<I>]) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        this.lastConfig[p as unknown as keyof RxControlConfigType<I>] = v as any;
+        changedProperties.add(p as keyof RxControlConfigType);
+      }
+    }
+    // for (const [p, v] of Object.entries(this.lastConfig)) {
+    //   if (v !== undefined && !has.call(opts, p as keyof RxControlConfigType)) {
+    //     delete this.lastConfig[p as keyof RxControlConfigType];
+    //     changedProperties.add(p as keyof RxControlConfigType);
+    //   }
+    // }
+    if (changedProperties.size > 0)
+      this.configChange.next(changedProperties);
   }
 
   /** This method is not meant to be used directly */
@@ -175,15 +227,6 @@ export class ControllerCore<I> {
     return dispatch;
   }
 
-  // updateInterceptor(
-  //   factory: (
-  //     previous: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
-  //   ) => (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>
-  // ) {
-  //   const newInterceptor = factory(this.interceptor$.getValue());
-  //   this.interceptor$.next(newInterceptor);
-  // }
-
   // eslint-disable-next-line space-before-function-paren
   ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[T[number]]>> {
     return (up: rx.Observable<Action<any>>) => {
@@ -209,7 +252,14 @@ export class ControllerCore<I> {
   }
 
   connect() {
-    this.connectableAction$.connect();
+    rx.concat(
+      rx.of(this.connectableAction$),
+      this.configChange
+    ).pipe(
+      rx.filter(() => this.connectableAction$ != null),
+      rx.map(() => this.connectableAction$),
+      rx.take(1)
+    ).subscribe(() => this.connectableAction$!.connect());
   }
 }
 

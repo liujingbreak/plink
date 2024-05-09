@@ -33,14 +33,16 @@ r('onReqError -> onConnRefused', o.pt.onReqError.pipe(rx.map(([, err]) => {
     }
 })));
 r('startCmdServer, onConnRefused -> request()', o.pt.startCmdServer.pipe(rx.concatMap(([m]) => {
+    // child_process.fork is not stable, it will quit by itself when second request is recieved, I have no clue on this.
+    // It seems child_process.spawn works fine
     // const cp = fork(Path.resolve(__dirname, 'cmd-server.js'), {
     //   stdio: 'ignore',
     //   detached: true
     // });
-    const cp = child_process.spawn('node', [path_1.default.resolve(__dirname, 'cmd-server.js')], {
+    const cp = child_process.spawn(process.argv[0], [path_1.default.resolve(__dirname, 'cmd-server.js')], {
         detached: true,
-        stdio: 'ignore',
-        shell: process.platform === 'win32'
+        stdio: 'ignore'
+        // shell: process.platform === 'win32'
     });
     cp.unref();
     cp.on('spawn', () => {
@@ -48,7 +50,7 @@ r('startCmdServer, onConnRefused -> request()', o.pt.startCmdServer.pipe(rx.conc
         console.log('daemon process ID:', chalk_1.default.cyan(cp.pid));
     });
     return rx.concat(rx.timer(1500), rx.merge(o.pt.onConnRefused.pipe(rx.concatMap(() => rx.timer(1000)), rx.map((_, idx) => {
-        if (idx < 10) {
+        if (idx < 20) {
             o.ft.requesting().dp(m);
         }
         else {

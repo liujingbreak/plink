@@ -10,8 +10,11 @@ const reactivizer_1 = require("@wfh/reactivizer");
 const bootstrap_process_1 = require("../utils/bootstrap-process");
 const cli_1 = require("../cmd/cli");
 const fork_for_preserve_symlink_1 = require("../fork-for-preserve-symlink");
+const cmd_model_1 = require("./cmd-model");
 const cmd_definition_1 = require("./cmd-definition");
 const process_common_1 = require("./process-common");
+// import inspector from 'inspector';
+// inspector.open(9222);
 const startTime = new Date().getTime();
 if (process.send) {
     process.on('message', (msg) => {
@@ -33,15 +36,27 @@ const inputTableFor = ['setRootDir'];
 const outputTableFor = ['onCommanderInited'];
 exports.service = new reactivizer_1.ReactorComposite2({
     name: 'server-child-process-entry',
-    debug: true,
+    debug: false,
     inputTableFor,
-    outputTableFor
+    outputTableFor,
+    log(msg, ...objs) {
+        // const [, logger] = service.inputTable.getData().setRootDir;
+        // if (logger) {
+        //   logger(msg, ...objs);
+        // } else {
+        // eslint-disable-next-line no-console
+        console.log(msg, ...objs.map(it => node_util_1.default.inspect(it, false, 0)));
+        // }
+    }
 });
 const { i, o, r, outputTable } = exports.service;
 const rootDir$ = (process.send ?
     rx.of(process.cwd()) :
     exports.service.inputTable.l.setRootDir.pipe(rx.map(([, dir]) => dir)));
 r('setRootDir? -> onCommanderInited', rootDir$.pipe(rx.mergeMap(dir => (0, cmd_definition_1.define)(dir, () => o.ft.onShutdown().dp())), rx.tap(program => o.ft.onCommanderInited(program).dp())));
+r('cmdModelService.enableRxMessageTrace ->', cmd_model_1.cmdModelService.inputTable.l.enableRxMessageTrace.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([, enabled]) => {
+    exports.service.config({ debug: enabled });
+})));
 r('doCommand -> onCommandDone', i.pt.doCommand.pipe(rx.mergeMap((a) => outputTable.l.onCommanderInited.pipe(rx.map(([, commander]) => [...a, commander]), rx.take(1))), rx.mergeMap(async ([m, cols, rows, cwd, cmd, commander]) => {
     (0, process_common_1.setupTTY)(cols, rows);
     if (process.cwd() !== cwd) {
@@ -54,6 +69,7 @@ r('doCommand -> onCommandDone', i.pt.doCommand.pipe(rx.mergeMap((a) => outputTab
     }
     catch (err) {
         o.ft.onCommandError(node_util_1.default.inspect(err)).dp(m);
+        exports.service.dispatchErrorFor(err, m);
     }
 })));
 if (process.send) {

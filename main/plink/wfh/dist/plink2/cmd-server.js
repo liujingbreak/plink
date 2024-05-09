@@ -21,17 +21,15 @@ process.on('exit', (code) => {
 });
 let fout = process.stdout;
 if (process.argv.every(arg => arg !== '--print-std')) {
+    // eslint-disable-next-line no-console
     console.log('Redirect ouput to file');
     fout = fs_1.default.createWriteStream('plink-daemon.log', {
         flags: 'a',
-        encoding: 'utf8'
+        encoding: 'binary' // output chunk is most likely Buffer object
     });
     const { createCurrentProcessOutputReader } = require('./server-process-stdout');
     const [mainProcessStdoutReader4FileOut] = createCurrentProcessOutputReader();
     mainProcessStdoutReader4FileOut.pipe(fout);
-}
-else {
-    console.log('Show output in terminal');
 }
 const inputTableFor = ['setTTYSize'];
 const outputTableFor = ['isStarted'];
@@ -47,11 +45,14 @@ function reactorLog(msg, ...args) {
     fout.write('\n');
 }
 const service = new reactivizer_1.ReactorComposite2({
-    name: 'PlinkCliServer',
+    name: 'cmd-server',
     inputTableFor,
     outputTableFor,
-    // log: reactorLog,
-    debug: true
+    log(msg, ...objs) {
+        // eslint-disable-next-line no-console
+        console.log(msg, ...objs.map(it => util.inspect(it, false, 0)));
+    },
+    debug: false
 });
 const processManager = (0, server_process_1.createProcessManager)(reactorLog);
 const { i, o, r, inputTable } = service;
@@ -75,7 +76,6 @@ r('start', i.pt.start.pipe(rx.exhaustMap(([m, port]) => {
                 else {
                     buf.push(str);
                 }
-                console.log(':: on request data', str, buf);
             });
             req.on('end', () => {
                 o.ft.onRequestLine(req, res, buf.join('')).dp();
@@ -97,7 +97,7 @@ r('processManager.onChildProcessExit', processManager.destory$.pipe(rx.exhaustMa
     service.dispose();
     server === null || server === void 0 ? void 0 : server.close();
 })))));
-r('onRequestLine', o.pt.onRequestLine.pipe(rx.mergeMap(([m, , res, line]) => {
+r('onRequestLine -> processManager.sendCommand', o.pt.onRequestLine.pipe(rx.mergeMap(([m, , res, line]) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json = JSON.parse(line);
     const [cmd] = json;
@@ -116,7 +116,6 @@ r('onRequestLine', o.pt.onRequestLine.pipe(rx.mergeMap(([m, , res, line]) => {
     const out = new stream.Writable({
         write(chunk, _enc, cb) {
             res.write(chunk);
-            fout.write(chunk);
             cb();
         },
         final(cb) {

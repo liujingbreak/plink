@@ -25,7 +25,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.arrayBuffer2ascii = exports.ascii2ArrayBuffer = exports.arrayBuffer2str = exports.str2ArrayBuffer = exports.timeoutLog = void 0;
 const rx = __importStar(require("rxjs"));
-function timeoutLog(millseconds, log) {
+function timeoutLog(millseconds, callbackOnTimeout) {
     return function (up) {
         let hasValue = false;
         return rx.merge(up.pipe(rx.map(v => {
@@ -33,7 +33,7 @@ function timeoutLog(millseconds, log) {
             return v;
         })), rx.timer(millseconds).pipe(rx.map(() => {
             if (!hasValue) {
-                log();
+                callbackOnTimeout();
             }
         }), rx.take(1), rx.ignoreElements()));
     };

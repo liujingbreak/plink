@@ -29,8 +29,7 @@ async function scanNodeModules(dir = process.cwd(), deleteOption = 'invalid') {
 }
 exports.default = scanNodeModules;
 function listModuleSymlinks(parentDir, onFound) {
-    // const level1Dirs = await readdirAsync(parentDir);
-    return rx.from(fs.promises.readdir(parentDir)).pipe(op.concatMap(level1Dirs => level1Dirs), op.mergeMap(dirname => {
+    return rx.firstValueFrom(rx.from(fs.promises.readdir(parentDir)).pipe(op.concatMap(level1Dirs => level1Dirs), op.mergeMap(dirname => {
         const dir = path_1.default.resolve(parentDir, dirname);
         if (dirname.startsWith('@') && fs.statSync(dir).isDirectory()) {
             // it is a scope package
@@ -40,7 +39,7 @@ function listModuleSymlinks(parentDir, onFound) {
         else {
             return onEachFile(dir);
         }
-    })).toPromise();
+    })));
     // await Promise.all(level1Dirs.map(async dir => {
     //   if (dir.startsWith('@')) {
     //     // it is a scope package
@@ -86,6 +85,10 @@ async function symlinkAsync(linkTarget, link) {
         // link does not exist
         // console.log(ex);
     }
+    try {
+        await fs.promises.mkdir(path_1.default.dirname(link));
+    }
+    catch (e) { /* empty */ }
     // eslint-disable-next-line no-console
     console.log(`create symlink ${link} --> ${linkTarget}`);
     await fs.promises.symlink(path_1.default.relative(path_1.default.dirname(link), path_1.default.resolve(linkTarget)), link, exports.isWin32 ? 'junction' : 'dir');

@@ -1,14 +1,14 @@
 import { ReactorComposite2, SingleActionFactory } from '@wfh/reactivizer';
 import { RepoPackageJson } from './package-mgr2-model';
 import { PackageJsonInterf } from './package-mgr2-utils';
-import type { NpmOptions, PackageInfo } from './index';
+import type { PackageInfo } from './index';
 type PackageMgrActions = {
     /** scan current project,
      * Related by actions: rootPackageJson
      **/
     scan(rootDir: string): SingleActionFactory;
     /** Create symlinks and install dependency */
-    runInstall(spaceDir: string, npmOpts?: NpmOptions): SingleActionFactory;
+    runInstall(): SingleActionFactory;
 };
 interface PackagesInternalSteps {
     checkSpace(spaceKey: string): SingleActionFactory;
@@ -18,8 +18,7 @@ interface PackagesInternalSteps {
     didSyncSpacePackages(): SingleActionFactory;
     didCheckSpace(key: string, spacePackageJson: PackageJsonInterf): SingleActionFactory;
     didSwitchSpace(spaceKey: string, symlinksToSpace: string[], actuallyCreated: string[], workspaceCount: number, tsconfiFileWritten: number): SingleActionFactory;
-    doSymlinksOfSrcPkg(): SingleActionFactory;
-    didAllSymlinks(countCreated: number, countDeleted: number): SingleActionFactory;
+    didRunInstall(spaceKey: string): SingleActionFactory;
 }
 /** Intercept these messages to replace with virtual file operations, in case we need to test or for "dry run" */
 interface PackageMgrFileEvents {

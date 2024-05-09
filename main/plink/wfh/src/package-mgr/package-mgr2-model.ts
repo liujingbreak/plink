@@ -24,7 +24,7 @@ export interface RepoPackageJson {
 }
 
 export interface PackageManager2ModelAction {
-  switchToSpace(spaceKey: string | null): SingleActionFactory;
+  switchToSpace(spaceKeyOrDir: string | null): SingleActionFactory;
 
   updatePackagesBegin(): SingleActionFactory;
   addPackageToProject(proj: string, projectType: 'repo' | 'dir', pkg: PackageInfo): SingleActionFactory;
@@ -110,10 +110,11 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
 
     r('removeSpace -> [spacePkgMap], [spaceDependencyMap]', i.pt.removeSpace.pipe(
       rx.map(([m, key]) => {
-        spacePkgMap.delete(key);
-        spaceDependencyMap.delete(key);
-        o.ft.data_spaceDependencyMap(spaceDependencyMap).dp(m);
-        o.ft.data_spacePkgMap(spacePkgMap).dp(m);
+        if (spacePkgMap.delete(key))
+          o.ft.data_spacePkgMap(spacePkgMap).dp(m);
+
+        if (spaceDependencyMap.delete(key))
+          o.ft.data_spaceDependencyMap(spaceDependencyMap).dp(m);
       })
     ));
 
@@ -147,10 +148,10 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
     //   })
     // ));
     i.ft.switchToSpace(null).dp();
-    o.ft.data_spacePkgMap(spacePkgMap);
-    o.ft.data_spaceDependencyMap(spaceDependencyMap);
-    o.ft.data_allPackages(allPackages);
-    o.ft.data_projPkgMap(projPkgMap);
+    o.ft.data_spacePkgMap(spacePkgMap).dp();
+    o.ft.data_spaceDependencyMap(spaceDependencyMap).dp();
+    o.ft.data_allPackages(allPackages).dp();
+    o.ft.data_projPkgMap(projPkgMap).dp();
   }).to(base);
 
   return {

@@ -16,6 +16,10 @@ class DuplexController {
         this.i.setName(value + `#${this.id}.i `);
         this.o.setName(value + `#${this.id}.o `);
     }
+    config(opts) {
+        this.i.config(opts);
+        this.o.config(opts);
+    }
 }
 exports.DuplexController = DuplexController;
 //# sourceMappingURL=duplex2.js.map

@@ -1,4 +1,3 @@
-import fs from 'fs';
 import stream from 'node:stream';
 import * as Path from 'node:path';
 import * as cp from 'node:child_process';
@@ -9,23 +8,13 @@ import {workDirChangedByCli} from '../fork-for-preserve-symlink';
 import {CmdChildProcessEvents, CmdChildProcessInput} from './cmd.types';
 import {setupTTY} from './process-common';
 import {service as serverChildProcess4CurrProc} from './server-child-process-entry';
+import {createCurrentProcessOutputReader} from './server-process-stdout';
+import {cmdModelService} from './cmd-model';
+import {lookupPlinkRoot} from './process-common';
 
 interface ProcessState {
   process: 'main' | cp.ChildProcess;
   ready: boolean;
-}
-
-export function lookupPlinkRoot(cwd: string) {
-  const {root} = Path.parse(cwd);
-  let plinkRoot: string | undefined;
-  while (cwd !== root) {
-    if (fs.existsSync(Path.join(cwd, 'node_modules/@wfh/plink'))) {
-      plinkRoot = cwd;
-      break;
-    }
-    cwd = Path.dirname(cwd);
-  }
-  return plinkRoot;
 }
 
 interface ProcessActions {
@@ -35,7 +24,6 @@ interface ProcessActions {
 }
 
 interface ProcessEvents {
-  // onMainCommanderInited: CmdChildProcessEvents['onCommanderInited'];
   processFor(p: cp.ChildProcess | 'main', rootDir: string): SingleActionFactory;
   /** ActionMeta is related to processFor */
   onChildProcessReady(plinkRootDir: string): SingleActionFactory;
@@ -47,23 +35,32 @@ export function createProcessManager(log: (...m: any[]) => void) {
   const plinkProcessByDir = new Map<string, ProcessState>();
   if (mainPlinkRoot)  {
     plinkProcessByDir.set(mainPlinkRoot, {process: 'main', ready: true});
-    serverChildProcess4CurrProc.i.ft.setRootDir(mainPlinkRoot).dp();
+    serverChildProcess4CurrProc.i.ft.setRootDir(mainPlinkRoot, log).dp();
   } else {
     throw new Error('can not find @wfh/plink directory in');
   }
 
   const processManager = new ReactorComposite2<ProcessActions, ProcessEvents>({
     name: 'server-process',
-    debug: true
+    debug: false,
+    log
   });
   /** Child process service */
   const cpService = new ReactorComposite2<CmdChildProcessInput, CmdChildProcessEvents>({
     name: 'cmdChildProcessProcProxy',
-    debug: true
+    debug: false,
+    log
   });
 
   const {i, o, r} = processManager;
 
+  r('cmdModelService.enableRxMessageTrace ->', cmdModelService.inputTable.l.enableRxMessageTrace.pipe(
+    rx.distinctUntilChanged(([, a], [, b]) => a === b),
+    rx.map(([, enabled]) => {
+      processManager.config({debug: enabled});
+      cpService.config({debug: enabled});
+    })
+  ));
   r('getProcessFor -> processFor', i.pt.getProcessFor.pipe(
     rx.map(([m, dir]) => {
       const root = lookupPlinkRoot(Path.resolve(dir));
@@ -118,14 +115,18 @@ export function createProcessManager(log: (...m: any[]) => void) {
               process.chdir(cwd);
               workDirChangedByCli(cmd);
             }
+            const [stdout, stopReadStdout] = createCurrentProcessOutputReader(true);
+            stdout.pipe(output);
             return serverChildProcess4CurrProc.i.ft.doCommand(cols, rows, cwd, cmd)
               .ddo(serverChildProcess4CurrProc.o.pt.onCommandDone).pipe(
                 rx.take(1),
+                rx.timeout(60000),
                 rx.catchError(err => {
                   processManager.dispatchErrorFor(err, m);
                   return rx.EMPTY;
                 }),
                 rx.finalize(() => {
+                  stopReadStdout();
                   o.ft.onCommandDoneAnyway().dp(m);
                 })
               );
