@@ -2,8 +2,7 @@
  */
 import Path from 'node:path';
 import resolve from 'resolve';
-// import chalk from 'chalk';
-import {packageOfFileFactory} from '@wfh/plink/wfh/dist/package-mgr/package-info-gathering';
+import {lookupTool} from './init-plink';
 type PackageJSON = Record<string, any>;
 
 type ResolverOptions = {
@@ -27,35 +26,30 @@ type ResolverOptions = {
   rootDir?: string;
 };
 
-let getPkgOfFile: ReturnType<typeof packageOfFileFactory>['getPkgOfFile'];
 
 export function sync(request: string, opts: ResolverOptions) {
-  if (getPkgOfFile == null) {
-    getPkgOfFile = packageOfFileFactory().getPkgOfFile;
-  }
   let basedir = opts.basedir;
-  if (!Path.isAbsolute(request) && !request.startsWith('.')) {
-    const pkg = getPkgOfFile(opts.basedir);
-    if (pkg) {
-      const rel = Path.relative(pkg.realPath, opts.basedir);
-      basedir = Path.resolve(pkg.path, rel);
-      // eslint-disable-next-line no-console
-      // console.log('resolve', chalk.yellow(request), opts.basedir, basedir);
-    }
-  }
+  let pkgPath: string | undefined;
   try {
+    if (!Path.isAbsolute(request) && !request.startsWith('.')) {
+      const pkg = lookupTool.dirMap.getData(opts.basedir);
+      if (pkg) {
+        pkgPath = lookupTool.packagePathMap!.get(pkg)!;
+        const rel = Path.relative(pkgPath, opts.basedir);
+        basedir = Path.resolve(pkgPath, rel);
+      }
+    }
     const file = resolve.sync(request, {
       basedir,
       extensions: opts.extensions,
       preserveSymlinks: true
     });
-
-
     return file;
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
       return opts.defaultResolver(request, opts);
     }
+    console.error('[jest.resolver] resolving failed request:', request + ',\n  options: ', opts, (pkgPath ? '\n  package: ' + pkgPath : ''), '\n  ', e);
     throw e;
   }
 }

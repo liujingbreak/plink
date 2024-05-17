@@ -1,3 +1,22 @@
-import {initProcess} from '@wfh/plink';
+import Path from 'path';
+import fs from 'fs';
+import {PlinkPackageLookup} from '@wfh/plink/wfh/dist/package-mgr/package-mgr2-utils';
+import {lookupPlinkRoot} from '@wfh/plink/wfh/dist/plink2/process-common';
 
-initProcess('none');
+
+type TsconfigType = {
+  extends?: string;
+  include?: string[];
+  exclude?: string[];
+  compilerOptions: {
+    paths: Record<string, string[]>;
+    [prop: string]: any;
+  };
+};
+
+export const plinkRootDir = lookupPlinkRoot(process.cwd())!;
+export const tsconfigFile = Path.resolve(plinkRootDir, 'tsconfig.json');
+export const tsconfigJson = JSON.parse(fs.readFileSync(tsconfigFile, 'utf8')) as TsconfigType;
+const lookupTool = new PlinkPackageLookup();
+export const packagePathMap = lookupTool.fromTsconfig(plinkRootDir, tsconfigJson);
+export {lookupTool};

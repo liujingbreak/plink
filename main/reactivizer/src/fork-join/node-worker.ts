@@ -16,6 +16,7 @@ import {applySharedReactors} from './worker-common';
 export {setIdleDuring} from './common';
 export {WorkerControl} from './types';
 
+const inspectOptions = {depth: 0, showHidden: false, compact: true, maxStringLength: 20};
 /**
  * @param opts.log if value is `undefined` and current createWorkerControl() is for creating instance in a forked thread, by default log messages will
  * be transfered to main worker thread, but message will be trimmed by `util.inspect(..., {depth: 1, showHidden: false})`.
@@ -43,7 +44,7 @@ export function createWorkerControl<
         p: args.map(arg => {
           const type = typeof arg;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return type === 'string' ? arg : inspect(arg, {depth: 0, showHidden: false, compact: true, maxStringLength: 20});
+          return type === 'string' ? arg : inspect(arg, inspectOptions);
         })}),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)],

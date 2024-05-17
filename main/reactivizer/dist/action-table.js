@@ -94,7 +94,6 @@ class ActionTable {
         return this;
     }
     onAddActions(actionNames) {
-        var _a;
         for (const type of actionNames) {
             if (this.data[type] == null)
                 this.data[type] = EMPTY_ARRY;
@@ -114,7 +113,7 @@ class ActionTable {
                     return arr;
                 }
             })).subscribe(a$);
-            this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debugTableAction) ?
+            this.latestPayloads[type] = this.streamCtl.opts.debugTableAction ?
                 a$.pipe(this.debugLogLatestActionOperator(type)) :
                 a$.asObservable();
         }

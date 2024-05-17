@@ -101,7 +101,7 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
         })
       ).subscribe(a$);
 
-      this.latestPayloads[type] = this.streamCtl.opts?.debugTableAction ?
+      this.latestPayloads[type] = (this.streamCtl.opts as any).debugTableAction ?
         a$.pipe(
           this.debugLogLatestActionOperator(type)
         ) :

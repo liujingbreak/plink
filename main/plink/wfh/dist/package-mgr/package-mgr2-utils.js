@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setTsCompilerOpts = exports.createTsConfigForRepos = exports.createPackageInfo = void 0;
+exports.PlinkPackageLookup = exports.setTsCompilerOpts = exports.createTsConfigForRepos = exports.createPackageInfo = void 0;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const misc_1 = require("../utils/misc");
+const dir_tree_1 = require("../plink2/dir-tree");
 function createPackageInfo(pkJsonFile, isInstalled = false) {
     const json = JSON.parse(node_fs_1.default.readFileSync(pkJsonFile, 'utf8'));
     return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
@@ -184,4 +185,26 @@ function typeRootsInPackages(spaceDependedPkgs) {
     }
     return dirs;
 }
+class PlinkPackageLookup {
+    constructor() {
+        this.dirMap = new dir_tree_1.DirTree();
+    }
+    fromTsconfig(baseDir, json) {
+        this.packagePathMap = new Map();
+        for (const [key, list] of Object.entries(json.compilerOptions.paths)) {
+            const match = /^((?:@[^/]+\/)?[^/]+)\/\*/.exec(key);
+            if (match) {
+                const path = list[0];
+                const relPath = /^.+(?!\/\*).(?=\/\*)/.exec(path);
+                if (relPath) {
+                    const pkgName = match[1];
+                    this.packagePathMap.set(pkgName, node_path_1.default.resolve(baseDir, relPath[0]));
+                    this.dirMap.putData(relPath[0], pkgName);
+                }
+            }
+        }
+        return this.packagePathMap;
+    }
+}
+exports.PlinkPackageLookup = PlinkPackageLookup;
 //# sourceMappingURL=package-mgr2-utils.js.map

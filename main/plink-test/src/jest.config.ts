@@ -4,10 +4,7 @@
  */
 import Path from 'path';
 import type {Config} from 'jest';
-import './init-plink';
-import {plinkEnv} from '@wfh/plink';
-import {packages4Workspace} from '@wfh/plink/wfh/dist/package-mgr/package-list-helper';
-import {getState as getPackagesState} from '@wfh/plink/wfh/dist/package-mgr';
+import {packagePathMap, plinkRootDir} from './init-plink';
 // import {defaults} from 'jest-config';
 
 const transform: Config['transform'] = {
@@ -15,10 +12,8 @@ const transform: Config['transform'] = {
   '\\.tsx?$': [Path.resolve(__dirname, 'ts-transformer.js'), {}]
 };
 
-const plinkPkg = getPackagesState().linkedDrcp || getPackagesState().installedDrcp;
-
 // Jest does not support symlinks for search directory, so I have to use "realPath"
-const packageDirs = [plinkPkg!, ...packages4Workspace()].map(pkg => Path.resolve(plinkEnv.workDir, pkg.realPath));
+const packageDirs = [...packagePathMap.values()].map(path => Path.resolve(plinkRootDir, path));
 
 const config: Config = {
   // All imported modules in your tests should be mocked automatically

@@ -64,7 +64,6 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "sme": "sme",
-    "jest": "echo 'You need run environment setup: source set-jest-env.sh' && jest -c node_modules/@wfh/plink-test/dist/jest.config.js --runTestsByPath",
     "typedoc": "typedoc",
     "typedoc:reactivizer": "npm run typedoc -- --out ../dist/static/reactivizer/typedoc --tsconfig ../main/packages/reactivizer/tsconfig-node.json ../main/packages/reactivizer/src/index.ts"
   },

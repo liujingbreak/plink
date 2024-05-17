@@ -1,9 +1,9 @@
 {
   "extends": "./wfh/tsconfig-base.json",
   "compilerOptions": {
-    "rootDirs": ["wfh/src"],
+    "composite": true,
+    "rootDir": "wfh/src",
     "declaration": true,
-    "baseUrl": ".",
     "inlineSourceMap": false,
     "sourceMap": true,
     "importHelpers": true

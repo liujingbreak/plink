@@ -77,8 +77,8 @@ declare class ExtendHelper<I = Record<never, never>, O = Record<never, never>, L
     to<G extends ReactorComposite2<any, any, any, any>>(base: G): ReactorCompositeMergeType2<G, I, O, LI, LO>;
 }
 /**
- * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar meaning of inheritance in OO programming
+ * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar functionality of inheritance being used in OO programming
  */
-export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(definition: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
-export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>, definition: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
+export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
+export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>, definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
 export {};

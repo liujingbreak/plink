@@ -82,7 +82,6 @@ class SingleActionFactoryImpl {
 class RxController2 extends stream_core_1.ControllerCore {
     constructor(opts) {
         super(opts);
-        this.opts = opts;
         /** Rx operator for `do()`, we can change it by emit new value to this observable,
          * you don't need to use this Subject directory, it is meant to be extended by Reactivizer internally
          * */

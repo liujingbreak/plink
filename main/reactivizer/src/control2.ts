@@ -134,7 +134,7 @@ export class RxController2<I> extends ControllerCore<I> {
     (_dispatchingAction) => input => input
   );
 
-  constructor(public opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
+  constructor(opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
     super(opts);
     // addConfigurable(this);
     const actionsByType = new Map<string | symbol, rx.Observable<Action<I[keyof I]>>>();

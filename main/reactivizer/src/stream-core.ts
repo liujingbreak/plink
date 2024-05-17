@@ -73,50 +73,40 @@ export class ControllerCore<I> {
   /** Event when `action$` is entirely unsubscribed by all observers */
   actionUnsubscribed$: rx.Observable<void>;
   configChange = new rx.Subject<Set<keyof RxControlConfigType<I>>>();
-
+  opts: CoreOptions<I> = {};
   protected dispatcher = {} as {[K in keyof I]: Dispatch<I[K]>};
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[K]>};
-  protected actionSubDispatcher = new rx.Subject<void>();
-  protected actionUnsubDispatcher = new rx.Subject<void>();
   private connectableAction$: rx.Connectable<Action<I[keyof I]>> | undefined;
-  private lastConfig: RxControlConfigType<I> | undefined;
 
-  constructor(public opts?: CoreOptions<I>) {
+  constructor(opts: CoreOptions<I> = {}) {
     this.setName(opts?.name);
-    const actionPipeEmitter = new rx.ReplaySubject<rx.Observable<Action<I[keyof I]>>>(1);
-    this.action$ = rx.merge(
-      // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
-      // subscribed, since it will be subscribed along together with "connectableAction$"
-      actionPipeEmitter,
-      new rx.Observable<never>(sub => {
-        // Notify that action$ is subscribed
-        this.actionSubDispatcher.next();
-        sub.complete();
-      })
-    ).pipe(
-      rx.switchMap(down => down),
-      rx.finalize(() => {
-        this.actionUnsubDispatcher.next();
-      }),
-      rx.share()
-    );
 
-    this.configChange.pipe(
-      rx.map(props => {
-        if (props.has('debugIncludeTypes')) {
-          this.debugIncludeSet = this.opts?.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null;
-        }
-        if (props.has('debugExcludeTypes')) {
-          this.debugExcludeSet = new Set(this.opts!.debugExcludeTypes ?? []);
-        }
-        if (props.has('debug') || props.has('log')) {
-          const debuggableAction$ = opts?.debug
-            ? this.actionUpstream.pipe(
-              opts?.log ?
+    // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
+    this.connectableAction$ = rx.connectable(
+      this.configChange.pipe(
+        rx.map((props, i) => {
+          let switchActionStream = i === 0; // always create action stream at first time
+          if (props.has('debugIncludeTypes')) {
+            this.debugIncludeSet = this.opts?.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null;
+          }
+          if (props.has('debugExcludeTypes')) {
+            this.debugExcludeSet = new Set(this.opts.debugExcludeTypes ?? []);
+          }
+          if (props.has('debug') || props.has('log')) {
+            switchActionStream = true;
+          }
+          return switchActionStream;
+        }),
+        rx.filter(needSwitch => needSwitch),
+        rx.combineLatestWith(this.interceptor$),
+        rx.switchMap(([, interceptor]) => {
+          const debuggableAction$ = this.opts.debug ?
+            this.actionUpstream.pipe(
+              this.opts.log ?
                 rx.tap(action => {
                   const type = nameOfAction(action);
                   if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                    opts.log!(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                    this.opts.log!(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                   }
                 }) :
                 (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
@@ -125,42 +115,51 @@ export class ControllerCore<I> {
                     if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                       // eslint-disable-next-line no-console
                       console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;',
-                        type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                        type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                     }
                   }) :
                   rx.tap(action => {
                     const type = nameOfAction(action);
                     if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                       // eslint-disable-next-line no-console
-                      console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                      console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                     }
                   })
             )
             : this.actionUpstream;
 
-          this.connectableAction$ = rx.connectable(this.interceptor$.pipe(
-            rx.switchMap(interceptor => interceptor ?
-              debuggableAction$.pipe(interceptor) :
-              debuggableAction$)
-          ));
-          actionPipeEmitter.next(this.connectableAction$);
+          return interceptor ?
+            debuggableAction$.pipe(interceptor) :
+            debuggableAction$;
+        })
+      ));
 
-          if (opts?.autoConnect == null || opts?.autoConnect) {
-            this.connectableAction$.connect();
-          }
-        }
-      }),
-      rx.catchError((err, src) => {
-        console.error('streamCore', err);
-        return src;
+    const actionSubDispatcher = new rx.Subject<void>();
+    const actionUnsubDispatcher = new rx.Subject<void>();
+
+    // 2. this.connectableAction$ => this.action$, this.actionSubDispatcher, this.actionUnsubDispatcher
+    this.action$ = rx.merge(
+      // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
+      // subscribed, since it will be subscribed along together with "connectableAction$"
+      this.connectableAction$,
+      new rx.Observable<never>(sub => {
+        // Notify that action$ is subscribed
+        actionSubDispatcher.next();
+        sub.complete();
       })
-    ).subscribe();
+    ).pipe(
+      rx.finalize(() => {
+        actionUnsubDispatcher.next();
+      }),
+      rx.share()
+    );
+    if (opts?.autoConnect == null || opts?.autoConnect) {
+      this.connectableAction$.connect();
+    }
+    this.config({...defaultConfig as RxControlConfigType<I>, ...opts});
 
-    this.config(opts ?
-      {...defaultConfig as RxControlConfigType<I>, ...opts} :
-      {...defaultConfig as RxControlConfigType<I>});
-    this.actionSubscribed$ = this.actionSubDispatcher.asObservable();
-    this.actionUnsubscribed$ = this.actionUnsubDispatcher.asObservable();
+    this.actionSubscribed$ = actionSubDispatcher.asObservable();
+    this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
   }
 
   createAction<J = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>) {
@@ -178,24 +177,17 @@ export class ControllerCore<I> {
   }
 
   config(opts: RxControlConfigType<I>) {
-    if (this.lastConfig == null)
-      this.lastConfig = {} as CoreOptions<I>;
     const changedProperties = new Set<keyof RxControlConfigType>();
     for (const [p, v] of Object.entries(opts)) {
-      if (v !== this.lastConfig?.[p as keyof RxControlConfigType<I>]) {
+      if (v !== this.opts[p as keyof RxControlConfigType<I>]) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        this.lastConfig[p as unknown as keyof RxControlConfigType<I>] = v as any;
+        this.opts[p as unknown as keyof RxControlConfigType<I>] = v as any;
         changedProperties.add(p as keyof RxControlConfigType);
       }
     }
-    // for (const [p, v] of Object.entries(this.lastConfig)) {
-    //   if (v !== undefined && !has.call(opts, p as keyof RxControlConfigType)) {
-    //     delete this.lastConfig[p as keyof RxControlConfigType];
-    //     changedProperties.add(p as keyof RxControlConfigType);
-    //   }
-    // }
-    if (changedProperties.size > 0)
+    if (changedProperties.size > 0) {
       this.configChange.next(changedProperties);
+    }
   }
 
   /** This method is not meant to be used directly */

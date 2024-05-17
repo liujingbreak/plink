@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import _ from 'lodash';
 import {PackageInfo} from '../index';
 import {closestCommonParentDir, getTscConfigOfPkg} from '../utils/misc';
-import {CompilerOptions, CompilerOptionSetOpt} from './package-list-helper';
 import {DirTree} from '../plink2/dir-tree';
+import {CompilerOptions, CompilerOptionSetOpt} from './package-list-helper';
 
 export interface PackageJsonInterf {
   version: string;
@@ -241,22 +241,23 @@ function typeRootsInPackages(spaceDependedPkgs: Iterable<PackageInfo>) {
 }
 
 export class PlinkPackageLookup {
-  dirMap: DirTree<string> | undefined;
+  dirMap = new DirTree<string>();
+  packagePathMap: Map<string, string> | undefined;
 
   fromTsconfig(baseDir: string, json: {compilerOptions: {paths: Record<string, string[]>}}) {
-    const pkgPathMap = new Map<string, string>();
+    this.packagePathMap = new Map<string, string>();
     for (const [key, list] of Object.entries(json.compilerOptions.paths)) {
-      const match = /^((?:@[^/]+\/)?\/[^/]+)\/\*/.exec(key);
+      const match = /^((?:@[^/]+\/)?[^/]+)\/\*/.exec(key);
       if (match) {
         const path = list[0];
-        const relPath = /^.(?!\/\*)\/\*/.exec(path);
+        const relPath = /^.+(?!\/\*).(?=\/\*)/.exec(path);
         if (relPath) {
           const pkgName = match[1];
-          pkgPathMap.set(pkgName, Path.resolve(baseDir, relPath[1]));
-          this.dirMap?.putData(relPath[1], pkgName);
+          this.packagePathMap.set(pkgName, Path.resolve(baseDir, relPath[0]));
+          this.dirMap.putData(relPath[0], pkgName);
         }
       }
     }
-    console.log('package -> path', pkgPathMap);
+    return this.packagePathMap;
   }
 }

@@ -38,14 +38,14 @@ describe('Reactivizer error handling function', () => {
   });
 
   it('handleError() should print error with its label argument', async () => {
-    const mockLog = jest.fn((...msg: any[]) => {});
+    const mockLog = jest.fn();
     const comp = new ReactorComposite<TestMessages>({
       name: 'testComposite2',
       debug: true
     });
 
     comp.r('call mock function when error catched', comp.error$.pipe(
-      rx.tap(a => mockLog(...a))
+      rx.tap(a => mockLog(...(a as [string, any])))
     ));
 
     comp.r('testReactorLabel2', comp.i.at.msg1.pipe(

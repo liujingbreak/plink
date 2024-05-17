@@ -1,4 +1,4 @@
-/// <reference types="wfh/src/cmd/cfont" />
+/// <reference path="../../src/cmd/cfont.d.ts" />
 import '../node-path';
 import * as cfonts from 'cfonts';
 import Table from 'cli-table3';

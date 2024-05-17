@@ -87,7 +87,7 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
   ));
 
   r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()',
-    outputTable.l.newWorkerReady.pipe(
+    o.pt.newWorkerReady.pipe(
       rx.mergeMap(([m, workerNo, workerOutputCtl]) => rx.merge(
         workerOutputCtl.pt.stopWaiting.pipe(
           rx.tap(() => changeWorkerRank(workerNo, 1)),

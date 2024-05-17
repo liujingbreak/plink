@@ -309,47 +309,6 @@ class ExtendHelper<
         opts.debugExcludeTypes = this.optsOverride.debugExcludeTypes.concat(base.i.opts?.debugExcludeTypes as any[] ?? []);
       }
       base.config(opts);
-      // const opt = this.optsOverride;
-      // if (opt.inputTableFor) {
-      //   base.inputTable.addActions(...opt.inputTableFor);
-      // }
-      // if (opt.outputTableFor) {
-      //   base.outputTable.addActions(...opt.outputTableFor);
-      // }
-      // if (opt.debugIncludeTypes) {
-      //   if (base.i.debugIncludeSet) {
-      //     for (const item of opt.debugIncludeTypes) {
-      //       base.i.debugIncludeSet.add(item);
-      //     }
-      //   } else {
-      //     base.i.debugIncludeSet = new Set(opt.debugIncludeTypes);
-      //   }
-
-      //   if (base.o.debugIncludeSet) {
-      //     for (const item of opt.debugIncludeTypes) {
-      //       base.o.debugIncludeSet.add(item);
-      //     }
-      //   } else {
-      //     base.o.debugIncludeSet = new Set(opt.debugIncludeTypes);
-      //   }
-      // }
-      // if (opt.debugExcludeTypes) {
-      //   if (base.i.debugExcludeSet) {
-      //     for (const item of opt.debugExcludeTypes) {
-      //       base.i.debugExcludeSet.add(item);
-      //     }
-      //   } else {
-      //     base.i.debugExcludeSet = new Set(opt.debugIncludeTypes);
-      //   }
-
-      //   if (base.o.debugExcludeSet) {
-      //     for (const item of opt.debugExcludeTypes) {
-      //       base.o.debugExcludeSet.add(item);
-      //     }
-      //   } else {
-      //     base.o.debugExcludeSet = new Set(opt.debugExcludeTypes);
-      //   }
-      // }
     }
     if (this.defineFn)
       this.defineFn(base);
@@ -358,7 +317,7 @@ class ExtendHelper<
 }
 
 /**
- * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar meaning of inheritance in OO programming
+ * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar functionality of inheritance being used in OO programming
  */
 export function patch<
   I = Record<never, never>,
@@ -366,14 +325,8 @@ export function patch<
   // eslint-disable-next-line space-before-function-paren
   LI extends readonly (keyof I)[] = readonly [],
   LO extends readonly (keyof O)[] = readonly []
->(definition: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
-export function patch<
-  I = Record<never, never>,
-  O = Record<never, never>,
-  // eslint-disable-next-line space-before-function-paren
-  LI extends readonly (keyof I)[] = readonly [],
-  LO extends readonly (keyof O)[] = readonly []
->(options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>, definition: (composite: ReactorComposite2<I, O, LI, LO>) => void) : ExtendHelper<I, O, LI, LO>;
+>(definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
+
 export function patch<
   I = Record<never, never>,
   O = Record<never, never>,
@@ -381,16 +334,28 @@ export function patch<
   LI extends readonly (keyof I)[] = readonly [],
   LO extends readonly (keyof O)[] = readonly []
 >(
-  optionsOrDef:
-  Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'> |
+  options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>,
+  definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void
+) : ExtendHelper<I, O, LI, LO>;
+
+export function patch<
+  I = Record<never, never>,
+  O = Record<never, never>,
+  // eslint-disable-next-line space-before-function-paren
+  LI extends readonly (keyof I)[] = readonly [],
+  LO extends readonly (keyof O)[] = readonly []
+>(
+  optionsOrDef?: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'> |
   ((composite: ReactorComposite2<I, O, LI, LO>) => void),
-  definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void) {
+
+  definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void
+) {
 
   const helper = new ExtendHelper<I, O, LI, LO>();
   if (definition) {
     helper.options(optionsOrDef as Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>);
     helper.define(definition);
-  } else {
+  } else if (optionsOrDef) {
     helper.define(optionsOrDef as (composite: ReactorComposite2<I, O, LI, LO>) => void);
   }
   return helper;

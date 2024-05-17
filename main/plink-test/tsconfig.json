@@ -1,0 +1,13 @@
+{
+  "extends": "../plink/wfh/tsconfig-base.json",
+  "references": [{"path": "../plink/tsconfig.json"}],
+  "compilerOptions": {
+    "rootDir": "src",
+    "declaration": true,
+    "inlineSourceMap": false,
+    "sourceMap": true,
+    "importHelpers": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"]
+}

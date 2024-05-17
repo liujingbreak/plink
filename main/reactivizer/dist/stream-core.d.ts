@@ -44,7 +44,6 @@ export type CoreOptions<I> = {
 };
 export declare const has: (v: PropertyKey) => boolean;
 export declare class ControllerCore<I> {
-    opts?: CoreOptions<I> | undefined;
     actionUpstream: rx.Subject<Action<I[keyof I]>>;
     /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
     interceptor$: rx.BehaviorSubject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>;
@@ -57,14 +56,12 @@ export declare class ControllerCore<I> {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.Subject<Set<"debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
+    configChange: rx.Subject<Set<"debug" | "log" | "debugExcludeTypes" | "debugIncludeTypes" | "logStyle">>;
+    opts: CoreOptions<I>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
-    protected actionSubDispatcher: rx.Subject<void>;
-    protected actionUnsubDispatcher: rx.Subject<void>;
     private connectableAction$;
-    private lastConfig;
-    constructor(opts?: CoreOptions<I> | undefined);
+    constructor(opts?: CoreOptions<I>);
     createAction<J = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J[K]>;
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name: string | null | undefined): void;

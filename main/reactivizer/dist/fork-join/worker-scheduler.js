@@ -86,7 +86,7 @@ function applyScheduler(broker, opts) {
         tasks[1]++;
         checkNumOfTasks(m, workerNo, tasks[1]);
     })));
-    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', outputTable.l.newWorkerReady.pipe(rx.mergeMap(([m, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError(`worker #${workerNo} stopWaiting -> ...`)), workerOutputCtl.pt.wait.pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError(`worker #${workerNo} wait`)), workerOutputCtl.pt.returned.pipe(rx.tap(() => {
+    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', o.pt.newWorkerReady.pipe(rx.mergeMap(([m, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError(`worker #${workerNo} stopWaiting -> ...`)), workerOutputCtl.pt.wait.pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError(`worker #${workerNo} wait`)), workerOutputCtl.pt.returned.pipe(rx.tap(() => {
         changeWorkerRank(workerNo, -1);
         const taskCount = tasksByWorkerNo.get(workerNo);
         if (taskCount) {

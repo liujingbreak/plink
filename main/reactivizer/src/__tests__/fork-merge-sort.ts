@@ -1,17 +1,17 @@
 /* eslint-disable no-console */
 import Path from 'node:path';
-import {inspect} from 'node:util';
 import {Worker} from 'worker_threads';
 import {performance} from 'node:perf_hooks';
 import os from 'node:os';
 import * as rx from 'rxjs';
 import {expect}  from '@jest/globals';
-import {log4File} from '@wfh/plink';
+// import {log4File} from '@wfh/plink';
 import {createSorter} from '../res/sorter';
 import {createBroker} from '../fork-join/node-worker-broker';
 import {applyScheduler} from '../fork-join/worker-scheduler';
+import {conciseConsoleLogger} from '../nodejs-utils';
 
-const log = log4File(__filename);
+// const log = log4File(__filename);
 
 export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker' | 'excludeMainThread',
   workerNum?: number, autoExpirated?: number) {
@@ -20,10 +20,7 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
   const sorter = createSorter(null, {
     name: 'sorter',
     debug: true,
-    log(...msg) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      log.info('[sorter]', ...msg.map(item => typeof item !== 'string' ? inspect(item, {showHidden: false, depth: 0, compact: true}) : item));
-    }
+    log: conciseConsoleLogger
   });
   let workerIsAssigned = false;
 
@@ -33,24 +30,26 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
   const broker = createBroker(sorter, {
     name: 'broker',
     debug: true,
-    log(...msg) {
-      log.info('[broker]', ...msg);
-    },
+    log: conciseConsoleLogger,
     debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting', 'assignWorker', 'clearExpirationTimer', 'workerRankChanged']
-    // logStyle: 'noParam'
   });
 
   broker.o.pt.onWorkerError.pipe(
     rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))
   ).subscribe();
 
+  // broker.o.pt.newWorkerReady.pipe(
+  //   rx.map(([, workNo, events, input]) => )
+  // ).subscribe();
+
   const {i, o} = broker;
   const numOfWorkers = workerNum ?? os.availableParallelism();
-  log.info('numOfWorkers:', numOfWorkers);
+  console.log('numOfWorkers:', numOfWorkers);
 
   let scheduleState: ReturnType<typeof applyScheduler> | undefined;
   if (threadMode === 'scheduler') {
-    process.env.NODE_ENV = 'development';
+    broker.config({debug: true});
+    // process.env.NODE_ENV = 'development';
     scheduleState = applyScheduler(broker, {
       maxNumOfWorker: numOfWorkers,
       excludeCurrentThead: false,

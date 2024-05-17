@@ -64,23 +64,34 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, opts) {
     //   rx.take(1)
     // ));
     return function (content, file) {
+        var _a;
         let destFile;
         let sourceMap;
+        let unknownOutputFile;
+        let error;
         i.ft.addSourceFile(file, true, content)
-            .do(o.at.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
+            .ddo(o.at.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
             if (/\.[mc]?js/.test(outputFile)) {
                 destFile = outputContent;
             }
             else if (outputFile.endsWith('.map')) {
                 sourceMap = outputContent;
             }
-        }), rx.take(1), rx.takeUntil(rx.merge(o.pt.onEmitFailure, o.pt.onSuggest).pipe(rx.map(([, _file, diagnostics]) => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            console.error('[tsc-util]', diagnostics);
-        }))))
+            else {
+                unknownOutputFile = outputFile;
+            }
+        }), rx.take(1), rx.takeUntil(rx.merge(o.pt.onEmitFailure, o.pt.onSuggest).pipe(rx.map(([, file, diagnostics]) => {
+            // eslint-disable-next-line no-console
+            console.log('[tsc-util]', file, diagnostics);
+        }))), rx.catchError((err, src) => {
+            // eslint-disable-next-line no-console
+            console.log('[tsc-util] catch error', err);
+            error = err;
+            return rx.EMPTY;
+        }))
             .subscribe();
         if (destFile == null) {
-            throw new Error(`Failed to compile ${file}`);
+            throw new Error(`Failed to compile ${file} (unknown: ${unknownOutputFile !== null && unknownOutputFile !== void 0 ? unknownOutputFile : ''}) ${error ? (_a = error.stack) !== null && _a !== void 0 ? _a : '' : ''}`);
         }
         return {
             code: destFile,
@@ -103,6 +114,9 @@ function languageServices(ts = typescript_1.default, opts = {}) {
     const ts0 = ts;
     const rc = new reactivizer_1.ReactorComposite2({
         name: 'Plink TS lang service',
+        debug: false,
+        logStyle: 'noParam',
+        debugExcludeTypes: ['onCompilerOptions'],
         outputTableFor: forTable
     });
     const { i, o, outputTable, r } = rc;

@@ -34,9 +34,6 @@ export interface SingleActionFactory {
     } | [ActionMeta, ...P]>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
 }
 export declare class RxController2<I> extends ControllerCore<I> {
-    opts?: (CoreOptions<I> & {
-        debugTableAction?: boolean | undefined;
-    }) | undefined;
     /** Abbrevation of payloadByType */
     pt: PayloadByType<I>;
     /** Action observable streamby type */
@@ -47,9 +44,9 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * you don't need to use this Subject directory, it is meant to be extended by Reactivizer internally
      * */
     doOperator$: rx.BehaviorSubject<(<A, F>(dispatchingAction: Action<A>) => (response$: rx.Observable<Action<F>>) => rx.Observable<Action<F>>)>;
-    constructor(opts?: (CoreOptions<I> & {
-        debugTableAction?: boolean | undefined;
-    }) | undefined);
+    constructor(opts?: CoreOptions<I> & {
+        debugTableAction?: boolean;
+    });
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**

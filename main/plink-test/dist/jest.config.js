@@ -6,18 +6,14 @@ const tslib_1 = require("tslib");
  * https://jestjs.io/docs/configuration
  */
 const path_1 = tslib_1.__importDefault(require("path"));
-require("./init-plink");
-const plink_1 = require("@wfh/plink");
-const package_list_helper_1 = require("@wfh/plink/wfh/dist/package-mgr/package-list-helper");
-const package_mgr_1 = require("@wfh/plink/wfh/dist/package-mgr");
+const init_plink_1 = require("./init-plink");
 // import {defaults} from 'jest-config';
 const transform = {
     '\\.jsx?$': 'babel-jest',
     '\\.tsx?$': [path_1.default.resolve(__dirname, 'ts-transformer.js'), {}]
 };
-const plinkPkg = (0, package_mgr_1.getState)().linkedDrcp || (0, package_mgr_1.getState)().installedDrcp;
 // Jest does not support symlinks for search directory, so I have to use "realPath"
-const packageDirs = [plinkPkg, ...(0, package_list_helper_1.packages4Workspace)()].map(pkg => path_1.default.resolve(plink_1.plinkEnv.workDir, pkg.realPath));
+const packageDirs = [...init_plink_1.packagePathMap.values()].map(path => path_1.default.resolve(init_plink_1.plinkRootDir, path));
 const config = {
     // All imported modules in your tests should be mocked automatically
     // automock: false,

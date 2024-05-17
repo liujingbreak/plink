@@ -30,8 +30,7 @@ let SEQ = 1;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 exports.has = Object.prototype.hasOwnProperty;
 class ControllerCore {
-    constructor(opts) {
-        this.opts = opts;
+    constructor(opts = {}) {
         this.actionUpstream = new rx.Subject();
         /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
         this.interceptor$ = new rx.BehaviorSubject(a => a);
@@ -39,24 +38,14 @@ class ControllerCore {
         this.logPrefix = '';
         this.debugExcludeSet = new Set();
         this.configChange = new rx.Subject();
+        this.opts = {};
         this.dispatcher = {};
         this.dispatcherFor = {};
-        this.actionSubDispatcher = new rx.Subject();
-        this.actionUnsubDispatcher = new rx.Subject();
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
-        const actionPipeEmitter = new rx.ReplaySubject(1);
-        this.action$ = rx.merge(
-        // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
-        // subscribed, since it will be subscribed along together with "connectableAction$"
-        actionPipeEmitter, new rx.Observable(sub => {
-            // Notify that action$ is subscribed
-            this.actionSubDispatcher.next();
-            sub.complete();
-        })).pipe(rx.switchMap(down => down), rx.finalize(() => {
-            this.actionUnsubDispatcher.next();
-        }), rx.share());
-        this.configChange.pipe(rx.map(props => {
+        // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
+        this.connectableAction$ = rx.connectable(this.configChange.pipe(rx.map((props, i) => {
             var _a, _b;
+            let switchActionStream = i === 0; // always create action stream at first time
             if (props.has('debugIncludeTypes')) {
                 this.debugIncludeSet = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) ? new Set(this.opts.debugIncludeTypes) : null;
             }
@@ -64,45 +53,57 @@ class ControllerCore {
                 this.debugExcludeSet = new Set((_b = this.opts.debugExcludeTypes) !== null && _b !== void 0 ? _b : []);
             }
             if (props.has('debug') || props.has('log')) {
-                const debuggableAction$ = (opts === null || opts === void 0 ? void 0 : opts.debug)
-                    ? this.actionUpstream.pipe((opts === null || opts === void 0 ? void 0 : opts.log) ?
+                switchActionStream = true;
+            }
+            return switchActionStream;
+        }), rx.filter(needSwitch => needSwitch), rx.combineLatestWith(this.interceptor$), rx.switchMap(([, interceptor]) => {
+            const debuggableAction$ = this.opts.debug ?
+                this.actionUpstream.pipe(this.opts.log ?
+                    rx.tap(action => {
+                        const type = nameOfAction(action);
+                        if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                            this.opts.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                        }
+                    }) :
+                    (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
                         rx.tap(action => {
                             const type = nameOfAction(action);
                             if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                                opts.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
+                                // eslint-disable-next-line no-console
+                                console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                             }
                         }) :
-                        (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                            rx.tap(action => {
-                                const type = nameOfAction(action);
-                                if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                                    // eslint-disable-next-line no-console
-                                    console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-                                }
-                            }) :
-                            rx.tap(action => {
-                                const type = nameOfAction(action);
-                                if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                                    // eslint-disable-next-line no-console
-                                    console.log(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(opts.logStyle === 'noParam' ? [] : action.p));
-                                }
-                            }))
-                    : this.actionUpstream;
-                this.connectableAction$ = rx.connectable(this.interceptor$.pipe(rx.switchMap(interceptor => interceptor ?
-                    debuggableAction$.pipe(interceptor) :
-                    debuggableAction$)));
-                actionPipeEmitter.next(this.connectableAction$);
-                if ((opts === null || opts === void 0 ? void 0 : opts.autoConnect) == null || (opts === null || opts === void 0 ? void 0 : opts.autoConnect)) {
-                    this.connectableAction$.connect();
-                }
-            }
-        }), rx.catchError((err, src) => {
-            console.error('streamCore', err);
-            return src;
-        })).subscribe();
-        this.config(opts ? Object.assign(Object.assign({}, global_config_1.defaultConfig), opts) : Object.assign({}, global_config_1.defaultConfig));
-        this.actionSubscribed$ = this.actionSubDispatcher.asObservable();
-        this.actionUnsubscribed$ = this.actionUnsubDispatcher.asObservable();
+                        rx.tap(action => {
+                            const type = nameOfAction(action);
+                            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                                // eslint-disable-next-line no-console
+                                console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                            }
+                        }))
+                : this.actionUpstream;
+            return interceptor ?
+                debuggableAction$.pipe(interceptor) :
+                debuggableAction$;
+        })));
+        const actionSubDispatcher = new rx.Subject();
+        const actionUnsubDispatcher = new rx.Subject();
+        // 2. this.connectableAction$ => this.action$, this.actionSubDispatcher, this.actionUnsubDispatcher
+        this.action$ = rx.merge(
+        // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
+        // subscribed, since it will be subscribed along together with "connectableAction$"
+        this.connectableAction$, new rx.Observable(sub => {
+            // Notify that action$ is subscribed
+            actionSubDispatcher.next();
+            sub.complete();
+        })).pipe(rx.finalize(() => {
+            actionUnsubDispatcher.next();
+        }), rx.share());
+        if ((opts === null || opts === void 0 ? void 0 : opts.autoConnect) == null || (opts === null || opts === void 0 ? void 0 : opts.autoConnect)) {
+            this.connectableAction$.connect();
+        }
+        this.config(Object.assign(Object.assign({}, global_config_1.defaultConfig), opts));
+        this.actionSubscribed$ = actionSubDispatcher.asObservable();
+        this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
     }
     createAction(type, params) {
         return {
@@ -117,25 +118,17 @@ class ControllerCore {
         this.logPrefix = name !== null && name !== void 0 ? name : this.typePrefix.trim();
     }
     config(opts) {
-        var _a;
-        if (this.lastConfig == null)
-            this.lastConfig = {};
         const changedProperties = new Set();
         for (const [p, v] of Object.entries(opts)) {
-            if (v !== ((_a = this.lastConfig) === null || _a === void 0 ? void 0 : _a[p])) {
+            if (v !== this.opts[p]) {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                this.lastConfig[p] = v;
+                this.opts[p] = v;
                 changedProperties.add(p);
             }
         }
-        // for (const [p, v] of Object.entries(this.lastConfig)) {
-        //   if (v !== undefined && !has.call(opts, p as keyof RxControlConfigType)) {
-        //     delete this.lastConfig[p as keyof RxControlConfigType];
-        //     changedProperties.add(p as keyof RxControlConfigType);
-        //   }
-        // }
-        if (changedProperties.size > 0)
+        if (changedProperties.size > 0) {
             this.configChange.next(changedProperties);
+        }
     }
     /** This method is not meant to be used directly */
     dispatchFactory(type) {

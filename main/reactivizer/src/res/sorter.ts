@@ -2,7 +2,9 @@ import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
 import {createWorkerControlOfFn, ForkTransferablePayload, setIdleDuring} from '../fork-join/node-worker';
 import type {ReactorCompositeOpt} from '../epic';
+// import {patch} from '../reactor-composite';
 import {ForkWorkerInput, ForkWorkerOutput} from '../fork-join/types';
+// import {SingleActionFactory} from '..';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
 
 export function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput>) {
@@ -133,6 +135,7 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
   };
 
   const sorter = createWorkerControlOfFn(sortActions, opts);
+  // const sorterWithConfig = patch<{config(opts: Omit<ReactorCompositeOpt<I, O, LI, LO>, 'name' | 'autoConnect'>): SingleActionFactory}>().to(sorter);
   return sorter;
 }
 

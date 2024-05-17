@@ -114,28 +114,38 @@ export function createTranspileFileWithTsCheck(
   return function(content: string, file: string) {
     let destFile: string | undefined;
     let sourceMap: string | undefined;
+    let unknownOutputFile: string | undefined;
+    let error: Error | undefined;
 
     i.ft.addSourceFile(file, true, content)
-      .do(o.at.emitFile).pipe(
+      .ddo(o.at.emitFile).pipe(
         rx.map(([, outputFile, outputContent]) => {
           if (/\.[mc]?js/.test(outputFile)) {
             destFile = outputContent;
           } else if (outputFile.endsWith('.map')) {
             sourceMap = outputContent;
+          } else {
+            unknownOutputFile = outputFile;
           }
         }),
         rx.take(1),
         rx.takeUntil(rx.merge( o.pt.onEmitFailure, o.pt.onSuggest).pipe(
-          rx.map(([, _file, diagnostics]) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            console.error('[tsc-util]', diagnostics);
+          rx.map(([, file, diagnostics]) => {
+            // eslint-disable-next-line no-console
+            console.log('[tsc-util]', file, diagnostics);
           })
-        ))
+        )),
+        rx.catchError((err, src) => {
+          // eslint-disable-next-line no-console
+          console.log('[tsc-util] catch error', err);
+          error = err as Error;
+          return rx.EMPTY;
+        })
       )
       .subscribe();
 
     if (destFile == null) {
-      throw new Error(`Failed to compile ${file}`);
+      throw new Error(`Failed to compile ${file} (unknown: ${unknownOutputFile ?? ''}) ${error ? error.stack ?? '' : ''}`);
     }
 
     return {
@@ -191,6 +201,9 @@ export function languageServices( ts: any = _ts, opts: {
   const ts0 = ts as typeof _ts;
   const rc = new ReactorComposite2<LangServiceActionCreator, LangServiceEvents, [], typeof forTable>({
     name: 'Plink TS lang service',
+    debug: false,
+    logStyle: 'noParam',
+    debugExcludeTypes: ['onCompilerOptions'],
     outputTableFor: forTable
   });
 

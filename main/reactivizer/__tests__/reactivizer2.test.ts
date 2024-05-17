@@ -1,6 +1,8 @@
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives} from '../src';
+import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives} from '../dist';
+// import inspector from 'inspector';
+// inspector.open(9222, '0.0.0.0', true);
 
 const inputTableFor = ['message3'] as const;
 
@@ -111,6 +113,7 @@ describe('reactivizer2', () => {
 
     const mock = jest.fn();
     r('reply1', o.pt.reply1.pipe(
+      rx.tap(([, a, b]) => mock('reply1', a, b)),
       rx.mergeMap(([m]) => o.pt.reply2.pipe(
         actionRelatedToActionRelatives(m),
         rx.map(([, msg]) => mock(msg))
@@ -119,8 +122,14 @@ describe('reactivizer2', () => {
 
     o.ft.reply2('yes').dp();
     i.ft.message1().dp();
-    expect(mock.mock.calls[0][0]).toBe('world2');
-    expect(mock.mock.calls.length).toBe(1);
+    console.log(mock.mock.calls);
+    expect(mock.mock.calls[1][0]).toBe('world2');
+    expect(mock.mock.calls.length).toBe(2);
+
+    service.config({debug: true});
+    i.ft.message1().dp();
+    expect(mock.mock.calls[3][0]).toBe('world2');
+    expect(mock.mock.calls.length).toBe(4);
   });
 
   it('actionRelatedToActionRelatives in case of mutliple action relatives', () => {

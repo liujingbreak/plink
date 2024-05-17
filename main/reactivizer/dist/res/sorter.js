@@ -30,6 +30,7 @@ exports.createSorter = void 0;
 const rx = __importStar(require("rxjs"));
 const sortedIndex_1 = __importDefault(require("lodash/sortedIndex"));
 const node_worker_1 = require("../fork-join/node-worker");
+// import {SingleActionFactory} from '..';
 const sort_comparator_interf_1 = require("./sort-comparator-interf");
 function createSorter(comparator, opts) {
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new sort_comparator_interf_1.DefaultComparator();
@@ -146,6 +147,7 @@ function createSorter(comparator, opts) {
         }
     };
     const sorter = (0, node_worker_1.createWorkerControlOfFn)(sortActions, opts);
+    // const sorterWithConfig = patch<{config(opts: Omit<ReactorCompositeOpt<I, O, LI, LO>, 'name' | 'autoConnect'>): SingleActionFactory}>().to(sorter);
     return sorter;
 }
 exports.createSorter = createSorter;
