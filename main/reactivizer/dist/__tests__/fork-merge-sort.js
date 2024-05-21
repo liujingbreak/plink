@@ -34,19 +34,21 @@ const node_perf_hooks_1 = require("node:perf_hooks");
 const node_os_1 = __importDefault(require("node:os"));
 const rx = __importStar(require("rxjs"));
 const globals_1 = require("@jest/globals");
-// import {log4File} from '@wfh/plink';
+const nodejs_utils_1 = require("../nodejs-utils");
 const sorter_1 = require("../res/sorter");
 const node_worker_broker_1 = require("../fork-join/node-worker-broker");
 const worker_scheduler_1 = require("../fork-join/worker-scheduler");
-const nodejs_utils_1 = require("../nodejs-utils");
-// const log = log4File(__filename);
+const stdoutLogger = (...msgs) => {
+    process.stdout.write((0, nodejs_utils_1.formatToConcise)(...msgs));
+    process.stdout.write('\n');
+};
 async function forkMergeSort(threadMode, workerNum, autoExpirated) {
     const num = 3000;
     const testArr = createSharedArryForTest(0, num);
     const sorter = (0, sorter_1.createSorter)(null, {
         name: 'sorter',
         debug: true,
-        log: nodejs_utils_1.conciseConsoleLogger
+        log: stdoutLogger
     });
     let workerIsAssigned = false;
     sorter.o.ft.log('worker created').dp();
@@ -54,7 +56,7 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
     const broker = (0, node_worker_broker_1.createBroker)(sorter, {
         name: 'broker',
         debug: true,
-        log: nodejs_utils_1.conciseConsoleLogger,
+        log: stdoutLogger,
         debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting', 'assignWorker', 'clearExpirationTimer', 'workerRankChanged']
     });
     broker.o.pt.onWorkerError.pipe(rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))).subscribe();

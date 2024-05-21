@@ -135,14 +135,16 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
 
   r('letAllWorkerExit', i.at.letAllWorkerExit.pipe(
     rx.exhaustMap(a => {
-      const num = ranksByWorkerNo.size;
+      let exitCount = 0;
       for (const [worker, , workerNo] of ranksByWorkerNo.values()) {
-        if (worker !== 'main')
+        if (worker !== 'main') {
           i.ft.letWorkerExit(workerNo).dp(a);
+          exitCount++;
+        }
       }
       return rx.concat(
         o.at.onWorkerExit.pipe(
-          rx.take(opts.excludeCurrentThead !== true ? num : num - 1)
+          rx.take(exitCount)
         ),
         new rx.Observable((sub) => {
           o.ft.onAllWorkerExit().dp(a);

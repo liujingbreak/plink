@@ -6,12 +6,16 @@ import os from 'node:os';
 import * as rx from 'rxjs';
 import {expect}  from '@jest/globals';
 // import {log4File} from '@wfh/plink';
+import {ReactorCompositeOpt} from '../index';
+import {formatToConcise} from '../nodejs-utils';
 import {createSorter} from '../res/sorter';
 import {createBroker} from '../fork-join/node-worker-broker';
 import {applyScheduler} from '../fork-join/worker-scheduler';
-import {conciseConsoleLogger} from '../nodejs-utils';
 
-// const log = log4File(__filename);
+const stdoutLogger: ReactorCompositeOpt<any, any, any, any>['log'] = (...msgs) => {
+  process.stdout.write(formatToConcise(...msgs));
+  process.stdout.write('\n');
+};
 
 export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker' | 'excludeMainThread',
   workerNum?: number, autoExpirated?: number) {
@@ -20,7 +24,7 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
   const sorter = createSorter(null, {
     name: 'sorter',
     debug: true,
-    log: conciseConsoleLogger
+    log: stdoutLogger
   });
   let workerIsAssigned = false;
 
@@ -30,7 +34,7 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
   const broker = createBroker(sorter, {
     name: 'broker',
     debug: true,
-    log: conciseConsoleLogger,
+    log: stdoutLogger,
     debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting', 'assignWorker', 'clearExpirationTimer', 'workerRankChanged']
   });
 

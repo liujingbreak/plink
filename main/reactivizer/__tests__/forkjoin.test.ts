@@ -34,7 +34,7 @@ describe('forkjoin worker', () => {
   }, 50000);
 
 
-  it.skip('Scheduled workers can fork another worker or main worker itself', async () => {
+  it('Scheduled workers can fork another worker or main worker itself', async () => {
     await forkMergeSort('scheduler');
   }, 40000);
 
@@ -43,7 +43,7 @@ describe('forkjoin worker', () => {
   }, 50000);
 
 
-  it('Scheduled workers can fork another worker or main worker itself', async () => {
+  it.skip('Scheduled workers can fork another worker or main worker itself', async () => {
     await forkMergeSort('scheduler', undefined, 1000);
   }, 40000);
 });
