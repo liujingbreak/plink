@@ -73,7 +73,7 @@ r('doCommand -> onCommandDone', i.pt.doCommand.pipe(rx.mergeMap((a) => outputTab
     }
 })));
 if (process.send) {
-    r('events should be lifted to parent process', rx.merge(o.at.onCommandError, o.at.onCommandDone, o.at.onReady, o.at.onShutdown, o.at._onErrorFor).pipe(rx.map(a => process.send({
+    r('events should be lifted to parent process', rx.merge(o.at.onCommandError, o.at.onCommandDone, o.at.onReady, o.at.onShutdown, o.at.__onErrorFor).pipe(rx.map(a => process.send({
         type: 'rx:message',
         content: (0, reactivizer_1.serializeAction)(a)
     }))));

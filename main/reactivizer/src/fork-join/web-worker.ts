@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, serializeAction} from '../control';
-import {ReactorComposite2, ReactorCompositeOpt, deserializeAction2, actionRelatedToAction} from '..';
+import {ReactorComposite2, ReactorCompositeOpt, deserializeAction2, actionRelatedToAction, nameOfAction} from '..';
 import {InferFuncReturnEvents, ActionFactoryOfPlainType} from '../inferred-types';
 import {ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
   workerOutputTableFor as outputTableFor, WorkerControl} from './types';
@@ -93,14 +93,17 @@ export function createWorkerControl<
           rx.takeUntil(rx.merge(error$, error$))
         ),
         error$.pipe(
-          rx.tap(err => o.ft._onErrorFor(err).dp(wrappedAct))
+          rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))
         ),
         i.action$.pipe(
           actionRelatedToAction(wrappedAct),
           rx.tap(retAction => {
-            const cloned = {...retAction};
-            cloned.r = m.i;
-            i.actionUpstream.next(cloned);
+            const replyFork = i.createAction(
+              nameOfAction(retAction) as keyof ForkWorkerInput,
+              retAction.p as any
+            );
+            replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
+            i.actionUpstream.next(replyFork);
           }),
           rx.take(1)
         ),

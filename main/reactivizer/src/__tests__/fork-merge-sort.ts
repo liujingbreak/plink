@@ -38,9 +38,9 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
     rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))
   ).subscribe();
 
-  // broker.o.pt.newWorkerReady.pipe(
-  //   rx.map(([, workNo, events, input]) => )
-  // ).subscribe();
+  broker.o.pt.newWorkerReady.pipe(
+    rx.map(([, , , input]) => input.ft.__config({debug: true}).dp())
+  ).subscribe();
 
   const {i, o} = broker;
   const numOfWorkers = workerNum ?? os.availableParallelism();

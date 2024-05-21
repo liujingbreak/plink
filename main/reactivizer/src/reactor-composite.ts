@@ -10,18 +10,27 @@ import {InferFuncReturnEvents, ActionFactoryOfPlainType, ReactorCompositeMergeTy
 interface BaseEvents {
   /** Internal use, when option `debug` is `true`, this message will be dispatched when
    * ReactorComposite2 is instantiated */
-  _onNew(): SingleActionFactory;
-  _onErrorFor(err: any): SingleActionFactory;
+  __onNew(): SingleActionFactory;
+  __onErrorFor(err: any): SingleActionFactory;
 }
 
-type LOE<LI extends readonly any[]> = readonly (LI[number] | '_onErrorFor')[];
+interface BaseActions<
+  I = Record<never, never>,
+  O = Record<never, never>,
+  LI extends readonly (keyof I)[] = readonly [],
+  LO extends readonly (keyof O)[] = readonly []
+> {
+  __config(opts: ReactorCompositeOpt<I, O, LI, LO>): SingleActionFactory;
+}
+
+type LOE<LI extends readonly any[]> = readonly (LI[number] | '__onErrorFor')[];
 
 export class ReactorComposite2<
   I = Record<never, never>,
   O = Record<never, never>,
   LI extends readonly (keyof I)[] = readonly [],
   LO extends readonly (keyof O)[] = readonly []
-> extends DuplexController<I, O & BaseEvents> {
+> extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
 
   protected errorSubject: rx.Subject<
   [lable: string, originError: any] |
@@ -42,7 +51,7 @@ export class ReactorComposite2<
   get outputTable(): ActionTable<O & BaseEvents, LOE<LO>> {
     if (this.oTable)
       return this.oTable;
-    this.oTable = new ActionTable<O & BaseEvents, LOE<LO>>(this.o, ['_onErrorFor'] as unknown as LOE<LO>);
+    this.oTable = new ActionTable<O & BaseEvents, LOE<LO>>(this.o, ['__onErrorFor'] as unknown as LOE<LO>);
     return this.oTable;
   }
 
@@ -54,12 +63,12 @@ export class ReactorComposite2<
   constructor(private opts?: ReactorCompositeOpt<I, O, LI, LO>) {
     super(opts);
     if (opts?.debug) {
-      this.o.ft._onNew().dp();
+      this.o.ft.__onNew().dp();
     }
     this.reactorSubj = new rx.ReplaySubject();
     const doOperator = <A, F>(dispatchingAction: Action<A>) => (wait$: rx.Observable<Action<F>>) => rx.merge(
       wait$,
-      this.o.pt._onErrorFor.pipe(
+      this.o.pt.__onErrorFor.pipe(
         actionRelatedToAction(dispatchingAction),
         rx.map(([, err]) => {
           throw err;
@@ -73,10 +82,10 @@ export class ReactorComposite2<
       this.iTable = new ActionTable(this.i, opts.inputTableFor);
     }
     if (opts?.outputTableFor && opts?.outputTableFor.length > 0) {
-      this.oTable = new ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
+      this.oTable = new ActionTable(this.o, [...opts.outputTableFor, '__onErrorFor']);
     }
     rx.merge(
-      this.o.pt._onErrorFor.pipe(
+      this.o.pt.__onErrorFor.pipe(
         rx.catchError((err, src) => {
           if (this.opts?.log)
             this.opts.log(err);
@@ -125,6 +134,10 @@ export class ReactorComposite2<
       this.o.actionUpstream.next(this.o.createAction('ReactorsDisposed' as any));
       this.destory$.next();
     };
+
+    this.r('__config', this.i.pt.__config.pipe(
+      rx.map(([, opts]) => this.config(opts))
+    ));
   }
 
   /** @deprecated no longer needed, always start automatically after being contructed */
@@ -206,7 +219,7 @@ export class ReactorComposite2<
   catchErrorFor<T>(...actionMetas: ActionMeta[]): (upStream: rx.Observable<T>) => rx.Observable<T> {
     return (upStream: rx.Observable<T>): rx.Observable<T> => upStream.pipe(
       rx.catchError((err) => {
-        (this.o as unknown as RxController2<BaseEvents>).ft._onErrorFor(err).dp(...actionMetas);
+        (this.o as unknown as RxController2<BaseEvents>).ft.__onErrorFor(err).dp(...actionMetas);
         return rx.EMPTY;
       })
     );
@@ -214,10 +227,11 @@ export class ReactorComposite2<
 
   /** Respond an error to actions specified by "actionMeta",
    * be aware that this message is not an Observable's "error" message,
-   * it will not terminate observable stream
+   * it will not terminate observable stream.
+   * This method emits an event "__onErrorFor" under the hood.
    */
   dispatchErrorFor(err: any, actionMeta: ActionMeta, ...moreActionMetas: ActionMeta[]) {
-    (this.o as unknown as RxController2<BaseEvents>).ft._onErrorFor(err).dp(actionMeta, ...moreActionMetas);
+    (this.o as unknown as RxController2<BaseEvents>).ft.__onErrorFor(err).dp(actionMeta, ...moreActionMetas);
   }
 
   protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {

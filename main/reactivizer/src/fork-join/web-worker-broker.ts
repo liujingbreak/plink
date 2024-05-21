@@ -95,12 +95,12 @@ export function createBroker<
 
       (worker as Worker).onerror = event => {
         o.ft.onWorkerError(workerNo, event, 'web worker error').dp();
-        o.ft._onErrorFor(event).dp(meta);
+        broker.dispatchErrorFor(event, meta);
       };
 
       chan.port1.onmessageerror = event => {
         o.ft.onWorkerError(workerNo, event, 'message errror').dp();
-        o.ft._onErrorFor(event).dp(meta);
+        broker.dispatchErrorFor(event, meta);
       };
 
       // TODO: web worker does not have 'close' event, I need
@@ -137,7 +137,7 @@ export function createBroker<
         } catch (e) {
           if (opts?.log)
             opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo ?? ''}`);
-          const errorFor = broker.o.createAction('_onErrorFor', [e]);
+          const errorFor = broker.o.createAction('__onErrorFor', [e]);
           errorFor.r = targetAction.i;
           port.postMessage(serializeAction(errorFor));
           throw e;

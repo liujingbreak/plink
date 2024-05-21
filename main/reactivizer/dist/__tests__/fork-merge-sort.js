@@ -58,9 +58,7 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         debugExcludeTypes: ['workerInited', 'ensureInitWorker', 'forkByBroker', 'wait', 'stopWaiting', 'assignWorker', 'clearExpirationTimer', 'workerRankChanged']
     });
     broker.o.pt.onWorkerError.pipe(rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))).subscribe();
-    // broker.o.pt.newWorkerReady.pipe(
-    //   rx.map(([, workNo, events, input]) => )
-    // ).subscribe();
+    broker.o.pt.newWorkerReady.pipe(rx.map(([, , , input]) => input.ft.__config({ debug: true }).dp())).subscribe();
     const { i, o } = broker;
     const numOfWorkers = workerNum !== null && workerNum !== void 0 ? workerNum : node_os_1.default.availableParallelism();
     console.log('numOfWorkers:', numOfWorkers);

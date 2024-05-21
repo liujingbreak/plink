@@ -38,7 +38,7 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
     get outputTable() {
         if (this.oTable)
             return this.oTable;
-        this.oTable = new action_table_1.ActionTable(this.o, ['_onErrorFor']);
+        this.oTable = new action_table_1.ActionTable(this.o, ['__onErrorFor']);
         return this.oTable;
     }
     constructor(opts) {
@@ -56,10 +56,10 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
                 this.reactorSubj.next(['', ...params]);
         };
         if (opts === null || opts === void 0 ? void 0 : opts.debug) {
-            this.o.ft._onNew().dp();
+            this.o.ft.__onNew().dp();
         }
         this.reactorSubj = new rx.ReplaySubject();
-        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt._onErrorFor.pipe((0, control_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
+        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt.__onErrorFor.pipe((0, control_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
         this.i.doOperator$.next(doOperator);
@@ -68,9 +68,9 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
             this.iTable = new action_table_1.ActionTable(this.i, opts.inputTableFor);
         }
         if ((opts === null || opts === void 0 ? void 0 : opts.outputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.outputTableFor.length) > 0) {
-            this.oTable = new action_table_1.ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
+            this.oTable = new action_table_1.ActionTable(this.o, [...opts.outputTableFor, '__onErrorFor']);
         }
-        rx.merge(this.o.pt._onErrorFor.pipe(rx.catchError((err, src) => {
+        rx.merge(this.o.pt.__onErrorFor.pipe(rx.catchError((err, src) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
@@ -108,6 +108,7 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
             this.o.actionUpstream.next(this.o.createAction('ReactorsDisposed'));
             this.destory$.next();
         };
+        this.r('__config', this.i.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
     }
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll() { }
@@ -170,16 +171,17 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
     }
     catchErrorFor(...actionMetas) {
         return (upStream) => upStream.pipe(rx.catchError((err) => {
-            this.o.ft._onErrorFor(err).dp(...actionMetas);
+            this.o.ft.__onErrorFor(err).dp(...actionMetas);
             return rx.EMPTY;
         }));
     }
     /** Respond an error to actions specified by "actionMeta",
      * be aware that this message is not an Observable's "error" message,
-     * it will not terminate observable stream
+     * it will not terminate observable stream.
+     * This method emits an event "__onErrorFor" under the hood.
      */
     dispatchErrorFor(err, actionMeta, ...moreActionMetas) {
-        this.o.ft._onErrorFor(err).dp(actionMeta, ...moreActionMetas);
+        this.o.ft.__onErrorFor(err).dp(actionMeta, ...moreActionMetas);
     }
     reactivizeFunction(key, func, funcThisRef) {
         const resolveFuncKey = key + 'Resolved';

@@ -93,7 +93,7 @@ r('doCommand -> onCommandDone', i.pt.doCommand.pipe(
 
 if (process.send) {
   r('events should be lifted to parent process', rx.merge(
-    o.at.onCommandError, o.at.onCommandDone, o.at.onReady, o.at.onShutdown, o.at._onErrorFor
+    o.at.onCommandError, o.at.onCommandDone, o.at.onReady, o.at.onShutdown, o.at.__onErrorFor
   ).pipe(
     rx.map(a => process.send!({
       type: 'rx:message',

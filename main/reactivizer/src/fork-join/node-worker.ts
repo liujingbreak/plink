@@ -120,16 +120,16 @@ export function createWorkerControl<
           rx.takeUntil(rx.merge(error$, close$))
         ),
         error$.pipe(
-          rx.tap(err => o.ft._onErrorFor(err).dp(wrappedAct))
+          rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))
         ),
         i.action$.pipe(
           actionRelatedToAction(wrappedAct),
           rx.tap(retAction => {
             const replyFork = i.createAction(
               nameOfAction(retAction) as keyof ForkWorkerInput,
-              retAction.p
+              retAction.p as any
             );
-            replyFork.r = m.i;
+            replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
             i.actionUpstream.next(replyFork);
           }),
           rx.take(1)

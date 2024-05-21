@@ -8,11 +8,14 @@ import { ActionFactoryOfPlainType, ReactorCompositeMergeType2 } from './inferred
 interface BaseEvents {
     /** Internal use, when option `debug` is `true`, this message will be dispatched when
      * ReactorComposite2 is instantiated */
-    _onNew(): SingleActionFactory;
-    _onErrorFor(err: any): SingleActionFactory;
+    __onNew(): SingleActionFactory;
+    __onErrorFor(err: any): SingleActionFactory;
 }
-type LOE<LI extends readonly any[]> = readonly (LI[number] | '_onErrorFor')[];
-export declare class ReactorComposite2<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexController<I, O & BaseEvents> {
+interface BaseActions<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> {
+    __config(opts: ReactorCompositeOpt<I, O, LI, LO>): SingleActionFactory;
+}
+type LOE<LI extends readonly any[]> = readonly (LI[number] | '__onErrorFor')[];
+export declare class ReactorComposite2<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
     private opts?;
     protected errorSubject: rx.Subject<[
         lable: string,
@@ -62,7 +65,8 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
     catchErrorFor<T>(...actionMetas: ActionMeta[]): (upStream: rx.Observable<T>) => rx.Observable<T>;
     /** Respond an error to actions specified by "actionMeta",
      * be aware that this message is not an Observable's "error" message,
-     * it will not terminate observable stream
+     * it will not terminate observable stream.
+     * This method emits an event "__onErrorFor" under the hood.
      */
     dispatchErrorFor(err: any, actionMeta: ActionMeta, ...moreActionMetas: ActionMeta[]): void;
     protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;

@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc -b tsconfig.json",
     "watch": "tsc -b -w tsconfig.json",
-    "jest": "echo 'You need run environment setup: source set-jest-env.sh' && jest -c dist/jest.config.js --detectOpenHandles --runTestsByPath"
+    "jest": "echo 'You need run environment setup: source set-jest-env.sh' && jest -c dist/jest.config.js --runTestsByPath"
   },
   "devDependencies": {
     "@types/resolve": "^1.20.2",
