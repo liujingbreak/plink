@@ -28,8 +28,8 @@ type LOE<LI extends readonly any[]> = readonly (LI[number] | '__onErrorFor')[];
 export class ReactorComposite2<
   I = Record<never, never>,
   O = Record<never, never>,
-  LI extends readonly (keyof I)[] = readonly [],
-  LO extends readonly (keyof O)[] = readonly []
+  LI extends readonly (keyof I)[] | (keyof I)[] = [],
+  LO extends readonly (keyof O)[] | (keyof O)[] = []
 > extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
 
   protected errorSubject: rx.Subject<
@@ -339,7 +339,7 @@ export function patch<
   // eslint-disable-next-line space-before-function-paren
   LI extends readonly (keyof I)[] = readonly [],
   LO extends readonly (keyof O)[] = readonly []
->(definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
+>(patchDefinition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
 
 export function patch<
   I = Record<never, never>,
@@ -349,7 +349,7 @@ export function patch<
   LO extends readonly (keyof O)[] = readonly []
 >(
   options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>,
-  definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void
+  patchDefinition?: (composite: ReactorComposite2<I, O, LI, LO>) => void
 ) : ExtendHelper<I, O, LI, LO>;
 
 export function patch<

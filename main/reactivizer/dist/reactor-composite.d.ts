@@ -15,7 +15,7 @@ interface BaseActions<I = Record<never, never>, O = Record<never, never>, LI ext
     __config(opts: ReactorCompositeOpt<I, O, LI, LO>): SingleActionFactory;
 }
 type LOE<LI extends readonly any[]> = readonly (LI[number] | '__onErrorFor')[];
-export declare class ReactorComposite2<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
+export declare class ReactorComposite2<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = [], LO extends readonly (keyof O)[] | (keyof O)[] = []> extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
     private opts?;
     protected errorSubject: rx.Subject<[
         lable: string,
@@ -83,6 +83,6 @@ declare class ExtendHelper<I = Record<never, never>, O = Record<never, never>, L
 /**
  * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar functionality of inheritance being used in OO programming
  */
-export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
-export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>, definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
+export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(patchDefinition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
+export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>, patchDefinition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
 export {};

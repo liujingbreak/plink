@@ -89,6 +89,13 @@ export declare function actionRelatedToAction<T extends [ActionMeta, ...any[]] |
 export declare function actionRelatedToActionRelatives<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
     r?: ActionMeta['r'];
 }): (up: rx.Observable<T>) => rx.Observable<T>;
+/**
+ * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
+ */
+export declare function actionOfContext<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
+    i?: ActionMeta['i'];
+    r?: ActionMeta['r'];
+}): (up: rx.Observable<T>) => rx.Observable<T>;
 export declare function throwErrorOnRelated<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
     i: ActionMeta['i'];
 }): (up: rx.Observable<T>) => rx.Observable<T>;

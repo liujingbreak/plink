@@ -9,7 +9,7 @@ import {symlinkAsync} from '../utils/symlinks';
 import {plinkEnv} from '../utils/misc';
 import * as rm0 from '../recipe-manager';
 import {cmdModelService} from '../plink2/cmd-model';
-import {RepoPackageJson, createStoreService} from './package-mgr2-model';
+import {RepoPackageJson, createStoreService, PackageMgr2ModuleOutput} from './package-mgr2-model';
 import {PackageJsonInterf, createPackageInfo, createTsConfigForRepos} from './package-mgr2-utils';
 import type {PackageInfo} from './index';
 // import inspector from 'inspector';
@@ -29,6 +29,8 @@ type PackageMgrActions = {
 
 interface PackagesInternalSteps {
   checkSpace(spaceKey: string): SingleActionFactory;
+  /** Respond to switchToSpace  */
+  doingSwitchSpace(rootDir: string, key: string, pkgSet: Set<string>, projPkgMap: Map<string, Set<string>>, allPackages: Map<string, PackageInfo>): SingleActionFactory;
   didRemoveSymlink(link: string): SingleActionFactory;
   didScanSource(): SingleActionFactory;
   didPackagesScan(changedOrAdded: PackageInfo[], deleted: PackageInfo[]): SingleActionFactory;
@@ -55,11 +57,11 @@ interface PackageMgrEvents extends PackagesInternalSteps, PackageMgrFileEvents {
   onScanCompleted(): SingleActionFactory;
   onSpaceSynced(spaceKey: string): SingleActionFactory;
   rootPackageJson(json: RepoPackageJson): SingleActionFactory;
-  // repoPkgJson(projKey: string, json: RepoPackageJson): SingleActionFactory;
   /** @param dirs each directory string must ends with path.sep */
   repoNoModuleSymlinkDirs(projDir: string, dirs: string[]): SingleActionFactory;
   rootDir(dir: string): SingleActionFactory;
   onProjectLinked(projDir: string): SingleActionFactory;
+  /** Associate an external dirctory which contains source packages */
   onDirLinked(dir: string): SingleActionFactory;
   onNotifiableError(content: string): SingleActionFactory;
   linkedDrcp(pkgInfo: PackageInfo | null): SingleActionFactory;
@@ -68,6 +70,8 @@ interface PackageMgrEvents extends PackagesInternalSteps, PackageMgrFileEvents {
 
 const inputTableFor = ['scan'] as const;
 const outputTableFor = ['rootPackageJson', 'rootDir', 'linkedDrcp', 'installedDrcp'] as const;
+
+export type PackageMgrServiceType = ReactorComposite2<PackageMgrActions, PackageMgrEvents & PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>;
 
 export function createPackageMgrService() {
   const packagesService = new ReactorComposite2<PackageMgrActions, PackageMgrEvents, typeof inputTableFor, typeof outputTableFor>({
@@ -328,14 +332,13 @@ export function createPackageMgrService() {
         rx.map(([, rootDir]) => [m, Path.relative(rootDir, Path.resolve(rootDir, keyOrDir!)), rootDir] as const),
         rx.take(1)
       )),
-      // rx.distinctUntilChanged(),
       rx.concatMap(([m, spaceKey, rootDir]) => {
         return o.ft.checkSpace(spaceKey).ddo(o.pt.didCheckSpace).pipe(
           rx.mergeMap(() => outputTable.l.data_spacePkgMap),
           rx.map(([, spacePkgMap]) => [m, rootDir, spaceKey, spacePkgMap.get(spaceKey) ?? new Set<string>()] as const),
           rx.combineLatestWith(outputTable.l.data_projPkgMap, outputTable.l.data_allPackages),
           rx.take(1),
-          rx.map(([a, [, projPkgMap], [, allPackages]]) => [...a, projPkgMap, allPackages] as const),
+          rx.map(([[m, rootDir, key, pkgSet], [, projPkgMap], [, allPackages]]) => o.ft.doingSwitchSpace(rootDir, key, pkgSet, projPkgMap, allPackages).dp(m)),
           rx.mergeMap(([m, rootDir, key, pkgSet, projPkgMap, allPackages]) => rx.forkJoin([
             // 1. create symlinks to <install-space>/node_moodules
             rx.defer(async () => {
@@ -554,22 +557,6 @@ export function createPackageMgrService() {
       }
     })
   ));
-
-  // r('deletePackageOfSpace -> didRemoveSymlink', i.pt.deletePackageOfSpace.pipe(
-  //   rx.mergeMap(a => outputTable.l.rootDir.pipe(
-  //     rx.map(([, b]) => [...a, b] as const),
-  //     rx.take(1)
-  //   )),
-  //   rx.mergeMap(async ([m, wsKey, pkName, rootDir]) => {
-  //     const link = Path.resolve(rootDir, wsKey, 'node_modules', pkName);
-  //     try {
-  //       await fs.promises.unlink(link);
-  //       return o.ft.didRemoveSymlink(link).dp(m);
-  //     } catch (e) {
-  //       return o.ft.didRemoveSymlink(link).dp(m);
-  //     }
-  //   })
-  // ));
 
   r('createOrChangeSymlink -> didSymlinkCreation', o.pt.createOrChangeSymlink.pipe(
     rx.mergeMap(([m, targetPath, linkPath]) => symlinkAsync(targetPath, linkPath)

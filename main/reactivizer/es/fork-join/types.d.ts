@@ -5,7 +5,7 @@ import { Action, InferPayload } from '../control';
 import { SingleActionFactory } from '../control2';
 import { ReactorCompositeMergeType2 } from '../inferred-types';
 import { ReactorComposite2 } from '../reactor-composite';
-export declare const brokerOutputTableFor: readonly ["newWorkerReady", "assignWorker"];
+export declare const brokerOutputTableFor: readonly ["assignWorker"];
 export type Broker<WI = Record<never, never>, WO = Record<never, never>> = ReactorComposite2<BrokerInput, BrokerEvent<WI, WO>, [], typeof brokerOutputTableFor>;
 export type ForkWorkerInput = {
     exit(): SingleActionFactory;
@@ -45,7 +45,7 @@ export type BrokerInput = {
 };
 export type BrokerEvent<I = Record<never, never>, O = Record<never, never>> = {
     workerInited(workerNo: number, newPort: MessagePort | NodeMessagePort | null, action$FromWorker: WorkerControl<I, O>['o'], skipped: boolean): SingleActionFactory;
-    newWorkerReady(workerNo: number, action$FromWorker: WorkerControl<I, O>['o'], workerInput: WorkerControl<I, O>['i']): SingleActionFactory;
+    newWorkerReady(workerNo: number, workerEvents: WorkerControl<I, O>['o'], workerInput: WorkerControl<I, O>['i']): SingleActionFactory;
     onWorkerError(workerNo: number, error: unknown, type?: string): SingleActionFactory;
     onWorkerExit(workerNo: number, exitCode: number): SingleActionFactory;
     onAllWorkerExit(): SingleActionFactory;

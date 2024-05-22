@@ -24,15 +24,18 @@ export type ActionByType<I> = {
 };
 type InferInputActionsType<R> = R extends ReactorComposite<infer I, any, any, any> ? I : Record<never, never>;
 type InferOutputEventsType<R> = R extends ReactorComposite<any, infer O, any, any> ? O : Record<never, never>;
+type InferLatestInputType<R> = R extends ReactorComposite<any, any, infer LI, any> ? ExtractTupleElement<LI> : never;
+type InferLatesOutputType<R> = R extends ReactorComposite<any, any, any, infer LO> ? ExtractTupleElement<LO> : never;
 type ExtractTupleElement<T> = T extends readonly (infer R)[] ? R : never;
-type InferLatestActionType<R> = R extends ReactorComposite<any, any, infer LI, any> ? ExtractTupleElement<LI> : never;
-type InferLatestEventsType<R> = R extends ReactorComposite<any, any, any, infer LO> ? ExtractTupleElement<LO> : never;
-type InferLatestActionType2<R> = R extends ReactorComposite2<any, any, infer LI, any> ? ExtractTupleElement<LI> : never;
-type InferLatestEventsType2<R> = R extends ReactorComposite2<any, any, any, infer LO> ? ExtractTupleElement<LO> : never;
-/** An utility type inference which helps to define a new ReactorComposite type based on extending an existing ReactorComposite type */
-export type ReactorCompositeMergeType<R extends ReactorComposite<any, any, any, any>, ExActions = Record<never, never>, ExEvents = Record<never, never>, ELI extends readonly (keyof ExActions | keyof InferInputActionsType<R>)[] = readonly [], ELO extends readonly (keyof ExEvents | keyof InferOutputEventsType<R>)[] = readonly []> = ReactorComposite<(R extends ReactorComposite<infer I, any, any, any> ? I : Record<never, never>) & ExActions, (R extends ReactorComposite<any, infer O, any, any> ? O : Record<never, never>) & ExEvents, readonly (InferLatestActionType<R> | ExtractTupleElement<ELI>)[], readonly (InferLatestEventsType<R> | ExtractTupleElement<ELO>)[]>;
+type InferInputType2<R> = R extends ReactorComposite2<infer I, any, any, any> ? I : Record<never, never>;
+type InferOutputType2<R> = R extends ReactorComposite2<any, infer O, any, any> ? O : Record<never, never>;
+type InferLatestInputType2<R> = R extends ReactorComposite2<any, any, infer LI, any> ? ExtractTupleElement<LI> : never;
+type InferLatesOutputType2<R> = R extends ReactorComposite2<any, any, any, infer LO> ? ExtractTupleElement<LO> : never;
+/** @deprecated
+ * An utility type inference which helps to define a new ReactorComposite type based on extending an existing ReactorComposite type */
+export type ReactorCompositeMergeType<R extends ReactorComposite<any, any, any, any>, ExActions = Record<never, never>, ExEvents = Record<never, never>, ELI extends readonly (keyof ExActions | keyof InferInputActionsType<R>)[] = readonly [], ELO extends readonly (keyof ExEvents | keyof InferOutputEventsType<R>)[] = readonly []> = ReactorComposite<(R extends ReactorComposite<infer I, any, any, any> ? I : Record<never, never>) & ExActions, (R extends ReactorComposite<any, infer O, any, any> ? O : Record<never, never>) & ExEvents, readonly (InferLatestInputType<R> | ExtractTupleElement<ELI>)[], readonly (InferLatesOutputType<R> | ExtractTupleElement<ELO>)[]>;
 /** An utility type inference which helps to define a new ReactorComposite2 type based on extending an existing ReactorComposite type */
-export type ReactorCompositeMergeType2<R extends ReactorComposite2<any, any, any, any>, ExActions = Record<never, never>, ExEvents = Record<never, never>, ELI extends readonly (keyof ExActions | keyof InferInputActionsType<R>)[] = readonly [], ELO extends readonly (keyof ExEvents | keyof InferOutputEventsType<R>)[] = readonly []> = ReactorComposite2<(R extends ReactorComposite2<infer I, any, any, any> ? I : Record<never, never>) & ExActions, (R extends ReactorComposite2<any, infer O, any, any> ? O : Record<never, never>) & ExEvents, readonly (InferLatestActionType2<R> | ExtractTupleElement<ELI>)[], readonly (InferLatestEventsType2<R> | ExtractTupleElement<ELO>)[]>;
+export type ReactorCompositeMergeType2<R extends ReactorComposite2<any, any, any, any>, ExActions = Record<never, never>, ExEvents = Record<never, never>, ELI extends readonly (keyof ExActions | keyof InferInputType2<R>)[] = readonly [], ELO extends readonly (keyof ExEvents | keyof InferOutputType2<R>)[] = readonly []> = ReactorComposite2<(R extends ReactorComposite2<infer I, any, any, any> ? I : Record<never, never>) & ExActions, InferOutputType2<R> & ExEvents, readonly (InferLatestInputType2<R> | ExtractTupleElement<ELI>)[], readonly (InferLatesOutputType2<R> | ExtractTupleElement<ELO>)[]>;
 export type ActionFactoryOfPlainType<P> = {
     [K in keyof P]: P[K] extends (...a: infer A) => any ? (...a: A) => SingleActionFactory : undefined;
 };
@@ -41,6 +44,7 @@ export type InferFuncReturnEvents<I> = {
 } & {
     [K in keyof I as `${K & string}Completed`]: () => SingleActionFactory;
 };
+export type InferRCOptions<R extends ReactorComposite2<any, any, any, any>> = ReactorCompositeOpt<InferInputType2<R>, InferOutputType2<R>, InferLatestInputType2<R>[], InferLatesOutputType2<R>[]>;
 /** Infer type of ReactorComposite2 of functions */
 export type InferRCOfFuncs<F> = ReactorComposite2<ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F>>;
 /** Infer type of ReactorComposite2 of recursive functions */

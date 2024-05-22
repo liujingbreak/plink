@@ -11,33 +11,47 @@ class SingleActionFactoryImpl {
         this.control = control;
         this.opts = opts;
     }
+    /** Make this action become related to another action message
+     */
+    re(...actionMeta) {
+        this.relateToAction = actionMeta;
+        return this;
+    }
     dp(...actionMetaRelated) {
         const metas = actionMetaRelated.filter(m => m != null);
         if (metas.length > 0)
             return this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
+        else if (this.relateToAction && this.relateToAction.length > 0)
+            return this.control.dispatchForFactory(this.type)(this.relateToAction.length > 1 ? this.relateToAction : this.relateToAction[0], ...this.payload);
         else
             return this.control.dispatchFactory(this.type)(...this.payload);
     }
-    do(waitForAction$, referAction) {
+    do(response$, referAction) {
         const action = this.control.createAction(this.type, this.payload);
         if (referAction) {
             assignActionReferParam(action, referAction);
         }
+        else if (this.relateToAction && this.relateToAction.length > 0) {
+            assignActionReferParam(action, this.relateToAction);
+        }
         const r$ = new rx.ReplaySubject(1);
-        this.ddo(waitForAction$, referAction).pipe(rx.take(1)).subscribe(r$);
+        this.ddo(response$, referAction).pipe(rx.take(1)).subscribe(r$);
         return r$.asObservable();
     }
-    // ddo<F>(waitForAction$: rx.Observable<Action<F> | InferMapParam<F>>,
-    ddo(waitForAction$, referAction) {
+    ddo(response$, referAction) {
         return new rx.Observable(sub => {
             const action = this.control.createAction(this.type, this.payload);
             if (referAction) {
                 assignActionReferParam(action, referAction);
             }
+            else if (this.relateToAction && this.relateToAction.length > 0) {
+                assignActionReferParam(action, this.relateToAction);
+            }
             sub.next(action);
+            sub.complete();
         }).pipe(rx.mergeMap(action => {
             var _a;
-            return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => waitForAction$.pipe(rx.map(actionOrPayload => {
+            return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => response$.pipe(rx.map(actionOrPayload => {
                 if (Array.isArray(actionOrPayload)) {
                     const [actionMeta, ...payload] = actionOrPayload;
                     actionMeta.p = payload;
@@ -52,11 +66,45 @@ class SingleActionFactoryImpl {
             }));
         }));
     }
+    od(response, ...moreResponses) {
+        if (moreResponses.length === 0) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            return [this.ddo(response)];
+        }
+        else {
+            const responses = [response, ...moreResponses];
+            const action = this.control.createAction(this.type, this.payload);
+            if (this.relateToAction && this.relateToAction.length > 0) {
+                assignActionReferParam(action, this.relateToAction);
+            }
+            const onSubscribe$ = new rx.Subject();
+            onSubscribe$.pipe(rx.distinct(), rx.take(responses.length)).subscribe({
+                complete: () => {
+                    this.control.actionUpstream.next(action);
+                }
+            });
+            return responses.map((res$, idx) => {
+                var _a;
+                return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(rx.map(actionOrPayload => {
+                    if (Array.isArray(actionOrPayload)) {
+                        const [actionMeta, ...payload] = actionOrPayload;
+                        actionMeta.p = payload;
+                        return actionMeta;
+                    }
+                    return actionOrPayload;
+                }), operator(action), actionRelatedToAction(action), mapActionToPayload(), rx.take(1))), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
+                // eslint-disable-next-line no-console
+                this.opts.slowLog ? () => this.opts.slowLog() : () => console.log('Slow observable action detected'))), new rx.Observable(sink => {
+                    onSubscribe$.next(idx);
+                    sink.complete();
+                }));
+            });
+        }
+    }
 }
 export class RxController2 extends ControllerCore {
     constructor(opts) {
         super(opts);
-        this.opts = opts;
         /** Rx operator for `do()`, we can change it by emit new value to this observable,
          * you don't need to use this Subject directory, it is meant to be extended by Reactivizer internally
          * */

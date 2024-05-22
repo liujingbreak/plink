@@ -18,7 +18,7 @@ import * as packageUtils from './package-utils';
 import {mergeBaseUrlAndPaths} from './ts-cmd-util';
 import {webInjector} from './injector-factory';
 import {analyseFiles} from './cmd/cli-analyze';
-import {languageServices} from './utils/tsc-util';
+import {languageServices} from './plink2/sub-cmds/tsc-language-service';
 import {exitHooks} from './utils/bootstrap-process';
 export {RequiredCompilerOptions};
 

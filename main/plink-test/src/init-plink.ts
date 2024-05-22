@@ -2,17 +2,7 @@ import Path from 'path';
 import fs from 'fs';
 import {PlinkPackageLookup} from '@wfh/plink/wfh/dist/package-mgr/package-mgr2-utils';
 import {lookupPlinkRoot} from '@wfh/plink/wfh/dist/plink2/process-common';
-
-
-type TsconfigType = {
-  extends?: string;
-  include?: string[];
-  exclude?: string[];
-  compilerOptions: {
-    paths: Record<string, string[]>;
-    [prop: string]: any;
-  };
-};
+import {TsconfigType} from '@wfh/plink/wfh/dist/plink2/sub-cmds/tsc';
 
 export const plinkRootDir = lookupPlinkRoot(process.cwd())!;
 export const tsconfigFile = Path.resolve(plinkRootDir, 'tsconfig.json');

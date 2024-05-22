@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import * as rx from 'rxjs';
 import { serializeAction } from '../control';
-import { ReactorComposite2, deserializeAction2, actionRelatedToAction } from '..';
+import { ReactorComposite2, deserializeAction2, actionRelatedToAction, nameOfAction } from '..';
 import { workerInputTableFor as inputTableFor, workerOutputTableFor as outputTableFor } from './types';
 import { applySharedReactors } from './worker-common';
 export { setIdleDuring } from './common';
@@ -58,10 +58,10 @@ export function createWorkerControl(isInWorker, opts) {
         return rx.merge(new rx.Observable(sub => {
             chan.port1.onmessage = msg => sub.next(msg.data);
             return () => chan.port1.onmessage = null;
-        }).pipe(rx.map(event => deserializeAction2(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, error$))), error$.pipe(rx.tap(err => o.ft._onErrorFor(err).dp(wrappedAct))), i.action$.pipe(actionRelatedToAction(wrappedAct), rx.tap(retAction => {
-            const cloned = Object.assign({}, retAction);
-            cloned.r = m.i;
-            i.actionUpstream.next(cloned);
+        }).pipe(rx.map(event => deserializeAction2(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, error$))), error$.pipe(rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))), i.action$.pipe(actionRelatedToAction(wrappedAct), rx.tap(retAction => {
+            const replyFork = i.createAction(nameOfAction(retAction), retAction.p);
+            replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
+            i.actionUpstream.next(replyFork);
         }), rx.take(1)), new rx.Observable(_sub => {
             if (mainPort) {
                 const forkByBroker = o.createAction('forkByBroker', [wrappedAct, chan.port2]);

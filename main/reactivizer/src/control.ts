@@ -312,6 +312,18 @@ export function actionRelatedToActionRelatives<T extends [ActionMeta, ...any[]] 
     );
   };
 }
+
+/**
+ * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
+ */
+export function actionOfContext<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i?: ActionMeta['i']; r?: ActionMeta['r']}) {
+  return function(up : rx.Observable<T>) {
+    return rx.merge(
+      actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta as {i: ActionMeta['i']})) : rx.EMPTY,
+      up.pipe(actionRelatedToActionRelatives(actionOrMeta))
+    );
+  };
+}
 export function throwErrorOnRelated<T extends [ActionMeta, ...any[]] | Action<any>>(
   actionOrMeta: {i: ActionMeta['i']}
 ) {

@@ -20,6 +20,8 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": [
+    "src/nodejs-utils.ts",
+    "src/__tests__/**/*",
     "es/**/*.ts",
     "dist/**/*.ts"
   ]

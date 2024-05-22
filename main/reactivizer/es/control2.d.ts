@@ -5,7 +5,19 @@ import { ActionDataTable } from './action-table';
 export type ActionFactory = {
     [k: string]: (...args: any[]) => SingleActionFactory;
 };
+type ActionOrPayloadLike<P extends unknown[]> = {
+    i: Action<unknown>['i'];
+    t: Action<unknown>['t'];
+    p: P;
+} | [ActionMeta, ...P];
+type ActionOrPayloadStreamTuple<T extends [...any[]]> = {
+    [K in keyof T]: rx.Observable<ActionOrPayloadLike<T[K]>>;
+};
+type ActionStreamTuple<T extends [...any[]]> = {
+    [K in keyof T]: rx.Observable<[ActionMeta, ...T[K]]>;
+};
 export interface SingleActionFactory {
+    re(...actionMeta: ArrayOrTuple<ActionMeta | ActionMeta['r']>): this;
     /** Dispatch message */
     dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | ActionMeta['r']>): Action<unknown>;
     /**
@@ -16,27 +28,23 @@ export interface SingleActionFactory {
      * responding messages, only first responsive message is recorded by ReplaySubject and returned,
      * see ddo<F> as alternative
      **/
-    do<P extends [...any[]]>(waitForAction$: rx.Observable<{
-        i: Action<unknown>['i'];
-        t: Action<unknown>['t'];
-        p: P;
-    } | [ActionMeta, ...P]>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
+    do<P extends [...any[]]>(response$: rx.Observable<ActionOrPayloadLike<P>>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
     /**
      * `Deferred dispatch and observe` response message.
      * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
-     * responding messages will be recieved.
+     * responding messages will be recieved. A new message will be dispatched everytime when the returned
+     * observable is subscribed.
      * An asyncronized form of this method is `rx.firstValueFrom(...)` which returns a Promise
      */
-    ddo<P extends [...any[]]>(waitForAction$: rx.Observable<{
-        i: Action<unknown>['i'];
-        t: Action<unknown>['t'];
-        p: P;
-    } | [ActionMeta, ...P]>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
+    ddo<P extends [...any[]]>(response$: rx.Observable<ActionOrPayloadLike<P>>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
+    /** Like ddo, but this method accept multiple types of "observable response message" as parameter, and it
+     * returns filtered response messages in form of tuple type.
+     * - The action message will not be dispatched until all of returned response streams are subscribed.
+     * - The action message will be dispatched only once, even any of the returned response streams are re-subscribe
+     * */
+    od<P extends unknown[], PA extends any[]>(response$: rx.Observable<ActionOrPayloadLike<P>>, ...moreResponses: [...ActionOrPayloadStreamTuple<PA>]): [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>];
 }
 export declare class RxController2<I> extends ControllerCore<I> {
-    opts?: (CoreOptions<I> & {
-        debugTableAction?: boolean | undefined;
-    }) | undefined;
     /** Abbrevation of payloadByType */
     pt: PayloadByType<I>;
     /** Action observable streamby type */
@@ -47,9 +55,9 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * you don't need to use this Subject directory, it is meant to be extended by Reactivizer internally
      * */
     doOperator$: rx.BehaviorSubject<(<A, F>(dispatchingAction: Action<A>) => (response$: rx.Observable<Action<F>>) => rx.Observable<Action<F>>)>;
-    constructor(opts?: (CoreOptions<I> & {
-        debugTableAction?: boolean | undefined;
-    }) | undefined);
+    constructor(opts?: CoreOptions<I> & {
+        debugTableAction?: boolean;
+    });
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**
@@ -86,3 +94,4 @@ export declare class GroupedRxController2<I, K> extends RxController2<I> {
  * @return that dispatched new action object
  */
 export declare function deserializeAction2<I>(actionObj: any, toController: RxController2<I>): Action<I[keyof I]>;
+export {};

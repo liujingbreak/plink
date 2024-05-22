@@ -23,7 +23,7 @@ export interface RepoPackageJson {
   };
 }
 
-export interface PackageManager2ModelAction {
+export interface PackageMgrModelInput {
   switchToSpace(spaceKeyOrDir: string | null): SingleActionFactory;
 
   updatePackagesBegin(): SingleActionFactory;
@@ -37,7 +37,7 @@ export interface PackageManager2ModelAction {
   deletePackageOfSpace(spaceKey: string, pkgName: string): SingleActionFactory;
 }
 
-export interface PackageManager2ModuleEvent {
+export interface PackageMgr2ModuleOutput {
   onNewSpace(spaceKey: string): SingleActionFactory;
   onSourcPackageRemoved(pkgs: Iterable<PackageInfo>): SingleActionFactory;
   saveStateToFile(): SingleActionFactory;
@@ -56,7 +56,7 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
   const spaceDependencyMap = new Map<string, Set<string>>();
   const spacePkgMap = new Map<string, Set<string>>();
 
-  const service = patch<PackageManager2ModelAction, PackageManager2ModuleEvent, typeof inputTableFor, typeof outputTableFor>({
+  const service = patch<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>({
     debugExcludeTypes: ['addPackageToProject', 'addPackageToSpace', 'updateDependencyOfSpace'],
     inputTableFor,
     outputTableFor
@@ -155,10 +155,6 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
   }).to(base);
 
   return {
-    // projPkgMap,
-    // allPackages,
-    // spacePkgMap,
-    // spaceDependencyMap,
     service
   };
 }

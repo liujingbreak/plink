@@ -17,7 +17,8 @@
     "./es/fork-join/*": {
       "import": "./es/fork-join/*.js",
       "require": "./dist/fork-join/*.js"
-    }
+    },
+    "./dist/nodejs-utils": "./dist/nodejs-utils.js"
   },
   "files": [
     "dist", "es", "__tests__"

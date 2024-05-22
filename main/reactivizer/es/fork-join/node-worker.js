@@ -7,6 +7,7 @@ import { ReactorComposite2 } from '../reactor-composite';
 import { workerInputTableFor as inputTableFor, workerOutputTableFor as outputTableFor } from './types';
 import { applySharedReactors } from './worker-common';
 export { setIdleDuring } from './common';
+const inspectOptions = { depth: 0, showHidden: false, compact: true, maxStringLength: 20 };
 /**
  * @param opts.log if value is `undefined` and current createWorkerControl() is for creating instance in a forked thread, by default log messages will
  * be transfered to main worker thread, but message will be trimmed by `util.inspect(..., {depth: 1, showHidden: false})`.
@@ -22,7 +23,7 @@ export function createWorkerControl(opts) {
                 p: args.map(arg => {
                     const type = typeof arg;
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                    return type === 'string' ? arg : inspect(arg, { depth: 0, showHidden: false, compact: true, maxStringLength: 20 });
+                    return type === 'string' ? arg : inspect(arg, inspectOptions);
                 })
             }), 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -72,9 +73,9 @@ export function createWorkerControl(opts) {
         return rx.merge(rx.fromEventPattern(h => chan.port1.on('message', h), h => {
             chan.port1.off('message', h);
             chan.port1.close();
-        }).pipe(rx.map(event => deserializeAction2(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), error$.pipe(rx.tap(err => o.ft._onErrorFor(err).dp(wrappedAct))), i.action$.pipe(actionRelatedToAction(wrappedAct), rx.tap(retAction => {
+        }).pipe(rx.map(event => deserializeAction2(event, i)), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), error$.pipe(rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))), i.action$.pipe(actionRelatedToAction(wrappedAct), rx.tap(retAction => {
             const replyFork = i.createAction(nameOfAction(retAction), retAction.p);
-            replyFork.r = m.i;
+            replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
             i.actionUpstream.next(replyFork);
         }), rx.take(1)), new rx.Observable(_sub => {
             if (mainPort) {

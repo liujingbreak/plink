@@ -60,7 +60,7 @@ export function applyScheduler(broker, opts) {
         tasks[1]++;
         checkNumOfTasks(m, workerNo, tasks[1]);
     })));
-    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', outputTable.l.newWorkerReady.pipe(rx.mergeMap(([m, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError(`worker #${workerNo} stopWaiting -> ...`)), workerOutputCtl.pt.wait.pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError(`worker #${workerNo} wait`)), workerOutputCtl.pt.returned.pipe(rx.tap(() => {
+    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', o.pt.newWorkerReady.pipe(rx.mergeMap(([m, workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError(`worker #${workerNo} stopWaiting -> ...`)), workerOutputCtl.pt.wait.pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError(`worker #${workerNo} wait`)), workerOutputCtl.pt.returned.pipe(rx.tap(() => {
         changeWorkerRank(workerNo, -1);
         const taskCount = tasksByWorkerNo.get(workerNo);
         if (taskCount) {
@@ -88,12 +88,14 @@ export function applyScheduler(broker, opts) {
         }
     })));
     r('letAllWorkerExit', i.at.letAllWorkerExit.pipe(rx.exhaustMap(a => {
-        const num = ranksByWorkerNo.size;
+        let exitCount = 0;
         for (const [worker, , workerNo] of ranksByWorkerNo.values()) {
-            if (worker !== 'main')
+            if (worker !== 'main') {
                 i.ft.letWorkerExit(workerNo).dp(a);
+                exitCount++;
+            }
         }
-        return rx.concat(o.at.onWorkerExit.pipe(rx.take(opts.excludeCurrentThead !== true ? num : num - 1)), new rx.Observable((sub) => {
+        return rx.concat(o.at.onWorkerExit.pipe(rx.take(exitCount)), new rx.Observable((sub) => {
             o.ft.onAllWorkerExit().dp(a);
             sub.complete();
         }));

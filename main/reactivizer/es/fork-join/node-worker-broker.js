@@ -63,11 +63,11 @@ export function createBroker(workerController, opts) {
         });
         worker.on('error', event => {
             o.ft.onWorkerError(workerNo, event, 'Node.js error').dp();
-            o.ft._onErrorFor(event).dp(meta);
+            broker.dispatchErrorFor(event, meta);
         });
         chan.port1.on('messageerror', event => {
             o.ft.onWorkerError(workerNo, event, 'message errror').dp();
-            o.ft._onErrorFor(event).dp(meta);
+            broker.dispatchErrorFor(event, meta);
         });
         worker.on('exit', code => {
             o.ft.onWorkerExit(workerNo, code).dp();
@@ -96,7 +96,7 @@ export function createBroker(workerController, opts) {
         catch (e) {
             if (opts === null || opts === void 0 ? void 0 : opts.log)
                 opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo !== null && assignedWorkerNo !== void 0 ? assignedWorkerNo : ''}`, e);
-            const errorFor = broker.o.createAction('_onErrorFor', [e]);
+            const errorFor = broker.o.createAction('__onErrorFor', [e]);
             errorFor.r = targetAction.i;
             port.postMessage(serializeAction(errorFor));
             throw e;

@@ -50,6 +50,16 @@ export function define(rootDir: string, onShutdown: () => void) {
           });
       }
 
+      program.command('tsc')
+        .argument('[package...]', 'target packages')
+        .description('Run Typescript compiler')
+        .option('-w, --watch', 'Typescript compiler watch mode', false)
+        .option('--poll', 'Use poll mode watch', false)
+        .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
+          prev.push(...v.split(',')); return prev;
+        }, [] as string[])
+        .action(() => {});
+
       program.command('stop')
         .description('Stop daemon process')
         .action(async () => {
@@ -64,6 +74,4 @@ export function define(rootDir: string, onShutdown: () => void) {
       return program;
     })
   );
-
 }
-

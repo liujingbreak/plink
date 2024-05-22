@@ -1,10 +1,11 @@
+/* eslint-disable no-console */
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
 import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives} from '../dist';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
-const inputTableFor = ['message3'] as const;
+const inputTableFor = ['message3', 'message1'] as const;
 
 describe('reactivizer2', () => {
   it('Basic RxController2 operations dp, do should work correctly', async () => {
@@ -157,6 +158,24 @@ describe('reactivizer2', () => {
     expect(mock.mock.calls[0][0]).toBe('world2');
     expect(mock.mock.calls.length).toBe(1);
   });
+
+  it('SingleActionFactory.od()', async () => {
+    const service = new ReactorComposite2<BaseActions, BaseResponse>({name: 'case .od()', debug: true});
+    const {i, o, r} = service;
+    r('message1 -> reply1, reply2, reply4', i.pt.message1.pipe(
+      rx.map(([m]) => {
+        o.ft.reply1('1').dp(m);
+        o.ft.reply2('2').dp(m);
+        o.ft.reply4(4).dp(m);
+      })
+    ));
+
+    const [o4, o2, o1] = i.ft.message1().od(o.pt.reply4, o.pt.reply2, o.pt.reply1);
+    const [[, v4], [, v2], [, v1]] = await rx.firstValueFrom(rx.zip(o4, o2, o1));
+    expect(v4).toBe(4);
+    expect(v2).toBe('2');
+    expect(v1).toBe('1');
+  });
 });
 
 interface BaseActions {
@@ -169,6 +188,7 @@ interface BaseResponse {
   reply1(...backMsg: string[]): SingleActionFactory;
   reply2(backMsg: string): SingleActionFactory;
   reply3(backMsg: string): SingleActionFactory;
+  reply4(backMsg: number): SingleActionFactory;
 }
 
 // interface MoreActions extends BaseActions {

@@ -1,6 +1,7 @@
 import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
 import { createWorkerControlOfFn, setIdleDuring } from '../fork-join/node-worker';
+// import {SingleActionFactory} from '..';
 import { DefaultComparator } from './sort-comparator-interf';
 export function createSorter(comparator, opts) {
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new DefaultComparator();
@@ -117,6 +118,7 @@ export function createSorter(comparator, opts) {
         }
     };
     const sorter = createWorkerControlOfFn(sortActions, opts);
+    // const sorterWithConfig = patch<{config(opts: Omit<ReactorCompositeOpt<I, O, LI, LO>, 'name' | 'autoConnect'>): SingleActionFactory}>().to(sorter);
     return sorter;
 }
 //# sourceMappingURL=sorter.js.map

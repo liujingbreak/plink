@@ -216,6 +216,14 @@ export function actionRelatedToActionRelatives(actionOrMeta) {
         }));
     };
 }
+/**
+ * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
+ */
+export function actionOfContext(actionOrMeta) {
+    return function (up) {
+        return rx.merge(actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta)) : rx.EMPTY, up.pipe(actionRelatedToActionRelatives(actionOrMeta)));
+    };
+}
 export function throwErrorOnRelated(actionOrMeta) {
     return function (up) {
         return up.pipe(rx.map(actionOrPayload => {

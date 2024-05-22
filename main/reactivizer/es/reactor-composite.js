@@ -12,7 +12,7 @@ export class ReactorComposite2 extends DuplexController {
     get outputTable() {
         if (this.oTable)
             return this.oTable;
-        this.oTable = new ActionTable(this.o, ['_onErrorFor']);
+        this.oTable = new ActionTable(this.o, ['__onErrorFor']);
         return this.oTable;
     }
     constructor(opts) {
@@ -30,10 +30,10 @@ export class ReactorComposite2 extends DuplexController {
                 this.reactorSubj.next(['', ...params]);
         };
         if (opts === null || opts === void 0 ? void 0 : opts.debug) {
-            this.o.ft._onNew().dp();
+            this.o.ft.__onNew().dp();
         }
         this.reactorSubj = new rx.ReplaySubject();
-        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt._onErrorFor.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
+        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt.__onErrorFor.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
         this.i.doOperator$.next(doOperator);
@@ -42,9 +42,9 @@ export class ReactorComposite2 extends DuplexController {
             this.iTable = new ActionTable(this.i, opts.inputTableFor);
         }
         if ((opts === null || opts === void 0 ? void 0 : opts.outputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.outputTableFor.length) > 0) {
-            this.oTable = new ActionTable(this.o, [...opts.outputTableFor, '_onErrorFor']);
+            this.oTable = new ActionTable(this.o, [...opts.outputTableFor, '__onErrorFor']);
         }
-        rx.merge(this.o.pt._onErrorFor.pipe(rx.catchError((err, src) => {
+        rx.merge(this.o.pt.__onErrorFor.pipe(rx.catchError((err, src) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
@@ -82,6 +82,7 @@ export class ReactorComposite2 extends DuplexController {
             this.o.actionUpstream.next(this.o.createAction('ReactorsDisposed'));
             this.destory$.next();
         };
+        this.r('__config', this.i.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
     }
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll() { }
@@ -144,16 +145,17 @@ export class ReactorComposite2 extends DuplexController {
     }
     catchErrorFor(...actionMetas) {
         return (upStream) => upStream.pipe(rx.catchError((err) => {
-            this.o.ft._onErrorFor(err).dp(...actionMetas);
+            this.o.ft.__onErrorFor(err).dp(...actionMetas);
             return rx.EMPTY;
         }));
     }
     /** Respond an error to actions specified by "actionMeta",
      * be aware that this message is not an Observable's "error" message,
-     * it will not terminate observable stream
+     * it will not terminate observable stream.
+     * This method emits an event "__onErrorFor" under the hood.
      */
     dispatchErrorFor(err, actionMeta, ...moreActionMetas) {
-        this.o.ft._onErrorFor(err).dp(actionMeta, ...moreActionMetas);
+        this.o.ft.__onErrorFor(err).dp(actionMeta, ...moreActionMetas);
     }
     reactivizeFunction(key, func, funcThisRef) {
         const resolveFuncKey = key + 'Resolved';
@@ -221,45 +223,6 @@ class ExtendHelper {
                 opts.debugExcludeTypes = this.optsOverride.debugExcludeTypes.concat((_d = (_c = base.i.opts) === null || _c === void 0 ? void 0 : _c.debugExcludeTypes) !== null && _d !== void 0 ? _d : []);
             }
             base.config(opts);
-            // const opt = this.optsOverride;
-            // if (opt.inputTableFor) {
-            //   base.inputTable.addActions(...opt.inputTableFor);
-            // }
-            // if (opt.outputTableFor) {
-            //   base.outputTable.addActions(...opt.outputTableFor);
-            // }
-            // if (opt.debugIncludeTypes) {
-            //   if (base.i.debugIncludeSet) {
-            //     for (const item of opt.debugIncludeTypes) {
-            //       base.i.debugIncludeSet.add(item);
-            //     }
-            //   } else {
-            //     base.i.debugIncludeSet = new Set(opt.debugIncludeTypes);
-            //   }
-            //   if (base.o.debugIncludeSet) {
-            //     for (const item of opt.debugIncludeTypes) {
-            //       base.o.debugIncludeSet.add(item);
-            //     }
-            //   } else {
-            //     base.o.debugIncludeSet = new Set(opt.debugIncludeTypes);
-            //   }
-            // }
-            // if (opt.debugExcludeTypes) {
-            //   if (base.i.debugExcludeSet) {
-            //     for (const item of opt.debugExcludeTypes) {
-            //       base.i.debugExcludeSet.add(item);
-            //     }
-            //   } else {
-            //     base.i.debugExcludeSet = new Set(opt.debugIncludeTypes);
-            //   }
-            //   if (base.o.debugExcludeSet) {
-            //     for (const item of opt.debugExcludeTypes) {
-            //       base.o.debugExcludeSet.add(item);
-            //     }
-            //   } else {
-            //     base.o.debugExcludeSet = new Set(opt.debugExcludeTypes);
-            //   }
-            // }
         }
         if (this.defineFn)
             this.defineFn(base);
@@ -272,7 +235,7 @@ export function patch(optionsOrDef, definition) {
         helper.options(optionsOrDef);
         helper.define(definition);
     }
-    else {
+    else if (optionsOrDef) {
         helper.define(optionsOrDef);
     }
     return helper;

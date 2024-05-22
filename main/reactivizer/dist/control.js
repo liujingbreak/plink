@@ -26,7 +26,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.actionRelatedToActionRelatives = exports.actionRelatedToAction = exports.GroupedRxController = exports.RxController = void 0;
+exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.actionOfContext = exports.actionRelatedToActionRelatives = exports.actionRelatedToAction = exports.GroupedRxController = exports.RxController = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 __exportStar(require("./stream-core"), exports);
@@ -249,6 +249,15 @@ function actionRelatedToActionRelatives(actionOrMeta) {
     };
 }
 exports.actionRelatedToActionRelatives = actionRelatedToActionRelatives;
+/**
+ * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
+ */
+function actionOfContext(actionOrMeta) {
+    return function (up) {
+        return rx.merge(actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta)) : rx.EMPTY, up.pipe(actionRelatedToActionRelatives(actionOrMeta)));
+    };
+}
+exports.actionOfContext = actionOfContext;
 function throwErrorOnRelated(actionOrMeta) {
     return function (up) {
         return up.pipe(rx.map(actionOrPayload => {
