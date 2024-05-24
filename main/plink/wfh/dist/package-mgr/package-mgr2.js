@@ -7,16 +7,14 @@ const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
 const chr = tslib_1.__importStar(require("node:child_process"));
 const util_1 = tslib_1.__importDefault(require("util"));
 const rx = tslib_1.__importStar(require("rxjs"));
+const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const symlinks_1 = require("../utils/symlinks");
 const misc_1 = require("../utils/misc");
 const cmd_model_1 = require("../plink2/cmd-model");
 const package_mgr2_model_1 = require("./package-mgr2-model");
 const package_mgr2_utils_1 = require("./package-mgr2-utils");
-// import inspector from 'inspector';
-// inspector.open(9222);
-// const log = getLogger('plink.package-mgr2');
-const INSTALLATION_JSON_FILE = '.plink.install.json';
+const package_mgr2_switch_1 = require("./package-mgr2-switch");
 const inputTableFor = ['scan'];
 const outputTableFor = ['rootPackageJson', 'rootDir', 'linkedDrcp', 'installedDrcp'];
 function createPackageMgrService() {
@@ -31,10 +29,9 @@ function createPackageMgrService() {
             console.log(...obj.map(value => typeof value === 'string' ? value : util_1.default.inspect(value, false, 0)));
         }
     });
-    const { service } = (0, package_mgr2_model_1.createStoreService)(packagesService);
-    const { i, o, r, inputTable, outputTable } = service;
-    const repoNoModuleSymlinkDirTable = service.o.createDataTable('repoNoModuleSymlinkDirs', ([, projKey]) => projKey);
-    const npmInstallSpacePkgJsonTable = service.o.createDataTable('didCheckSpace', ([, key]) => key);
+    const { service: withModelService } = (0, package_mgr2_model_1.createStoreService)(packagesService);
+    const service = (0, package_mgr2_switch_1.createSwitchSpaceService)(withModelService);
+    const { i, o, r, outputTable } = service;
     if (misc_1.plinkEnv.isDrcpSymlink) {
         o.ft.linkedDrcp((0, package_mgr2_utils_1.createPackageInfo)(node_path_1.default.resolve(misc_1.plinkEnv.plinkDir, 'package.json'))).dp();
         o.ft.installedDrcp(null).dp();
@@ -156,13 +153,10 @@ function createPackageMgrService() {
             }
         }));
     })));
-    r('runInstall -> didRunInstall', i.pt.runInstall.pipe(rx.mergeMap(a => rx.combineLatest([
-        outputTable.l.rootDir,
-        inputTable.l.switchToSpace.pipe(rx.filter(([, key]) => key != null))
-    ]).pipe(rx.map(([[, rootDir], [, spaceKey]]) => [a, rootDir, spaceKey]), rx.take(1))), rx.concatMap(async ([[m], rootDir, spaceKey]) => {
+    r('runInstall -> didRunInstall', i.pt.runInstall.pipe(rx.mergeMap(a => outputTable.l.rootDir.pipe(rx.map(([, rootDir]) => [...a, rootDir]), rx.take(1))), rx.concatMap(async ([m, spaceKey, rootDir]) => {
         var _a;
         const spaceDir = node_path_1.default.resolve(rootDir, spaceKey);
-        const installationJsonFile = node_path_1.default.resolve(spaceDir, INSTALLATION_JSON_FILE);
+        const installationJsonFile = node_path_1.default.resolve(spaceDir, package_mgr2_switch_1.INSTALLATION_JSON_FILE);
         const spacePkgJsonFile = node_path_1.default.resolve(spaceDir, 'package.json');
         const backup = node_path_1.default.resolve(spaceDir, 'package.lock.json');
         await node_fs_1.default.promises.rename(spacePkgJsonFile, backup);
@@ -201,135 +195,15 @@ function createPackageMgrService() {
         }
     })));
     // Create "workspace" symlinks, create node_module symlink, generate actual package.json for "npm install"
-    r('switchToSpace, didCheckSpace -> checkSpace, createOrChangeSymlink, runInstall, didSwitchSpace, writeFile', i.pt.switchToSpace.pipe(rx.filter(([, key]) => key != null), rx.mergeMap(([m, keyOrDir]) => outputTable.l.rootDir.pipe(rx.map(([, rootDir]) => [m, node_path_1.default.relative(rootDir, node_path_1.default.resolve(rootDir, keyOrDir)), rootDir]), rx.take(1))), 
-    // rx.distinctUntilChanged(),
-    rx.concatMap(([m, spaceKey, rootDir]) => {
-        return o.ft.checkSpace(spaceKey).ddo(o.pt.didCheckSpace).pipe(rx.mergeMap(() => outputTable.l.data_spacePkgMap), rx.map(([, spacePkgMap]) => { var _a; return [m, rootDir, spaceKey, (_a = spacePkgMap.get(spaceKey)) !== null && _a !== void 0 ? _a : new Set()]; }), rx.combineLatestWith(outputTable.l.data_projPkgMap, outputTable.l.data_allPackages), rx.take(1), rx.map(([a, [, projPkgMap], [, allPackages]]) => [...a, projPkgMap, allPackages]), rx.mergeMap(([m, rootDir, key, pkgSet, projPkgMap, allPackages]) => rx.forkJoin([
-            // 1. create symlinks to <install-space>/node_moodules
-            rx.defer(async () => {
-                var _a;
-                const spaceNodeModulesDir = node_path_1.default.resolve(rootDir, key, 'node_modules');
-                const projList = [...projPkgMap.keys()];
-                const createdNmParentDirs = []; // Those directories under which a node_module symlink was previously created
-                const waitingTasks = [];
-                for (const pkgName of pkgSet) {
-                    const pkgDir = allPackages.get(pkgName).realPath;
-                    const proj = projList.find(proj => { var _a; return (_a = projPkgMap.get(proj)) === null || _a === void 0 ? void 0 : _a.has(pkgName); });
-                    if (proj == null) {
-                        o.ft.onNotifiableError(`Source package ${pkgName} does not belong to any project`).dp(m);
-                        continue;
-                    }
-                    const noModuleSymlinkDirs = (_a = repoNoModuleSymlinkDirTable.snapshot.get(proj)) === null || _a === void 0 ? void 0 : _a[2];
-                    if (createdNmParentDirs.some(dir => pkgDir.startsWith(dir)) ||
-                        (noModuleSymlinkDirs === null || noModuleSymlinkDirs === void 0 ? void 0 : noModuleSymlinkDirs.some(dirWithSlashSuffix => pkgDir.startsWith(dirWithSlashSuffix)))) {
-                        // current package is in child directory of which previously "node_module" symlink was created in
-                        // so that Node can resolve to the created symlink from current package, so skip creating symlinks to node_modules
-                        continue;
-                    }
-                    const projDir = node_path_1.default.resolve(rootDir, proj);
-                    const relPathElements = node_path_1.default.relative(projDir, pkgDir).split(/[\\/]/);
-                    // Up from "project directory" down to the "package directory", looking for a directory which is for creating a "node_modules" symlink in
-                    let foundPerfectDir = false;
-                    for (let i = 1, l = relPathElements.length; i <= l; i++) {
-                        const nmDir = node_path_1.default.join(projDir, ...relPathElements.slice(0, i), 'node_modules');
-                        try {
-                            const nmStat = await node_fs_1.default.promises.lstat(nmDir);
-                            if (nmStat.isDirectory()) {
-                                if (spaceNodeModulesDir === nmDir) {
-                                    foundPerfectDir = true;
-                                }
-                                continue;
-                            }
-                            else if (nmStat.isSymbolicLink()) {
-                                createdNmParentDirs.push(node_path_1.default.dirname(nmDir) + node_path_1.default.sep);
-                                void rx.firstValueFrom(o.ft.createOrChangeSymlink(spaceNodeModulesDir, nmDir).do(o.pt.didSymlinkCreation));
-                                foundPerfectDir = true;
-                                break;
-                            }
-                        }
-                        catch (e) {
-                            waitingTasks.push(o.ft.createOrChangeSymlink(spaceNodeModulesDir, nmDir)
-                                .do(o.pt.didSymlinkCreation).pipe(rx.take(1), rx.catchError(() => rx.of(false)), rx.map(() => nmDir)));
-                            createdNmParentDirs.push(node_path_1.default.dirname(nmDir) + node_path_1.default.sep);
-                            foundPerfectDir = true;
-                            break;
-                        }
-                    }
-                    if (!foundPerfectDir) {
-                        o.ft.onNotifiableError(`Can not create a symlink of ${node_path_1.default.join(key, 'node_modules')} for package ${pkgDir}, please check whether the directory of package is in a proper location`).dp(m);
-                    }
-                }
-                return { createdNmParentDirs, waitingTasks };
-            }).pipe(
-            // eslint-disable-next-line no-console
-            (0, reactivizer_1.timeoutLog)(5000, () => console.log('Slow emission of switchToSpace waitingTasks')), rx.mergeMap(({ createdNmParentDirs, waitingTasks }) => rx.merge(...waitingTasks).pipe(rx.reduce((addup, item) => {
-                addup.push(item);
-                return addup;
-            }, []), 
-            // eslint-disable-next-line no-console
-            (0, reactivizer_1.timeoutLog)(5000, () => console.log('Slow completion of switchToSpace waitingTasks')), rx.map(links => [createdNmParentDirs, links]))), service.labelError('switchToSpace -> createOrChangeSymlink, didSwitchSpace, [create/update symlinks of space node_modules]')),
-            // 2. create "worksapce" symlinks under "npm install" directory
-            rx.from(pkgSet).pipe(rx.mergeMap(async (pkgName, idx) => {
-                var _a;
-                if (idx === 0) {
-                    try {
-                        await node_fs_1.default.promises.mkdir(node_path_1.default.resolve(rootDir, key, 'workspaces'));
-                    }
-                    catch (e) { /* empty */ }
-                }
-                const fakeNpmWorkspace = node_path_1.default.resolve(rootDir, key, 'workspaces', pkgName);
-                const realPath = (_a = allPackages.get(pkgName)) === null || _a === void 0 ? void 0 : _a.realPath;
-                if (realPath) {
-                    await rx.firstValueFrom(o.ft.createOrChangeSymlink(realPath, fakeNpmWorkspace)
-                        .ddo(o.pt.didSymlinkCreation, m));
-                    return 'workspaces/' + pkgName;
-                }
-                else {
-                    o.ft.onNotifiableError(`Unknown error, create not create "NPM workspace" for package ${pkgName}, package is missing`);
-                    return null;
-                }
-            }), rx.reduce((acc, it) => {
-                if (it)
-                    acc.push(it);
-                return acc;
-            }, []), rx.mergeMap(a => npmInstallSpacePkgJsonTable.getPayloadStreamOfKey(key).pipe(rx.take(1), rx.map(b => [a, b]))), 
-            // rx.map(([workspaces, [, , json]]) => {
-            //   console.log('workspaces', workspaces, json);
-            //   return workspaces.length;
-            // }),
-            rx.mergeMap(async ([workspaces, [, , json]]) => {
-                var _a;
-                const toWrite = Object.assign({}, json);
-                toWrite.workspaces = ((_a = toWrite.workspaces) !== null && _a !== void 0 ? _a : []).concat(workspaces);
-                if (json.dependencies) {
-                    toWrite.dependencies = {};
-                    for (const [k, v] of Object.entries(json.dependencies)) {
-                        if (!(pkgSet === null || pkgSet === void 0 ? void 0 : pkgSet.has(k)))
-                            toWrite.dependencies[k] = v;
-                    }
-                }
-                if (json.devDependencies) {
-                    toWrite.devDependencies = {};
-                    for (const [k, v] of Object.entries(json.devDependencies)) {
-                        if (!(pkgSet === null || pkgSet === void 0 ? void 0 : pkgSet.has(k)))
-                            toWrite.devDependencies[k] = v;
-                    }
-                }
-                await rx.firstValueFrom(o.ft.writeFile(node_path_1.default.resolve(rootDir, key, INSTALLATION_JSON_FILE), JSON.stringify(toWrite, null, '  '))
-                    .do(o.pt.didWriteFile, m));
-                return workspaces.length;
-            }), service.labelError('Creating NPM workspace in ' + node_path_1.default.resolve(rootDir, key))),
-            // 3. write tsconfig.json to all repo
-            rx.merge(outputTable.l.installedDrcp.pipe(rx.map(a => [a, true])), outputTable.l.linkedDrcp.pipe(rx.map(a => [a, false]))).pipe(rx.filter(([[, pkgInfo]]) => pkgInfo != null), rx.take(1), rx.withLatestFrom(outputTable.l.data_spaceDependencyMap), rx.mergeMap(([[[, plinkPkg], isInstalled], [, spaceDependencyMap]]) => {
-                return (0, package_mgr2_utils_1.createTsConfigForRepos)(plinkPkg.realPath, !isInstalled, node_path_1.default.resolve(rootDir, key), [...projPkgMap.keys()], rootDir, allPackages, [...spaceDependencyMap.get(key).values()], {}, [...allPackages.values()].flatMap(pkg => {
-                    const dir = node_path_1.default.relative(rootDir, pkg.realPath).replace(/\\/g, '/');
-                    return [dir + '/**/*.ts', dir + '/**/*.mts', dir + '/**/*.cts'];
-                }));
-            }), rx.mergeMap(([tsConfigFile, json]) => o.ft.writeFile(tsConfigFile, JSON.stringify(json, null, '  '))
-                .do(o.pt.didWriteFile).pipe(rx.take(1))), rx.count())
-        ]).pipe(rx.mergeMap(([[createdNmParentDirs, links], workspaceCount, fileWrittenCount]) => {
-            return i.ft.runInstall().ddo(o.pt.didRunInstall, m).pipe(rx.take(1), rx.tap(() => o.ft.didSwitchSpace(key, createdNmParentDirs, links, workspaceCount, fileWrittenCount).dp(m)));
-        }))), service.catchErrorFor(m));
+    r('switchToSpace, didCheckSpace -> checkSpace, createOrChangeSymlink, runInstall, didSwitchSpace, writeFile', i.pt.switchToSpace.pipe(rx.filter(([, key]) => key != null), rx.map(([m, key]) => [m, lodash_1.default.trim(key, '/')]), rx.mergeMap(([m, keyOrDir]) => outputTable.l.rootDir.pipe(rx.map(([, rootDir]) => [m, node_path_1.default.relative(rootDir, node_path_1.default.resolve(rootDir, keyOrDir)), rootDir]), rx.take(1))), rx.concatMap(([m, spaceKey, rootDir]) => {
+        return o.ft.checkSpace(spaceKey).od(o.pt.didCheckSpace).pipe(rx.mergeMap(() => outputTable.l.data_spacePkgMap), rx.map(([, spacePkgMap]) => { var _a; return [m, rootDir, (_a = spacePkgMap.get(spaceKey)) !== null && _a !== void 0 ? _a : new Set()]; }), rx.combineLatestWith(outputTable.l.data_projPkgMap, outputTable.l.data_allPackages, outputTable.l.data_spaceDependencyMap), rx.take(1), rx.mergeMap(([[m, rootDir, pkgSet], [, projPkgMap], [, allPackages], [, spaceDependency]]) => {
+            const steps = i.ft.doingSwitchSpace(rootDir, spaceKey, pkgSet, projPkgMap, allPackages, spaceDependency).re(m).od(o.pt.didCreatingSymlinksToInstallDir, o.pt.didCreatingWorkspaceSymlinks);
+            return rx.zip(steps).pipe(rx.take(1));
+        }), rx.mergeMap(([[, createdNmParentDirs, links], [, workspaceCount]]) => {
+            return o.pt.didWriteTsConfigFiles.pipe((0, reactivizer_1.pairActionToActionStream)(i.ft.runInstall(spaceKey).re(m).od(o.pt.didRunInstall)), rx.map(([, [, fileWrittenCount]]) => {
+                o.ft.didSwitchSpace(spaceKey, createdNmParentDirs, links, workspaceCount, fileWrittenCount).dp(m);
+            }), rx.take(1));
+        }), service.catchErrorFor(m));
     })));
     r('checkSpace, rootDir -> updateDependencyOfSpace, didCheckSpace', o.pt.checkSpace.pipe(rx.mergeMap(a => outputTable.l.rootDir.pipe(rx.filter(([, dir]) => dir != null), rx.take(1), rx.map(b => [a, b]))), rx.concatMap(async ([[mOfCheckSpace, spaceKey], [, rootDir]]) => {
         try {
@@ -365,21 +239,6 @@ function createPackageMgrService() {
             packagesService.dispatchErrorFor(err, mOfCheckSpace);
         }
     })));
-    // r('deletePackageOfSpace -> didRemoveSymlink', i.pt.deletePackageOfSpace.pipe(
-    //   rx.mergeMap(a => outputTable.l.rootDir.pipe(
-    //     rx.map(([, b]) => [...a, b] as const),
-    //     rx.take(1)
-    //   )),
-    //   rx.mergeMap(async ([m, wsKey, pkName, rootDir]) => {
-    //     const link = Path.resolve(rootDir, wsKey, 'node_modules', pkName);
-    //     try {
-    //       await fs.promises.unlink(link);
-    //       return o.ft.didRemoveSymlink(link).dp(m);
-    //     } catch (e) {
-    //       return o.ft.didRemoveSymlink(link).dp(m);
-    //     }
-    //   })
-    // ));
     r('createOrChangeSymlink -> didSymlinkCreation', o.pt.createOrChangeSymlink.pipe(rx.mergeMap(([m, targetPath, linkPath]) => (0, symlinks_1.symlinkAsync)(targetPath, linkPath)
         .then(success => o.ft.didSymlinkCreation(success).dp(m))
         .catch(() => o.ft.didSymlinkCreation(false).dp(m)))));

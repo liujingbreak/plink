@@ -20,7 +20,7 @@ export interface RepoPackageJson {
         noModuleSymlink?: string[];
     };
 }
-export interface PackageManager2ModelAction {
+export interface PackageMgrModelInput {
     switchToSpace(spaceKeyOrDir: string | null): SingleActionFactory;
     updatePackagesBegin(): SingleActionFactory;
     addPackageToProject(proj: string, projectType: 'repo' | 'dir', pkg: PackageInfo): SingleActionFactory;
@@ -30,7 +30,7 @@ export interface PackageManager2ModelAction {
     addPackageToSpace(spaceKey: string, pkgName: string): SingleActionFactory;
     deletePackageOfSpace(spaceKey: string, pkgName: string): SingleActionFactory;
 }
-export interface PackageManager2ModuleEvent {
+export interface PackageMgr2ModuleOutput {
     onNewSpace(spaceKey: string): SingleActionFactory;
     onSourcPackageRemoved(pkgs: Iterable<PackageInfo>): SingleActionFactory;
     saveStateToFile(): SingleActionFactory;
@@ -39,6 +39,10 @@ export interface PackageManager2ModuleEvent {
     data_spacePkgMap(data: Map<string, Set<string>>): SingleActionFactory;
     data_projPkgMap(data: Map<string, Set<string>>): SingleActionFactory;
 }
+declare const inputTableFor: readonly ["switchToSpace"];
+declare const outputTableFor: readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"];
 export declare function createStoreService<R extends ReactorComposite2<any, any, any, any>>(base: R): {
-    service: import("@wfh/reactivizer").ReactorCompositeMergeType2<R, PackageManager2ModelAction, PackageManager2ModuleEvent, readonly ["switchToSpace"], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>;
+    service: import("@wfh/reactivizer").ReactorCompositeExtendType<R, PackageMgrModelInput, PackageMgr2ModuleOutput, readonly ["switchToSpace"], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>;
 };
+export type PackageMgr2ModelType = ReactorComposite2<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>;
+export {};

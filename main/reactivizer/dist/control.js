@@ -26,9 +26,10 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.actionOfContext = exports.actionRelatedToActionRelatives = exports.actionRelatedToAction = exports.GroupedRxController = exports.RxController = void 0;
+exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.GroupedRxController = exports.RxController = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
+const context_operators_1 = require("./context-operators");
 __exportStar(require("./stream-core"), exports);
 class RxController {
     constructor(opts) {
@@ -65,7 +66,7 @@ class RxController {
                     if (referActions)
                         action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
                     const r$ = new rx.ReplaySubject(1);
-                    rx.merge(action$.pipe(actionRelatedToAction(action), mapActionToPayload()), new rx.Observable(sub => {
+                    rx.merge(action$.pipe((0, context_operators_1.actionRelatedToAction)(action), mapActionToPayload()), new rx.Observable(sub => {
                         self.core.actionUpstream.next(action);
                         sub.complete();
                     })).subscribe(r$);
@@ -199,81 +200,6 @@ class GroupedRxController extends RxController {
     }
 }
 exports.GroupedRxController = GroupedRxController;
-/** Rx operator function, filter action or payload stream by:
- *  action ID (Action['i'])
- **/
-function actionRelatedToAction(actionOrMeta) {
-    return function (up) {
-        let isPayload;
-        return up.pipe(rx.filter(a => {
-            if (isPayload == null)
-                isPayload = Array.isArray(a);
-            const m = isPayload ? a[0] : a;
-            return (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i));
-        }));
-    };
-}
-exports.actionRelatedToAction = actionRelatedToAction;
-/** Rx operator function, filter action or payload stream by:
- *  action's reference IDs (Action['r'])
- **/
-function actionRelatedToActionRelatives(actionOrMeta) {
-    return function (up) {
-        let isPayload;
-        return up.pipe(rx.filter(a => {
-            if (isPayload == null)
-                isPayload = Array.isArray(a);
-            const m = isPayload ? a[0] : a;
-            if (m.r == null || actionOrMeta.r == null)
-                return false;
-            if (!Array.isArray(m.r)) {
-                if (!Array.isArray(actionOrMeta.r)) {
-                    return m.r === actionOrMeta.r;
-                }
-                else {
-                    return actionOrMeta.r.some(item => item === m.r);
-                }
-            }
-            else {
-                if (Array.isArray(actionOrMeta.r)) {
-                    return m.r.some(item => actionOrMeta.r.some(ai => ai === item));
-                }
-                else {
-                    return m.r.some(item => actionOrMeta.r === item);
-                }
-            }
-            // const left = Array.isArray(m.r) ? m.r : [m.r];
-            // const right = Array.isArray(actionOrMeta.r) ? actionOrMeta.r : [actionOrMeta.r];
-            // return left.some(lItem => right.some(rItem => rItem === lItem));
-        }));
-    };
-}
-exports.actionRelatedToActionRelatives = actionRelatedToActionRelatives;
-/**
- * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
- */
-function actionOfContext(actionOrMeta) {
-    return function (up) {
-        return rx.merge(actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta)) : rx.EMPTY, up.pipe(actionRelatedToActionRelatives(actionOrMeta)));
-    };
-}
-exports.actionOfContext = actionOfContext;
-function throwErrorOnRelated(actionOrMeta) {
-    return function (up) {
-        return up.pipe(rx.map(actionOrPayload => {
-            const isPayload = Array.isArray(actionOrPayload);
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-            const m = isPayload ? actionOrPayload[0] : actionOrPayload;
-            if ((m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i))) {
-                throw isPayload ? actionOrPayload[1] : actionOrPayload.p[0];
-            }
-            return actionOrPayload;
-        }));
-    };
-}
-exports.throwErrorOnRelated = throwErrorOnRelated;
-/** @deprecated use actionRelatedToAction instead */
-exports.payloadRelatedToAction = actionRelatedToAction;
 function serializeAction(action) {
     const a = Object.assign(Object.assign({}, action), { t: (0, stream_core_1.nameOfAction)(action) });
     // if (a.r instanceof Set) {

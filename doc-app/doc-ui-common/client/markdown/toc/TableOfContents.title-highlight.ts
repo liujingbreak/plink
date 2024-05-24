@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {SingleActionFactory, ReactorCompositeMergeType2, ActionMeta} from '@wfh/reactivizer';
+import {SingleActionFactory, ReactorCompositeExtendType, ActionMeta} from '@wfh/reactivizer';
 import {getMinAndMax} from '@wfh/algorithms';
 import {TocControl, ItemState} from './TableOfContents.control';
 
@@ -22,7 +22,7 @@ interface TocHLEvents {
 }
 
 export function applyHighlightFeature(tocControl: TocControl) {
-  const tocTitleHighlight = tocControl as unknown as ReactorCompositeMergeType2<TocControl, TocHLActions, TocHLEvents, ['setPosIndicatorRef']>;
+  const tocTitleHighlight = tocControl as unknown as ReactorCompositeExtendType<TocControl, TocHLActions, TocHLEvents, ['setPosIndicatorRef']>;
   const outputTable = tocTitleHighlight.outputTable.addActions('gotHeadingByIds', 'highlightTitle');
   tocTitleHighlight.inputTable.addActions('setPosIndicatorRef');
   const {r, i, o} = tocTitleHighlight;

@@ -21,5 +21,6 @@ __exportStar(require("./duplex"), exports);
 __exportStar(require("./epic"), exports);
 __exportStar(require("./utils"), exports);
 __exportStar(require("./inferred-types"), exports);
+__exportStar(require("./context-operators"), exports);
 __exportStar(require("./reactor-composite"), exports);
 //# sourceMappingURL=index.js.map

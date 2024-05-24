@@ -14,5 +14,5 @@ interface ProcessEvents {
     onChildProcessReady(plinkRootDir: string): SingleActionFactory;
     onCommandDoneAnyway(): SingleActionFactory;
 }
-export declare function createProcessManager(log: (...m: any[]) => void): ReactorComposite2<ProcessActions, ProcessEvents, readonly [], readonly []>;
+export declare function createProcessManager(log: (...m: any[]) => void): ReactorComposite2<ProcessActions, ProcessEvents, [], []>;
 export {};

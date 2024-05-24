@@ -1,6 +1,5 @@
 import { PackageInfo } from '../index';
 import { DirTree } from '../plink2/dir-tree';
-import { CompilerOptions, CompilerOptionSetOpt } from './package-list-helper';
 export interface PackageJsonInterf {
     version: string;
     name: string;
@@ -15,16 +14,22 @@ export interface PackageJsonInterf {
         [nm: string]: string;
     };
 }
+export type TsconfigType = {
+    extends?: string;
+    include?: string[];
+    exclude?: string[];
+    compilerOptions: {
+        paths: Record<string, string[]>;
+        [prop: string]: any;
+    };
+};
 export declare function createPackageInfo(pkJsonFile: string, isInstalled?: boolean): PackageInfo;
-export declare function createTsConfigForRepos(plinkPkgDir: string, isPlinkLinked: boolean, workspaceDir: string, repoDirs: string[], plinkRootDir: string, srcPackages: Map<string, PackageInfo>, spaceDependencies: Iterable<string>, extraPathMapping: {
+export declare function createTsConfigForRepos(plinkPkgDir: string, isPlinkLinked: boolean, workspaceDir: string, repoDirs: string[], plinkRootDir: string, srcRootDir: string, srcPackages: Map<string, PackageInfo>, typeRootPkgs: Iterable<PackageInfo>, extraPathMapping: {
     [path: string]: string[];
-}, include?: string[]): Generator<readonly [string, {
-    extends?: string | undefined;
-    include: string[];
-    exclude: string[];
-    compilerOptions?: Partial<CompilerOptions> | undefined;
-}], void, unknown>;
-export declare function setTsCompilerOpts(tsconfigDir: string, assigneeOptions: Partial<CompilerOptions>, plinkRootDir: string, workspaceDir: string, srcPackages: Map<string, PackageInfo>, spaceDependedPkgs: Iterable<PackageInfo>, plinkSourcePkgDir?: string | null, opts?: Omit<CompilerOptionSetOpt, 'workspaceDir'>): CompilerOptions;
+}, pathForInclude?: string[]): Generator<readonly [string, TsconfigType], void, unknown>;
+export declare function createTsConfigFile(tsconfigBaseDir: string, extendTsConfigFile: string | null, plinkPkgDir: string, isPlinkLinked: boolean, workspaceDir: string, plinkRootDir: string, srcPackages: Map<string, PackageInfo>, srcRootDir: string, typeRootPkgs: Iterable<PackageInfo>, extraPathMapping: {
+    [path: string]: string[];
+}, pathForInclude?: string[]): TsconfigType;
 export declare class PlinkPackageLookup {
     dirMap: DirTree<string>;
     packagePathMap: Map<string, string> | undefined;

@@ -27,6 +27,7 @@ exports.ReactorComposite = void 0;
 // import inspector from 'node:inspector';
 const rx = __importStar(require("rxjs"));
 const control_1 = require("./control");
+const context_operators_1 = require("./context-operators");
 const duplex_1 = require("./duplex");
 const action_table_1 = require("./action-table");
 class ReactorComposite extends duplex_1.DuplexController {
@@ -153,7 +154,7 @@ class ReactorComposite extends duplex_1.DuplexController {
                     if (referActions)
                         action.r = Array.isArray(referActions) ? referActions.map(m => m.i) : referActions.i;
                     const r$ = new rx.ReplaySubject(1);
-                    rx.merge(observedAction$.pipe((0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)()), composite.o.pt._onErrorFor.pipe((0, control_1.actionRelatedToAction)(action), rx.map(([, err]) => {
+                    rx.merge(observedAction$.pipe((0, context_operators_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)()), composite.o.pt._onErrorFor.pipe((0, context_operators_1.actionRelatedToAction)(action), rx.map(([, err]) => {
                         throw err;
                     })), new rx.Observable(sub => {
                         streamCtl.core.actionUpstream.next(action);

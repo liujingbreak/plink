@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives} from '../dist';
+import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives} from '../src';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
@@ -89,7 +89,7 @@ describe('reactivizer2', () => {
 
     const msg = await rx.firstValueFrom(composite.i.ft.message2('hello do()').do(composite.o.pt.reply2));
     expect(msg[1]).toBe('hello do()');
-    const msgDdo = await rx.firstValueFrom(composite.i.ft.message2('hello ddo()').ddo(composite.o.pt.reply2));
+    const msgDdo = await rx.firstValueFrom(composite.i.ft.message2('hello ddo()').od(composite.o.pt.reply2));
     expect(msgDdo[1]).toBe('hello ddo()');
 
     const mock = jest.fn();
@@ -159,7 +159,7 @@ describe('reactivizer2', () => {
     expect(mock.mock.calls.length).toBe(1);
   });
 
-  it('SingleActionFactory.od()', async () => {
+  it('SingleActionFactory.ddom()', async () => {
     const service = new ReactorComposite2<BaseActions, BaseResponse>({name: 'case .od()', debug: true});
     const {i, o, r} = service;
     r('message1 -> reply1, reply2, reply4', i.pt.message1.pipe(

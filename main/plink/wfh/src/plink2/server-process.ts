@@ -98,7 +98,7 @@ export function createProcessManager(log: (...m: any[]) => void) {
     i.pt.sendCommand.pipe(
       // Join process creation information
       rx.mergeMap(([m, [cols, rows], cwd, cmd, output]) =>
-        i.ft.getProcessFor(cwd).ddo(o.pt.processFor).pipe(
+        i.ft.getProcessFor(cwd).od(o.pt.processFor).pipe(
           rx.take(1),
           rx.map(([, p, rootDir]) => [
             m, cols, rows, cmd, output, p,
@@ -118,9 +118,9 @@ export function createProcessManager(log: (...m: any[]) => void) {
             const [stdout, stopReadStdout] = createCurrentProcessOutputReader(true);
             stdout.pipe(output);
             return serverChildProcess4CurrProc.i.ft.doCommand(cols, rows, cwd, cmd)
-              .ddo(serverChildProcess4CurrProc.o.pt.onCommandDone).pipe(
+              .od(serverChildProcess4CurrProc.o.pt.onCommandDone).pipe(
                 rx.take(1),
-                rx.timeout(60000),
+                rx.timeout(120000), // 2 min
                 rx.catchError(err => {
                   processManager.dispatchErrorFor(err, m);
                   return rx.EMPTY;

@@ -2,7 +2,7 @@ import type {Worker as NodeWorker, MessagePort as NodeMessagePort} from 'worker_
 import * as rx from 'rxjs';
 import {Action, InferPayload} from '../control';
 import {SingleActionFactory} from '../control2';
-import {ReactorCompositeMergeType2} from '../inferred-types';
+import {ReactorCompositeExtendType} from '../inferred-types';
 import {ReactorComposite2} from '../reactor-composite';
 
 export const brokerOutputTableFor = ['assignWorker'] as const;
@@ -50,7 +50,7 @@ export type WorkerControl<
   O = Record<never, never>,
   LI extends ReadonlyArray<keyof I> = readonly [],
   LO extends ReadonlyArray<keyof O> = readonly []
-> = ReactorCompositeMergeType2<
+> = ReactorCompositeExtendType<
 ReactorComposite2<ForkWorkerInput, ForkWorkerOutput<I>, typeof workerInputTableFor, typeof workerOutputTableFor>,
 I, O, LI, LO>;
 

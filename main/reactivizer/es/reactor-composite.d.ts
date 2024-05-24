@@ -4,7 +4,7 @@ import { SingleActionFactory } from './control2';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 import { ReactorCompositeOpt } from './reactor-base';
-import { ActionFactoryOfPlainType, ReactorCompositeMergeType2 } from './inferred-types';
+import { ActionFactoryOfPlainType, ReactorCompositeExtendType } from './inferred-types';
 interface BaseEvents {
     /** Internal use, when option `debug` is `true`, this message will be dispatched when
      * ReactorComposite2 is instantiated */
@@ -30,6 +30,10 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
     destory$: rx.Subject<void>;
     dispose: () => void;
     get inputTable(): ActionTable<I, LI>;
+    /** alias of inputTable */
+    get it(): ActionTable<I, LI>;
+    /** alias of outputTable */
+    get ot(): ActionTable<O & BaseEvents, LOE<LO>>;
     get outputTable(): ActionTable<O & BaseEvents, LOE<LO>>;
     private iTable;
     private oTable;
@@ -78,7 +82,7 @@ declare class ExtendHelper<I = Record<never, never>, O = Record<never, never>, L
     private optsOverride;
     define(fn: (composite: ReactorComposite2<I, O, LI, LO>) => any): this;
     options(override: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>): this;
-    to<G extends ReactorComposite2<any, any, any, any>>(base: G): ReactorCompositeMergeType2<G, I, O, LI, LO>;
+    to<G extends ReactorComposite2<any, any, any, any>>(base: G): ReactorCompositeExtendType<G, I, O, LI, LO>;
 }
 /**
  * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar functionality of inheritance being used in OO programming

@@ -3,7 +3,9 @@ import _ts from 'typescript';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 import {ReactorComposite2, SingleActionFactory, ActionMeta} from '@wfh/reactivizer';
+// import {conciseConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import chokidar from 'chokidar';
+import {TsconfigType} from '../../package-mgr/package-mgr2-utils';
 
 export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: TsconfigType, tsconfigDir: string) {
   const {i, o} = languageServices(ts);
@@ -14,7 +16,7 @@ export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: Tsco
     let unknownOutputFile: string | undefined;
     let error: Error | undefined;
     i.ft.addSourceFile(file, true, content)
-      .ddo(o.at.emitFile).pipe(
+      .od(o.at.emitFile).pipe(
         rx.map(([, outputFile, outputContent]) => {
           if (/\.[mc]?js/.test(outputFile)) {
             destFile = outputContent;
@@ -24,7 +26,7 @@ export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: Tsco
             unknownOutputFile = outputFile;
           }
         }),
-        rx.take(1),
+        // rx.take(1),
         rx.takeUntil(rx.merge( o.pt.onEmitFailure, o.pt.onSuggest).pipe(
           rx.map(([, file, diagnostics]) => {
             // eslint-disable-next-line no-console
@@ -43,29 +45,14 @@ export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: Tsco
       throw new Error(`Failed to compile ${file} (unknown: ${unknownOutputFile ?? ''}) ${error ? error.stack ?? '' : ''}`);
     }
 
-    return {
-      code: destFile,
-      map: sourceMap!
-    };
+    return [destFile, sourceMap!] as const;
   };
 }
-
 export enum LogLevel {
   trace,
   log,
   error
 }
-
-export type TsconfigType = {
-  extends?: string;
-  include?: string[];
-  exclude?: string[];
-  compilerOptions: {
-    paths: Record<string, string[]>;
-    [prop: string]: any;
-  };
-};
-
 type LangServiceInput = {
   setTsConfig(json: TsconfigType, baseDirOfTsconfigFile: string): SingleActionFactory;
   watch(dirs: string[], watchOptions?: chokidar.WatchOptions): SingleActionFactory;
@@ -87,6 +74,7 @@ type LangServiceOutput = {
     diagnostics: string,
     type: 'compilerOptions' | 'syntactic' | 'semantic'
   ): SingleActionFactory;
+  /** Under context of addSourceFile */
   emitFile(file: string, content: string): SingleActionFactory;
 };
 
@@ -110,6 +98,7 @@ export function languageServices(ts: any = _ts) {
   const rc = new ReactorComposite2<LangServiceInput, LangServiceOutput & LangServiceStore, typeof inputTableFor, typeof outputTableFor>({
     name: 'Plink TS lang service',
     debug: false,
+    // log: conciseConsoleLogger,
     logStyle: 'noParam',
     inputTableFor,
     outputTableFor
@@ -318,7 +307,7 @@ export function languageServices(ts: any = _ts) {
         ).dp(meta);
       }
       output.outputFiles.forEach(file => {
-        o.ft.emitFile(file.name, file.text).dp(meta);
+        o.ft.emitFile(file.name, file.text).dp(meta.r);
       });
     })
   ));
@@ -334,3 +323,4 @@ export function languageServices(ts: any = _ts) {
   // i.ft.setTsConfig(baseTsconfig, Path.dirname(baseTsconfigFile)).dp();
   return rc;
 }
+

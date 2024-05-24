@@ -1,17 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlinkPackageLookup = exports.setTsCompilerOpts = exports.createTsConfigForRepos = exports.createPackageInfo = void 0;
+exports.PlinkPackageLookup = exports.createTsConfigFile = exports.createTsConfigForRepos = exports.createPackageInfo = void 0;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
-const misc_1 = require("../utils/misc");
 const dir_tree_1 = require("../plink2/dir-tree");
 function createPackageInfo(pkJsonFile, isInstalled = false) {
     const json = JSON.parse(node_fs_1.default.readFileSync(pkJsonFile, 'utf8'));
     return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
 }
 exports.createPackageInfo = createPackageInfo;
+function getTscConfigOfPkg(json) {
+    // const globs: string[] | undefined = get(json, 'dr.ts.globs');
+    const srcDir = lodash_1.default.get(json, 'dr.ts.src', lodash_1.default.get(json, 'plink.tsc.src', 'ts'));
+    const isomDir = lodash_1.default.get(json, 'dr.ts.isom', lodash_1.default.get(json, 'plink.tsc.isom', 'isom'));
+    const include = lodash_1.default.get(json, 'dr.ts.include', lodash_1.default.get(json, 'plink.tsc.include'));
+    const files = lodash_1.default.get(json, 'plink.tsc.files');
+    let destDir = lodash_1.default.get(json, 'dr.ts.dest', lodash_1.default.get(json, 'plink.tsc.dest', 'dist'));
+    destDir = lodash_1.default.trim(lodash_1.default.trim(destDir, '\\'), '/');
+    return {
+        srcDir, destDir, isomDir, include, files
+    };
+}
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 function createPackageInfoWithJson(pkJsonFile, json, isInstalled = false) {
     const m = moduleNameReg.exec(json.name);
@@ -27,54 +38,50 @@ function createPackageInfoWithJson(pkJsonFile, json, isInstalled = false) {
     };
     return pkInfo;
 }
-function* createTsConfigForRepos(plinkPkgDir, isPlinkLinked, workspaceDir, repoDirs, plinkRootDir, srcPackages, spaceDependencies, extraPathMapping, include = ['**/*.ts']) {
-    const srcRootDir = (0, misc_1.closestCommonParentDir)(repoDirs);
-    // tsjson.include = [];
+function* createTsConfigForRepos(plinkPkgDir, isPlinkLinked, workspaceDir, repoDirs, plinkRootDir, srcRootDir, srcPackages, typeRootPkgs, extraPathMapping, pathForInclude) {
     const baseTsConfigFile = node_path_1.default.resolve(plinkPkgDir, 'wfh/tsconfig-base.json');
-    const spaceDependedPkgs = [...spaceDependencies].map(pkgName => {
-        const pkg = srcPackages.get(pkgName);
-        if (pkg)
-            return pkg;
-        if (pkgName.startsWith('@wfh/')) {
-            const jsonFile = node_path_1.default.resolve(plinkRootDir, workspaceDir, 'node_modules', pkgName, 'package.json');
-            if (node_fs_1.default.existsSync(jsonFile))
-                return createPackageInfo(jsonFile, true);
-            else
-                return null;
-        }
-        return null;
-    }).filter((pkg) => pkg != null);
     for (const proj of repoDirs) {
-        const tsjson = {
-            extends: undefined,
-            include,
-            exclude: ['**/node_modules/**.*', '**/*.d.ts']
-        };
-        tsjson.extends = node_path_1.default.relative(proj, baseTsConfigFile);
+        yield [
+            node_path_1.default.resolve(proj, 'tsconfig.json'), createTsConfigFile(proj, baseTsConfigFile, plinkPkgDir, isPlinkLinked, workspaceDir, plinkRootDir, srcPackages, srcRootDir, typeRootPkgs, extraPathMapping, pathForInclude)
+        ];
+    }
+}
+exports.createTsConfigForRepos = createTsConfigForRepos;
+function createTsConfigFile(tsconfigBaseDir, extendTsConfigFile, plinkPkgDir, isPlinkLinked, workspaceDir, plinkRootDir, srcPackages, srcRootDir, typeRootPkgs, extraPathMapping, pathForInclude = []) {
+    const tsjson = {
+        extends: undefined,
+        include: pathForInclude.flatMap(path => {
+            const prefix = node_path_1.default.relative(tsconfigBaseDir, path).replaceAll(/\\/g, '/');
+            return ['/**/*.ts', '/**/*.mts', '/**/*.cts'].map(postFix => prefix + postFix);
+        }),
+        exclude: ['**/node_modules/**.*', '**/*.d.ts']
+    };
+    if (extendTsConfigFile) {
+        tsjson.extends = node_path_1.default.relative(tsconfigBaseDir, extendTsConfigFile);
         if (!node_path_1.default.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
             tsjson.extends = './' + tsjson.extends;
         }
         tsjson.extends = tsjson.extends.replace(/\\/g, '/');
-        const rootDir = node_path_1.default.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
-        tsjson.compilerOptions = {
-            rootDir,
-            skipLibCheck: false,
-            jsx: 'preserve',
-            target: 'es2017',
-            // module: 'ESNext', // There is a problem with "NodeNext" with Typescript 5.3.3 and coc-tsserver, the "log4js.Logger" type being exported from @wfh/plink can not be recoganized by consumer TS file
-            // moduleResolution: 'node10', // Same as above, "bunder" or "NodeNext" have problem along with "module" setting with "NodeNext"
-            strict: true,
-            declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
-            paths: Object.assign({}, extraPathMapping)
-        };
-        setTsCompilerOpts(proj, tsjson.compilerOptions, plinkRootDir, workspaceDir, srcPackages, spaceDependedPkgs, isPlinkLinked ? plinkPkgDir : null, {
-            enableTypeRoots: true,
-            realPackagePaths: true
-        });
-        yield [node_path_1.default.resolve(proj, 'tsconfig.json'), tsjson];
     }
+    const rootDir = node_path_1.default.relative(tsconfigBaseDir, srcRootDir).replace(/\\/g, '/') || '.';
+    tsjson.compilerOptions = {
+        rootDir,
+        skipLibCheck: false,
+        jsx: 'preserve',
+        target: 'es2017',
+        // module: 'ESNext', // There is a problem with "NodeNext" with Typescript 5.3.3 and coc-tsserver, the "log4js.Logger" type being exported from @wfh/plink can not be recoganized by consumer TS file
+        // moduleResolution: 'node10', // Same as above, "bunder" or "NodeNext" have problem along with "module" setting with "NodeNext"
+        strict: true,
+        declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
+        paths: Object.assign({}, extraPathMapping)
+    };
+    setTsCompilerOpts(tsconfigBaseDir, tsjson.compilerOptions, plinkRootDir, workspaceDir, srcPackages, typeRootPkgs, isPlinkLinked ? plinkPkgDir : null, {
+        enableTypeRoots: true,
+        realPackagePaths: true
+    });
+    return tsjson;
 }
-exports.createTsConfigForRepos = createTsConfigForRepos;
+exports.createTsConfigFile = createTsConfigFile;
 function setTsCompilerOpts(tsconfigDir, assigneeOptions, plinkRootDir, workspaceDir, srcPackages, spaceDependedPkgs, plinkSourcePkgDir, opts = { enableTypeRoots: false }) {
     /** for paths mapping "*" */
     let pathsDirs = [];
@@ -105,14 +112,13 @@ function setTsCompilerOpts(tsconfigDir, assigneeOptions, plinkRootDir, workspace
     appendTypeRoots(pathsDirs, tsconfigDir, spaceDependedPkgs, assigneeOptions, opts);
     return assigneeOptions;
 }
-exports.setTsCompilerOpts = setTsCompilerOpts;
 function pathMappingForLinkedPkgs(baseUrlAbsPath, srcPackages, plinkSourcePkgDir) {
     const pathMapping = {};
     for (const { name, realPath, json } of srcPackages.values()) {
         if (name === '@wfh/plink') {
             continue;
         }
-        const tsDirs = (0, misc_1.getTscConfigOfPkg)(json);
+        const tsDirs = getTscConfigOfPkg(json);
         let realDir = node_path_1.default.relative(baseUrlAbsPath, realPath).replace(/\\/g, '/');
         const typeFile = json.types;
         const realDestDir = node_path_1.default.posix.join(realDir, tsDirs.destDir);
@@ -136,7 +142,6 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath, srcPackages, plinkSourcePkgDir
             }
         }
         pathMapping[`${name}/${tsDirs.destDir}/*`.replace(/\/\//g, '/')] = [`${realDir}/${tsDirs.srcDir}/*`.replace(/\/\//g, '/')];
-        // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
         pathMapping[name + '/*'] = [`${realDir}/*`];
     }
     if (plinkSourcePkgDir) {
@@ -173,10 +178,10 @@ function appendTypeRoots(pathsDirs, tsconfigDir, spaceDependedPkgs, assigneeOpti
     if (assigneeOptions.typeRoots != null && assigneeOptions.typeRoots.length === 0)
         delete assigneeOptions.typeRoots;
 }
-function typeRootsInPackages(spaceDependedPkgs) {
+function typeRootsInPackages(packagesMightHaveTypeRoot) {
     var _a, _b;
     const dirs = [];
-    for (const pkg of spaceDependedPkgs) {
+    for (const pkg of packagesMightHaveTypeRoot) {
         const typeRoot = ((_a = pkg.json.plink) === null || _a === void 0 ? void 0 : _a.typeRoot) || ((_b = pkg.json.dr) === null || _b === void 0 ? void 0 : _b.typeRoot);
         if (typeRoot) {
             const dir = node_path_1.default.resolve(pkg.realPath, typeRoot);

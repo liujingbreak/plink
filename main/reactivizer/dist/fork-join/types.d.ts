@@ -3,7 +3,7 @@ import type { Worker as NodeWorker, MessagePort as NodeMessagePort } from 'worke
 import * as rx from 'rxjs';
 import { Action, InferPayload } from '../control';
 import { SingleActionFactory } from '../control2';
-import { ReactorCompositeMergeType2 } from '../inferred-types';
+import { ReactorCompositeExtendType } from '../inferred-types';
 import { ReactorComposite2 } from '../reactor-composite';
 export declare const brokerOutputTableFor: readonly ["assignWorker"];
 export type Broker<WI = Record<never, never>, WO = Record<never, never>> = ReactorComposite2<BrokerInput, BrokerEvent<WI, WO>, [], typeof brokerOutputTableFor>;
@@ -31,7 +31,7 @@ export interface ForkWorkerOutput<I = Record<string, any>> {
 }
 export declare const workerInputTableFor: readonly ["setLiftUpActions", "exit"];
 export declare const workerOutputTableFor: readonly ["workerInited", "log", "warn"];
-export type WorkerControl<I = Record<never, never>, O = Record<never, never>, LI extends ReadonlyArray<keyof I> = readonly [], LO extends ReadonlyArray<keyof O> = readonly []> = ReactorCompositeMergeType2<ReactorComposite2<ForkWorkerInput, ForkWorkerOutput<I>, typeof workerInputTableFor, typeof workerOutputTableFor>, I, O, LI, LO>;
+export type WorkerControl<I = Record<never, never>, O = Record<never, never>, LI extends ReadonlyArray<keyof I> = readonly [], LO extends ReadonlyArray<keyof O> = readonly []> = ReactorCompositeExtendType<ReactorComposite2<ForkWorkerInput, ForkWorkerOutput<I>, typeof workerInputTableFor, typeof workerOutputTableFor>, I, O, LI, LO>;
 export type BrokerInput = {
     ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): SingleActionFactory;
     /** Send message to worker to stop all event listerners on it */

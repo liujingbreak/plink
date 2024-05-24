@@ -41,6 +41,18 @@ function define(rootDir, onShutdown) {
                 console.log('Enabled');
             });
         }
+        program.command('tsc')
+            .argument('[package...]', 'target packages')
+            .description('Run Typescript compiler')
+            .option('-w, --watch', 'Typescript compiler watch mode', false)
+            .option('--poll', 'Use poll mode watch', false)
+            .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
+            prev.push(...v.split(','));
+            return prev;
+        }, [])
+            .action((packages) => {
+            console.log('Run tsc on', packages);
+        });
         program.command('stop')
             .description('Stop daemon process')
             .action(async () => {

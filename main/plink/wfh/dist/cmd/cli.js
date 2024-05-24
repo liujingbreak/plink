@@ -357,7 +357,7 @@ function spaceOnlySubCommands(program) {
      * tsc command
      */
     const tscCmd = program.command('tsc [package...]')
-        .description('Run Typescript compiler to compile source code for target packages, ' +
+        .description('Run Typescript compiler to compile source code of target packages, ' +
         'which have been linked to current work directory', { package: exports.cliPackageArgDesc })
         .option('-w, --watch', 'Typescript compiler watch mode', false)
         .option('--poll', 'Use poll mode watch', false)

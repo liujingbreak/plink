@@ -44,13 +44,21 @@ class ControllerCore {
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
         this.connectableAction$ = rx.connectable(this.configChange.pipe(rx.map((props, i) => {
-            var _a, _b;
+            var _a, _b, _c;
             let switchActionStream = i === 0; // always create action stream at first time
             if (props.has('debugIncludeTypes')) {
-                this.debugIncludeSet = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) ? new Set(this.opts.debugIncludeTypes) : null;
+                if (this.debugIncludeSet == null)
+                    this.debugIncludeSet = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) ? new Set(this.opts.debugIncludeTypes) : null;
+                if (this.debugIncludeSet && ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.debugIncludeTypes)) {
+                    this.opts.debugIncludeTypes.forEach(item => this.debugIncludeSet.add(item));
+                }
             }
             if (props.has('debugExcludeTypes')) {
-                this.debugExcludeSet = new Set((_b = this.opts.debugExcludeTypes) !== null && _b !== void 0 ? _b : []);
+                if (this.debugExcludeSet == null)
+                    this.debugExcludeSet = new Set([]);
+                if ((_c = this.opts) === null || _c === void 0 ? void 0 : _c.debugExcludeTypes) {
+                    this.opts.debugExcludeTypes.forEach(item => this.debugExcludeSet.add(item));
+                }
             }
             if (props.has('debug') || props.has('log')) {
                 switchActionStream = true;

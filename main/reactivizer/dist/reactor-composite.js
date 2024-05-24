@@ -25,21 +25,29 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.patch = exports.ReactorComposite2 = void 0;
 const rx = __importStar(require("rxjs"));
-const control_1 = require("./control");
+const context_operators_1 = require("./context-operators");
 const duplex2_1 = require("./duplex2");
 const action_table_1 = require("./action-table");
 class ReactorComposite2 extends duplex2_1.DuplexController {
     get inputTable() {
+        return this.it;
+    }
+    /** alias of inputTable */
+    get it() {
         if (this.iTable)
             return this.iTable;
         this.iTable = new action_table_1.ActionTable(this.i, []);
         return this.iTable;
     }
-    get outputTable() {
+    /** alias of outputTable */
+    get ot() {
         if (this.oTable)
             return this.oTable;
         this.oTable = new action_table_1.ActionTable(this.o, ['__onErrorFor']);
         return this.oTable;
+    }
+    get outputTable() {
+        return this.ot;
     }
     constructor(opts) {
         super(opts);
@@ -59,7 +67,7 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
             this.o.ft.__onNew().dp();
         }
         this.reactorSubj = new rx.ReplaySubject();
-        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt.__onErrorFor.pipe((0, control_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
+        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt.__onErrorFor.pipe((0, context_operators_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
         this.i.doOperator$.next(doOperator);

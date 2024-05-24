@@ -3,7 +3,7 @@
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
 import {RxController, ReactorComposite, payloadRelatedToAction,
-  ActionTable, nameOfAction, ReactorCompositeMergeType} from '../src';
+  ActionTable, nameOfAction, ReactorCompositeExtendType1} from '../src';
 
 type TestMessages = {
   msg1(): void;
@@ -34,7 +34,7 @@ interface TestMessagesExtend {
   msgEx(): void;
 }
 
-type ExtReactorComp = ReactorCompositeMergeType<
+type ExtReactorComp = ReactorCompositeExtendType1<
 ReactorComposite<TestMessages>,
 TestMessagesExtend
 >;

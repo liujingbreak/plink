@@ -88,16 +88,10 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
       const a$ = new rx.ReplaySubject<InferMapParam<I[M[number]]>>(1);
       (this.streamCtl as RxController<I>).at[type].pipe(
         rx.map(a => {
-          const arr = this.actionSnapshot.get(type);
-          if (arr == null) {
-            const mapParam = [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I[M[number]]>;
-            this.actionSnapshot.set(type, mapParam);
-            return mapParam;
-          } else {
-            arr[0] = {i: a.i, r: a.r};
-            arr.splice(1, arr.length - 1, ...a.p); // reuse old array
-            return arr;
-          }
+          // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
+          const mapParam = [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I[M[number]]>;
+          this.actionSnapshot.set(type, mapParam);
+          return mapParam;
         })
       ).subscribe(a$);
 

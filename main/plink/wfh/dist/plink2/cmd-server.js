@@ -123,7 +123,7 @@ r('onRequestLine -> processManager.sendCommand', o.pt.onRequestLine.pipe(rx.merg
             cb();
         }
     });
-    return processManager.i.ft.sendCommand(inputTable.getData().setTTYSize, dir, args, out).ddo(processManager.o.pt.onCommandDoneAnyway).pipe(rx.take(1), rx.finalize(() => {
+    return processManager.i.ft.sendCommand(inputTable.getData().setTTYSize, dir, args, out).od(processManager.o.pt.onCommandDoneAnyway).pipe(rx.take(1), rx.finalize(() => {
         void Promise.resolve().then(() => res.end());
     }));
 })));

@@ -8,10 +8,11 @@ type PackageMgrActions = {
      **/
     scan(rootDir: string): SingleActionFactory;
     /** Create symlinks and install dependency */
-    runInstall(): SingleActionFactory;
+    runInstall(spaceKey: string): SingleActionFactory;
 };
 interface PackagesInternalSteps {
     checkSpace(spaceKey: string): SingleActionFactory;
+    /** Respond to switchToSpace  */
     didRemoveSymlink(link: string): SingleActionFactory;
     didScanSource(): SingleActionFactory;
     didPackagesScan(changedOrAdded: PackageInfo[], deleted: PackageInfo[]): SingleActionFactory;
@@ -38,10 +39,14 @@ interface PackageMgrEvents extends PackagesInternalSteps, PackageMgrFileEvents {
     repoNoModuleSymlinkDirs(projDir: string, dirs: string[]): SingleActionFactory;
     rootDir(dir: string): SingleActionFactory;
     onProjectLinked(projDir: string): SingleActionFactory;
+    /** Associate an external dirctory which contains source packages */
     onDirLinked(dir: string): SingleActionFactory;
     onNotifiableError(content: string): SingleActionFactory;
     linkedDrcp(pkgInfo: PackageInfo | null): SingleActionFactory;
     installedDrcp(pkgInfo: PackageInfo | null): SingleActionFactory;
 }
-export declare function createPackageMgrService(): import("@wfh/reactivizer").ReactorCompositeMergeType2<ReactorComposite2<PackageMgrActions, PackageMgrEvents, readonly ["scan"], readonly ["rootPackageJson", "rootDir", "linkedDrcp", "installedDrcp"]>, import("./package-mgr2-model").PackageManager2ModelAction, import("./package-mgr2-model").PackageManager2ModuleEvent, readonly ["switchToSpace"], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>;
+declare const inputTableFor: readonly ["scan"];
+declare const outputTableFor: readonly ["rootPackageJson", "rootDir", "linkedDrcp", "installedDrcp"];
+export type PackageMgrServiceType = ReactorComposite2<PackageMgrActions, PackageMgrEvents, typeof inputTableFor, typeof outputTableFor>;
+export declare function createPackageMgrService(): import("@wfh/reactivizer").ReactorCompositeExtendType<import("@wfh/reactivizer").ReactorCompositeExtendType<ReactorComposite2<PackageMgrActions, PackageMgrEvents, readonly ["scan"], readonly ["rootPackageJson", "rootDir", "linkedDrcp", "installedDrcp"]>, import("./package-mgr2-model").PackageMgrModelInput, import("./package-mgr2-model").PackageMgr2ModuleOutput, readonly ["switchToSpace"], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>, import("./package-mgr2-switch").PackageMgr2SpaceSwitchActions, import("./package-mgr2-switch").PackageMgr2SpaceSwitchEvents, [], []>;
 export {};

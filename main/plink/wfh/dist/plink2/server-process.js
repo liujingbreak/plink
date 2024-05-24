@@ -67,7 +67,7 @@ function createProcessManager(log) {
     })));
     r('sendCommand (childProcess.onCommandDone, onCommandError) -> childProcess.doCommand', i.pt.sendCommand.pipe(
     // Join process creation information
-    rx.mergeMap(([m, [cols, rows], cwd, cmd, output]) => i.ft.getProcessFor(cwd).ddo(o.pt.processFor).pipe(rx.take(1), rx.map(([, p, rootDir]) => [
+    rx.mergeMap(([m, [cols, rows], cwd, cmd, output]) => i.ft.getProcessFor(cwd).od(o.pt.processFor).pipe(rx.take(1), rx.map(([, p, rootDir]) => [
         m, cols, rows, cmd, output, p,
         rootDir, cwd
     ]))), rx.groupBy(([, , , , , , rootDir]) => rootDir), rx.mergeMap(grouped => grouped.pipe(
@@ -83,7 +83,8 @@ function createProcessManager(log) {
             const [stdout, stopReadStdout] = (0, server_process_stdout_1.createCurrentProcessOutputReader)(true);
             stdout.pipe(output);
             return server_child_process_entry_1.service.i.ft.doCommand(cols, rows, cwd, cmd)
-                .ddo(server_child_process_entry_1.service.o.pt.onCommandDone).pipe(rx.take(1), rx.timeout(60000), rx.catchError(err => {
+                .od(server_child_process_entry_1.service.o.pt.onCommandDone).pipe(rx.take(1), rx.timeout(120000), // 2 min
+            rx.catchError(err => {
                 processManager.dispatchErrorFor(err, m);
                 return rx.EMPTY;
             }), rx.finalize(() => {

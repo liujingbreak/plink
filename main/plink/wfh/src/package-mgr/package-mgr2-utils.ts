@@ -2,7 +2,6 @@ import Path from 'node:path';
 import fs from 'node:fs';
 import _ from 'lodash';
 import {PackageInfo} from '../index';
-import {closestCommonParentDir, getTscConfigOfPkg} from '../utils/misc';
 import {DirTree} from '../plink2/dir-tree';
 import {CompilerOptions, CompilerOptionSetOpt} from './package-list-helper';
 
@@ -14,10 +13,31 @@ export interface PackageJsonInterf {
   peerDependencies?: {[nm: string]: string};
   dependencies?: {[nm: string]: string};
 }
-
+export type TsconfigType = {
+  extends?: string;
+  include?: string[];
+  exclude?: string[];
+  compilerOptions: {
+    paths: Record<string, string[]>;
+    [prop: string]: any;
+  };
+};
 export function createPackageInfo(pkJsonFile: string, isInstalled = false): PackageInfo {
   const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8')) as PackageInfo['json'];
   return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
+}
+function getTscConfigOfPkg(json: any) {
+  // const globs: string[] | undefined = get(json, 'dr.ts.globs');
+  const srcDir = _.get(json, 'dr.ts.src', _.get(json, 'plink.tsc.src', 'ts')) as string;
+  const isomDir = _.get(json, 'dr.ts.isom', _.get(json, 'plink.tsc.isom', 'isom')) as string;
+  const include = _.get(json, 'dr.ts.include', _.get(json, 'plink.tsc.include')) as string[] | undefined;
+  const files = _.get(json, 'plink.tsc.files') as string[] | undefined;
+  let destDir = _.get(json, 'dr.ts.dest', _.get(json, 'plink.tsc.dest', 'dist')) as string;
+
+  destDir = _.trim(_.trim(destDir, '\\'), '/');
+  return {
+    srcDir, destDir, isomDir, include, files
+  };
 }
 
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
@@ -43,62 +63,73 @@ export function* createTsConfigForRepos(
   workspaceDir: string,
   repoDirs: string[],
   plinkRootDir: string,
+  srcRootDir: string,
   srcPackages: Map<string, PackageInfo>,
-  spaceDependencies: Iterable<string>,
+  typeRootPkgs: Iterable<PackageInfo>,
   extraPathMapping: {[path: string]: string[]},
-  include = ['**/*.ts']
+  pathForInclude?: string[]
 ) {
-  const srcRootDir = closestCommonParentDir(repoDirs);
-  // tsjson.include = [];
   const baseTsConfigFile = Path.resolve(plinkPkgDir, 'wfh/tsconfig-base.json');
-  const spaceDependedPkgs = [...spaceDependencies].map(pkgName => {
-    const pkg = srcPackages.get(pkgName);
-    if (pkg)
-      return pkg;
-    if (pkgName.startsWith('@wfh/')) {
-      const jsonFile = Path.resolve(plinkRootDir, workspaceDir, 'node_modules', pkgName, 'package.json');
-      if (fs.existsSync(jsonFile))
-        return createPackageInfo(jsonFile, true);
-      else
-        return null;
-    }
-    return null;
-  }).filter((pkg): pkg is PackageInfo => pkg != null);
 
   for (const proj of repoDirs) {
-    const tsjson: {extends?: string; include: string[]; exclude: string[]; compilerOptions?: Partial<CompilerOptions>} = {
-      extends: undefined,
-      include,
-      exclude: ['**/node_modules/**.*', '**/*.d.ts']
-    };
-    tsjson.extends = Path.relative(proj, baseTsConfigFile);
+    yield [
+      Path.resolve(proj, 'tsconfig.json'), createTsConfigFile(proj, baseTsConfigFile, plinkPkgDir,
+        isPlinkLinked, workspaceDir, plinkRootDir, srcPackages, srcRootDir,
+        typeRootPkgs, extraPathMapping, pathForInclude)
+    ] as const;
+  }
+}
+
+export function createTsConfigFile(
+  tsconfigBaseDir: string,
+  extendTsConfigFile: string | null,
+  plinkPkgDir: string,
+  isPlinkLinked: boolean,
+  workspaceDir: string,
+  plinkRootDir: string,
+  srcPackages: Map<string, PackageInfo>,
+  srcRootDir: string,
+  typeRootPkgs: Iterable<PackageInfo>,
+  extraPathMapping: {[path: string]: string[]},
+  pathForInclude: string[] = []
+) {
+  const tsjson: Partial<TsconfigType> = {
+    extends: undefined,
+    include: pathForInclude.flatMap(path => {
+      const prefix = Path.relative(tsconfigBaseDir, path).replaceAll(/\\/g, '/');
+      return ['/**/*.ts', '/**/*.mts', '/**/*.cts'].map(postFix => prefix + postFix);
+    }),
+    exclude: ['**/node_modules/**.*', '**/*.d.ts']
+  };
+  if (extendTsConfigFile) {
+    tsjson.extends = Path.relative(tsconfigBaseDir, extendTsConfigFile);
     if (!Path.isAbsolute(tsjson.extends) && !tsjson.extends.startsWith('..')) {
       tsjson.extends = './' + tsjson.extends;
     }
     tsjson.extends = tsjson.extends.replace(/\\/g, '/');
-
-    const rootDir = Path.relative(proj, srcRootDir).replace(/\\/g, '/') || '.';
-    tsjson.compilerOptions = {
-      rootDir,
-      skipLibCheck: false,
-      jsx: 'preserve',
-      target: 'es2017',
-      // module: 'ESNext', // There is a problem with "NodeNext" with Typescript 5.3.3 and coc-tsserver, the "log4js.Logger" type being exported from @wfh/plink can not be recoganized by consumer TS file
-      // moduleResolution: 'node10', // Same as above, "bunder" or "NodeNext" have problem along with "module" setting with "NodeNext"
-      strict: true,
-      declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
-      paths: {...extraPathMapping}
-    };
-    setTsCompilerOpts(proj, tsjson.compilerOptions, plinkRootDir, workspaceDir, srcPackages,
-      spaceDependedPkgs, isPlinkLinked ? plinkPkgDir : null, {
-        enableTypeRoots: true,
-        realPackagePaths: true
-      });
-    yield [Path.resolve(proj, 'tsconfig.json'), tsjson] as const;
   }
+
+  const rootDir = Path.relative(tsconfigBaseDir, srcRootDir).replace(/\\/g, '/') || '.';
+  tsjson.compilerOptions = {
+    rootDir,
+    skipLibCheck: false,
+    jsx: 'preserve',
+    target: 'es2017',
+    // module: 'ESNext', // There is a problem with "NodeNext" with Typescript 5.3.3 and coc-tsserver, the "log4js.Logger" type being exported from @wfh/plink can not be recoganized by consumer TS file
+    // moduleResolution: 'node10', // Same as above, "bunder" or "NodeNext" have problem along with "module" setting with "NodeNext"
+    strict: true,
+    declaration: false, // Important: to avoid https://github.com/microsoft/TypeScript/issues/29808#issuecomment-487811832
+    paths: {...extraPathMapping}
+  };
+  setTsCompilerOpts(tsconfigBaseDir, tsjson.compilerOptions, plinkRootDir, workspaceDir, srcPackages,
+    typeRootPkgs, isPlinkLinked ? plinkPkgDir : null, {
+      enableTypeRoots: true,
+      realPackagePaths: true
+    });
+  return tsjson as TsconfigType;
 }
 
-export function setTsCompilerOpts(
+function setTsCompilerOpts(
   tsconfigDir: string,
   assigneeOptions: Partial<CompilerOptions>,
   plinkRootDir: string,
@@ -177,7 +208,6 @@ function pathMappingForLinkedPkgs(baseUrlAbsPath: string, srcPackages: Map<strin
     }
 
     pathMapping[`${name}/${tsDirs.destDir}/*`.replace(/\/\//g, '/')] = [`${realDir}/${tsDirs.srcDir}/*`.replace(/\/\//g, '/')];
-    // pathMapping[`${name}/${tsDirs.isomDir}/*`] = [`${realDir}/${tsDirs.isomDir}/*`];
     pathMapping[name + '/*'] = [`${realDir}/*`];
   }
 
@@ -228,9 +258,9 @@ function appendTypeRoots(
     delete assigneeOptions.typeRoots;
 }
 
-function typeRootsInPackages(spaceDependedPkgs: Iterable<PackageInfo>) {
+function typeRootsInPackages(packagesMightHaveTypeRoot: Iterable<PackageInfo>) {
   const dirs: string[] = [];
-  for (const pkg of spaceDependedPkgs) {
+  for (const pkg of packagesMightHaveTypeRoot) {
     const typeRoot = pkg.json.plink?.typeRoot || pkg.json.dr?.typeRoot;
     if (typeRoot) {
       const dir = Path.resolve(pkg.realPath, typeRoot);

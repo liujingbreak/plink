@@ -3,7 +3,8 @@ import * as rx from 'rxjs';
 import {Action, InferPayload, ActionMeta,
   ArrayOrTuple, ControllerCore, CoreOptions,
   nameOfAction, InferMapParam, assignActionReferParam} from './stream-core';
-import {mapActionToPayload, actionRelatedToAction} from './control';
+import {mapActionToPayload} from './control';
+import {actionRelatedToAction} from './context-operators';
 import {PayloadByType, ActionByType} from './inferred-types';
 import {ActionDataTable} from './action-table';
 import {timeoutLog} from './utils';
@@ -27,7 +28,7 @@ export interface SingleActionFactory {
    * observable is subscribed.
    * Retuened is an observable of ReplaySuvbject(1), NOTE: if you are expecting more than one "associated"
    * responding messages, only first responsive message is recorded by ReplaySubject and returned,
-   * see ddo<F> as alternative
+   * see od<F> as alternative
    **/
   do<P extends [...any[]]>(
     response$: rx.Observable<ActionOrPayloadLike<P>>,
@@ -35,6 +36,7 @@ export interface SingleActionFactory {
   ): rx.Observable<[ActionMeta, ...P]>;
 
   /**
+   * @deprecated use `od(...response$)`
    * `Deferred dispatch and observe` response message.
    * Unlike `do()`, the message is not sent until the returned observable is subscribed, all associated
    * responding messages will be recieved. A new message will be dispatched everytime when the returned
@@ -46,14 +48,17 @@ export interface SingleActionFactory {
     referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
   ): rx.Observable<[ActionMeta, ...P]>;
 
-  /** Like ddo, but this method accept multiple types of "observable response message" as parameter, and it
-   * returns filtered response messages in form of tuple type.
+  /**
+   * "Observe and Dispatch", the action message is sent only when response messages are all subscribed.
+   * This method accept multiple types of "observable response message" as parameter, and it
+   * returns filtered response messages in form of tuple type, or return single observable if
+   * there is only one parameter.
    * - The action message will not be dispatched until all of returned response streams are subscribed.
    * - The action message will be dispatched only once, even any of the returned response streams are re-subscribe
    * */
   od<P extends unknown[], PA extends any[]>(
     response$: rx.Observable<ActionOrPayloadLike<P>>, ...moreResponses: [...ActionOrPayloadStreamTuple<PA>]
-  ):  [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>];
+  ):  PA['length'] extends 0 ? rx.Observable<[ActionMeta, ...P]> : [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>];
 }
 
 class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFactory {
@@ -151,10 +156,10 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
 
   od<P extends unknown[], PA extends any[]>(
     response: rx.Observable<ActionOrPayloadLike<P>>, ...moreResponses: [...ActionOrPayloadStreamTuple<PA>]
-  ):  [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>] {
+  ):  PA['length'] extends 0 ? rx.Observable<[ActionMeta, ...P]> : [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>] {
     if (moreResponses.length === 0) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return [this.ddo(response)] as any;
+      return this.ddo(response) as any;
     } else {
       const responses = [response, ...moreResponses] as (typeof response)[];
       const action = this.control.createAction(this.type, this.payload);
@@ -170,6 +175,7 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
           this.control.actionUpstream.next(action);
         }
       });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return responses.map((res$, idx) => rx.merge(
         this.control.doOperator$.pipe(
           rx.take(1),
@@ -197,7 +203,7 @@ class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFacto
           onSubscribe$.next(idx);
           sink.complete();
         })
-      )) as [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>];
+      )) as any;
     }
   }
 }

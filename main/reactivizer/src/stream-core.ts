@@ -87,10 +87,18 @@ export class ControllerCore<I> {
         rx.map((props, i) => {
           let switchActionStream = i === 0; // always create action stream at first time
           if (props.has('debugIncludeTypes')) {
-            this.debugIncludeSet = this.opts?.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null;
+            if (this.debugIncludeSet == null)
+              this.debugIncludeSet = this.opts?.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null;
+            if (this.debugIncludeSet && this.opts?.debugIncludeTypes) {
+              this.opts.debugIncludeTypes.forEach(item => this.debugIncludeSet!.add(item));
+            }
           }
           if (props.has('debugExcludeTypes')) {
-            this.debugExcludeSet = new Set(this.opts.debugExcludeTypes ?? []);
+            if (this.debugExcludeSet == null)
+              this.debugExcludeSet = new Set([]);
+            if (this.opts?.debugExcludeTypes) {
+              this.opts.debugExcludeTypes.forEach(item => this.debugExcludeSet.add(item));
+            }
           }
           if (props.has('debug') || props.has('log')) {
             switchActionStream = true;

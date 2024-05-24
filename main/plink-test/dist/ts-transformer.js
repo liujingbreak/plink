@@ -3,30 +3,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const typescript_1 = tslib_1.__importDefault(require("typescript"));
-const tsc_util_1 = require("@wfh/plink/wfh/dist/utils/tsc-util");
+const tsc_language_service_1 = require("@wfh/plink/wfh/dist/plink2/sub-cmds/tsc-language-service");
 const init_plink_1 = require("./init-plink");
-// inspector.open(9222, 'localhost', true);
-const transformerWithTsCheck = (0, tsc_util_1.createTranspileFileWithTsCheck)(typescript_1.default, { tscOpts: () => {
-        // Typescript will take effort in parseJsonConfigFileContent() to traverse all "include" files names, or report error on not found any file
-        // tsconfigJson.include = ['no-exist-file.ts'];
-        delete init_plink_1.tsconfigJson.include;
-        init_plink_1.tsconfigJson.compilerOptions.incremental = false;
-        init_plink_1.tsconfigJson.compilerOptions.inlineSourceMap = true;
-        const parsed = typescript_1.default.parseJsonConfigFileContent(init_plink_1.tsconfigJson, typescript_1.default.sys, path_1.default.dirname(init_plink_1.tsconfigFile));
-        const { options } = parsed;
-        // if (errors.length > 0) {
-        //   console.error('jest-transformer error', errors);
-        //   console.error('complete information:', parsed);
-        // }
-        return options;
-    } });
+const service = (0, tsc_language_service_1.languageServices)(typescript_1.default);
+const transpile = (0, tsc_language_service_1.createTranspileFileWithTsCheck)(typescript_1.default, Object.assign(Object.assign({}, init_plink_1.tsconfigJson), { compilerOptions: Object.assign(Object.assign({}, init_plink_1.tsconfigJson.compilerOptions), { declaration: false, strict: false }) }), path_1.default.basename(init_plink_1.tsconfigFile));
 const createTransformer = (_config) => {
     const transformer = {
         process(sourceText, sourcePath, _options) {
-            const done = transformerWithTsCheck(sourceText, sourcePath);
+            const [compiled, sourceMap] = transpile(sourceText, sourcePath);
+            let basename = path_1.default.basename(sourcePath);
+            basename = basename.slice(0, basename.lastIndexOf('.'));
+            service.i.ft.addSourceFile(sourcePath, true, sourceText).dp();
             // eslint-disable-next-line no-console
             console.log('[ts-transformer] transpile', sourcePath);
-            return done;
+            return { code: compiled, map: sourceMap };
         }
     };
     return transformer;

@@ -3,7 +3,7 @@ import fs from 'fs';
 import * as rx from 'rxjs';
 import {ExtensionContext, log4File, config} from '@wfh/plink';
 import hp from 'http-proxy';
-import {arrayBuffer2str, ReactorCompositeMergeType2, SingleActionFactory} from '@wfh/reactivizer';
+import {arrayBuffer2str, ReactorCompositeExtendType, SingleActionFactory} from '@wfh/reactivizer';
 import {createBufferForHttpProxy} from '@wfh/assets-processer/dist/utils';
 import {httpProxyObservable} from '@wfh/assets-processer/dist/http-proxy-observable';
 import {compressedIncomingMsgToBuffer, compressResponse} from '@wfh/http-server/dist/utils';
@@ -28,7 +28,7 @@ export function activate(ctx: ExtensionContext) {
   const linkIdToFile = new Map<string, string>();
   const imgUrl2File = new Map<string, string>();
   const broker = setupBroker(false);
-  const {i, o, r} = markdownProcessor as unknown as ReactorCompositeMergeType2<MarkdownProcessor, LocalMarkdownActions, LocalMarkdownEvents>;
+  const {i, o, r} = markdownProcessor as unknown as ReactorCompositeExtendType<MarkdownProcessor, LocalMarkdownActions, LocalMarkdownEvents>;
 
   router.get('/markdown-local/md', (req, res) => {
     log.info('load local markdown file', req.query.file, 'context:', ctx.contextPath);

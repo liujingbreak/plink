@@ -4,16 +4,24 @@ import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 export class ReactorComposite2 extends DuplexController {
     get inputTable() {
+        return this.it;
+    }
+    /** alias of inputTable */
+    get it() {
         if (this.iTable)
             return this.iTable;
         this.iTable = new ActionTable(this.i, []);
         return this.iTable;
     }
-    get outputTable() {
+    /** alias of outputTable */
+    get ot() {
         if (this.oTable)
             return this.oTable;
         this.oTable = new ActionTable(this.o, ['__onErrorFor']);
         return this.oTable;
+    }
+    get outputTable() {
+        return this.ot;
     }
     constructor(opts) {
         super(opts);

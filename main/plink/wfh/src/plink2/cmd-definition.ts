@@ -58,7 +58,9 @@ export function define(rootDir: string, onShutdown: () => void) {
         .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
           prev.push(...v.split(',')); return prev;
         }, [] as string[])
-        .action(() => {});
+        .action((packages: string[]) => {
+          console.log('Run tsc on', packages);
+        });
 
       program.command('stop')
         .description('Stop daemon process')

@@ -20,7 +20,7 @@ function createStoreService(base) {
         r('updatePackagesBegin, addPackageToProject, updatePackagesEnd -> data_allPackages', i.pt.updatePackagesBegin.pipe(rx.concatMap(([m]) => {
             const useless = new Map(allPackages);
             projPkgMap.clear();
-            return i.pt.addPackageToProject.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.map(([, proj, type, pkg]) => {
+            return i.pt.addPackageToProject.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.map(([, proj, _type, pkg]) => {
                 const pkgsStore = projPkgMap.get(proj);
                 allPackages.set(pkg.name, pkg);
                 useless.delete(pkg.name);
@@ -86,10 +86,6 @@ function createStoreService(base) {
         o.ft.data_projPkgMap(projPkgMap).dp();
     }).to(base);
     return {
-        // projPkgMap,
-        // allPackages,
-        // spacePkgMap,
-        // spaceDependencyMap,
         service
     };
 }

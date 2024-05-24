@@ -69,7 +69,7 @@ class SingleActionFactoryImpl {
     od(response, ...moreResponses) {
         if (moreResponses.length === 0) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            return [this.ddo(response)];
+            return this.ddo(response);
         }
         else {
             const responses = [response, ...moreResponses];
@@ -83,6 +83,7 @@ class SingleActionFactoryImpl {
                     this.control.actionUpstream.next(action);
                 }
             });
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return responses.map((res$, idx) => {
                 var _a;
                 return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(rx.map(actionOrPayload => {

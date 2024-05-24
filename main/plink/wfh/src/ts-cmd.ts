@@ -145,32 +145,33 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
     }
   }
 
-  const {i, o} = languageServices(ts, {
-    transformSourceFile(file, content) {
-      const changed = webInjector.injectToFile(file, content);
-      if (changed !== content) {
-        log.info(Path.relative(cwd, file) + ' is patched');
-      }
-      return changed;
-    },
-    tscOpts: {
-      jsx: argv.jsx,
-      inlineSourceMap: false,
-      emitDeclarationOnly: argv.ed,
-      basePath: workDir,
-      // tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
-      changeCompilerOptions(co) {
-        setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, workDir, argv, ts);
-      }
-    },
-    watcher: argv.poll ?
-      {
-        usePolling: true,
-        interval: 1500,
-        binaryInterval: 1500
-      } :
-      {usePolling: false}
-  });
+  const {i, o} = languageServices(ts);
+  i.ft.setSourceFileTranspiler((file, content) => {
+    const changed = webInjector.injectToFile(file, content);
+    if (changed !== content) {
+      log.info(Path.relative(cwd, file) + ' is patched');
+    }
+    return changed;
+  }).dp();
+  // {
+  //   tscOpts: {
+  //     jsx: argv.jsx,
+  //     inlineSourceMap: false,
+  //     emitDeclarationOnly: argv.ed,
+  //     basePath: workDir,
+  //     // tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
+  //     changeCompilerOptions(co) {
+  //       setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, workDir, argv, ts);
+  //     }
+  //   },
+  //   watcher: argv.poll ?
+  //     {
+  //       usePolling: true,
+  //       interval: 1500,
+  //       binaryInterval: 1500
+  //     } :
+  //     {usePolling: false}
+  // }
 
   const cwd = process.cwd();
 
@@ -179,12 +180,12 @@ export async function tsc(argv: TscCmdParam, ts: typeof _ts = _ts ): Promise<str
 
   function dealCommonJob() {
     return rx.merge(
-      o.pt.onCompilerOptions.pipe(
-        op.take(1),
-        op.map(([, compilerOptions]) => {
-          log.info('typescript compilerOptions:', compilerOptions);
-        })
-      ),
+      // o.pt.onCompilerOptions.pipe(
+      //   op.take(1),
+      //   op.map(([, compilerOptions]) => {
+      //     log.info('typescript compilerOptions:', compilerOptions);
+      //   })
+      // ),
       o.pt.emitFile.pipe(
         op.map(async ([, file, content]) => {
           const destFile = realPathOf(file, workDir, packageDirTree, false);

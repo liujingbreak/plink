@@ -69,7 +69,7 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
         projPkgMap.clear();
         return i.pt.addPackageToProject.pipe(
           actionRelatedToAction(m),
-          rx.map(([, proj, type, pkg]) => {
+          rx.map(([, proj, _type, pkg]) => {
             const pkgsStore = projPkgMap.get(proj);
             allPackages.set(pkg.name, pkg);
             useless.delete(pkg.name);
@@ -159,3 +159,4 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
   };
 }
 
+export type PackageMgr2ModelType = ReactorComposite2<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>;

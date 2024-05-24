@@ -1,31 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.test = exports.registerNode = exports.languageServices = exports.LogLevel = exports.createTranspileFileWithTsCheck = exports.transpileSingleFile = void 0;
+exports.transpileSingleFile = void 0;
 const tslib_1 = require("tslib");
-const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const typescript_1 = tslib_1.__importDefault(require("typescript"));
-const rx = tslib_1.__importStar(require("rxjs"));
-const op = tslib_1.__importStar(require("rxjs/operators"));
-const chokidar_1 = tslib_1.__importDefault(require("chokidar"));
-const reactivizer_1 = require("@wfh/reactivizer");
-const package_list_helper_1 = require("../package-mgr/package-list-helper");
 const ts_cmd_util_1 = require("../ts-cmd-util");
-const misc_1 = require("./misc");
 function plinkNodeJsCompilerOptionJson(ts, opts = {}) {
     const { jsx = false, inlineSourceMap = false, emitDeclarationOnly = false } = opts;
     let baseCompilerOptions;
     if (jsx) {
         const baseTsconfigFile2 = require.resolve('../../tsconfig-tsx.json');
-        // log.info('Use tsconfig file:', baseTsconfigFile2);
         const tsxTsconfig = (0, ts_cmd_util_1.parseConfigFileToJson)(ts, baseTsconfigFile2);
         baseCompilerOptions = tsxTsconfig.compilerOptions;
-        // baseCompilerOptions = {...baseCompilerOptions, ...tsxTsconfig.config.compilerOptions};
     }
     else {
         const baseTsconfigFile = require.resolve('../../tsconfig-base.json');
         const baseTsconfig = (0, ts_cmd_util_1.parseConfigFileToJson)(ts, baseTsconfigFile);
-        // log.info('Use tsconfig file:', baseTsconfigFile);
         baseCompilerOptions = baseTsconfig.compilerOptions;
     }
     const coRootDir = path_1.default.parse(process.cwd()).root;
@@ -56,261 +46,34 @@ function transpileSingleFile(content, ts = typescript_1.default) {
     };
 }
 exports.transpileSingleFile = transpileSingleFile;
-function createTranspileFileWithTsCheck(ts = typescript_1.default, opts) {
-    const { i, o } = languageServices(ts, opts);
-    // r('onCompilerOptions -> console.log', o.pt.onCompilerOptions.pipe(
-    //   // eslint-disable-next-line no-console
-    //   rx.tap(([, co]) => console.log('Transpile TS file with compilerOptions:', co)),
-    //   rx.take(1)
-    // ));
-    return function (content, file) {
-        var _a;
-        let destFile;
-        let sourceMap;
-        let unknownOutputFile;
-        let error;
-        i.ft.addSourceFile(file, true, content)
-            .ddo(o.at.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
-            if (/\.[mc]?js/.test(outputFile)) {
-                destFile = outputContent;
-            }
-            else if (outputFile.endsWith('.map')) {
-                sourceMap = outputContent;
-            }
-            else {
-                unknownOutputFile = outputFile;
-            }
-        }), rx.take(1), rx.takeUntil(rx.merge(o.pt.onEmitFailure, o.pt.onSuggest).pipe(rx.map(([, file, diagnostics]) => {
-            // eslint-disable-next-line no-console
-            console.log('[tsc-util]', file, diagnostics);
-        }))), rx.catchError((err, src) => {
-            // eslint-disable-next-line no-console
-            console.log('[tsc-util] catch error', err);
-            error = err;
-            return rx.EMPTY;
-        }))
-            .subscribe();
-        if (destFile == null) {
-            throw new Error(`Failed to compile ${file} (unknown: ${unknownOutputFile !== null && unknownOutputFile !== void 0 ? unknownOutputFile : ''}) ${error ? (_a = error.stack) !== null && _a !== void 0 ? _a : '' : ''}`);
-        }
-        return {
-            code: destFile,
-            map: sourceMap
-        };
-    };
-}
-exports.createTranspileFileWithTsCheck = createTranspileFileWithTsCheck;
-var LogLevel;
-(function (LogLevel) {
-    LogLevel[LogLevel["trace"] = 0] = "trace";
-    LogLevel[LogLevel["log"] = 1] = "log";
-    LogLevel[LogLevel["error"] = 2] = "error";
-})(LogLevel || (exports.LogLevel = LogLevel = {}));
-const forTable = [
-    'versionsUpdated', 'fileChanged', 'unemittedUpdated',
-    'setStopped', 'fileContentCache'
-];
-function languageServices(ts = typescript_1.default, opts = {}) {
-    const ts0 = ts;
-    const rc = new reactivizer_1.ReactorComposite2({
-        name: 'Plink TS lang service',
-        debug: false,
-        logStyle: 'noParam',
-        debugExcludeTypes: ['onCompilerOptions'],
-        outputTableFor: forTable
-    });
-    const { i, o, outputTable, r } = rc;
-    const formatHost = {
-        getCanonicalFileName: opts.formatDiagnosticFileName || (path => path),
-        getCurrentDirectory: typescript_1.default.sys.getCurrentDirectory,
-        getNewLine: () => typescript_1.default.sys.newLine
-    };
-    const co = typeof opts.tscOpts === 'function' ? opts.tscOpts() : plinkNodeJsCompilerOption(ts0, opts.tscOpts);
-    const serviceHost = Object.assign(Object.assign({}, ts0.sys), { // Important, default language service host does not implement methods like fileExists
-        getScriptFileNames() {
-            return Array.from(outputTable.getData().fileChanged[0].values());
-        },
-        getScriptVersion(fileName) {
-            return outputTable.getData().versionsUpdated[0].get(fileName.replace(/\\/g, '/')) + '' || '-1';
-        },
-        getCompilationSettings() {
-            o.ft.onCompilerOptions(co).dp();
-            return co;
-        },
-        getScriptSnapshot(fileName) {
-            // console.log('getScriptSnapshot()', fileName);
-            if (!fs_1.default.existsSync(fileName)) {
-                return undefined;
-            }
-            const cached = outputTable.getData().fileContentCache[0].get(fileName.replace(/\\/g, '/'));
-            const originContent = cached != null ? cached : fs_1.default.readFileSync(fileName, 'utf8');
-            return ts0.ScriptSnapshot.fromString(opts.transformSourceFile
-                ? opts.transformSourceFile(fileName, originContent)
-                : originContent);
-        },
-        getCancellationToken() {
-            return {
-                isCancellationRequested() {
-                    return outputTable.getData().setStopped[0];
-                }
-            };
-        },
-        useCaseSensitiveFileNames() {
-            return ts0.sys.useCaseSensitiveFileNames;
-        }, getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options), trace(s) {
-            o.ft.log(LogLevel.log, s).dp();
-            // console.log('[lang-service trace]', s);
-        },
-        error(s) {
-            o.ft.log(LogLevel.error, s).dp();
-            // eslint-disable-next-line no-console
-            console.log('[lang-service error]', s);
-        },
-        log(s) {
-            o.ft.log(LogLevel.log, s).dp();
-            // eslint-disable-next-line no-console
-            console.log('[lang-service log]', s);
-        } });
-    const documentRegistry = ts0.createDocumentRegistry();
-    let services;
-    let watcher;
-    r('watch', i.pt.watch.pipe(rx.exhaustMap(([, dirs]) => new rx.Observable(() => {
-        if (watcher == null)
-            watcher = chokidar_1.default.watch(dirs.map(dir => dir.replace(/\\/g, '/')), opts.watcher);
-        watcher.on('add', path => {
-            i.ft.addSourceFile(path, false).dp();
-        });
-        watcher.on('change', path => {
-            void fs_1.default.promises.readFile(path, 'utf8')
-                .then(content => {
-                i.ft.changeSourceFile(path, content).dp();
-            });
-        });
-        return () => {
-            void watcher.close().then(() => {
-                // eslint-disable-next-line no-console
-                console.log('[tsc-util] chokidar watcher stops');
-            });
-        };
-    }))));
-    const state$ = rx.combineLatest([
-        outputTable.l.fileChanged, outputTable.l.versionsUpdated,
-        outputTable.l.fileContentCache, outputTable.l.unemittedUpdated
-    ]).pipe(rx.map(([[, files], [, versions], [, fileContentCache], [, unemitted]]) => [files, versions, fileContentCache, unemitted]));
-    r('addSourceFile', i.pt.addSourceFile.pipe(rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)), rx.switchMap(([m, fileName, sync, content]) => {
-        return state$.pipe(rx.take(1), rx.map(([files, versions, fileContentCache, unemitted]) => {
-            files.add(fileName);
-            versions.set(fileName.replace(/\\/g, '/'), 0);
-            o.ft.fileChanged(files).dp(m);
-            o.ft.versionsUpdated(versions).dp(m);
-            if (content != null) {
-                fileContentCache.set(fileName.replace(/\\/g, '/'), content);
-                o.ft.fileContentCache(fileContentCache).dp(m);
-            }
-            if (sync)
-                getEmitFile(fileName, m);
-            else {
-                unemitted.add([fileName, m.i]);
-                o.ft.unemittedUpdated(unemitted).dp(m);
-                return fileName;
-            }
-        }));
-    }), rx.filter((file) => file != null), rx.debounceTime(333), rx.withLatestFrom(outputTable.l.unemittedUpdated), rx.map(([, [, unemitted]]) => {
-        for (const [file, id] of unemitted.values()) {
-            getEmitFile(file, { i: id });
-        }
-        o.ft.unemittedUpdated(unemitted).dp();
-    })));
-    r('changeSourceFile', i.pt.changeSourceFile.pipe(rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)), rx.withLatestFrom(outputTable.l.versionsUpdated, outputTable.l.fileContentCache), 
-    // TODO: debounce on same file changes
-    op.map(([[m, fileName, content], [, versions], [, fileContentCache]]) => {
-        const normFile = fileName.replace(/\\/g, '/');
-        const version = versions.get(normFile);
-        versions.set(normFile, (version != null ? version : 0) + 1);
-        o.ft.versionsUpdated(versions).dp(m);
-        if (content != null) {
-            fileContentCache.set(normFile, content);
-            o.ft.fileContentCache(fileContentCache).dp(m);
-        }
-        getEmitFile(fileName, m);
-    })));
-    r('stop', i.pt.stop.pipe(rx.tap(([m]) => {
-        o.ft.setStopped(true).dp(m);
-        rc.dispose();
-    })));
-    o.ft.setStopped(false).dp();
-    o.ft.fileContentCache(new Map()).dp();
-    o.ft.versionsUpdated(new Map()).dp();
-    o.ft.unemittedUpdated(new Set()).dp();
-    o.ft.fileChanged(new Set()).dp();
-    function getEmitFile(fileName, meta) {
-        if (services == null) {
-            services = ts0.createLanguageService(serviceHost, documentRegistry);
-            const coDiag = services.getCompilerOptionsDiagnostics();
-            if (coDiag.length > 0)
-                o.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost), 'compilerOptions').dp(meta);
-        }
-        const output = services.getEmitOutput(fileName);
-        if (output.emitSkipped) {
-            // console.log(`Emitting ${fileName} failed`);
-        }
-        const syntDiag = services.getSyntacticDiagnostics(fileName);
-        if (syntDiag.length > 0) {
-            o.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost), 'syntactic').dp(meta);
-        }
-        const semanticDiag = services.getSemanticDiagnostics(fileName);
-        if (semanticDiag.length > 0) {
-            o.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost), 'semantic').dp(meta);
-        }
-        const suggests = services.getSuggestionDiagnostics(fileName);
-        for (const sug of suggests) {
-            const { line, character } = sug.file.getLineAndCharacterOfPosition(sug.start);
-            o.ft.onSuggest(fileName, `${fileName}:${line + 1}:${character + 1} ` +
-                ts0.flattenDiagnosticMessageText(sug.messageText, '\n', 2)).dp(meta);
-        }
-        output.outputFiles.forEach(file => {
-            o.ft.emitFile(file.name, file.text).dp(meta);
-        });
-    }
-    return rc;
-}
-exports.languageServices = languageServices;
-function registerNode() {
-    const compile = createTranspileFileWithTsCheck(typescript_1.default, {
-        tscOpts: {
-            inlineSourceMap: true, basePath: misc_1.plinkEnv.workDir,
-            changeCompilerOptions(co) {
-                co.preserveSymlinks = true;
-                (0, package_list_helper_1.setTsCompilerOptForNodePath)(process.cwd(), co, {
-                    workspaceDir: misc_1.plinkEnv.workDir,
-                    enableTypeRoots: true,
-                    realPackagePaths: true
-                });
-            }
-        }
-    });
-    const ext = '.ts';
-    const old = require.extensions[ext] || require.extensions['.js'];
-    require.extensions[ext] = function (m, filename) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        const _compile = m._compile;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        m._compile = function (code, fileName) {
-            const { code: jscode } = compile(code, fileName);
-            // console.log(jscode);
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            return _compile.call(this, jscode, fileName);
-        };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return old(m, filename);
-    };
-}
-exports.registerNode = registerNode;
-function test(dir) {
-    const { o } = languageServices([dir]);
-    o.pt.emitFile.pipe(
-    // eslint-disable-next-line no-console
-    op.map(([, file]) => console.log('emit', file))).subscribe();
-}
-exports.test = test;
+// export function registerNode() {
+//   const compile = createTranspileFileWithTsCheck(_ts, {
+//     tscOpts: {
+//       inlineSourceMap: true, basePath: plinkEnv.workDir,
+//       changeCompilerOptions(co) {
+//         co.preserveSymlinks = true;
+//         setTsCompilerOptForNodePath(process.cwd(), co, {
+//           workspaceDir: plinkEnv.workDir,
+//           enableTypeRoots: true,
+//           realPackagePaths: true
+//         });
+//       }
+//     }
+//   });
+//   const ext = '.ts';
+//   const old = require.extensions[ext] || require.extensions['.js'];
+//   require.extensions[ext] = function(m: any, filename) {
+//     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+//     const _compile = m._compile;
+//     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+//     m._compile = function(code: string, fileName: string) {
+//       const {code: jscode} = compile(code, fileName);
+//       // console.log(jscode);
+//       // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+//       return _compile.call(this, jscode, fileName);
+//     };
+//     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+//     return old(m, filename);
+//   };
+// }
 //# sourceMappingURL=tsc-util.js.map

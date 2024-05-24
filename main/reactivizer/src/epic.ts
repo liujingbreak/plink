@@ -1,7 +1,8 @@
 // import inspector from 'node:inspector';
 import * as rx from 'rxjs';
 import {RxController, Action, ArrayOrTuple, ActionFunctions, ActionMeta, DispatchForAndObserveRes,
-  InferPayload, InferMapParam, mapActionToPayload, actionRelatedToAction} from './control';
+  InferPayload, InferMapParam, mapActionToPayload} from './control';
+import {actionRelatedToAction} from './context-operators';
 import {DuplexController} from './duplex';
 import {ActionTable} from './action-table';
 import {ReactorCompositeOpt} from './reactor-base';

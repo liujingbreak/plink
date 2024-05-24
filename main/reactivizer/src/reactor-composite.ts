@@ -1,10 +1,11 @@
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, ActionMeta, actionRelatedToAction} from './control';
+import {Action, ActionFunctions, ActionMeta} from './control';
+import {actionRelatedToAction} from './context-operators';
 import {SingleActionFactory, RxController2} from './control2';
 import {DuplexController} from './duplex2';
 import {ActionTable} from './action-table';
 import {ReactorCompositeOpt} from './reactor-base';
-import {InferFuncReturnEvents, ActionFactoryOfPlainType, ReactorCompositeMergeType2} from './inferred-types';
+import {InferFuncReturnEvents, ActionFactoryOfPlainType, ReactorCompositeExtendType} from './inferred-types';
 // inspector.open(9222, 'localhost', true);
 
 interface BaseEvents {
@@ -42,19 +43,27 @@ export class ReactorComposite2<
   dispose: () => void;
 
   get inputTable(): ActionTable<I, LI> {
+    return this.it;
+  }
+
+  /** alias of inputTable */
+  get it(): ActionTable<I, LI> {
     if (this.iTable)
       return this.iTable;
     this.iTable = new ActionTable<I, LI>(this.i, [] as unknown as LI);
     return this.iTable;
   }
 
-  get outputTable(): ActionTable<O & BaseEvents, LOE<LO>> {
+  /** alias of outputTable */
+  get ot(): ActionTable<O & BaseEvents, LOE<LO>> {
     if (this.oTable)
       return this.oTable;
     this.oTable = new ActionTable<O & BaseEvents, LOE<LO>>(this.o, ['__onErrorFor'] as unknown as LOE<LO>);
     return this.oTable;
   }
-
+  get outputTable() {
+    return this.ot;
+  }
   private iTable: ActionTable<I, LI> | undefined;
   private oTable: ActionTable<O & BaseEvents, LOE<LO>> | undefined;
   // protected static logSubj: rx.Subject<[level: string, ...msg: any[]]>;
@@ -326,7 +335,7 @@ class ExtendHelper<
     }
     if (this.defineFn)
       this.defineFn(base);
-    return base as ReactorCompositeMergeType2<G, I, O, LI, LO>;
+    return base as ReactorCompositeExtendType<G, I, O, LI, LO>;
   }
 }
 

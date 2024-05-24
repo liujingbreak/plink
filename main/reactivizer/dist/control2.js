@@ -28,6 +28,7 @@ exports.deserializeAction2 = exports.GroupedRxController2 = exports.RxController
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 const control_1 = require("./control");
+const context_operators_1 = require("./context-operators");
 const action_table_1 = require("./action-table");
 const utils_1 = require("./utils");
 class SingleActionFactoryImpl {
@@ -84,7 +85,7 @@ class SingleActionFactoryImpl {
                     return actionMeta;
                 }
                 return actionOrPayload;
-            }), operator(action), (0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
+            }), operator(action), (0, context_operators_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
             // eslint-disable-next-line no-console
             this.opts.slowLog ? () => this.opts.slowLog() : () => console.log('Slow observable action detected'))), new rx.Observable(sub => {
                 this.control.actionUpstream.next(action);
@@ -95,7 +96,7 @@ class SingleActionFactoryImpl {
     od(response, ...moreResponses) {
         if (moreResponses.length === 0) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            return [this.ddo(response)];
+            return this.ddo(response);
         }
         else {
             const responses = [response, ...moreResponses];
@@ -109,6 +110,7 @@ class SingleActionFactoryImpl {
                     this.control.actionUpstream.next(action);
                 }
             });
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return responses.map((res$, idx) => {
                 var _a;
                 return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(rx.map(actionOrPayload => {
@@ -118,7 +120,7 @@ class SingleActionFactoryImpl {
                         return actionMeta;
                     }
                     return actionOrPayload;
-                }), operator(action), (0, control_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
+                }), operator(action), (0, context_operators_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
                 // eslint-disable-next-line no-console
                 this.opts.slowLog ? () => this.opts.slowLog() : () => console.log('Slow observable action detected'))), new rx.Observable(sink => {
                     onSubscribe$.next(idx);

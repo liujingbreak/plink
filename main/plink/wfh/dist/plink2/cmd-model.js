@@ -10,7 +10,7 @@ const inputTableFor = ['enableRxMessageTrace', 'setRootDir'];
 const outputTableFor = ['load'];
 exports.cmdModelService = new reactivizer_1.ReactorComposite2({
     name: 'CmdModel',
-    debug: false,
+    debug: true,
     inputTableFor,
     outputTableFor
 });

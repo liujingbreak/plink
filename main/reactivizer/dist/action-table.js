@@ -101,17 +101,10 @@ class ActionTable {
                 continue;
             const a$ = new rx.ReplaySubject(1);
             this.streamCtl.at[type].pipe(rx.map(a => {
-                const arr = this.actionSnapshot.get(type);
-                if (arr == null) {
-                    const mapParam = [{ i: a.i, r: a.r }, ...a.p];
-                    this.actionSnapshot.set(type, mapParam);
-                    return mapParam;
-                }
-                else {
-                    arr[0] = { i: a.i, r: a.r };
-                    arr.splice(1, arr.length - 1, ...a.p); // reuse old array
-                    return arr;
-                }
+                // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
+                const mapParam = [{ i: a.i, r: a.r }, ...a.p];
+                this.actionSnapshot.set(type, mapParam);
+                return mapParam;
             })).subscribe(a$);
             this.latestPayloads[type] = this.streamCtl.opts.debugTableAction ?
                 a$.pipe(this.debugLogLatestActionOperator(type)) :

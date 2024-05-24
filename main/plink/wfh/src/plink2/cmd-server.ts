@@ -168,7 +168,7 @@ r('onRequestLine -> processManager.sendCommand', o.pt.onRequestLine.pipe(
       }
     }) as tty.WriteStream;
 
-    return processManager.i.ft.sendCommand(inputTable.getData().setTTYSize as [number, number], dir, args, out).ddo(
+    return processManager.i.ft.sendCommand(inputTable.getData().setTTYSize as [number, number], dir, args, out).od(
       processManager.o.pt.onCommandDoneAnyway
     ).pipe(
       rx.take(1),

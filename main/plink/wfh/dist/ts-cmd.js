@@ -22,7 +22,7 @@ const packageUtils = tslib_1.__importStar(require("./package-utils"));
 const ts_cmd_util_1 = require("./ts-cmd-util");
 const injector_factory_1 = require("./injector-factory");
 const cli_analyze_1 = require("./cmd/cli-analyze");
-const tsc_util_1 = require("./utils/tsc-util");
+const tsc_language_service_1 = require("./plink2/sub-cmds/tsc-language-service");
 const bootstrap_process_1 = require("./utils/bootstrap-process");
 const { symlinkDirName } = misc_1.plinkEnv;
 const log = log4js_1.default.getLogger('plink.ts-cmd');
@@ -112,39 +112,45 @@ async function tsc(argv, ts = typescript_1.default) {
             }
         }
     }
-    const { i, o } = (0, tsc_util_1.languageServices)(ts, {
-        transformSourceFile(file, content) {
-            const changed = injector_factory_1.webInjector.injectToFile(file, content);
-            if (changed !== content) {
-                log.info(path_1.default.relative(cwd, file) + ' is patched');
-            }
-            return changed;
-        },
-        tscOpts: {
-            jsx: argv.jsx,
-            inlineSourceMap: false,
-            emitDeclarationOnly: argv.ed,
-            basePath: workDir,
-            // tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
-            changeCompilerOptions(co) {
-                setupCompilerOptionsWithPackages(co, workDir, argv, ts);
-            }
-        },
-        watcher: argv.poll ?
-            {
-                usePolling: true,
-                interval: 1500,
-                binaryInterval: 1500
-            } :
-            { usePolling: false }
-    });
+    const { i, o } = (0, tsc_language_service_1.languageServices)(ts);
+    i.ft.setSourceFileTranspiler((file, content) => {
+        const changed = injector_factory_1.webInjector.injectToFile(file, content);
+        if (changed !== content) {
+            log.info(path_1.default.relative(cwd, file) + ' is patched');
+        }
+        return changed;
+    }).dp();
+    // {
+    //   tscOpts: {
+    //     jsx: argv.jsx,
+    //     inlineSourceMap: false,
+    //     emitDeclarationOnly: argv.ed,
+    //     basePath: workDir,
+    //     // tsBuildInfoFile: Path.resolve(workDir, 'plink.tsBuildInfo.json'),
+    //     changeCompilerOptions(co) {
+    //       setupCompilerOptionsWithPackages(co as RequiredCompilerOptions, workDir, argv, ts);
+    //     }
+    //   },
+    //   watcher: argv.poll ?
+    //     {
+    //       usePolling: true,
+    //       interval: 1500,
+    //       binaryInterval: 1500
+    //     } :
+    //     {usePolling: false}
+    // }
     const cwd = process.cwd();
     const writtenFile$ = new rx.Subject();
     const emitFailedFile$ = new rx.Subject();
     function dealCommonJob() {
-        return rx.merge(o.pt.onCompilerOptions.pipe(op.take(1), op.map(([, compilerOptions]) => {
-            log.info('typescript compilerOptions:', compilerOptions);
-        })), o.pt.emitFile.pipe(op.map(async ([, file, content]) => {
+        return rx.merge(
+        // o.pt.onCompilerOptions.pipe(
+        //   op.take(1),
+        //   op.map(([, compilerOptions]) => {
+        //     log.info('typescript compilerOptions:', compilerOptions);
+        //   })
+        // ),
+        o.pt.emitFile.pipe(op.map(async ([, file, content]) => {
             const destFile = realPathOf(file, workDir, packageDirTree, false);
             if (destFile == null)
                 return;
