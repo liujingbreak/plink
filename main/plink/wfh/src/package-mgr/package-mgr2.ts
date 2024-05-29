@@ -4,14 +4,15 @@ import * as chr from 'node:child_process';
 import util from 'util';
 import * as rx from 'rxjs';
 import _ from 'lodash';
-import {ReactorComposite2, SingleActionFactory, actionRelatedToAction, actionRelatedToActionRelatives, pairActionToActionStream} from '@wfh/reactivizer';
+import {ReactorComposite2, SingleActionFactory, actionRelatedToAction, actionRelatedToActionRelatives,
+  pairActionToActionStream, ReactorCompositeMergeType} from '@wfh/reactivizer';
 import {symlinkAsync} from '../utils/symlinks';
 import {plinkEnv} from '../utils/misc';
 import * as rm0 from '../recipe-manager';
 import {cmdModelService} from '../plink2/cmd-model';
-import {RepoPackageJson, createStoreService} from './package-mgr2-model';
+import {RepoPackageJson, createStoreService, PackageMgr2ModelType} from './package-mgr2-model';
 import {PackageJsonInterf, createPackageInfo} from './package-mgr2-utils';
-import {createSwitchSpaceService, INSTALLATION_JSON_FILE} from './package-mgr2-switch';
+import {createSwitchSpaceService, INSTALLATION_JSON_FILE, PackageMgr2SpaceSwitchServiceType} from './package-mgr2-switch';
 import type {PackageInfo} from './index';
 // import inspector from 'inspector';
 // inspector.open(9222);
@@ -65,8 +66,12 @@ interface PackageMgrEvents extends PackagesInternalSteps, PackageMgrFileEvents {
 
 const inputTableFor = ['scan'] as const;
 const outputTableFor = ['rootPackageJson', 'rootDir', 'linkedDrcp', 'installedDrcp'] as const;
-
 export type PackageMgrServiceType = ReactorComposite2<PackageMgrActions, PackageMgrEvents, typeof inputTableFor, typeof outputTableFor>;
+
+export type PackageMgrFullServiceType = ReactorCompositeMergeType<
+ReactorCompositeMergeType<PackageMgrServiceType, PackageMgr2ModelType>,
+PackageMgr2SpaceSwitchServiceType
+>;
 
 export function createPackageMgrService() {
   const packagesService = new ReactorComposite2<PackageMgrActions, PackageMgrEvents, typeof inputTableFor, typeof outputTableFor>({
@@ -410,4 +415,5 @@ export function createPackageMgrService() {
 
   return service;
 }
+
 

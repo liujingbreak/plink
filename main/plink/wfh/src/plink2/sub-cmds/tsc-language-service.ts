@@ -93,7 +93,7 @@ const outputTableFor = [
   'setStopped', 'fileContentCache', 'doneResolveCompilerOption'
 ] as const;
 
-export function languageServices(ts: any = _ts) {
+export function languageServices(ts: any = _ts): LanguageServiceType {
   const ts0 = ts as typeof _ts;
   const rc = new ReactorComposite2<LangServiceInput, LangServiceOutput & LangServiceStore, typeof inputTableFor, typeof outputTableFor>({
     name: 'Plink TS lang service',
@@ -318,9 +318,7 @@ export function languageServices(ts: any = _ts) {
   o.ft.fileChanged(new Set()).dp();
   i.ft.setSourceFileTranspiler((_file, content) => content).dp();
   i.ft.setDiagnosticFileNameFormatter(file => file).dp();
-  // const baseTsconfigFile = Path.resolve(__dirname, '../../tsconfig-base.json');
-  // const baseTsconfig = JSON.parse(fs.readFileSync(baseTsconfigFile, 'utf8')) as TsconfigType;
-  // i.ft.setTsConfig(baseTsconfig, Path.dirname(baseTsconfigFile)).dp();
   return rc;
 }
 
+export type LanguageServiceType = ReactorComposite2<LangServiceInput, LangServiceOutput & LangServiceStore, typeof inputTableFor, typeof outputTableFor>;

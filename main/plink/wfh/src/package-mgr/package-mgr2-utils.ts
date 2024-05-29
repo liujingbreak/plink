@@ -26,7 +26,7 @@ export function createPackageInfo(pkJsonFile: string, isInstalled = false): Pack
   const json = JSON.parse(fs.readFileSync(pkJsonFile, 'utf8')) as PackageInfo['json'];
   return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
 }
-function getTscConfigOfPkg(json: any) {
+export function getTscConfigOfPkg(json: any) {
   // const globs: string[] | undefined = get(json, 'dr.ts.globs');
   const srcDir = _.get(json, 'dr.ts.src', _.get(json, 'plink.tsc.src', 'ts')) as string;
   const isomDir = _.get(json, 'dr.ts.isom', _.get(json, 'plink.tsc.isom', 'isom')) as string;

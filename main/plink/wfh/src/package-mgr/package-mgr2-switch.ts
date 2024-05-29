@@ -1,7 +1,7 @@
 import Path from 'node:path';
 import fs from 'node:fs';
 import * as rx from 'rxjs';
-import {ReactorComposite2, ReactorCompositeMergeType, ReactorCompositeExtendType, SingleActionFactory, timeoutLog} from '@wfh/reactivizer';
+import {ReactorComposite2, ReactorCompositeMergeType, SingleActionFactory, timeoutLog} from '@wfh/reactivizer';
 import {closestCommonParentDir} from '../utils/misc';
 import {PackageMgrServiceType} from './package-mgr2';
 import {PackageMgr2ModelType} from './package-mgr2-model';
@@ -33,8 +33,8 @@ export interface PackageMgr2SpaceSwitchEvents {
 }
 const outputTableFor = ['updateCommonSrcDir'] as const;
 export function createSwitchSpaceService<R extends ReactorComposite2<any, any, any, any>>(origService: R) {
-  const service = origService as ReactorCompositeExtendType<ReactorCompositeMergeType<PackageMgr2ModelType, PackageMgrServiceType>,
-  PackageMgr2SpaceSwitchActions, PackageMgr2SpaceSwitchEvents, [], typeof outputTableFor>;
+  const service = origService as ReactorCompositeMergeType<ReactorCompositeMergeType<PackageMgr2ModelType, PackageMgrServiceType>,
+  PackageMgr2SpaceSwitchServiceType>;
   service.config({
     debugExcludeTypes: ['doingSwitchSpace']
   });
@@ -313,5 +313,7 @@ export function createSwitchSpaceService<R extends ReactorComposite2<any, any, a
       );
     })
   ));
-  return service as unknown as ReactorCompositeExtendType<R, PackageMgr2SpaceSwitchActions, PackageMgr2SpaceSwitchEvents, [], []>;
+  return service as unknown as ReactorCompositeMergeType<R, PackageMgr2SpaceSwitchServiceType>;
 }
+
+export type PackageMgr2SpaceSwitchServiceType = ReactorComposite2<PackageMgr2SpaceSwitchActions, PackageMgr2SpaceSwitchEvents, [], typeof outputTableFor>;
