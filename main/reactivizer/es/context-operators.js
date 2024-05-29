@@ -1,34 +1,8 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.pairActionToActionStream = exports.actionOfContext = exports.actionRelatedToActionRelatives = exports.actionRelatedToAction = void 0;
-const rx = __importStar(require("rxjs"));
+import * as rx from 'rxjs';
 /** Rx operator function, filter action or payload stream by:
  *  action ID (Action['i'])
  **/
-function actionRelatedToAction(actionOrMeta) {
+export function actionRelatedToAction(actionOrMeta) {
     return function (up) {
         let isPayload;
         return up.pipe(rx.filter(a => {
@@ -39,11 +13,10 @@ function actionRelatedToAction(actionOrMeta) {
         }));
     };
 }
-exports.actionRelatedToAction = actionRelatedToAction;
 /** Rx operator function, filter action or payload stream by:
  *  action's reference IDs (Action['r'])
  **/
-function actionRelatedToActionRelatives(actionOrMeta) {
+export function actionRelatedToActionRelatives(actionOrMeta) {
     return function (up) {
         let isPayload;
         return up.pipe(rx.filter(a => {
@@ -74,16 +47,14 @@ function actionRelatedToActionRelatives(actionOrMeta) {
         }));
     };
 }
-exports.actionRelatedToActionRelatives = actionRelatedToActionRelatives;
 /**
  * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
  */
-function actionOfContext(actionOrMeta) {
+export function actionOfContext(actionOrMeta) {
     return function (up) {
         return rx.merge(actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta)) : rx.EMPTY, up.pipe(actionRelatedToActionRelatives(actionOrMeta)));
     };
 }
-exports.actionOfContext = actionOfContext;
 /**
  * Return an Rx operator function, the upstream Observable is so call "contextAction" stream,
  * the parameter `responding$` is observable of any actions which will be filtered by this operator function,
@@ -91,7 +62,7 @@ exports.actionOfContext = actionOfContext;
  * ActionMeta['r'] equals to ActionMeta['i'].
  * In another word, the upstream is initial actions, the downstream stream will be corresponding responding event stream.
  */
-function pairActionToActionStream(responding$, mapFn) {
+export function pairActionToActionStream(responding$, mapFn) {
     return function (up) {
         // Use replaySubject to remedy case that context action message and corresponding responding message is sent in a synchronous invocation,
         // by the time context action being recieved, the responding message has also been sent, it will be too late to subscribe and catch
@@ -108,8 +79,7 @@ function pairActionToActionStream(responding$, mapFn) {
         })));
     };
 }
-exports.pairActionToActionStream = pairActionToActionStream;
-function throwErrorOnRelated(actionOrMeta) {
+export function throwErrorOnRelated(actionOrMeta) {
     return function (up) {
         return up.pipe(rx.map(actionOrPayload => {
             const isPayload = Array.isArray(actionOrPayload);
@@ -122,7 +92,6 @@ function throwErrorOnRelated(actionOrMeta) {
         }));
     };
 }
-exports.throwErrorOnRelated = throwErrorOnRelated;
 /** @deprecated use actionRelatedToAction instead */
-exports.payloadRelatedToAction = actionRelatedToAction;
+export const payloadRelatedToAction = actionRelatedToAction;
 //# sourceMappingURL=context-operators.js.map

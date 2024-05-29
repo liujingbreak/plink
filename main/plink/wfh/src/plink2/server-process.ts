@@ -108,7 +108,7 @@ export function createProcessManager(log: (...m: any[]) => void) {
       rx.groupBy(([, , , , , , rootDir]) => rootDir),
       rx.mergeMap(grouped => grouped.pipe(
         // Using concatMap: commands should be queued up by correspoding child process or rootDir
-        rx.concatMap(([m, cols, rows, cmd, output, p, rootDir, cwd]) => {
+        rx.mergeMap(([m, cols, rows, cmd, output, p, rootDir, cwd]) => {
           if (p === 'main') {
             setupTTY(cols, rows);
             if (process.cwd() !== cwd) {

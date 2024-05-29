@@ -7,3 +7,4 @@ export * from './utils';
 export * from './inferred-types';
 export * from './context-operators';
 export * from './reactor-composite';
+export * from './stream-dispense';

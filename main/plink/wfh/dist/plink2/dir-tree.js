@@ -92,20 +92,20 @@ class DirTree {
         });
         return tree;
     }
-    traverse(level = 0, tree, lines = []) {
+    traverse(indents = 0, tree, lines = []) {
         let isRoot = false;
-        if (!level)
-            level = 0;
+        if (!indents)
+            indents = 0;
         if (!tree)
             tree = this.root;
         if (!lines) {
             isRoot = true;
             lines = [];
         }
-        const indent = lodash_1.default.repeat('│  ', level);
+        const indent = lodash_1.default.repeat('│  ', indents);
         lines.push(indent + '├─ ' + tree.name + (tree.data ? ' [x]' : ''));
         lodash_1.default.each(tree.map, (subTree, subNames) => {
-            this.traverse(level + 1, subTree, lines);
+            this.traverse(indents + 1, subTree, lines);
         });
         return isRoot ? lines.join('\n') : lines;
     }

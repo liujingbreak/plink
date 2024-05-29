@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { actionRelatedToAction } from './control';
+import { actionRelatedToAction } from './context-operators';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 export class ReactorComposite2 extends DuplexController {

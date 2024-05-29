@@ -101,20 +101,22 @@ export class DirTree<T> {
     return tree;
   }
 
-  traverse(level = 0, tree?: TreeNode<T>, lines: string[] = []) {
+  traverse(): string;
+  traverse(indents?: number, tree?: TreeNode<T>, lines?: string[]): string[];
+  traverse(indents = 0, tree?: TreeNode<T>, lines: string[] = []): string | string[] {
     let isRoot = false;
-    if (!level)
-      level = 0;
+    if (!indents)
+      indents = 0;
     if (!tree)
       tree = this.root;
     if (!lines) {
       isRoot = true;
       lines = [];
     }
-    const indent = _.repeat('│  ', level);
+    const indent = _.repeat('│  ', indents);
     lines.push(indent + '├─ ' + tree.name + (tree.data ? ' [x]' : ''));
     _.each(tree.map, (subTree, subNames) => {
-      this.traverse(level + 1, subTree, lines);
+      this.traverse(indents + 1, subTree, lines);
     });
     return isRoot ? lines.join('\n') : lines;
   }

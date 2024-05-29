@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlinkPackageLookup = exports.createTsConfigFile = exports.createTsConfigForRepos = exports.createPackageInfo = void 0;
+exports.PlinkPackageLookup = exports.createTsConfigFile = exports.createTsConfigForRepos = exports.getTscConfigOfPkg = exports.createPackageInfo = void 0;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
+const rx = tslib_1.__importStar(require("rxjs"));
 const dir_tree_1 = require("../plink2/dir-tree");
 function createPackageInfo(pkJsonFile, isInstalled = false) {
     const json = JSON.parse(node_fs_1.default.readFileSync(pkJsonFile, 'utf8'));
@@ -23,6 +24,7 @@ function getTscConfigOfPkg(json) {
         srcDir, destDir, isomDir, include, files
     };
 }
+exports.getTscConfigOfPkg = getTscConfigOfPkg;
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 function createPackageInfoWithJson(pkJsonFile, json, isInstalled = false) {
     const m = moduleNameReg.exec(json.name);
@@ -191,11 +193,9 @@ function typeRootsInPackages(packagesMightHaveTypeRoot) {
     return dirs;
 }
 class PlinkPackageLookup {
-    constructor() {
-        this.dirMap = new dir_tree_1.DirTree();
-    }
     fromTsconfig(baseDir, json) {
         this.packagePathMap = new Map();
+        this.dirMap = new dir_tree_1.DirTree();
         for (const [key, list] of Object.entries(json.compilerOptions.paths)) {
             const match = /^((?:@[^/]+\/)?[^/]+)\/\*/.exec(key);
             if (match) {
@@ -209,6 +209,32 @@ class PlinkPackageLookup {
             }
         }
         return this.packagePathMap;
+    }
+    fromService(service) {
+        var _a;
+        const activeSpaceKey = service.ot.getData().didSwitchSpace[0];
+        if (activeSpaceKey == null)
+            throw new Error('You need run command "switch" against any installation directory first');
+        const spacePkgs = (_a = service.ot.getData().data_spacePkgMap[0]) === null || _a === void 0 ? void 0 : _a.get(activeSpaceKey);
+        service.r('data_spacePkgMap -> util dirMap', rx.combineLatest([
+            // If data_spacePkgMap doesn't have activeSpaceKey, dispatch "checkSpace" message
+            spacePkgs != null ?
+                rx.of(spacePkgs) :
+                service.o.ft.checkSpace(activeSpaceKey).od(service.o.pt.didCheckSpace).pipe(rx.take(1), rx.mergeMap(() => service.ot.l.data_spacePkgMap), rx.map(([, data]) => data.get(activeSpaceKey)), rx.filter(v => v != null)),
+            service.ot.l.data_allPackages.pipe(rx.take(1))
+        ]).pipe(rx.map(([spacePkgs, [, allPackages]]) => {
+            var _a;
+            this.packagePathMap = new Map();
+            this.dirMap = new dir_tree_1.DirTree();
+            for (const pkgName of spacePkgs) {
+                const pkgPath = (_a = allPackages.get(pkgName)) === null || _a === void 0 ? void 0 : _a.realPath;
+                if (pkgPath) {
+                    this.packagePathMap.set(pkgName, pkgPath);
+                    this.dirMap.putData(pkgPath, pkgName);
+                }
+            }
+            console.log(this.dirMap.traverse());
+        })));
     }
 }
 exports.PlinkPackageLookup = PlinkPackageLookup;

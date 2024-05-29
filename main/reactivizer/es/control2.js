@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
 import { ControllerCore, nameOfAction, assignActionReferParam } from './stream-core';
-import { mapActionToPayload, actionRelatedToAction } from './control';
+import { mapActionToPayload } from './control';
+import { actionRelatedToAction } from './context-operators';
 import { ActionDataTable } from './action-table';
+import { ActionDispenser } from './stream-dispense';
 import { timeoutLog } from './utils';
 class SingleActionFactoryImpl {
     constructor(type, payload, control, opts = { slowDispatchObservableTime: 20000 }) {
@@ -77,6 +79,7 @@ class SingleActionFactoryImpl {
             if (this.relateToAction && this.relateToAction.length > 0) {
                 assignActionReferParam(action, this.relateToAction);
             }
+            // when all the returned streams are subscribed, dispatch the new action
             const onSubscribe$ = new rx.Subject();
             onSubscribe$.pipe(rx.distinct(), rx.take(responses.length)).subscribe({
                 complete: () => {
@@ -114,15 +117,20 @@ export class RxController2 extends ControllerCore {
         const actionsByType = new Map();
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
+        const actionDispenseByType = new ActionDispenser(this.action$, this.typePrefix);
         const actionByTypeProxy = new Proxy({}, {
             get(_target, type, _rec) {
-                let a$ = actionsByType.get(type);
-                if (a$ == null) {
-                    const matchType = self.typePrefix + type;
-                    a$ = self.action$.pipe(rx.filter(({ t }) => t === matchType), rx.share());
-                    actionsByType.set(type, a$);
-                }
-                return a$;
+                return actionDispenseByType.ofType(type);
+                // let a$ = actionsByType.get(type);
+                // if (a$ == null) {
+                //   const matchType = self.typePrefix + (type as string);
+                //   a$ = self.action$.pipe(
+                //     rx.filter(({t}) => t === matchType),
+                //     rx.share()
+                //   );
+                //   actionsByType.set(type, a$);
+                // }
+                // return a$;
             },
             has(_target, key) {
                 return actionsByType.has(key);
@@ -137,7 +145,7 @@ export class RxController2 extends ControllerCore {
             get(_target, key, _rec) {
                 let p$ = payloadsByType.get(key);
                 if (p$ == null) {
-                    const a$ = actionByTypeProxy[key];
+                    const a$ = actionDispenseByType.ofType(key);
                     p$ = a$.pipe(mapActionToPayload(), rx.share());
                     payloadsByType.set(key, p$);
                 }

@@ -11,12 +11,11 @@ const lodash_1 = tslib_1.__importDefault(require("lodash"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const symlinks_1 = require("../utils/symlinks");
 const misc_1 = require("../utils/misc");
-const cmd_model_1 = require("../plink2/cmd-model");
 const package_mgr2_model_1 = require("./package-mgr2-model");
 const package_mgr2_utils_1 = require("./package-mgr2-utils");
 const package_mgr2_switch_1 = require("./package-mgr2-switch");
 const inputTableFor = ['scan'];
-const outputTableFor = ['rootPackageJson', 'rootDir', 'linkedDrcp', 'installedDrcp'];
+const outputTableFor = ['rootPackageJson', 'rootDir', 'linkedDrcp', 'installedDrcp', 'didSwitchSpace'];
 function createPackageMgrService() {
     const packagesService = new reactivizer_1.ReactorComposite2({
         name: 'PackageMgr2',
@@ -40,9 +39,6 @@ function createPackageMgrService() {
         o.ft.linkedDrcp(null).dp();
         o.ft.installedDrcp((0, package_mgr2_utils_1.createPackageInfo)(node_path_1.default.resolve(misc_1.plinkEnv.plinkDir, 'package.json'))).dp();
     }
-    r('cmdModelService.enableRxMessageTrace ->', cmd_model_1.cmdModelService.inputTable.l.enableRxMessageTrace.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([, enabled]) => {
-        service.config({ debug: enabled });
-    })));
     r('scan, didScanSource -> rootDir, onProjectLinked, onDirLinked, rootPackageJson', i.pt.scan.pipe(rx.concatMap(async ([m, rootDir]) => {
         var _a, _b;
         try {
@@ -200,7 +196,7 @@ function createPackageMgrService() {
             const steps = i.ft.doingSwitchSpace(rootDir, spaceKey, pkgSet, projPkgMap, allPackages, spaceDependency).re(m).od(o.pt.didCreatingSymlinksToInstallDir, o.pt.didCreatingWorkspaceSymlinks);
             return rx.zip(steps).pipe(rx.take(1));
         }), rx.mergeMap(([[, createdNmParentDirs, links], [, workspaceCount]]) => {
-            return o.pt.didWriteTsConfigFiles.pipe((0, reactivizer_1.pairActionToActionStream)(i.ft.runInstall(spaceKey).re(m).od(o.pt.didRunInstall)), rx.map(([, [, fileWrittenCount]]) => {
+            return i.ft.runInstall(spaceKey).re(m).od(o.pt.didRunInstall).pipe((0, reactivizer_1.pairActionToActionStream)(o.pt.didWriteTsConfigFiles), rx.mergeMap(a$ => a$), rx.map(([, fileWrittenCount]) => {
                 o.ft.didSwitchSpace(spaceKey, createdNmParentDirs, links, workspaceCount, fileWrittenCount).dp(m);
             }), rx.take(1));
         }), service.catchErrorFor(m));
@@ -245,6 +241,7 @@ function createPackageMgrService() {
     r('writeFile -> didWriteFile', o.pt.writeFile.pipe(rx.mergeMap(([m, file, content]) => node_fs_1.default.promises.writeFile(file, content, 'utf8')
         .then(() => o.ft.didWriteFile().dp(m))
         .catch(e => service.dispatchErrorFor(e, m)))));
+    o.ft.didSwitchSpace(null, [], [], 0, 0).dp();
     return service;
 }
 exports.createPackageMgrService = createPackageMgrService;

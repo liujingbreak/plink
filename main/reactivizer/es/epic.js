@@ -1,6 +1,7 @@
 // import inspector from 'node:inspector';
 import * as rx from 'rxjs';
-import { mapActionToPayload, actionRelatedToAction } from './control';
+import { mapActionToPayload } from './control';
+import { actionRelatedToAction } from './context-operators';
 import { DuplexController } from './duplex';
 import { ActionTable } from './action-table';
 export class ReactorComposite extends DuplexController {

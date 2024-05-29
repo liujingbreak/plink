@@ -6,6 +6,7 @@ import {ReactorComposite2, SingleActionFactory} from '@wfh/reactivizer';
 interface CmdActions {
   setRootDir(dir: string): SingleActionFactory;
   enableRxMessageTrace(enabled: boolean): SingleActionFactory;
+  setActiveInstallSpace(spaceKey: string | null): SingleActionFactory;
   shutdown(): SingleActionFactory;
 }
 
@@ -14,7 +15,7 @@ interface CmdEvents {
   load(done: boolean): SingleActionFactory;
 }
 
-const inputTableFor = ['enableRxMessageTrace', 'setRootDir'] as const;
+const inputTableFor = ['enableRxMessageTrace', 'setRootDir', 'setActiveInstallSpace'] as const;
 const outputTableFor = ['load'] as const;
 
 export const cmdModelService = new ReactorComposite2<CmdActions, CmdEvents, typeof inputTableFor, typeof outputTableFor>({
@@ -41,6 +42,8 @@ r('shutdown -> save', i.pt.shutdown.pipe(
   })
 ));
 
+i.ft.enableRxMessageTrace(false).dp();
+i.ft.setActiveInstallSpace(null).dp();
 o.ft.load(false).dp();
 
 r('-> load', inputTable.l.setRootDir.pipe(
@@ -56,6 +59,7 @@ r('-> load', inputTable.l.setRootDir.pipe(
       }
     } catch (err) {
       i.ft.enableRxMessageTrace(false).dp();
+      i.ft.setActiveInstallSpace(null).dp();
     } finally {
       o.ft.load(true).dp();
     }

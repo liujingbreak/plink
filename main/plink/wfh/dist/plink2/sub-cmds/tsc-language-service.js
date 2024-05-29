@@ -10,8 +10,15 @@ const reactivizer_1 = require("@wfh/reactivizer");
 // import {conciseConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 const chokidar_1 = tslib_1.__importDefault(require("chokidar"));
 function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson, tsconfigDir) {
-    const { i, o } = languageServices(ts);
+    const service = languageServices(ts);
+    const { i, o } = service;
     i.ft.setTsConfig(tsconfigJson, tsconfigDir).dp();
+    // service.config({debug: true});
+    // service.r('doneResolveCompilerOption', service.ot.l.doneResolveCompilerOption.pipe(
+    //   rx.map(([, co]) => {
+    //     console.log('compilerOoptions:', co);
+    //   })
+    // ));
     return function (content, file) {
         var _a;
         let destFile;
@@ -67,15 +74,21 @@ function languageServices(ts = typescript_1.default) {
         // log: conciseConsoleLogger,
         logStyle: 'noParam',
         inputTableFor,
-        outputTableFor
+        outputTableFor,
+        debugExcludeTypes: ['versionsUpdated', 'unemittedUpdated', 'addSourceFile']
     });
     const { i, o, inputTable, outputTable, r } = rc;
     r('setTsConfig -> doneResolveCompilerOption', i.pt.setTsConfig.pipe(rx.map(([m, tsconfigJson, dir]) => {
-        delete tsconfigJson.include;
+        tsconfigJson.include = ['nothing.ts'];
         tsconfigJson.compilerOptions.incremental = false;
-        tsconfigJson.compilerOptions.inlineSourceMap = true;
+        // console.log(tsconfigJson);
         const parsed = ts0.parseJsonConfigFileContent(tsconfigJson, ts0.sys, dir);
         const { options } = parsed;
+        if (parsed.errors.length > 1) {
+            const errorMsgs = parsed.errors.map(err => err.messageText).join('\n');
+            o.ft.log(LogLevel.error, errorMsgs).dp();
+            console.error(errorMsgs);
+        }
         o.ft.doneResolveCompilerOption(options).dp(m);
     })));
     // const co = typeof opts.tscOpts === 'function' ? opts.tscOpts() : plinkNodeJsCompilerOption(ts0, opts.tscOpts);
@@ -142,10 +155,11 @@ function languageServices(ts = typescript_1.default) {
     r('stop', i.pt.stop.pipe(rx.tap(([m]) => {
         o.ft.setStopped(true).dp(m);
     })));
-    r('compileFile', o.pt.compileFile.pipe(rx.combineLatestWith(outputTable.l.doneResolveCompilerOption), rx.mergeMap(a => rx.combineLatest([
+    r('compileFile -> didCompileFile, emitFile', o.pt.compileFile.pipe(rx.mergeMap(a => rx.combineLatest([
+        outputTable.l.doneResolveCompilerOption,
         inputTable.l.setSourceFileTranspiler,
         inputTable.l.setDiagnosticFileNameFormatter
-    ]).pipe(rx.take(1), rx.map(b => [...a, ...b]))), rx.map(([[meta, fileName], [, co], [, sourceFileTranspiler], [, fileNameFormatter]]) => {
+    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.map(([[meta, fileName], [, co], [, sourceFileTranspiler], [, fileNameFormatter]]) => {
         const formatHost = {
             getCanonicalFileName: fileNameFormatter,
             getCurrentDirectory: typescript_1.default.sys.getCurrentDirectory,
@@ -221,6 +235,7 @@ function languageServices(ts = typescript_1.default) {
         output.outputFiles.forEach(file => {
             o.ft.emitFile(file.name, file.text).dp(meta.r);
         });
+        o.ft.didCompileFile().dp(meta);
     })));
     o.ft.setStopped(false).dp();
     o.ft.fileContentCache(new Map()).dp();
@@ -229,9 +244,6 @@ function languageServices(ts = typescript_1.default) {
     o.ft.fileChanged(new Set()).dp();
     i.ft.setSourceFileTranspiler((_file, content) => content).dp();
     i.ft.setDiagnosticFileNameFormatter(file => file).dp();
-    // const baseTsconfigFile = Path.resolve(__dirname, '../../tsconfig-base.json');
-    // const baseTsconfig = JSON.parse(fs.readFileSync(baseTsconfigFile, 'utf8')) as TsconfigType;
-    // i.ft.setTsConfig(baseTsconfig, Path.dirname(baseTsconfigFile)).dp();
     return rc;
 }
 exports.languageServices = languageServices;

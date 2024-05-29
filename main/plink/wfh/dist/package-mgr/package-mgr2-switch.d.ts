@@ -1,4 +1,4 @@
-import { ReactorComposite2, ReactorCompositeExtendType, SingleActionFactory } from '@wfh/reactivizer';
+import { ReactorComposite2, ReactorCompositeMergeType, SingleActionFactory } from '@wfh/reactivizer';
 import type { PackageInfo } from './index';
 export declare const INSTALLATION_JSON_FILE = ".plink.install.json";
 export interface PackageMgr2SpaceSwitchActions {
@@ -14,4 +14,7 @@ export interface PackageMgr2SpaceSwitchEvents {
     updateCommonSrcDir(dir: string): SingleActionFactory;
     didArbitraryTsConfig(spaceKey: string, json: any): SingleActionFactory;
 }
-export declare function createSwitchSpaceService<R extends ReactorComposite2<any, any, any, any>>(origService: R): ReactorCompositeExtendType<R, PackageMgr2SpaceSwitchActions, PackageMgr2SpaceSwitchEvents, [], []>;
+declare const outputTableFor: readonly ["updateCommonSrcDir"];
+export declare function createSwitchSpaceService<R extends ReactorComposite2<any, any, any, any>>(origService: R): ReactorCompositeMergeType<R, PackageMgr2SpaceSwitchServiceType>;
+export type PackageMgr2SpaceSwitchServiceType = ReactorComposite2<PackageMgr2SpaceSwitchActions, PackageMgr2SpaceSwitchEvents, [], typeof outputTableFor>;
+export {};

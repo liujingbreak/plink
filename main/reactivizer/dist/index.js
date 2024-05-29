@@ -23,4 +23,5 @@ __exportStar(require("./utils"), exports);
 __exportStar(require("./inferred-types"), exports);
 __exportStar(require("./context-operators"), exports);
 __exportStar(require("./reactor-composite"), exports);
+__exportStar(require("./stream-dispense"), exports);
 //# sourceMappingURL=index.js.map

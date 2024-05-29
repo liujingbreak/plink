@@ -8,8 +8,15 @@ import chokidar from 'chokidar';
 import {TsconfigType} from '../../package-mgr/package-mgr2-utils';
 
 export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: TsconfigType, tsconfigDir: string) {
-  const {i, o} = languageServices(ts);
+  const service = languageServices(ts);
+  const {i, o} = service;
   i.ft.setTsConfig(tsconfigJson, tsconfigDir).dp();
+  // service.config({debug: true});
+  // service.r('doneResolveCompilerOption', service.ot.l.doneResolveCompilerOption.pipe(
+  //   rx.map(([, co]) => {
+  //     console.log('compilerOoptions:', co);
+  //   })
+  // ));
   return function(content: string, file: string) {
     let destFile: string | undefined;
     let sourceMap: string | undefined;
@@ -67,6 +74,8 @@ type LangServiceInput = {
 type LangServiceOutput = {
   doneResolveCompilerOption(co: _ts.CompilerOptions): SingleActionFactory;
   compileFile(fileName: string): SingleActionFactory;
+  /** In context of compileFile() */
+  didCompileFile(): SingleActionFactory;
   log(level: LogLevel, msg: string): SingleActionFactory;
   onSuggest(file: string, msg: string): SingleActionFactory;
   onEmitFailure(
@@ -101,17 +110,23 @@ export function languageServices(ts: any = _ts): LanguageServiceType {
     // log: conciseConsoleLogger,
     logStyle: 'noParam',
     inputTableFor,
-    outputTableFor
+    outputTableFor,
+    debugExcludeTypes: ['versionsUpdated', 'unemittedUpdated', 'addSourceFile']
   });
 
   const {i, o, inputTable, outputTable, r} = rc;
   r('setTsConfig -> doneResolveCompilerOption', i.pt.setTsConfig.pipe(
     rx.map(([m, tsconfigJson, dir]) => {
-      delete tsconfigJson.include;
+      tsconfigJson.include = ['nothing.ts'];
       tsconfigJson.compilerOptions.incremental = false;
-      tsconfigJson.compilerOptions.inlineSourceMap = true;
+      // console.log(tsconfigJson);
       const parsed = ts0.parseJsonConfigFileContent(tsconfigJson, ts0.sys, dir);
       const {options} = parsed;
+      if (parsed.errors.length > 1) {
+        const errorMsgs = parsed.errors.map(err => err.messageText).join('\n');
+        o.ft.log(LogLevel.error, errorMsgs).dp();
+        console.error(errorMsgs);
+      }
       o.ft.doneResolveCompilerOption(options).dp(m);
     })
   ));
@@ -201,14 +216,14 @@ export function languageServices(ts: any = _ts): LanguageServiceType {
       o.ft.setStopped(true).dp(m);
     })
   ));
-  r('compileFile', o.pt.compileFile.pipe(
-    rx.combineLatestWith(outputTable.l.doneResolveCompilerOption),
+  r('compileFile -> didCompileFile, emitFile', o.pt.compileFile.pipe(
     rx.mergeMap(a => rx.combineLatest([
+      outputTable.l.doneResolveCompilerOption,
       inputTable.l.setSourceFileTranspiler,
       inputTable.l.setDiagnosticFileNameFormatter
     ]).pipe(
       rx.take(1),
-      rx.map(b => [...a, ...b] as const)
+      rx.map(b => [a, ...b] as const)
     )),
     rx.map(([[meta, fileName], [, co], [, sourceFileTranspiler], [, fileNameFormatter]]) => {
       const formatHost: _ts.FormatDiagnosticsHost = {
@@ -309,6 +324,7 @@ export function languageServices(ts: any = _ts): LanguageServiceType {
       output.outputFiles.forEach(file => {
         o.ft.emitFile(file.name, file.text).dp(meta.r);
       });
+      o.ft.didCompileFile().dp(meta);
     })
   ));
   o.ft.setStopped(false).dp();

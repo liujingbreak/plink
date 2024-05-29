@@ -30,6 +30,7 @@ const stream_core_1 = require("./stream-core");
 const control_1 = require("./control");
 const context_operators_1 = require("./context-operators");
 const action_table_1 = require("./action-table");
+const stream_dispense_1 = require("./stream-dispense");
 const utils_1 = require("./utils");
 class SingleActionFactoryImpl {
     constructor(type, payload, control, opts = { slowDispatchObservableTime: 20000 }) {
@@ -104,6 +105,7 @@ class SingleActionFactoryImpl {
             if (this.relateToAction && this.relateToAction.length > 0) {
                 (0, stream_core_1.assignActionReferParam)(action, this.relateToAction);
             }
+            // when all the returned streams are subscribed, dispatch the new action
             const onSubscribe$ = new rx.Subject();
             onSubscribe$.pipe(rx.distinct(), rx.take(responses.length)).subscribe({
                 complete: () => {
@@ -141,15 +143,20 @@ class RxController2 extends stream_core_1.ControllerCore {
         const actionsByType = new Map();
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
+        const actionDispenseByType = new stream_dispense_1.ActionDispenser(this.action$, this.typePrefix);
         const actionByTypeProxy = new Proxy({}, {
             get(_target, type, _rec) {
-                let a$ = actionsByType.get(type);
-                if (a$ == null) {
-                    const matchType = self.typePrefix + type;
-                    a$ = self.action$.pipe(rx.filter(({ t }) => t === matchType), rx.share());
-                    actionsByType.set(type, a$);
-                }
-                return a$;
+                return actionDispenseByType.ofType(type);
+                // let a$ = actionsByType.get(type);
+                // if (a$ == null) {
+                //   const matchType = self.typePrefix + (type as string);
+                //   a$ = self.action$.pipe(
+                //     rx.filter(({t}) => t === matchType),
+                //     rx.share()
+                //   );
+                //   actionsByType.set(type, a$);
+                // }
+                // return a$;
             },
             has(_target, key) {
                 return actionsByType.has(key);
@@ -164,7 +171,7 @@ class RxController2 extends stream_core_1.ControllerCore {
             get(_target, key, _rec) {
                 let p$ = payloadsByType.get(key);
                 if (p$ == null) {
-                    const a$ = actionByTypeProxy[key];
+                    const a$ = actionDispenseByType.ofType(key);
                     p$ = a$.pipe((0, control_1.mapActionToPayload)(), rx.share());
                     payloadsByType.set(key, p$);
                 }

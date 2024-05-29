@@ -4,7 +4,7 @@ exports.createStoreService = void 0;
 const tslib_1 = require("tslib");
 const rx = tslib_1.__importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
-const inputTableFor = ['switchToSpace'];
+const inputTableFor = [];
 const outputTableFor = ['data_spacePkgMap', 'data_spaceDependencyMap', 'data_allPackages', 'data_projPkgMap'];
 function createStoreService(base) {
     const projPkgMap = new Map();
@@ -74,12 +74,6 @@ function createStoreService(base) {
             space.add(pkg);
             o.ft.data_spacePkgMap(spacePkgMap).dp(m);
         })));
-        // r('saveStateToFile', o.pt.saveStateToFile.pipe(
-        //   rx.concatMap(() => {
-        //     return fs.promises.writeFile();
-        //   })
-        // ));
-        i.ft.switchToSpace(null).dp();
         o.ft.data_spacePkgMap(spacePkgMap).dp();
         o.ft.data_spaceDependencyMap(spaceDependencyMap).dp();
         o.ft.data_allPackages(allPackages).dp();

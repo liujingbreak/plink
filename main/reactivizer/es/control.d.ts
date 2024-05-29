@@ -77,30 +77,6 @@ export declare class GroupedRxController<I, K> extends RxController<I> {
     key: K;
     constructor(key: K, opts?: CoreOptions<I>);
 }
-/** Rx operator function, filter action or payload stream by:
- *  action ID (Action['i'])
- **/
-export declare function actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
-    i: ActionMeta['i'];
-}): (up: rx.Observable<T>) => rx.Observable<T>;
-/** Rx operator function, filter action or payload stream by:
- *  action's reference IDs (Action['r'])
- **/
-export declare function actionRelatedToActionRelatives<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
-    r?: ActionMeta['r'];
-}): (up: rx.Observable<T>) => rx.Observable<T>;
-/**
- * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
- */
-export declare function actionOfContext<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
-    i?: ActionMeta['i'];
-    r?: ActionMeta['r'];
-}): (up: rx.Observable<T>) => rx.Observable<T>;
-export declare function throwErrorOnRelated<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
-    i: ActionMeta['i'];
-}): (up: rx.Observable<T>) => rx.Observable<T>;
-/** @deprecated use actionRelatedToAction instead */
-export declare const payloadRelatedToAction: typeof actionRelatedToAction;
 export declare function serializeAction<I = any, K extends keyof I = any>(action: Action<I[K]>): {
     t: string;
     p: InferPayload<I[K]>;

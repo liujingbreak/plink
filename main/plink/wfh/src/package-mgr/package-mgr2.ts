@@ -9,7 +9,6 @@ import {ReactorComposite2, SingleActionFactory, actionRelatedToAction, actionRel
 import {symlinkAsync} from '../utils/symlinks';
 import {plinkEnv} from '../utils/misc';
 import * as rm0 from '../recipe-manager';
-import {cmdModelService} from '../plink2/cmd-model';
 import {RepoPackageJson, createStoreService, PackageMgr2ModelType} from './package-mgr2-model';
 import {PackageJsonInterf, createPackageInfo} from './package-mgr2-utils';
 import {createSwitchSpaceService, INSTALLATION_JSON_FILE, PackageMgr2SpaceSwitchServiceType} from './package-mgr2-switch';
@@ -34,7 +33,6 @@ interface PackagesInternalSteps {
   didPackagesScan(changedOrAdded: PackageInfo[], deleted: PackageInfo[]): SingleActionFactory;
   didSyncSpacePackages(): SingleActionFactory;
   didCheckSpace(key: string, spacePackageJson: PackageJsonInterf): SingleActionFactory;
-  didSwitchSpace(spaceKey: string, symlinksToSpace: string[], actuallyCreated: string[], workspaceCount: number, tsconfiFileWritten: number): SingleActionFactory;
   didRunInstall(spaceKey: string): SingleActionFactory;
 }
 
@@ -46,6 +44,7 @@ interface PackageMgrFileEvents {
   writeFile(file: string, content: string): SingleActionFactory;
   /** Relates to writeFile */
   didWriteFile(): SingleActionFactory;
+  didSwitchSpace(spaceKey: string | null, symlinksToSpace: string[], actuallyCreated: string[], workspaceCount: number, tsconfiFileWritten: number): SingleActionFactory;
 }
 
 interface PackageMgrEvents extends PackagesInternalSteps, PackageMgrFileEvents {
@@ -65,7 +64,7 @@ interface PackageMgrEvents extends PackagesInternalSteps, PackageMgrFileEvents {
 }
 
 const inputTableFor = ['scan'] as const;
-const outputTableFor = ['rootPackageJson', 'rootDir', 'linkedDrcp', 'installedDrcp'] as const;
+const outputTableFor = ['rootPackageJson', 'rootDir', 'linkedDrcp', 'installedDrcp', 'didSwitchSpace'] as const;
 export type PackageMgrServiceType = ReactorComposite2<PackageMgrActions, PackageMgrEvents, typeof inputTableFor, typeof outputTableFor>;
 
 export type PackageMgrFullServiceType = ReactorCompositeMergeType<
@@ -98,13 +97,6 @@ export function createPackageMgrService() {
     o.ft.linkedDrcp(null).dp();
     o.ft.installedDrcp(createPackageInfo(Path.resolve(plinkEnv.plinkDir, 'package.json'))).dp();
   }
-
-  r('cmdModelService.enableRxMessageTrace ->', cmdModelService.inputTable.l.enableRxMessageTrace.pipe(
-    rx.distinctUntilChanged(([, a], [, b]) => a === b),
-    rx.map(([, enabled]) => {
-      service.config({debug: enabled});
-    })
-  ));
 
   r('scan, didScanSource -> rootDir, onProjectLinked, onDirLinked, rootPackageJson', i.pt.scan.pipe(
     rx.concatMap(async ([m, rootDir]) => {
@@ -342,9 +334,10 @@ export function createPackageMgrService() {
             );
           }),
           rx.mergeMap(([[, createdNmParentDirs, links], [, workspaceCount]]) => {
-            return o.pt.didWriteTsConfigFiles.pipe(
-              pairActionToActionStream(i.ft.runInstall(spaceKey).re(m).od(o.pt.didRunInstall)),
-              rx.map(([, [, fileWrittenCount]]) => {
+            return i.ft.runInstall(spaceKey).re(m).od(o.pt.didRunInstall).pipe(
+              pairActionToActionStream(o.pt.didWriteTsConfigFiles),
+              rx.mergeMap(a$ => a$),
+              rx.map(([, fileWrittenCount]) => {
                 o.ft.didSwitchSpace(spaceKey, createdNmParentDirs, links, workspaceCount, fileWrittenCount).dp(m);
               }),
               rx.take(1)
@@ -412,8 +405,6 @@ export function createPackageMgrService() {
       .then(() => o.ft.didWriteFile().dp(m))
       .catch(e => service.dispatchErrorFor(e, m)))
   ));
-
+  o.ft.didSwitchSpace(null, [], [], 0, 0).dp();
   return service;
 }
-
-

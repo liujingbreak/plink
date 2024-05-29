@@ -1,16 +1,16 @@
 import Path from 'path';
 import ts from 'typescript';
+// import * as rx from 'rxjs';
 import {TransformerCreator, SyncTransformer} from '@jest/transform';
-import {languageServices, createTranspileFileWithTsCheck} from '@wfh/plink/wfh/dist/plink2/sub-cmds/tsc-language-service';
+import {createTranspileFileWithTsCheck} from '@wfh/plink/wfh/dist/plink2/sub-cmds/tsc-language-service';
 import {tsconfigFile, tsconfigJson} from './init-plink';
-
-const service = languageServices(ts);
 
 const transpile = createTranspileFileWithTsCheck(ts, {...tsconfigJson, compilerOptions: {
   ...tsconfigJson.compilerOptions,
   declaration: false,
+  inlineSourceMap: true,
   strict: false
-}}, Path.basename(tsconfigFile));
+}}, Path.dirname(tsconfigFile));
 
 const createTransformer: TransformerCreator<SyncTransformer<Record<string, unknown>>, Record<string, unknown>> = (_config) => {
   const transformer: SyncTransformer<Record<string, unknown>> = {
@@ -18,7 +18,7 @@ const createTransformer: TransformerCreator<SyncTransformer<Record<string, unkno
       const [compiled, sourceMap] = transpile(sourceText, sourcePath);
       let basename = Path.basename(sourcePath);
       basename = basename.slice(0, basename.lastIndexOf('.'));
-      service.i.ft.addSourceFile(sourcePath, true, sourceText).dp();
+      // service.i.ft.addSourceFile(sourcePath, true, sourceText).dp();
       // eslint-disable-next-line no-console
       console.log('[ts-transformer] transpile', sourcePath);
       return {code: compiled, map: sourceMap};

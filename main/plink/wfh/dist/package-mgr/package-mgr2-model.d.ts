@@ -39,10 +39,10 @@ export interface PackageMgr2ModuleOutput {
     data_spacePkgMap(data: Map<string, Set<string>>): SingleActionFactory;
     data_projPkgMap(data: Map<string, Set<string>>): SingleActionFactory;
 }
-declare const inputTableFor: readonly ["switchToSpace"];
+declare const inputTableFor: readonly [];
 declare const outputTableFor: readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"];
 export declare function createStoreService<R extends ReactorComposite2<any, any, any, any>>(base: R): {
-    service: import("@wfh/reactivizer").ReactorCompositeExtendType<R, PackageMgrModelInput, PackageMgr2ModuleOutput, readonly ["switchToSpace"], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>;
+    service: import("@wfh/reactivizer").ReactorCompositeExtendType<R, PackageMgrModelInput, PackageMgr2ModuleOutput, readonly [], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>;
 };
 export type PackageMgr2ModelType = ReactorComposite2<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>;
 export {};

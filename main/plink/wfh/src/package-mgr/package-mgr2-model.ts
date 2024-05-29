@@ -47,7 +47,7 @@ export interface PackageMgr2ModuleOutput {
   data_projPkgMap(data: Map<string, Set<string>>): SingleActionFactory;
 }
 
-const inputTableFor = ['switchToSpace'] as const;
+const inputTableFor = [] as const;
 const outputTableFor = ['data_spacePkgMap', 'data_spaceDependencyMap', 'data_allPackages', 'data_projPkgMap'] as const;
 
 export function createStoreService<R extends ReactorComposite2<any, any, any, any>>(base: R) {
@@ -142,12 +142,6 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
       })
     ));
 
-    // r('saveStateToFile', o.pt.saveStateToFile.pipe(
-    //   rx.concatMap(() => {
-    //     return fs.promises.writeFile();
-    //   })
-    // ));
-    i.ft.switchToSpace(null).dp();
     o.ft.data_spacePkgMap(spacePkgMap).dp();
     o.ft.data_spaceDependencyMap(spaceDependencyMap).dp();
     o.ft.data_allPackages(allPackages).dp();

@@ -9,7 +9,6 @@ const EMPTY_ARRY = [] as [];
 
 export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
   actionNames: KS;
-
   latestPayloads = {} as PayloadByType<{[K in KS[number]]: I[K]}>;
   /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
   l: PayloadByType<{[K in KS[number]]: I[K]}>;

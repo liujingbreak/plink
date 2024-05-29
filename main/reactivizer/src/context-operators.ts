@@ -65,30 +65,34 @@ export function actionOfContext<T extends [ActionMeta, ...any[]] | Action<any>>(
 }
 
 /**
- * Return an Rx operator function, whose input Observable is so call "contextAction" stream and output Observable contains
- * a tuple of paired actions in form of `[contextAction, respondingEvent]` where the `respondingEvent`'s ActionMeta['r']
- * equals to or contains `contextAction`'s ActionMeta['i']. In another word, the input stream is initial actions stream, the
- * output stream will be corresponding responding event stream.
+ * Return an Rx operator function, the upstream Observable is so call "contextAction" stream,
+ * the parameter `responding$` is observable of any actions which will be filtered by this operator function,
+ * the downstream is an observable of a tuple of actions in form of `[contextAction, respondingEvent]`, in which respondingEvent's
+ * ActionMeta['r'] equals to ActionMeta['i'].
+ * In another word, the upstream is initial actions, the downstream stream will be corresponding responding event stream.
  */
-export function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>>(
-  contextAction$: rx.Observable<C>
-): (up: rx.Observable<T>) => rx.Observable<readonly [C, T]> {
-  return function(up: rx.Observable<T>) {
+export function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>, R = T>(
+  responding$: rx.Observable<T>,
+  mapFn?: (contextAction: C, responding: T) => R
+): (up: rx.Observable<C>) => rx.Observable<rx.Observable<R>> {
+  return function(up: rx.Observable<C>) {
     // Use replaySubject to remedy case that context action message and corresponding responding message is sent in a synchronous invocation,
     // by the time context action being recieved, the responding message has also been sent, it will be too late to subscribe and catch
     // the responding message
     const replay$ = new rx.ReplaySubject<T>(10);
     return rx.merge(
       new rx.Observable<never>(sink => {
-        up.subscribe(replay$);
+        responding$.subscribe(replay$);
         sink.complete();
       }),
-      contextAction$.pipe(
-        rx.mergeMap(ctxAction => {
-          return replay$.pipe(
-            actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction),
-            rx.map(t => [ctxAction, t] as const)
-          );
+      up.pipe(
+        rx.map(ctxAction => {
+          const filted$ = replay$.pipe( actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction));
+          return (mapFn ?
+            filted$.pipe(
+              rx.map(responding => mapFn(ctxAction, responding))
+            ) :
+            filted$) as rx.Observable<R>;
         })
       )
     );

@@ -21,6 +21,8 @@ type LangServiceInput = {
 type LangServiceOutput = {
     doneResolveCompilerOption(co: _ts.CompilerOptions): SingleActionFactory;
     compileFile(fileName: string): SingleActionFactory;
+    /** In context of compileFile() */
+    didCompileFile(): SingleActionFactory;
     log(level: LogLevel, msg: string): SingleActionFactory;
     onSuggest(file: string, msg: string): SingleActionFactory;
     onEmitFailure(file: string, diagnostics: string, type: 'compilerOptions' | 'syntactic' | 'semantic'): SingleActionFactory;
@@ -34,5 +36,8 @@ interface LangServiceStore {
     setStopped(stopped: boolean): SingleActionFactory;
     fileContentCache(cache: Map<string, string>): SingleActionFactory;
 }
-export declare function languageServices(ts?: any): ReactorComposite2<LangServiceInput, LangServiceOutput & LangServiceStore, readonly ["setTsConfig", "setSourceFileTranspiler", "setDiagnosticFileNameFormatter"], readonly ["versionsUpdated", "fileChanged", "unemittedUpdated", "setStopped", "fileContentCache", "doneResolveCompilerOption"]>;
+declare const inputTableFor: readonly ["setTsConfig", "setSourceFileTranspiler", "setDiagnosticFileNameFormatter"];
+declare const outputTableFor: readonly ["versionsUpdated", "fileChanged", "unemittedUpdated", "setStopped", "fileContentCache", "doneResolveCompilerOption"];
+export declare function languageServices(ts?: any): LanguageServiceType;
+export type LanguageServiceType = ReactorComposite2<LangServiceInput, LangServiceOutput & LangServiceStore, typeof inputTableFor, typeof outputTableFor>;
 export {};
