@@ -13,7 +13,7 @@ const transform = {
     '\\.tsx?$': [path_1.default.resolve(__dirname, 'ts-transformer.js'), {}]
 };
 // Jest does not support symlinks for search directory, so I have to use "realPath"
-const packageDirs = [...init_plink_1.packagePathMap.values()].map(path => path_1.default.resolve(init_plink_1.plinkRootDir, path));
+const packageDirs = [...init_plink_1.packageToPathMap.values()].map(path => path_1.default.resolve(init_plink_1.plinkRootDir, path));
 const config = {
     // All imported modules in your tests should be mocked automatically
     // automock: false,
@@ -96,7 +96,7 @@ const config = {
     // Reset the module registry before running each individual test
     // resetModules: false,
     // A path to a custom resolver
-    resolver: path_1.default.resolve(__dirname, 'jest.resolver.js'),
+    // resolver: Path.resolve(__dirname, 'jest.resolver.js'),
     // Automatically restore mock state and implementation before every test
     // restoreMocks: false,
     // The root directory that Jest should scan for tests and modules within

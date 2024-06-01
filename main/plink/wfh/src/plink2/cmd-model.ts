@@ -20,7 +20,7 @@ const outputTableFor = ['load'] as const;
 
 export const cmdModelService = new ReactorComposite2<CmdActions, CmdEvents, typeof inputTableFor, typeof outputTableFor>({
   name: 'CmdModel',
-  debug: true,
+  debug: false,
   inputTableFor,
   outputTableFor
 });

@@ -97,7 +97,7 @@ function createSwitchSpaceService(origService) {
         const realPath = (_a = allPackages.get(pkgName)) === null || _a === void 0 ? void 0 : _a.realPath;
         if (realPath) {
             await rx.firstValueFrom(o.ft.createOrChangeSymlink(realPath, fakeNpmWorkspace)
-                .ddo(o.pt.didSymlinkCreation, m));
+                .re(m).od(o.pt.didSymlinkCreation));
             return 'workspaces/' + pkgName;
         }
         else {

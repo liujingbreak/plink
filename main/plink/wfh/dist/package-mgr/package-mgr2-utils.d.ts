@@ -1,6 +1,4 @@
 import { PackageInfo } from '../index';
-import { DirTree } from '../plink2/dir-tree';
-import { PackageMgrFullServiceType } from './package-mgr2';
 export interface PackageJsonInterf {
     version: string;
     name: string;
@@ -38,13 +36,3 @@ export declare function createTsConfigForRepos(plinkPkgDir: string, isPlinkLinke
 export declare function createTsConfigFile(tsconfigBaseDir: string, extendTsConfigFile: string | null, plinkPkgDir: string, isPlinkLinked: boolean, workspaceDir: string, plinkRootDir: string, srcPackages: Map<string, PackageInfo>, srcRootDir: string, typeRootPkgs: Iterable<PackageInfo>, extraPathMapping: {
     [path: string]: string[];
 }, pathForInclude?: string[]): TsconfigType;
-export declare class PlinkPackageLookup {
-    dirMap: DirTree<string> | undefined;
-    packagePathMap: Map<string, string> | undefined;
-    fromTsconfig(baseDir: string, json: {
-        compilerOptions: {
-            paths: Record<string, string[]>;
-        };
-    }): Map<string, string>;
-    fromService(service: PackageMgrFullServiceType): void;
-}

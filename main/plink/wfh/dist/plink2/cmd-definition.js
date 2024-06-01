@@ -3,16 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.define = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable no-console */
+// import fs from 'fs';
 const rx = tslib_1.__importStar(require("rxjs"));
 const commander_1 = tslib_1.__importDefault(require("commander"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const misc_1 = require("../utils/misc");
 const package_mgr2_1 = require("../package-mgr/package-mgr2");
+const package_mgr2_lookup_1 = require("../package-mgr/package-mgr2-lookup");
 const tsc_language_service_1 = require("./sub-cmds/tsc-language-service");
 const tsc_language_service4pkg_1 = require("./sub-cmds/tsc-language-service4pkg");
 const cmd_model_1 = require("./cmd-model");
 function define(rootDir, onShutdown) {
+    const lang = (0, tsc_language_service_1.languageServices)();
     const packageMgrService = (0, package_mgr2_1.createPackageMgrService)();
+    const pkgLookupService = (0, package_mgr2_lookup_1.createPlinkPackageLookupService)();
+    const langExt = (0, tsc_language_service4pkg_1.addOnPackageFeatures)(lang, packageMgrService, pkgLookupService);
     cmd_model_1.cmdModelService.i.ft.setRootDir(rootDir).dp();
     cmd_model_1.cmdModelService.r('didSwitchSpace -> setActiveInstallSpace', packageMgrService.ot.l.didSwitchSpace.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([m, spaceKey]) => {
         if (spaceKey)
@@ -20,6 +25,8 @@ function define(rootDir, onShutdown) {
     })));
     cmd_model_1.cmdModelService.r('cmdModelService.enableRxMessageTrace ->', cmd_model_1.cmdModelService.inputTable.l.enableRxMessageTrace.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([, enabled]) => {
         packageMgrService.config({ debug: enabled });
+        lang.config({ debug: enabled });
+        // pkgLookupService.service.config({debug: enabled});
     })));
     return cmd_model_1.cmdModelService.outputTable.l.load.pipe(rx.map(([, done]) => done), rx.filter(done => done), rx.take(1), rx.mergeMap(() => packageMgrService.i.ft.scan(rootDir)
         .do(packageMgrService.o.pt.onScanCompleted)), rx.mergeMap(() => rx.combineLatest([
@@ -68,16 +75,28 @@ function define(rootDir, onShutdown) {
         }, [])
             .action(async (packages) => {
             console.log('Run tsc on', ...packages);
-            const lang = (0, tsc_language_service_1.languageServices)();
-            const langExt = (0, tsc_language_service4pkg_1.addOnPackageFeatures)(lang, packageMgrService);
-            const { i, o } = langExt;
-            i.ft.setTsConfigOfPlinkBase().dp();
-            if (enableRxMessageTrace)
-                langExt.config({ debug: true });
-            const printMsg = rx.merge(o.pt.onSuggest.pipe(rx.tap(([, , msg]) => console.log(chalk_1.default.yellow('[suggestion]'), chalk_1.default.yellow(msg)))), o.pt.onEmitFailure.pipe(rx.tap(([, , diag]) => console.log(chalk_1.default.red('[error]'), chalk_1.default.red(diag))))).pipe(rx.ignoreElements());
-            await rx.lastValueFrom(rx.merge(o.pt.emitFile.pipe(rx.map(([, file, _content]) => {
-                console.log('compiled', file);
-            })), printMsg).pipe(rx.takeUntil(i.ft.addSourcePackage(packages).od(o.pt.didAddSourcePackage)), rx.count()));
+            const { s } = langExt;
+            s.ft.setTsConfigOfPlinkBase().dp();
+            const [emitFile$, done$] = s.ft.addSourcePackage(packages).od(s.pt.onEmitFileForPackage, s.pt.didAddSourcePackage);
+            await rx.lastValueFrom(rx.merge(emitFile$.pipe(
+            // rx.mergeMap(([, file, content]) => {
+            //   return fs.promises.writeFile(file, content);
+            // }),
+            rx.takeUntil(done$)), done$.pipe(rx.take(1), rx.mergeMap(([, countFile, emitFiles, suggests, fails]) => packageMgrService.ot.l.rootDir.pipe(rx.take(1), rx.map(([, _rootDir]) => {
+                console.log('Compiled:');
+                for (const emitFile of emitFiles) {
+                    console.log(' ', emitFile);
+                }
+                if (suggests.length > 0) {
+                    for (const msg of suggests)
+                        console.log(chalk_1.default.yellow('[suggestion]'), chalk_1.default.yellow(msg));
+                }
+                if (fails.length > 0) {
+                    for (const [, diag] of fails)
+                        console.log(chalk_1.default.red('[error]'), chalk_1.default.red(diag));
+                }
+                console.log(`Total ${countFile} files, ${emitFiles.length} compiled successfully`);
+            }))))));
         });
         program.command('stop')
             .description('Stop daemon process')

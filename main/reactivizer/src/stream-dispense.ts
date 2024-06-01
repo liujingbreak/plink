@@ -1,5 +1,9 @@
 import * as rx from 'rxjs';
 import {Action} from './stream-core';
+import {mapActionToPayload} from './control';
+import {PayloadByType, ActionByType} from './inferred-types';
+import {InferMapParam} from './stream-core';
+import {RxController2} from './control2';
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.
@@ -9,6 +13,13 @@ import {Action} from './stream-core';
  * multiple times of "ofType" (action type comparison operation) calculation on each action message.
  */
 export class ActionDispenser<I> {
+  static ofRxController<X>(control: RxController2<X>) {
+    return new ActionDispenser(control.action$, control.typePrefix);
+  }
+  /** Action observable streamby type */
+  at: ActionByType<I>;
+  /** Abbrevation of payloadByType */
+  pt: PayloadByType<I>;
   private actionByType: Map<string, [rx.Subject<Action<I[keyof I]>>, rx.Observable<Action<I[keyof I]>>]> = new Map();
   private countSubscriber = new rx.BehaviorSubject<number>(0);
   private ofOtherTypesDispenser: rx.Subject<Action<I[keyof I]>> | undefined;
@@ -41,9 +52,49 @@ export class ActionDispenser<I> {
         return v;
       })
     ).subscribe();
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    this.at = new Proxy(
+      {} as{[K in keyof I]: rx.Observable<Action<I[K]>>},
+      {
+        get(_target, type, _rec) {
+          return self.ofType(type as keyof I & string);
+        },
+        has(_target, key) {
+          return self.actionByType.has(key as string);
+        },
+        ownKeys() {
+          return [...self.actionByType.keys()];
+        }
+      });
+
+    const payloadsByType = new Map<string | symbol, rx.Observable<InferMapParam<I[keyof I]>>>();
+    this.pt = new Proxy(
+      {} as {[K in keyof I]: rx.Observable<InferMapParam<I[K]>>},
+      {
+        get(_target, key, _rec) {
+          let p$ = payloadsByType.get(key);
+          if (p$ == null) {
+            const a$ = self.ofType(key as keyof I & string);
+            p$ = a$.pipe(
+              mapActionToPayload(),
+              rx.share()
+            );
+            payloadsByType.set(key, p$);
+          }
+          return p$;
+        },
+        has(_target, key) {
+          return typeof key === 'string';
+        },
+        ownKeys() {
+          return [];
+        }
+      });
   }
 
-  ofType<K extends keyof I & string>(type: K) {
+  ofType<K extends keyof I & string>(type: K): rx.Observable<Action<I[K]>> {
     const key = this.typePrefix + type;
     const control = this.actionByType.get(key);
     if (control) {
@@ -65,7 +116,7 @@ export class ActionDispenser<I> {
     return stream;
   }
 
-  ofOtherTypes() {
+  ofOtherTypes(): rx.Observable<Action<I[keyof I]>> {
     if (this.ofOtherTypesStream)
       return this.ofOtherTypesStream;
     const dispenser$ = this.ofOtherTypesDispenser = new rx.Subject();

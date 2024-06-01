@@ -57,12 +57,14 @@ let SEQ = 1;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 
 export const has = Object.prototype.hasOwnProperty;
+type Interceptor<I> = (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>;
 
 export class ControllerCore<I> {
   actionUpstream = new rx.Subject<Action<I[keyof I]>>();
-  /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
-  interceptor$ = new rx.BehaviorSubject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>(a => a);
-  typePrefix = '#' + SEQ++ + ' ';
+  /** Insert action "interceptor" operator function
+   */
+  interceptor$ = new rx.Subject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>();
+  typePrefix = 't' + SEQ++ + ' ';
   logPrefix = '';
   action$: rx.Observable<Action<I[keyof I]>>;
   debugIncludeSet: Set<string | number | symbol> | null | undefined;
@@ -80,7 +82,13 @@ export class ControllerCore<I> {
 
   constructor(opts: CoreOptions<I> = {}) {
     this.setName(opts?.name);
-
+    const interceptorList$ = this.interceptor$.pipe(
+      rx.startWith(a$ => a$),
+      rx.scan((arr, it) => {
+        arr.push(it);
+        return arr;
+      }, [] as Interceptor<I>[])
+    );
     // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
     this.connectableAction$ = rx.connectable(
       this.configChange.pipe(
@@ -106,8 +114,8 @@ export class ControllerCore<I> {
           return switchActionStream;
         }),
         rx.filter(needSwitch => needSwitch),
-        rx.combineLatestWith(this.interceptor$),
-        rx.switchMap(([, interceptor]) => {
+        rx.combineLatestWith(interceptorList$),
+        rx.switchMap(([, interceptors]) => {
           const debuggableAction$ = this.opts.debug ?
             this.actionUpstream.pipe(
               this.opts.log ?
@@ -136,15 +144,14 @@ export class ControllerCore<I> {
             )
             : this.actionUpstream;
 
-          return interceptor ?
-            debuggableAction$.pipe(interceptor) :
+          return interceptors ?
+            debuggableAction$.pipe(...(interceptors.reverse() as [Interceptor<I>])) :
             debuggableAction$;
         })
       ));
 
     const actionSubDispatcher = new rx.Subject<void>();
     const actionUnsubDispatcher = new rx.Subject<void>();
-
     // 2. this.connectableAction$ => this.action$, this.actionSubDispatcher, this.actionUnsubDispatcher
     this.action$ = rx.merge(
       // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
@@ -170,13 +177,21 @@ export class ControllerCore<I> {
     this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
   }
 
-  createAction<J = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>) {
+  createAction<J = I, K extends keyof J = keyof J>(name: K, params?: InferPayload<J[K]>) {
     return {
-      t: this.typePrefix + (type as string),
+      t: this.typePrefix + (name as string),
       i: ACTION_SEQ++,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       p: params ?? []
     } as Action<J[K]>;
+  }
+
+  /** action id is also copied */
+  copyActionFrom(source: Action<any>) {
+    const copied = this.createAction<I, keyof I>(nameOfAction(source), source.p as any);
+    copied.i = source.i;
+    copied.r = source.r;
+    return copied;
   }
 
   /** change the "name" as previous specified in CoreOptions of constructor */

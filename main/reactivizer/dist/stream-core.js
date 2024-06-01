@@ -32,9 +32,10 @@ exports.has = Object.prototype.hasOwnProperty;
 class ControllerCore {
     constructor(opts = {}) {
         this.actionUpstream = new rx.Subject();
-        /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
-        this.interceptor$ = new rx.BehaviorSubject(a => a);
-        this.typePrefix = '#' + SEQ++ + ' ';
+        /** Insert action "interceptor" operator function
+         */
+        this.interceptor$ = new rx.Subject();
+        this.typePrefix = 't' + SEQ++ + ' ';
         this.logPrefix = '';
         this.debugExcludeSet = new Set();
         this.configChange = new rx.Subject();
@@ -42,6 +43,10 @@ class ControllerCore {
         this.dispatcher = {};
         this.dispatcherFor = {};
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
+        const interceptorList$ = this.interceptor$.pipe(rx.startWith(a$ => a$), rx.scan((arr, it) => {
+            arr.push(it);
+            return arr;
+        }, []));
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
         this.connectableAction$ = rx.connectable(this.configChange.pipe(rx.map((props, i) => {
             var _a, _b, _c;
@@ -64,7 +69,7 @@ class ControllerCore {
                 switchActionStream = true;
             }
             return switchActionStream;
-        }), rx.filter(needSwitch => needSwitch), rx.combineLatestWith(this.interceptor$), rx.switchMap(([, interceptor]) => {
+        }), rx.filter(needSwitch => needSwitch), rx.combineLatestWith(interceptorList$), rx.switchMap(([, interceptors]) => {
             const debuggableAction$ = this.opts.debug ?
                 this.actionUpstream.pipe(this.opts.log ?
                     rx.tap(action => {
@@ -89,8 +94,8 @@ class ControllerCore {
                             }
                         }))
                 : this.actionUpstream;
-            return interceptor ?
-                debuggableAction$.pipe(interceptor) :
+            return interceptors ?
+                debuggableAction$.pipe(...interceptors.reverse()) :
                 debuggableAction$;
         })));
         const actionSubDispatcher = new rx.Subject();
@@ -113,13 +118,20 @@ class ControllerCore {
         this.actionSubscribed$ = actionSubDispatcher.asObservable();
         this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
     }
-    createAction(type, params) {
+    createAction(name, params) {
         return {
-            t: this.typePrefix + type,
+            t: this.typePrefix + name,
             i: ACTION_SEQ++,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             p: params !== null && params !== void 0 ? params : []
         };
+    }
+    /** action id is also copied */
+    copyActionFrom(source) {
+        const copied = this.createAction(nameOfAction(source), source.p);
+        copied.i = source.i;
+        copied.r = source.r;
+        return copied;
     }
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name) {

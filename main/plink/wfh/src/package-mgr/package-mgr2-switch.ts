@@ -128,7 +128,7 @@ export function createSwitchSpaceService<R extends ReactorComposite2<any, any, a
         const realPath = allPackages.get(pkgName)?.realPath;
         if (realPath) {
           await rx.firstValueFrom(o.ft.createOrChangeSymlink(realPath, fakeNpmWorkspace)
-            .ddo(o.pt.didSymlinkCreation, m));
+            .re(m).od(o.pt.didSymlinkCreation));
           return 'workspaces/' + pkgName;
         } else {
           o.ft.onNotifiableError(`Unknown error, create not create "NPM workspace" for package ${pkgName}, package is missing`);

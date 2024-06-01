@@ -8,3 +8,5 @@ export * from './inferred-types';
 export * from './context-operators';
 export * from './reactor-composite';
 export * from './stream-dispense';
+export * from './simplex-reactor';
+export * from './action-factory';

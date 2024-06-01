@@ -76,7 +76,7 @@ export function createBroker<
 
       chan.port1.onmessage = ({data: event}: MessageEvent<Action<any> | {type: string}>) => {
         if ((event as {type: string}).type === 'WORKER_READY') {
-          props!.state = 'inited';
+          props.state = 'inited';
           o.ft.workerInited(workerNo, null, wo, false).dp(meta);
         } else if ((event as {type: string}).type === 'log') {
           // eslint-disable-next-line no-console
@@ -137,7 +137,7 @@ export function createBroker<
         } catch (e) {
           if (opts?.log)
             opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo ?? ''}`);
-          const errorFor = broker.o.createAction('__onErrorFor', [e]);
+          const errorFor = broker.o.createAction('__onError', [e]);
           errorFor.r = targetAction.i;
           port.postMessage(serializeAction(errorFor));
           throw e;

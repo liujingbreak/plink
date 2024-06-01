@@ -87,13 +87,16 @@ export class ControllerCore {
         this.actionSubscribed$ = actionSubDispatcher.asObservable();
         this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
     }
-    createAction(type, params) {
+    createAction(name, params) {
         return {
-            t: this.typePrefix + type,
+            t: this.typePrefix + name,
             i: ACTION_SEQ++,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             p: params !== null && params !== void 0 ? params : []
         };
+    }
+    copyActionFrom(source) {
+        return this.createAction(nameOfAction(source), source.p);
     }
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name) {

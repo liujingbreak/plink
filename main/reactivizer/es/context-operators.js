@@ -55,27 +55,20 @@ export function actionOfContext(actionOrMeta) {
         return rx.merge(actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta)) : rx.EMPTY, up.pipe(actionRelatedToActionRelatives(actionOrMeta)));
     };
 }
-/**
- * Return an Rx operator function, the upstream Observable is so call "contextAction" stream,
- * the parameter `responding$` is observable of any actions which will be filtered by this operator function,
- * the downstream is an observable of a tuple of actions in form of `[contextAction, respondingEvent]`, in which respondingEvent's
- * ActionMeta['r'] equals to ActionMeta['i'].
- * In another word, the upstream is initial actions, the downstream stream will be corresponding responding event stream.
- */
-export function pairActionToActionStream(responding$, mapFn) {
+export function pairActionToActionStream(responding$, syncCacheSize, mapFn) {
     return function (up) {
         // Use replaySubject to remedy case that context action message and corresponding responding message is sent in a synchronous invocation,
         // by the time context action being recieved, the responding message has also been sent, it will be too late to subscribe and catch
         // the responding message
-        const replay$ = new rx.ReplaySubject(10);
-        return rx.merge(new rx.Observable(sink => {
-            responding$.subscribe(replay$);
-            sink.complete();
-        }), up.pipe(rx.map(ctxAction => {
+        const replayCntProvided = typeof syncCacheSize === 'number';
+        const replayCnt = replayCntProvided ? syncCacheSize : 5;
+        if (!replayCntProvided && typeof syncCacheSize === 'function') {
+            mapFn = syncCacheSize;
+        }
+        const replay$ = new rx.ReplaySubject(replayCnt);
+        return rx.merge(responding$.pipe(rx.tap(replay$), rx.ignoreElements()), up.pipe(rx.map(ctxAction => {
             const filted$ = replay$.pipe(actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction));
-            return (mapFn ?
-                filted$.pipe(rx.map(responding => mapFn(ctxAction, responding))) :
-                filted$);
+            return mapFn ? mapFn(ctxAction, filted$) : filted$;
         })));
     };
 }

@@ -124,48 +124,33 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     _workspaceBatchChanged(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     /** workspaceChanged is safe for external module to watch, it serialize actions like "_installWorkspace" and "_workspaceBatchChanged" */
     workspaceChanged(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    updateGitIgnores(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { file, lines } }: {
-        payload: {
-            file: string;
-            lines: string[];
-        };
-        type: string;
-    }): void;
+    updateGitIgnores(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { file, lines } }: PayloadAction<{
+        file: string;
+        lines: string[];
+    }>): void;
     packagesUpdated(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
     setInChina(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
     _setCurrentWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
     /** paramter: workspace key */
     workspaceStateUpdated(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
-    _hoistWorkspaceDeps(state: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { dir } }: {
-        payload: {
-            dir: string;
-        };
-        type: string;
-    }): void;
-    _installWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { workspaceKey } }: {
-        payload: {
-            workspaceKey: string;
-        };
-        type: string;
-    }): void;
-    _associatePackageToPrj(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: {
-        payload: {
-            prj: string;
-            pkgs: {
-                name: string;
-            }[];
-        };
-        type: string;
-    }): void;
-    _associatePackageToSrcDir(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
-        payload: {
-            pattern: string;
-            pkgs: {
-                name: string;
-            }[];
-        };
-        type: string;
-    }): void;
+    _hoistWorkspaceDeps(state: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { dir } }: PayloadAction<{
+        dir: string;
+    }>): void;
+    _installWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { workspaceKey } }: PayloadAction<{
+        workspaceKey: string;
+    }>): void;
+    _associatePackageToPrj(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: PayloadAction<{
+        prj: string;
+        pkgs: {
+            name: string;
+        }[];
+    }>): void;
+    _associatePackageToSrcDir(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: PayloadAction<{
+        pattern: string;
+        pkgs: {
+            name: string;
+        }[];
+    }>): void;
     _clearProjAndSrcDirPkgs(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
 } & import("@wfh/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
@@ -198,48 +183,33 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     _workspaceBatchChanged(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     /** workspaceChanged is safe for external module to watch, it serialize actions like "_installWorkspace" and "_workspaceBatchChanged" */
     workspaceChanged(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
-    updateGitIgnores(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { file, lines } }: {
-        payload: {
-            file: string;
-            lines: string[];
-        };
-        type: string;
-    }): void;
+    updateGitIgnores(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { file, lines } }: PayloadAction<{
+        file: string;
+        lines: string[];
+    }>): void;
     packagesUpdated(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
     setInChina(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<boolean>): void;
     _setCurrentWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: dir }: PayloadAction<string | null>): void;
     /** paramter: workspace key */
     workspaceStateUpdated(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<string>): void;
-    _hoistWorkspaceDeps(state: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { dir } }: {
-        payload: {
-            dir: string;
-        };
-        type: string;
-    }): void;
-    _installWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { workspaceKey } }: {
-        payload: {
-            workspaceKey: string;
-        };
-        type: string;
-    }): void;
-    _associatePackageToPrj(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: {
-        payload: {
-            prj: string;
-            pkgs: {
-                name: string;
-            }[];
-        };
-        type: string;
-    }): void;
-    _associatePackageToSrcDir(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: {
-        payload: {
-            pattern: string;
-            pkgs: {
-                name: string;
-            }[];
-        };
-        type: string;
-    }): void;
+    _hoistWorkspaceDeps(state: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { dir } }: PayloadAction<{
+        dir: string;
+    }>): void;
+    _installWorkspace(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { workspaceKey } }: PayloadAction<{
+        workspaceKey: string;
+    }>): void;
+    _associatePackageToPrj(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { prj, pkgs } }: PayloadAction<{
+        prj: string;
+        pkgs: {
+            name: string;
+        }[];
+    }>): void;
+    _associatePackageToSrcDir(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload: { pattern, pkgs } }: PayloadAction<{
+        pattern: string;
+        pkgs: {
+            name: string;
+        }[];
+    }>): void;
     _clearProjAndSrcDirPkgs(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
 } & import("@wfh/redux-toolkit-observable").ExtraSliceReducers<PackagesState>, "packages">;
 export declare const updateGitIgnores: import("@reduxjs/toolkit").ActionCreatorWithPayload<{

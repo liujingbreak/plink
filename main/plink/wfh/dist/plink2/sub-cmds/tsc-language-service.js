@@ -5,14 +5,15 @@ const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const typescript_1 = tslib_1.__importDefault(require("typescript"));
 const rx = tslib_1.__importStar(require("rxjs"));
+const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
 const reactivizer_1 = require("@wfh/reactivizer");
 // import {conciseConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 const chokidar_1 = tslib_1.__importDefault(require("chokidar"));
 function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson, tsconfigDir) {
     const service = languageServices(ts);
-    const { i, o } = service;
-    i.ft.setTsConfig(tsconfigJson, tsconfigDir).dp();
+    const { s } = service;
+    s.ft.setTsConfig(tsconfigJson, tsconfigDir).dp();
     // service.config({debug: true});
     // service.r('doneResolveCompilerOption', service.ot.l.doneResolveCompilerOption.pipe(
     //   rx.map(([, co]) => {
@@ -25,8 +26,8 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson,
         let sourceMap;
         let unknownOutputFile;
         let error;
-        i.ft.addSourceFile(file, true, content)
-            .od(o.at.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
+        s.ft.addSourceFile(file, true, content)
+            .od(s.at.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
             if (/\.[mc]?js/.test(outputFile)) {
                 destFile = outputContent;
             }
@@ -38,7 +39,7 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson,
             }
         }), 
         // rx.take(1),
-        rx.takeUntil(rx.merge(o.pt.onEmitFailure, o.pt.onSuggest).pipe(rx.map(([, file, diagnostics]) => {
+        rx.takeUntil(rx.merge(s.pt.onEmitFailure, s.pt.onSuggest).pipe(rx.map(([, file, diagnostics]) => {
             // eslint-disable-next-line no-console
             console.log('[tsc-util]', file, diagnostics);
         }))), rx.catchError(err => {
@@ -61,24 +62,23 @@ var LogLevel;
     LogLevel[LogLevel["log"] = 1] = "log";
     LogLevel[LogLevel["error"] = 2] = "error";
 })(LogLevel || (exports.LogLevel = LogLevel = {}));
-const inputTableFor = ['setTsConfig', 'setSourceFileTranspiler', 'setDiagnosticFileNameFormatter'];
-const outputTableFor = [
+const tableFor = [
+    'setTsConfig', 'setSourceFileTranspiler', 'setDiagnosticFileNameFormatter',
     'versionsUpdated', 'fileChanged', 'unemittedUpdated',
     'setStopped', 'fileContentCache', 'doneResolveCompilerOption'
 ];
 function languageServices(ts = typescript_1.default) {
     const ts0 = ts;
-    const rc = new reactivizer_1.ReactorComposite2({
+    const rc = new reactivizer_1.SimplexReactor({
         name: 'Plink TS lang service',
         debug: false,
         // log: conciseConsoleLogger,
         logStyle: 'noParam',
-        inputTableFor,
-        outputTableFor,
-        debugExcludeTypes: ['versionsUpdated', 'unemittedUpdated', 'addSourceFile']
+        tableFor,
+        debugExcludeTypes: ['addSourceFile', 'versionsUpdated', 'unemittedUpdated', 'log']
     });
-    const { i, o, inputTable, outputTable, r } = rc;
-    r('setTsConfig -> doneResolveCompilerOption', i.pt.setTsConfig.pipe(rx.map(([m, tsconfigJson, dir]) => {
+    const { s, table, r } = rc;
+    r('setTsConfig -> doneResolveCompilerOption', s.pt.setTsConfig.pipe(rx.map(([m, tsconfigJson, dir]) => {
         tsconfigJson.include = ['nothing.ts'];
         tsconfigJson.compilerOptions.incremental = false;
         // console.log(tsconfigJson);
@@ -86,22 +86,22 @@ function languageServices(ts = typescript_1.default) {
         const { options } = parsed;
         if (parsed.errors.length > 1) {
             const errorMsgs = parsed.errors.map(err => err.messageText).join('\n');
-            o.ft.log(LogLevel.error, errorMsgs).dp();
+            s.ft.log(LogLevel.error, errorMsgs).dp();
             console.error(errorMsgs);
         }
-        o.ft.doneResolveCompilerOption(options).dp(m);
+        s.ft.doneResolveCompilerOption(options).dp(m);
     })));
     // const co = typeof opts.tscOpts === 'function' ? opts.tscOpts() : plinkNodeJsCompilerOption(ts0, opts.tscOpts);
     let services;
     let watcher;
-    r('watch -> addSourceFile, changeSourceFile', i.pt.watch.pipe(rx.exhaustMap(([, dirs, watchOpts]) => new rx.Observable(() => {
+    r('watch -> addSourceFile, changeSourceFile', s.pt.watch.pipe(rx.exhaustMap(([, dirs, watchOpts]) => new rx.Observable(() => {
         if (watcher == null)
             watcher = chokidar_1.default.watch(dirs.map(dir => dir.replace(/\\/g, '/')), watchOpts);
-        watcher.on('add', path => i.ft.addSourceFile(path, false).dp());
+        watcher.on('add', path => s.ft.addSourceFile(path, false).dp());
         watcher.on('change', path => {
             void fs_1.default.promises.readFile(path, 'utf8')
                 .then(content => {
-                i.ft.changeSourceFile(path, content).dp();
+                s.ft.changeSourceFile(path, content).dp();
             });
         });
         return () => {
@@ -112,53 +112,53 @@ function languageServices(ts = typescript_1.default) {
         };
     }))));
     const state$ = rx.combineLatest([
-        outputTable.l.fileChanged, outputTable.l.versionsUpdated,
-        outputTable.l.fileContentCache, outputTable.l.unemittedUpdated
+        table.l.fileChanged, table.l.versionsUpdated,
+        table.l.fileContentCache, table.l.unemittedUpdated
     ]).pipe(rx.map(([[, files], [, versions], [, fileContentCache], [, unemitted]]) => [files, versions, fileContentCache, unemitted]));
-    r('addSourceFile - > compileFile, fileChanged..., unemittedUpdated', i.pt.addSourceFile.pipe(rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)), rx.switchMap(([m, fileName, sync, content]) => {
+    r('addSourceFile - > compileFile, fileChanged..., unemittedUpdated', s.pt.addSourceFile.pipe(rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:[mc]?tsx?|json)$/.test(file)), rx.switchMap(([m, fileName, sync, content]) => {
         return state$.pipe(rx.take(1), rx.map(([files, versions, fileContentCache, unemitted]) => {
             files.add(fileName);
             versions.set(fileName.replace(/\\/g, '/'), 0);
-            o.ft.fileChanged(files).dp(m);
-            o.ft.versionsUpdated(versions).dp(m);
+            s.ft.fileChanged(files).dp(m);
+            s.ft.versionsUpdated(versions).dp(m);
             if (content != null) {
                 fileContentCache.set(fileName.replace(/\\/g, '/'), content);
-                o.ft.fileContentCache(fileContentCache).dp(m);
+                s.ft.fileContentCache(fileContentCache).dp(m);
             }
             if (sync)
-                o.ft.compileFile(fileName).dp(m);
+                s.ft.compileFile(fileName).dp(m);
             else {
                 unemitted.add([fileName, m.i]);
-                o.ft.unemittedUpdated(unemitted).dp(m);
+                s.ft.unemittedUpdated(unemitted).dp(m);
                 return fileName;
             }
         }));
-    }), rx.filter((file) => file != null), rx.debounceTime(333), rx.withLatestFrom(outputTable.l.unemittedUpdated), rx.map(([, [, unemitted]]) => {
+    }), rx.filter((file) => file != null), rx.debounceTime(333), rx.withLatestFrom(table.l.unemittedUpdated), rx.map(([, [, unemitted]]) => {
         for (const [file, id] of unemitted.values()) {
-            o.ft.compileFile(file).dp(id);
+            s.ft.compileFile(file).dp(id);
         }
-        o.ft.unemittedUpdated(unemitted).dp();
+        s.ft.unemittedUpdated(unemitted).dp();
     })));
-    r('changeSourceFile -> compileFile', i.pt.changeSourceFile.pipe(rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)), rx.withLatestFrom(outputTable.l.versionsUpdated, outputTable.l.fileContentCache), 
+    r('changeSourceFile -> compileFile', s.pt.changeSourceFile.pipe(rx.filter(([, file]) => !file.endsWith('.d.ts') && /\.(?:tsx?|json)$/.test(file)), rx.withLatestFrom(table.l.versionsUpdated, table.l.fileContentCache), 
     // TODO: debounce on same file changes
     op.map(([[m, fileName, content], [, versions], [, fileContentCache]]) => {
         const normFile = fileName.replace(/\\/g, '/');
         const version = versions.get(normFile);
         versions.set(normFile, (version != null ? version : 0) + 1);
-        o.ft.versionsUpdated(versions).dp(m);
+        s.ft.versionsUpdated(versions).dp(m);
         if (content != null) {
             fileContentCache.set(normFile, content);
-            o.ft.fileContentCache(fileContentCache).dp(m);
+            s.ft.fileContentCache(fileContentCache).dp(m);
         }
-        o.ft.compileFile(fileName).dp(m);
+        s.ft.compileFile(fileName).dp(m);
     })));
-    r('stop', i.pt.stop.pipe(rx.tap(([m]) => {
-        o.ft.setStopped(true).dp(m);
+    r('stop', s.pt.stop.pipe(rx.tap(([m]) => {
+        s.ft.setStopped(true).dp(m);
     })));
-    r('compileFile -> didCompileFile, emitFile', o.pt.compileFile.pipe(rx.mergeMap(a => rx.combineLatest([
-        outputTable.l.doneResolveCompilerOption,
-        inputTable.l.setSourceFileTranspiler,
-        inputTable.l.setDiagnosticFileNameFormatter
+    r('compileFile -> didCompileFile, emitFile', s.pt.compileFile.pipe(rx.mergeMap(a => rx.combineLatest([
+        table.l.doneResolveCompilerOption,
+        table.l.setSourceFileTranspiler,
+        table.l.setDiagnosticFileNameFormatter
     ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.map(([[meta, fileName], [, co], [, sourceFileTranspiler], [, fileNameFormatter]]) => {
         const formatHost = {
             getCanonicalFileName: fileNameFormatter,
@@ -169,10 +169,10 @@ function languageServices(ts = typescript_1.default) {
             const documentRegistry = ts0.createDocumentRegistry();
             const serviceHost = Object.assign(Object.assign({}, ts0.sys), { // Important, default language service host does not implement methods like fileExists
                 getScriptFileNames() {
-                    return Array.from(outputTable.getData().fileChanged[0].values());
+                    return Array.from(table.getData().fileChanged[0].values());
                 },
                 getScriptVersion(fileName) {
-                    return outputTable.getData().versionsUpdated[0].get(fileName.replace(/\\/g, '/')) + '' || '-1';
+                    return table.getData().versionsUpdated[0].get(fileName.replace(/\\/g, '/')) + '' || '-1';
                 },
                 getCompilationSettings() {
                     return co;
@@ -182,37 +182,37 @@ function languageServices(ts = typescript_1.default) {
                     if (!fs_1.default.existsSync(fileName)) {
                         return undefined;
                     }
-                    const cached = outputTable.getData().fileContentCache[0].get(fileName.replace(/\\/g, '/'));
+                    const cached = table.getData().fileContentCache[0].get(fileName.replace(/\\/g, '/'));
                     const originContent = cached != null ? cached : fs_1.default.readFileSync(fileName, 'utf8');
                     return ts0.ScriptSnapshot.fromString(sourceFileTranspiler(fileName, originContent));
                 },
                 getCancellationToken() {
                     return {
                         isCancellationRequested() {
-                            return outputTable.getData().setStopped[0];
+                            return table.getData().setStopped[0];
                         }
                     };
                 },
                 useCaseSensitiveFileNames() {
                     return ts0.sys.useCaseSensitiveFileNames;
-                }, getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options), trace(s) {
-                    o.ft.log(LogLevel.log, s).dp();
+                }, getDefaultLibFileName: options => ts0.getDefaultLibFilePath(options), trace(str) {
+                    s.ft.log(LogLevel.log, str).dp();
                     // console.log('[lang-service trace]', s);
                 },
-                error(s) {
-                    o.ft.log(LogLevel.error, s).dp();
+                error(str) {
+                    s.ft.log(LogLevel.error, str).dp();
                     // eslint-disable-next-line no-console
                     console.log('[lang-service error]', s);
                 },
-                log(s) {
-                    o.ft.log(LogLevel.log, s).dp();
+                log(str) {
+                    s.ft.log(LogLevel.log, str).dp();
                     // eslint-disable-next-line no-console
                     console.log('[lang-service log]', s);
                 } });
             services = ts0.createLanguageService(serviceHost, documentRegistry);
             const coDiag = services.getCompilerOptionsDiagnostics();
             if (coDiag.length > 0)
-                o.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost), 'compilerOptions').dp(meta);
+                s.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(coDiag, formatHost), 'compilerOptions').dp(meta);
         }
         const output = services.getEmitOutput(fileName);
         if (output.emitSkipped) {
@@ -220,30 +220,45 @@ function languageServices(ts = typescript_1.default) {
         }
         const syntDiag = services.getSyntacticDiagnostics(fileName);
         if (syntDiag.length > 0) {
-            o.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost), 'syntactic').dp(meta);
+            s.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(syntDiag, formatHost), 'syntactic').dp(meta);
         }
         const semanticDiag = services.getSemanticDiagnostics(fileName);
         if (semanticDiag.length > 0) {
-            o.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost), 'semantic').dp(meta);
+            s.ft.onEmitFailure(fileName, ts0.formatDiagnosticsWithColorAndContext(semanticDiag, formatHost), 'semantic').dp(meta);
         }
         const suggests = services.getSuggestionDiagnostics(fileName);
         for (const sug of suggests) {
             const { line, character } = sug.file.getLineAndCharacterOfPosition(sug.start);
-            o.ft.onSuggest(fileName, `${fileName}:${line + 1}:${character + 1} ` +
+            s.ft.onSuggest(fileName, `${fileName}:${line + 1}:${character + 1} ` +
                 ts0.flattenDiagnosticMessageText(sug.messageText, '\n', 2)).dp(meta);
         }
         output.outputFiles.forEach(file => {
-            o.ft.emitFile(file.name, file.text).dp(meta.r);
+            s.ft.emitFile(file.name, file.text).dp(meta.r);
         });
-        o.ft.didCompileFile().dp(meta);
+        s.ft.didCompileFile().dp(meta);
     })));
-    o.ft.setStopped(false).dp();
-    o.ft.fileContentCache(new Map()).dp();
-    o.ft.versionsUpdated(new Map()).dp();
-    o.ft.unemittedUpdated(new Set()).dp();
-    o.ft.fileChanged(new Set()).dp();
-    i.ft.setSourceFileTranspiler((_file, content) => content).dp();
-    i.ft.setDiagnosticFileNameFormatter(file => file).dp();
+    r('', s.pt.log.pipe(rx.map(([, level, msg]) => {
+        if (level === LogLevel.log)
+            // eslint-disable-next-line no-console
+            console.log(msg);
+        else if (level === LogLevel.error) {
+            // eslint-disable-next-line no-console
+            console.log(chalk_1.default.red(msg));
+        }
+        else {
+            // eslint-disable-next-line no-console
+            console.log(msg);
+        }
+    })));
+    s.ft.setStopped(false).dp();
+    s.ft.fileContentCache(new Map()).dp();
+    s.ft.versionsUpdated(new Map()).dp();
+    s.ft.unemittedUpdated(new Set()).dp();
+    s.ft.fileChanged(new Set()).dp();
+    s.ft.setSourceFileTranspiler((_file, content) => content).dp();
+    s.ft.setDiagnosticFileNameFormatter(file => file).dp();
+    rc.i = s;
+    rc.o = s;
     return rc;
 }
 exports.languageServices = languageServices;

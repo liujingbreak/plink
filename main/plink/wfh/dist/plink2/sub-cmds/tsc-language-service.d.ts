@@ -1,5 +1,5 @@
 import _ts from 'typescript';
-import { ReactorComposite2, SingleActionFactory, ActionMeta } from '@wfh/reactivizer';
+import { SimplexReactor, SingleActionFactory, ActionMeta } from '@wfh/reactivizer';
 import chokidar from 'chokidar';
 import { TsconfigType } from '../../package-mgr/package-mgr2-utils';
 export declare function createTranspileFileWithTsCheck(ts: any, tsconfigJson: TsconfigType, tsconfigDir: string): (content: string, file: string) => readonly [string, string];
@@ -18,13 +18,16 @@ type LangServiceInput = {
     /** stop watch */
     stop(): SingleActionFactory;
 };
-type LangServiceOutput = {
+export type LangServiceOutput = {
     doneResolveCompilerOption(co: _ts.CompilerOptions): SingleActionFactory;
+    /** In context of addSourceFile */
     compileFile(fileName: string): SingleActionFactory;
-    /** In context of compileFile() */
+    /** In context of compileFile */
     didCompileFile(): SingleActionFactory;
     log(level: LogLevel, msg: string): SingleActionFactory;
+    /** In context of "compileFile" */
     onSuggest(file: string, msg: string): SingleActionFactory;
+    /** In context of "compileFile" */
     onEmitFailure(file: string, diagnostics: string, type: 'compilerOptions' | 'syntactic' | 'semantic'): SingleActionFactory;
     /** Under context of addSourceFile */
     emitFile(file: string, content: string): SingleActionFactory;
@@ -36,8 +39,10 @@ interface LangServiceStore {
     setStopped(stopped: boolean): SingleActionFactory;
     fileContentCache(cache: Map<string, string>): SingleActionFactory;
 }
-declare const inputTableFor: readonly ["setTsConfig", "setSourceFileTranspiler", "setDiagnosticFileNameFormatter"];
-declare const outputTableFor: readonly ["versionsUpdated", "fileChanged", "unemittedUpdated", "setStopped", "fileContentCache", "doneResolveCompilerOption"];
+declare const tableFor: readonly ["setTsConfig", "setSourceFileTranspiler", "setDiagnosticFileNameFormatter", "versionsUpdated", "fileChanged", "unemittedUpdated", "setStopped", "fileContentCache", "doneResolveCompilerOption"];
 export declare function languageServices(ts?: any): LanguageServiceType;
-export type LanguageServiceType = ReactorComposite2<LangServiceInput, LangServiceOutput & LangServiceStore, typeof inputTableFor, typeof outputTableFor>;
+export type LanguageServiceType = SimplexReactor<LangServiceInput & LangServiceOutput & LangServiceStore, typeof tableFor> & {
+    i: SimplexReactor<LangServiceInput & LangServiceOutput & LangServiceStore>['s'];
+    o: SimplexReactor<LangServiceInput & LangServiceOutput & LangServiceStore>['s'];
+};
 export {};

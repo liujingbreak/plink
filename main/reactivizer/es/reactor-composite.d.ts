@@ -4,19 +4,22 @@ import { SingleActionFactory } from './control2';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 import { ReactorCompositeOpt } from './reactor-base';
-import { ActionFactoryOfPlainType, ReactorCompositeExtendType } from './inferred-types';
+import { ActionFactoryOfPlainType, ReactorCompositeExtendType, ExtractTupleElement } from './inferred-types';
 interface BaseEvents {
     /** Internal use, when option `debug` is `true`, this message will be dispatched when
      * ReactorComposite2 is instantiated */
     __onNew(): SingleActionFactory;
-    __onErrorFor(err: any): SingleActionFactory;
+    __onError(err: any): SingleActionFactory;
+    __onDisposed(): SingleActionFactory;
 }
 interface BaseActions<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> {
     __config(opts: ReactorCompositeOpt<I, O, LI, LO>): SingleActionFactory;
 }
-type LOE<LI extends readonly any[]> = readonly (LI[number] | '__onErrorFor')[];
+declare const baseTableFor: readonly ["__onError", "__onDisposed"];
+type LOE<LI extends readonly any[]> = readonly (LI[number] | ExtractTupleElement<typeof baseTableFor>)[];
 export declare class ReactorComposite2<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = [], LO extends readonly (keyof O)[] | (keyof O)[] = []> extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
     private opts?;
+    destory$: rx.Observable<unknown>;
     protected errorSubject: rx.Subject<[
         lable: string,
         originError: any
@@ -25,10 +28,8 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
         originError: any,
         relevantActions: ActionMeta[]
     ]>;
-    /** All catched error goes here */
-    error$: rx.Observable<[lable: string, originError: any] | [lable: string, originError: any, relevantActions: ActionMeta[]]>;
-    destory$: rx.Subject<void>;
     dispose: () => void;
+    error$: rx.Observable<any>;
     get inputTable(): ActionTable<I, LI>;
     /** alias of inputTable */
     get it(): ActionTable<I, LI>;
@@ -70,10 +71,10 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
     /** Respond an error to actions specified by "actionMeta",
      * be aware that this message is not an Observable's "error" message,
      * it will not terminate observable stream.
-     * This method emits an event "__onErrorFor" under the hood.
+     * This method emits an event "__onError" under the hood.
      */
     dispatchErrorFor(err: any, actionMeta: ActionMeta, ...moreActionMetas: ActionMeta[]): void;
-    protected reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
+    reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     protected logError(label: string, err: any): void;
     protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;
 }

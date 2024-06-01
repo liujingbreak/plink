@@ -8,6 +8,9 @@ import * as rx from 'rxjs';
  * multiple times of "ofType" (action type comparison operation) calculation on each action message.
  */
 export class ActionDispenser {
+    static ofRxController(control) {
+        return new ActionDispenser(control.action$, control.typePrefix);
+    }
     constructor(source$, typePrefix) {
         this.typePrefix = typePrefix;
         this.actionByType = new Map();

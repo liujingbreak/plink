@@ -79,7 +79,7 @@ export function createBroker<
 
       chan.port1.on('message', (event: Action<any> | {type: string}) => {
         if ((event as {type: string}).type === 'WORKER_READY') {
-          props!.state = 'inited';
+          props.state = 'inited';
           o.ft.workerInited(workerNo, null, wo, false).dp(meta);
         } else if ((event as {type: string}).type === 'log') {
           const p = (event as unknown as {p: [string]}).p;
@@ -140,7 +140,7 @@ export function createBroker<
           } catch (e) {
             if (opts?.log)
               opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo ?? ''}`, e);
-            const errorFor = broker.o.createAction('__onErrorFor', [e]);
+            const errorFor = broker.o.createAction('__onError', [e]);
             errorFor.r = targetAction.i;
             port.postMessage(serializeAction(errorFor));
             throw e;

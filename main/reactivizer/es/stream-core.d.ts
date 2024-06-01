@@ -62,7 +62,8 @@ export declare class ControllerCore<I> {
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
     private connectableAction$;
     constructor(opts?: CoreOptions<I>);
-    createAction<J = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J[K]>;
+    createAction<J = I, K extends keyof J = keyof J>(name: K, params?: InferPayload<J[K]>): Action<J[K]>;
+    copyActionFrom(source: Action<any>): Action<I[keyof I]>;
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name: string | null | undefined): void;
     config(opts: RxControlConfigType<I>): void;

@@ -1,15 +1,20 @@
 /* eslint-disable no-console */
+// import fs from 'fs';
 import * as rx from 'rxjs';
 import commander from 'commander';
 import chalk from 'chalk';
 import {sexyFont} from '../utils/misc';
 import {createPackageMgrService} from '../package-mgr/package-mgr2';
+import {createPlinkPackageLookupService} from '../package-mgr/package-mgr2-lookup';
 import {languageServices} from './sub-cmds/tsc-language-service';
 import {addOnPackageFeatures} from './sub-cmds/tsc-language-service4pkg';
 import {cmdModelService} from './cmd-model';
 
 export function define(rootDir: string, onShutdown: () => void) {
+  const lang = languageServices();
   const packageMgrService = createPackageMgrService();
+  const pkgLookupService = createPlinkPackageLookupService();
+  const langExt = addOnPackageFeatures(lang, packageMgrService, pkgLookupService);
   cmdModelService.i.ft.setRootDir(rootDir).dp();
   cmdModelService.r('didSwitchSpace -> setActiveInstallSpace', packageMgrService.ot.l.didSwitchSpace.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
@@ -22,6 +27,8 @@ export function define(rootDir: string, onShutdown: () => void) {
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.map(([, enabled]) => {
       packageMgrService.config({debug: enabled});
+      lang.config({debug: enabled});
+      // pkgLookupService.service.config({debug: enabled});
     })
   ));
 
@@ -82,30 +89,38 @@ export function define(rootDir: string, onShutdown: () => void) {
         }, [] as string[])
         .action(async (packages: string[]) => {
           console.log('Run tsc on', ...packages);
-          const lang = languageServices();
-          const langExt = addOnPackageFeatures(lang, packageMgrService);
-          const {i, o} = langExt;
-          i.ft.setTsConfigOfPlinkBase().dp();
-          if (enableRxMessageTrace)
-            langExt.config({debug: true});
-          const printMsg = rx.merge(
-            o.pt.onSuggest.pipe(
-              rx.tap(([, , msg]) => console.log(chalk.yellow('[suggestion]'), chalk.yellow(msg)))
-            ),
-            o.pt.onEmitFailure.pipe(
-              rx.tap(([, , diag]) => console.log(chalk.red('[error]'), chalk.red(diag)))
-            )
-          ).pipe(rx.ignoreElements());
+          const {s} = langExt;
+          s.ft.setTsConfigOfPlinkBase().dp();
+
+          const [emitFile$, done$] = s.ft.addSourcePackage(packages).od(s.pt.onEmitFileForPackage, s.pt.didAddSourcePackage);
           await rx.lastValueFrom(rx.merge(
-            o.pt.emitFile.pipe(
-              rx.map(([, file, _content]) => {
-                console.log('compiled', file);
-              })
+            emitFile$.pipe(
+              // rx.mergeMap(([, file, content]) => {
+              //   return fs.promises.writeFile(file, content);
+              // }),
+              rx.takeUntil(done$)
             ),
-            printMsg
-          ).pipe(
-            rx.takeUntil(i.ft.addSourcePackage(packages).od(o.pt.didAddSourcePackage)),
-            rx.count()
+            done$.pipe(
+              rx.take(1),
+              rx.mergeMap(([, countFile, emitFiles, suggests, fails]) => packageMgrService.ot.l.rootDir.pipe(
+                rx.take(1),
+                rx.map(([, _rootDir]) => {
+                  console.log('Compiled:');
+                  for (const emitFile of emitFiles) {
+                    console.log(' ', emitFile);
+                  }
+                  if (suggests.length > 0) {
+                    for (const msg of suggests)
+                      console.log(chalk.yellow('[suggestion]'), chalk.yellow(msg));
+                  }
+                  if (fails.length > 0) {
+                    for (const [, diag] of fails)
+                      console.log(chalk.red('[error]'), chalk.red(diag));
+                  }
+                  console.log(`Total ${countFile} files, ${emitFiles.length} compiled successfully`);
+                })
+              ))
+            )
           ));
         });
 

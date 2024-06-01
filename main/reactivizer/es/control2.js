@@ -1,136 +1,64 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
-import { ControllerCore, nameOfAction, assignActionReferParam } from './stream-core';
+import { ControllerCore, nameOfAction } from './stream-core';
 import { mapActionToPayload } from './control';
-import { actionRelatedToAction } from './context-operators';
 import { ActionDataTable } from './action-table';
 import { ActionDispenser } from './stream-dispense';
-import { timeoutLog } from './utils';
-class SingleActionFactoryImpl {
-    constructor(type, payload, control, opts = { slowDispatchObservableTime: 20000 }) {
-        this.type = type;
-        this.payload = payload;
-        this.control = control;
-        this.opts = opts;
-    }
-    /** Make this action become related to another action message
-     */
-    re(...actionMeta) {
-        this.relateToAction = actionMeta;
-        return this;
-    }
-    dp(...actionMetaRelated) {
-        const metas = actionMetaRelated.filter(m => m != null);
-        if (metas.length > 0)
-            return this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
-        else if (this.relateToAction && this.relateToAction.length > 0)
-            return this.control.dispatchForFactory(this.type)(this.relateToAction.length > 1 ? this.relateToAction : this.relateToAction[0], ...this.payload);
-        else
-            return this.control.dispatchFactory(this.type)(...this.payload);
-    }
-    do(response$, referAction) {
-        const action = this.control.createAction(this.type, this.payload);
-        if (referAction) {
-            assignActionReferParam(action, referAction);
-        }
-        else if (this.relateToAction && this.relateToAction.length > 0) {
-            assignActionReferParam(action, this.relateToAction);
-        }
-        const r$ = new rx.ReplaySubject(1);
-        this.ddo(response$, referAction).pipe(rx.take(1)).subscribe(r$);
-        return r$.asObservable();
-    }
-    ddo(response$, referAction) {
-        return new rx.Observable(sub => {
-            const action = this.control.createAction(this.type, this.payload);
-            if (referAction) {
-                assignActionReferParam(action, referAction);
-            }
-            else if (this.relateToAction && this.relateToAction.length > 0) {
-                assignActionReferParam(action, this.relateToAction);
-            }
-            sub.next(action);
-            sub.complete();
-        }).pipe(rx.mergeMap(action => {
-            var _a;
-            return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => response$.pipe(rx.map(actionOrPayload => {
-                if (Array.isArray(actionOrPayload)) {
-                    const [actionMeta, ...payload] = actionOrPayload;
-                    actionMeta.p = payload;
-                    return actionMeta;
-                }
-                return actionOrPayload;
-            }), operator(action), actionRelatedToAction(action), mapActionToPayload(), rx.take(1))), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
-            // eslint-disable-next-line no-console
-            this.opts.slowLog ? () => this.opts.slowLog() : () => console.log('Slow observable action detected'))), new rx.Observable(sub => {
-                this.control.actionUpstream.next(action);
-                sub.complete();
-            }));
-        }));
-    }
-    od(response, ...moreResponses) {
-        if (moreResponses.length === 0) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            return this.ddo(response);
-        }
-        else {
-            const responses = [response, ...moreResponses];
-            const action = this.control.createAction(this.type, this.payload);
-            if (this.relateToAction && this.relateToAction.length > 0) {
-                assignActionReferParam(action, this.relateToAction);
-            }
-            // when all the returned streams are subscribed, dispatch the new action
-            const onSubscribe$ = new rx.Subject();
-            onSubscribe$.pipe(rx.distinct(), rx.take(responses.length)).subscribe({
-                complete: () => {
-                    this.control.actionUpstream.next(action);
-                }
-            });
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            return responses.map((res$, idx) => {
-                var _a;
-                return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(rx.map(actionOrPayload => {
-                    if (Array.isArray(actionOrPayload)) {
-                        const [actionMeta, ...payload] = actionOrPayload;
-                        actionMeta.p = payload;
-                        return actionMeta;
-                    }
-                    return actionOrPayload;
-                }), operator(action), actionRelatedToAction(action), mapActionToPayload(), rx.take(1))), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
-                // eslint-disable-next-line no-console
-                this.opts.slowLog ? () => this.opts.slowLog() : () => console.log('Slow observable action detected'))), new rx.Observable(sink => {
-                    onSubscribe$.next(idx);
-                    sink.complete();
-                }));
-            });
-        }
-    }
-}
+import { SingleActionFactoryImpl } from './action-factory';
 export class RxController2 extends ControllerCore {
+    /** Action factory by type */
+    get ft() {
+        if (this.ftProxy)
+            return this.ftProxy;
+        const factories = this.factories;
+        const opts = this.opts;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const control = this;
+        this.ftProxy = new Proxy({}, {
+            get(_target, key, _rec) {
+                if (factories.has(key)) {
+                    return factories.get(key);
+                }
+                const fn = (...args) => {
+                    return new SingleActionFactoryImpl(key, args, control, {
+                        slowLog() {
+                            const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key}"`;
+                            if (opts === null || opts === void 0 ? void 0 : opts.log) {
+                                opts.log(msg);
+                            }
+                            else {
+                                // eslint-disable-next-line no-console
+                                console.log(msg);
+                            }
+                        }
+                    });
+                };
+                factories.set(key, fn);
+                return fn;
+            },
+            has(_target, key) {
+                return Object.prototype.hasOwnProperty.call(control.at, key);
+            },
+            ownKeys() {
+                return Object.keys(control.at);
+            }
+        });
+        return this.ftProxy;
+    }
     constructor(opts) {
         super(opts);
+        this.factories = new Map();
         /** Rx operator for `do()`, we can change it by emit new value to this observable,
-         * you don't need to use this Subject directory, it is meant to be extended by Reactivizer internally
+         * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
          * */
         this.doOperator$ = new rx.BehaviorSubject((_dispatchingAction) => input => input);
         // addConfigurable(this);
         const actionsByType = new Map();
         // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const self = this;
-        const actionDispenseByType = new ActionDispenser(this.action$, this.typePrefix);
+        const actionDispenseByType = ActionDispenser.ofRxController(this);
         const actionByTypeProxy = new Proxy({}, {
             get(_target, type, _rec) {
                 return actionDispenseByType.ofType(type);
-                // let a$ = actionsByType.get(type);
-                // if (a$ == null) {
-                //   const matchType = self.typePrefix + (type as string);
-                //   a$ = self.action$.pipe(
-                //     rx.filter(({t}) => t === matchType),
-                //     rx.share()
-                //   );
-                //   actionsByType.set(type, a$);
-                // }
-                // return a$;
             },
             has(_target, key) {
                 return actionsByType.has(key);
@@ -150,37 +78,6 @@ export class RxController2 extends ControllerCore {
                     payloadsByType.set(key, p$);
                 }
                 return p$;
-            },
-            has(_target, key) {
-                return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);
-            },
-            ownKeys() {
-                return Object.keys(actionByTypeProxy);
-            }
-        });
-        const factories = new Map();
-        this.ft = new Proxy({}, {
-            get(_target, key, _rec) {
-                if (factories.has(key)) {
-                    return factories.get(key);
-                }
-                const fn = (...args) => {
-                    return new SingleActionFactoryImpl(key, args, self, {
-                        slowLog() {
-                            var _a;
-                            const msg = `Detected a slow responding message of dispatched action of "${self.logPrefix} ${key}"`;
-                            if ((_a = self.opts) === null || _a === void 0 ? void 0 : _a.log) {
-                                self.opts.log(msg);
-                            }
-                            else {
-                                // eslint-disable-next-line no-console
-                                console.log(msg);
-                            }
-                        }
-                    });
-                };
-                factories.set(key, fn);
-                return fn;
             },
             has(_target, key) {
                 return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);

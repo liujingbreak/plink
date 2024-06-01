@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
+// import util from 'node:util';
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives, RxController2} from '../src';
+import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives, SimplexReactor, pairActionToActionStream} from '../src';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
@@ -10,12 +11,12 @@ const inputTableFor = ['message3', 'message1'] as const;
 describe('reactivizer2', () => {
   describe('RxController2', () => {
     it('Basic RxController2 operations dp, do should work correctly', async () => {
-      const composite = new ReactorComposite2<BaseActions, BaseResponse, typeof inputTableFor>({
+      const composite = new SimplexReactor<TestActions & TestResponse, typeof inputTableFor>({
         name: 'reactorComposite2 #1',
-        inputTableFor,
+        tableFor: inputTableFor,
         debug: true
       });
-      const {i, o, r} = composite;
+      const {s: i, s: o, r} = composite;
       const mockFn = jest.fn();
       r('message1 -> reply1', i.pt.message1.pipe(
         rx.tap(([m]) => {
@@ -43,7 +44,7 @@ describe('reactivizer2', () => {
       // const done = rx.firstValueFrom(i.pt.message3);
       i.ft.message1().dp();
 
-      const [, ...msg3] = await rx.firstValueFrom(composite.inputTable.l.message3);
+      const [, ...msg3] = await rx.firstValueFrom(composite.table.l.message3);
       expect(mockFn.mock.calls[0]).toEqual(['reply1 recieved']);
       expect(mockFn.mock.calls[1]).toEqual(['hello', 'world']);
       expect(mockFn.mock.calls[2]).toEqual(['message2']);
@@ -52,11 +53,11 @@ describe('reactivizer2', () => {
     }, 10000);
 
     it('Error handling', async () => {
-      const composite = new ReactorComposite2<BaseActions, BaseResponse>({
+      const composite = new SimplexReactor<TestActions & TestResponse>({
         name: 'reactorComposite2 #2',
         debug: true
       });
-      const {i, o, r} = composite;
+      const {s: i, s: o, r} = composite;
       const mockFn = jest.fn();
 
       r('message1 -> error', i.pt.message1.pipe(
@@ -79,32 +80,32 @@ describe('reactivizer2', () => {
     }, 10000);
 
     it('control2\'s  do(), ddo(), createDispatcherFor()', async () => {
-      const composite = new ReactorComposite2<BaseActions, BaseResponse>({
+      const composite = new SimplexReactor<TestActions & TestResponse>({
         name: 'reactorComposite2 #3',
         debug: true
       });
 
-      composite.r('message2', composite.i.pt.message2.pipe(
-        rx.tap(([m, greeting]) => composite.o.ft.reply2(greeting).dp(m))
+      composite.r('message2', composite.s.pt.message2.pipe(
+        rx.tap(([m, greeting]) => composite.s.ft.reply2(greeting).dp(m))
       ));
 
-      const msg = await rx.firstValueFrom(composite.i.ft.message2('hello do()').do(composite.o.pt.reply2));
+      const msg = await rx.firstValueFrom(composite.s.ft.message2('hello do()').do(composite.s.pt.reply2));
       expect(msg[1]).toBe('hello do()');
-      const msgDdo = await rx.firstValueFrom(composite.i.ft.message2('hello ddo()').od(composite.o.pt.reply2));
+      const msgDdo = await rx.firstValueFrom(composite.s.ft.message2('hello ddo()').od(composite.s.pt.reply2));
       expect(msgDdo[1]).toBe('hello ddo()');
 
       const mock = jest.fn();
-      composite.r('message3', composite.i.pt.message3.pipe(
+      composite.r('message3', composite.s.pt.message3.pipe(
         rx.tap(([, ...params]) => mock(...params))
       ));
-      const dispatcher = composite.i.createDispatchers();
+      const dispatcher = composite.s.createDispatchers();
       dispatcher.message3('message3 data', 'data2');
 
       expect(mock.mock.calls[0]).toEqual(['message3 data', 'data2']);
     }, 10000);
 
     it('SingleActionFactory.od()', async () => {
-      const service = new ReactorComposite2<BaseActions, BaseResponse>({name: 'case .od()', debug: true});
+      const service = new ReactorComposite2<TestActions, TestResponse>({name: 'case .od()', debug: true});
       const {i, o, r} = service;
       r('message1 -> reply1, reply2, reply4', i.pt.message1.pipe(
         rx.map(([m]) => {
@@ -124,7 +125,7 @@ describe('reactivizer2', () => {
 
   describe('operators', () => {
     it('actionRelatedToActionRelatives', () => {
-      const service = new ReactorComposite2<BaseActions, BaseResponse>();
+      const service = new ReactorComposite2<TestActions, TestResponse>();
       const {i, o, r} = service;
       r('message1 -> reply1, reply2', i.pt.message1.pipe(
         rx.tap(([m]) => {
@@ -155,7 +156,7 @@ describe('reactivizer2', () => {
     });
 
     it('actionRelatedToActionRelatives in case of mutliple action relatives', () => {
-      const service = new ReactorComposite2<BaseActions, BaseResponse>({debug: true});
+      const service = new ReactorComposite2<TestActions, TestResponse>({debug: true});
       const {i, o, r} = service;
       r('message1 -> reply1, reply2', i.pt.message1.pipe(
         rx.withLatestFrom(i.pt.message2),
@@ -179,29 +180,73 @@ describe('reactivizer2', () => {
       expect(mock.mock.calls[0][0]).toBe('world2');
       expect(mock.mock.calls.length).toBe(1);
     });
+
+    it('pairActionToActionStream can deal with synchronously recursive actions within a single context', () => {
+      const reactor = new SimplexReactor<TestActions & TestResponse>({name: 'pairActionToActionStreamTest', debug: true});
+      const {r, s} = reactor;
+      r('message1 -> reply1', s.pt.message1.pipe(
+        rx.map(([m]) => {
+          s.ft.reply1('this is reply1 not within context').dp();
+          s.ft.reply1('this is reply1 within context').re(m).dp();
+          for (let i = 0; i < 15; i++) {
+            s.ft.reply1('this is reply1 not within context again').dp();
+          }
+        })
+      ));
+      r('reply1 -> message2', s.pt.reply1.pipe(
+        rx.map(([m]) => {
+          s.ft.message2('this is message2 not within context').dp();
+          s.ft.message2('this is message2 within context').re(m).dp();
+          for (let i = 0; i < 5; i++) {
+            s.ft.message2('this is message2 not within context again').dp();
+          }
+        })
+      ));
+      const mockFn = jest.fn();
+      s.ft.message1().od(s.pt.reply1).pipe(
+        rx.tap(([, msg]) => mockFn(msg)),
+        pairActionToActionStream(s.pt.message2, 6),
+        rx.mergeMap(msg2$ => msg2$),
+        rx.map(([, msg]) => {mockFn(msg); })
+      ).subscribe();
+      expect(mockFn.mock.calls.length).toBe(2);
+      expect(mockFn.mock.calls[0][0]).toBe('this is reply1 within context');
+      expect(mockFn.mock.calls[1][0]).toBe('this is message2 within context');
+    });
+  });
+
+  describe('simplexReactor', () => {
+    it('base actions', async () => {
+      const s = new SimplexReactor<TestActions & TestResponse>({
+        name: 'test simplex',
+        debug: true
+      });
+      s.s.pt.message2.subscribe(a => console.log(a));
+      s.r('test simplexReactor', s.s.pt.message2.pipe(
+        rx.map(([m, words]) => {
+          console.log('inside reactor');
+          s.s.ft.reply2(words + ' recieved').dp(m);
+        })
+      ));
+
+      const [, reply] = await rx.firstValueFrom(s.s.ft.message2('world').od(s.s.pt.reply2));
+      expect(reply).toBe('world recieved');
+      s.dispose();
+      await new Promise(resolve => setImmediate(resolve));
+    }, 9000);
   });
 });
 
-interface BaseActions {
+interface TestActions {
   message1(): SingleActionFactory;
   message2(greeting: string): SingleActionFactory;
   message3<T>(greeting: string, foobar: T): SingleActionFactory;
   message4(a: string, b: number, c: boolean): SingleActionFactory;
 }
 
-interface BaseResponse {
+interface TestResponse {
   reply1(...backMsg: string[]): SingleActionFactory;
   reply2(backMsg: string): SingleActionFactory;
   reply3(backMsg: string): SingleActionFactory;
   reply4(backMsg: number): SingleActionFactory;
 }
-
-// interface MoreActions extends BaseActions {
-//   message4(): SingleActionFactory;
-// }
-
-// function testAcceptExtendedComposite<R extends ReactorComposite2<BaseActions, BaseResponse>['i']>(r: R) {
-//   return r;
-// }
-
-// testAcceptExtendedComposite(new ReactorComposite2<MoreActions, BaseResponse>().i);

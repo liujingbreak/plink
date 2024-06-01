@@ -25,6 +25,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ActionDispenser = void 0;
 const rx = __importStar(require("rxjs"));
+const control_1 = require("./control");
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.
@@ -34,6 +35,9 @@ const rx = __importStar(require("rxjs"));
  * multiple times of "ofType" (action type comparison operation) calculation on each action message.
  */
 class ActionDispenser {
+    static ofRxController(control) {
+        return new ActionDispenser(control.action$, control.typePrefix);
+    }
     constructor(source$, typePrefix) {
         this.typePrefix = typePrefix;
         this.actionByType = new Map();
@@ -57,6 +61,37 @@ class ActionDispenser {
                 disconnectSignal.next();
             return v;
         })).subscribe();
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const self = this;
+        this.at = new Proxy({}, {
+            get(_target, type, _rec) {
+                return self.ofType(type);
+            },
+            has(_target, key) {
+                return self.actionByType.has(key);
+            },
+            ownKeys() {
+                return [...self.actionByType.keys()];
+            }
+        });
+        const payloadsByType = new Map();
+        this.pt = new Proxy({}, {
+            get(_target, key, _rec) {
+                let p$ = payloadsByType.get(key);
+                if (p$ == null) {
+                    const a$ = self.ofType(key);
+                    p$ = a$.pipe((0, control_1.mapActionToPayload)(), rx.share());
+                    payloadsByType.set(key, p$);
+                }
+                return p$;
+            },
+            has(_target, key) {
+                return typeof key === 'string';
+            },
+            ownKeys() {
+                return [];
+            }
+        });
     }
     ofType(type) {
         const key = this.typePrefix + type;

@@ -24,4 +24,6 @@ __exportStar(require("./inferred-types"), exports);
 __exportStar(require("./context-operators"), exports);
 __exportStar(require("./reactor-composite"), exports);
 __exportStar(require("./stream-dispense"), exports);
+__exportStar(require("./simplex-reactor"), exports);
+__exportStar(require("./action-factory"), exports);
 //# sourceMappingURL=index.js.map

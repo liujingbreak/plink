@@ -4,7 +4,7 @@
  */
 import Path from 'path';
 import type {Config} from 'jest';
-import {packagePathMap, plinkRootDir} from './init-plink';
+import {packageToPathMap, plinkRootDir} from './init-plink';
 // import {defaults} from 'jest-config';
 
 const transform: Config['transform'] = {
@@ -13,7 +13,7 @@ const transform: Config['transform'] = {
 };
 
 // Jest does not support symlinks for search directory, so I have to use "realPath"
-const packageDirs = [...packagePathMap.values()].map(path => Path.resolve(plinkRootDir, path));
+const packageDirs = [...packageToPathMap.values()].map(path => Path.resolve(plinkRootDir, path));
 
 const config: Config = {
   // All imported modules in your tests should be mocked automatically
@@ -127,7 +127,7 @@ const config: Config = {
   // resetModules: false,
 
   // A path to a custom resolver
-  resolver: Path.resolve(__dirname, 'jest.resolver.js'),
+  // resolver: Path.resolve(__dirname, 'jest.resolver.js'),
 
   // Automatically restore mock state and implementation before every test
   // restoreMocks: false,

@@ -1,11 +1,8 @@
 import Path from 'node:path';
 import fs from 'node:fs';
 import _ from 'lodash';
-import * as rx from 'rxjs';
 import {PackageInfo} from '../index';
-import {DirTree} from '../plink2/dir-tree';
 import {CompilerOptions, CompilerOptionSetOpt} from './package-list-helper';
-import {PackageMgrFullServiceType} from './package-mgr2';
 
 export interface PackageJsonInterf {
   version: string;
@@ -272,58 +269,3 @@ function typeRootsInPackages(packagesMightHaveTypeRoot: Iterable<PackageInfo>) {
   return dirs;
 }
 
-export class PlinkPackageLookup {
-  dirMap: DirTree<string> | undefined;
-  packagePathMap: Map<string, string> | undefined;
-
-  fromTsconfig(baseDir: string, json: {compilerOptions: {paths: Record<string, string[]>}}) {
-    this.packagePathMap = new Map<string, string>();
-    this.dirMap = new DirTree<string>();
-    for (const [key, list] of Object.entries(json.compilerOptions.paths)) {
-      const match = /^((?:@[^/]+\/)?[^/]+)\/\*/.exec(key);
-      if (match) {
-        const path = list[0];
-        const relPath = /^.+(?!\/\*).(?=\/\*)/.exec(path);
-        if (relPath) {
-          const pkgName = match[1];
-          this.packagePathMap.set(pkgName, Path.resolve(baseDir, relPath[0]));
-          this.dirMap.putData(relPath[0], pkgName);
-        }
-      }
-    }
-    return this.packagePathMap;
-  }
-
-  fromService(service: PackageMgrFullServiceType) {
-    const activeSpaceKey = service.ot.getData().didSwitchSpace[0];
-    if (activeSpaceKey == null)
-      throw new Error('You need run command "switch" against any installation directory first');
-    const spacePkgs = service.ot.getData().data_spacePkgMap[0]?.get(activeSpaceKey);
-
-    service.r('data_spacePkgMap -> util dirMap', rx.combineLatest([
-      // If data_spacePkgMap doesn't have activeSpaceKey, dispatch "checkSpace" message
-      spacePkgs != null ?
-        rx.of(spacePkgs) :
-        service.o.ft.checkSpace(activeSpaceKey).od(service.o.pt.didCheckSpace).pipe(
-          rx.take(1),
-          rx.mergeMap(() => service.ot.l.data_spacePkgMap),
-          rx.map(([, data]) => data.get(activeSpaceKey)),
-          rx.filter(v => v != null)
-        ),
-      service.ot.l.data_allPackages.pipe(rx.take(1))
-    ]).pipe(
-      rx.map(([spacePkgs, [, allPackages]]) => {
-        this.packagePathMap = new Map<string, string>();
-        this.dirMap = new DirTree<string>();
-        for (const pkgName of spacePkgs!) {
-          const pkgPath = allPackages.get(pkgName)?.realPath;
-          if (pkgPath) {
-            this.packagePathMap.set(pkgName, pkgPath);
-            this.dirMap.putData(pkgPath, pkgName);
-          }
-        }
-        console.log(this.dirMap.traverse());
-      })
-    ));
-  }
-}

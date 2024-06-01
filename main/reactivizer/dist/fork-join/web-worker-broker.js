@@ -124,7 +124,7 @@ function createBroker(workerController, opts) {
         catch (e) {
             if (opts === null || opts === void 0 ? void 0 : opts.log)
                 opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo !== null && assignedWorkerNo !== void 0 ? assignedWorkerNo : ''}`);
-            const errorFor = broker.o.createAction('__onErrorFor', [e]);
+            const errorFor = broker.o.createAction('__onError', [e]);
             errorFor.r = targetAction.i;
             port.postMessage((0, control_1.serializeAction)(errorFor));
             throw e;

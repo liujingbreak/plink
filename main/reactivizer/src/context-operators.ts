@@ -1,9 +1,10 @@
 import * as rx from 'rxjs';
 import {ActionMeta, Action} from './stream-core';
+
 /** Rx operator function, filter action or payload stream by:
  *  action ID (Action['i'])
  **/
-export function actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i: ActionMeta['i']}) {
+export function actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i: ActionMeta['i']}): (up: rx.Observable<T>) => rx.Observable<T> {
   return function(up: rx.Observable<T>) {
     let isPayload: boolean | undefined;
     return up.pipe(
@@ -64,35 +65,82 @@ export function actionOfContext<T extends [ActionMeta, ...any[]] | Action<any>>(
   };
 }
 
+// export function groupMapRelatedAction<C extends ActionOrPayloadLike<any>, P extends [ActionMeta, ...any[]] | Action<any>, PA extends any[]>(
+//   responding: rx.Observable<P>,
+//   ...more: {[K in keyof PA]: rx.Observable<PA[K]>}
+// ) {
+//   return function(up: rx.Observable<C>): PA['length'] extends 0 ? rx.Observable<[C, rx.Observable<P>]> : {[K in keyof PA]: rx.Observable<PA[K]>} {
+//     const streams = [responding, ...more].map(r$ => up.pipe(
+//       rx.map(c => {
+//         return [
+//           c, (r$ as rx.Observable<P>).pipe(
+//             actionRelatedToAction(Array.isArray(c) ? c[0] : c)
+//           )
+//         ] as const;
+//       })
+//     ));
+//     return (streams.length > 1 ? streams : streams[0]) as any;
+//   };
+// }
+
 /**
- * Return an Rx operator function, the upstream Observable is so call "contextAction" stream,
- * the parameter `responding$` is observable of any actions which will be filtered by this operator function,
- * the downstream is an observable of a tuple of actions in form of `[contextAction, respondingEvent]`, in which respondingEvent's
- * ActionMeta['r'] equals to ActionMeta['i'].
- * In another word, the upstream is initial actions, the downstream stream will be corresponding responding event stream.
+ * Return an Rx operator function, the upstream Observable is so call "contextAction" stream (observable of initial actions),
+ * the parameter `responding$` is observable of any actions which is supposed to be filtered by this operator,
+ * the downstream is an high-order observable of which the elements are nested observables of filted "responding event" actions,
+ * of which respondingEvent's ActionMeta['r'] equals to ActionMeta['i'].
+ * In another word, the upstream is initial actions, the downstream stream will be a stream of corresponding responding event streams
  */
-export function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>, R = T>(
+export function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>, R = rx.Observable<T>>(
   responding$: rx.Observable<T>,
-  mapFn?: (contextAction: C, responding: T) => R
-): (up: rx.Observable<C>) => rx.Observable<rx.Observable<R>> {
+  mapFn?: (contextAction: C, responding$: rx.Observable<T>) => R
+): (up: rx.Observable<C>) => rx.Observable<R>;
+export function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>, R = rx.Observable<T>>(
+  responding$: rx.Observable<T>,
+  syncCacheSize: number,
+  mapFn?: (contextAction: C, responding$: rx.Observable<T>) => R
+): (up: rx.Observable<C>) => rx.Observable<R>;
+export function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>, R = rx.Observable<T>>(
+  responding$: rx.Observable<T>,
+  syncCacheSize?: number | ((contextAction: C, responding$: rx.Observable<T>) => R),
+  mapFn?: (contextAction: C, responding$: rx.Observable<T>) => R
+): (up: rx.Observable<C>) => rx.Observable<R> {
   return function(up: rx.Observable<C>) {
     // Use replaySubject to remedy case that context action message and corresponding responding message is sent in a synchronous invocation,
     // by the time context action being recieved, the responding message has also been sent, it will be too late to subscribe and catch
     // the responding message
-    const replay$ = new rx.ReplaySubject<T>(10);
+    const replayCntProvided = typeof syncCacheSize === 'number';
+    const replayCnt = replayCntProvided ? syncCacheSize : 5;
+    if (!replayCntProvided && typeof syncCacheSize === 'function') {
+      mapFn = syncCacheSize;
+    }
+    // When up stream completes and all mapped down streams are unsubscribed (completed),
+    // stop recording messages to replay subject, otherwise it will continue until the main output stream being explicitly unsubscribed
+    const upStreamDone = new rx.Subject<void>();
+    const downStreamUnsub = new rx.BehaviorSubject(0);
+    const countDownStream = new rx.BehaviorSubject(0);
+
+    const replay$ = new rx.ReplaySubject<T>(replayCnt);
+
     return rx.merge(
-      new rx.Observable<never>(sink => {
-        responding$.subscribe(replay$);
-        sink.complete();
-      }),
+      responding$.pipe(
+        rx.tap(replay$),
+        rx.ignoreElements(),
+        rx.takeUntil(rx.combineLatest([upStreamDone, downStreamUnsub, countDownStream]).pipe(
+          rx.filter(([, unsub, count]) => unsub === count)
+        ))
+      ),
       up.pipe(
-        rx.map(ctxAction => {
-          const filted$ = replay$.pipe( actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction));
-          return (mapFn ?
-            filted$.pipe(
-              rx.map(responding => mapFn(ctxAction, responding))
-            ) :
-            filted$) as rx.Observable<R>;
+        rx.map((ctxAction, idx) => {
+          countDownStream.next(idx + 1);
+          const filted$ = replay$.pipe(
+            actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction),
+            rx.finalize(() => downStreamUnsub.next(downStreamUnsub.getValue() + 1))
+          );
+          return mapFn ? mapFn(ctxAction, filted$) : filted$ as R;
+        }),
+        rx.finalize(() => {
+          upStreamDone.next();
+          upStreamDone.complete();
         })
       )
     );

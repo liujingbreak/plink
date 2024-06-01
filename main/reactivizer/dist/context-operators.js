@@ -84,27 +84,29 @@ function actionOfContext(actionOrMeta) {
     };
 }
 exports.actionOfContext = actionOfContext;
-/**
- * Return an Rx operator function, the upstream Observable is so call "contextAction" stream,
- * the parameter `responding$` is observable of any actions which will be filtered by this operator function,
- * the downstream is an observable of a tuple of actions in form of `[contextAction, respondingEvent]`, in which respondingEvent's
- * ActionMeta['r'] equals to ActionMeta['i'].
- * In another word, the upstream is initial actions, the downstream stream will be corresponding responding event stream.
- */
-function pairActionToActionStream(responding$, mapFn) {
+function pairActionToActionStream(responding$, syncCacheSize, mapFn) {
     return function (up) {
         // Use replaySubject to remedy case that context action message and corresponding responding message is sent in a synchronous invocation,
         // by the time context action being recieved, the responding message has also been sent, it will be too late to subscribe and catch
         // the responding message
-        const replay$ = new rx.ReplaySubject(10);
-        return rx.merge(new rx.Observable(sink => {
-            responding$.subscribe(replay$);
-            sink.complete();
-        }), up.pipe(rx.map(ctxAction => {
-            const filted$ = replay$.pipe(actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction));
-            return (mapFn ?
-                filted$.pipe(rx.map(responding => mapFn(ctxAction, responding))) :
-                filted$);
+        const replayCntProvided = typeof syncCacheSize === 'number';
+        const replayCnt = replayCntProvided ? syncCacheSize : 5;
+        if (!replayCntProvided && typeof syncCacheSize === 'function') {
+            mapFn = syncCacheSize;
+        }
+        // When up stream completes and all mapped down streams are unsubscribed (completed),
+        // stop recording messages to replay subject, otherwise it will continue until the main output stream being explicitly unsubscribed
+        const upStreamDone = new rx.Subject();
+        const downStreamUnsub = new rx.BehaviorSubject(0);
+        const countDownStream = new rx.BehaviorSubject(0);
+        const replay$ = new rx.ReplaySubject(replayCnt);
+        return rx.merge(responding$.pipe(rx.tap(replay$), rx.ignoreElements(), rx.takeUntil(rx.combineLatest([upStreamDone, downStreamUnsub, countDownStream]).pipe(rx.filter(([, unsub, count]) => unsub === count)))), up.pipe(rx.map((ctxAction, idx) => {
+            countDownStream.next(idx + 1);
+            const filted$ = replay$.pipe(actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction), rx.finalize(() => downStreamUnsub.next(downStreamUnsub.getValue() + 1)));
+            return mapFn ? mapFn(ctxAction, filted$) : filted$;
+        }), rx.finalize(() => {
+            upStreamDone.next();
+            upStreamDone.complete();
         })));
     };
 }

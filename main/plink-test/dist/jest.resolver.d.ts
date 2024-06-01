@@ -1,5 +1,7 @@
-type PackageJSON = Record<string, any>;
-type ResolverOptions = {
+/** Respect --preserve-symlink flag of Node.js
+ */
+export type PackageJSON = Record<string, any>;
+export type ResolverOptions = {
     /** Directory to begin resolving from. */
     basedir: string;
     /** List of export conditions. */
@@ -19,5 +21,3 @@ type ResolverOptions = {
     /** Current root directory. */
     rootDir?: string;
 };
-export declare function sync(request: string, opts: ResolverOptions): string;
-export {};

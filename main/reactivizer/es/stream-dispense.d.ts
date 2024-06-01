@@ -1,5 +1,6 @@
 import * as rx from 'rxjs';
 import { Action } from './stream-core';
+import { RxController2 } from './control2';
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.
@@ -10,6 +11,7 @@ import { Action } from './stream-core';
  */
 export declare class ActionDispenser<I> {
     private typePrefix;
+    static ofRxController<X>(control: RxController2<X>): ActionDispenser<X>;
     private actionByType;
     private countSubscriber;
     private ofOtherTypesDispenser;

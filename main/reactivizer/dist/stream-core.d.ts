@@ -45,8 +45,9 @@ export type CoreOptions<I> = {
 export declare const has: (v: PropertyKey) => boolean;
 export declare class ControllerCore<I> {
     actionUpstream: rx.Subject<Action<I[keyof I]>>;
-    /** Add or change action "interceptor" by emiting new value to this BehaviorSubject */
-    interceptor$: rx.BehaviorSubject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>;
+    /** Insert action "interceptor" operator function
+     */
+    interceptor$: rx.Subject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>;
     typePrefix: string;
     logPrefix: string;
     action$: rx.Observable<Action<I[keyof I]>>;
@@ -62,7 +63,9 @@ export declare class ControllerCore<I> {
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
     private connectableAction$;
     constructor(opts?: CoreOptions<I>);
-    createAction<J = I, K extends keyof J = keyof J>(type: K, params?: InferPayload<J[K]>): Action<J[K]>;
+    createAction<J = I, K extends keyof J = keyof J>(name: K, params?: InferPayload<J[K]>): Action<J[K]>;
+    /** action id is also copied */
+    copyActionFrom(source: Action<any>): Action<I[keyof I]>;
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name: string | null | undefined): void;
     config(opts: RxControlConfigType<I>): void;

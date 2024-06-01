@@ -1,5 +1,7 @@
 import * as rx from 'rxjs';
 import { Action } from './stream-core';
+import { PayloadByType, ActionByType } from './inferred-types';
+import { RxController2 } from './control2';
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.
@@ -10,6 +12,11 @@ import { Action } from './stream-core';
  */
 export declare class ActionDispenser<I> {
     private typePrefix;
+    static ofRxController<X>(control: RxController2<X>): ActionDispenser<X>;
+    /** Action observable streamby type */
+    at: ActionByType<I>;
+    /** Abbrevation of payloadByType */
+    pt: PayloadByType<I>;
     private actionByType;
     private countSubscriber;
     private ofOtherTypesDispenser;

@@ -20,13 +20,14 @@ export declare function actionOfContext<T extends [ActionMeta, ...any[]] | Actio
     r?: ActionMeta['r'];
 }): (up: rx.Observable<T>) => rx.Observable<T>;
 /**
- * Return an Rx operator function, the upstream Observable is so call "contextAction" stream,
- * the parameter `responding$` is observable of any actions which will be filtered by this operator function,
- * the downstream is an observable of a tuple of actions in form of `[contextAction, respondingEvent]`, in which respondingEvent's
- * ActionMeta['r'] equals to ActionMeta['i'].
- * In another word, the upstream is initial actions, the downstream stream will be corresponding responding event stream.
+ * Return an Rx operator function, the upstream Observable is so call "contextAction" stream (observable of initial actions),
+ * the parameter `responding$` is observable of any actions which is supposed to be filtered by this operator,
+ * the downstream is an high-order observable of which the elements are nested observables of filted "responding event" actions,
+ * of which respondingEvent's ActionMeta['r'] equals to ActionMeta['i'].
+ * In another word, the upstream is initial actions, the downstream stream will be a stream of corresponding responding event streams
  */
-export declare function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>, R = T>(responding$: rx.Observable<T>, mapFn?: (contextAction: C, responding: T) => R): (up: rx.Observable<C>) => rx.Observable<rx.Observable<R>>;
+export declare function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>, R = rx.Observable<T>>(responding$: rx.Observable<T>, mapFn?: (contextAction: C, responding$: rx.Observable<T>) => R): (up: rx.Observable<C>) => rx.Observable<R>;
+export declare function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Action<any>, C extends [ActionMeta, ...any[]] | Action<any>, R = rx.Observable<T>>(responding$: rx.Observable<T>, syncCacheSize: number, mapFn?: (contextAction: C, responding$: rx.Observable<T>) => R): (up: rx.Observable<C>) => rx.Observable<R>;
 export declare function throwErrorOnRelated<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
     i: ActionMeta['i'];
 }): (up: rx.Observable<T>) => rx.Observable<T>;

@@ -28,6 +28,7 @@ const rx = __importStar(require("rxjs"));
 const context_operators_1 = require("./context-operators");
 const duplex2_1 = require("./duplex2");
 const action_table_1 = require("./action-table");
+const baseTableFor = ['__onError', '__onDisposed'];
 class ReactorComposite2 extends duplex2_1.DuplexController {
     get inputTable() {
         return this.it;
@@ -41,21 +42,16 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
     }
     /** alias of outputTable */
     get ot() {
-        if (this.oTable)
-            return this.oTable;
-        this.oTable = new action_table_1.ActionTable(this.o, ['__onErrorFor']);
         return this.oTable;
     }
     get outputTable() {
         return this.ot;
     }
     constructor(opts) {
+        var _a;
         super(opts);
         this.opts = opts;
         this.errorSubject = new rx.ReplaySubject(20);
-        /** All catched error goes here */
-        this.error$ = this.errorSubject.asObservable();
-        this.destory$ = new rx.ReplaySubject(1);
         /** Abbrevation of addReaction */
         this.r = (...params) => {
             if (typeof params[0] === 'string')
@@ -63,60 +59,50 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
             else
                 this.reactorSubj.next(['', ...params]);
         };
+        const input$ = this.i;
+        const output$ = this.o;
         if (opts === null || opts === void 0 ? void 0 : opts.debug) {
-            this.o.ft.__onNew().dp();
+            output$.ft.__onNew().dp();
         }
         this.reactorSubj = new rx.ReplaySubject();
-        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt.__onErrorFor.pipe((0, context_operators_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
+        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt.__onError.pipe((0, context_operators_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
-        this.i.doOperator$.next(doOperator);
-        this.o.doOperator$.next(doOperator);
+        input$.doOperator$.next(doOperator);
+        output$.doOperator$.next(doOperator);
         if ((opts === null || opts === void 0 ? void 0 : opts.inputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.inputTableFor.length) > 0) {
-            this.iTable = new action_table_1.ActionTable(this.i, opts.inputTableFor);
+            this.iTable = new action_table_1.ActionTable(input$, opts.inputTableFor);
         }
-        if ((opts === null || opts === void 0 ? void 0 : opts.outputTableFor) && (opts === null || opts === void 0 ? void 0 : opts.outputTableFor.length) > 0) {
-            this.oTable = new action_table_1.ActionTable(this.o, [...opts.outputTableFor, '__onErrorFor']);
-        }
-        rx.merge(this.o.pt.__onErrorFor.pipe(rx.catchError((err, src) => {
+        this.oTable = new action_table_1.ActionTable(this.o, [...((_a = opts === null || opts === void 0 ? void 0 : opts.outputTableFor) !== null && _a !== void 0 ? _a : []), ...baseTableFor]);
+        rx.merge(output$.pt.__onError.pipe(rx.map(([, err]) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
             else
                 console.error(err);
-            return src;
         })), this.reactorSubj.pipe(rx.mergeMap(([label, downStream, noError]) => {
             if (noError == null || !noError) {
                 downStream = this.handleError(downStream, label);
             }
             return downStream;
-        }))).pipe(rx.takeUntil(this.destory$), rx.catchError((err, src) => {
+        }))).pipe(rx.takeUntil(output$.pt.__onDisposed), rx.catchError((err, src) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
             else
                 console.error(err);
-            return src;
-        }));
-        // this.logSubj = new rx.ReplaySubject(50);
-        this.reactorSubj.pipe(rx.mergeMap(([label, downStream, noError]) => {
-            if (noError == null || !noError) {
-                downStream = this.handleError(downStream, label);
-            }
-            return downStream;
-        }), rx.takeUntil(this.destory$), rx.catchError((err, src) => {
-            var _a;
-            if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
-                this.opts.log(err);
-            else
-                console.error(err);
+            output$.ft.__onError(err).dp();
             return src;
         })).subscribe();
+        // this.logSubj = new rx.ReplaySubject(50);
         this.dispose = () => {
-            this.o.actionUpstream.next(this.o.createAction('ReactorsDisposed'));
-            this.destory$.next();
+            output$.ft.__onDisposed().dp();
         };
-        this.r('__config', this.i.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
+        this.error$ = output$.pt.__onError.pipe(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        rx.map(([, err]) => err), rx.share());
+        this.destory$ = this.outputTable.l.__onDisposed;
+        this.r('__config', input$.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
     }
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll() { }
@@ -179,17 +165,17 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
     }
     catchErrorFor(...actionMetas) {
         return (upStream) => upStream.pipe(rx.catchError((err) => {
-            this.o.ft.__onErrorFor(err).dp(...actionMetas);
+            this.o.ft.__onError(err).dp(...actionMetas);
             return rx.EMPTY;
         }));
     }
     /** Respond an error to actions specified by "actionMeta",
      * be aware that this message is not an Observable's "error" message,
      * it will not terminate observable stream.
-     * This method emits an event "__onErrorFor" under the hood.
+     * This method emits an event "__onError" under the hood.
      */
     dispatchErrorFor(err, actionMeta, ...moreActionMetas) {
-        this.o.ft.__onErrorFor(err).dp(actionMeta, ...moreActionMetas);
+        this.o.ft.__onError(err).dp(actionMeta, ...moreActionMetas);
     }
     reactivizeFunction(key, func, funcThisRef) {
         const resolveFuncKey = key + 'Resolved';
@@ -197,23 +183,24 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
         const dispatchResolved = this.o.dispatchForFactory(resolveFuncKey);
         const dispatchCompleted = this.o.dispatchForFactory(finishFuncKey);
         this.r(this.i.pt[key].pipe(rx.mergeMap(([meta, ...params]) => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const res = func.apply(funcThisRef, params);
-            if (rx.isObservable(res)) {
-                return res.pipe(rx.map(res => dispatchResolved(meta, res)), this.catchErrorFor(meta), rx.finalize(() => dispatchCompleted(meta)));
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            }
-            else if ((res === null || res === void 0 ? void 0 : res.then) != null && (res === null || res === void 0 ? void 0 : res.catch) != null) {
-                return rx.defer(() => res).pipe(rx.map(res => dispatchResolved(meta, res)), this.catchErrorFor(meta), rx.finalize(() => dispatchCompleted(meta)));
-            }
-            else {
-                try {
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const res = func.apply(funcThisRef, params);
+                if (rx.isObservable(res)) {
+                    return res.pipe(rx.map(resValue => dispatchResolved(meta, resValue)), this.catchErrorFor(meta), rx.finalize(() => dispatchCompleted(meta)));
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                }
+                else if ((res === null || res === void 0 ? void 0 : res.then) != null && (res === null || res === void 0 ? void 0 : res.catch) != null) {
+                    return rx.defer(() => res).pipe(rx.map(res => dispatchResolved(meta, res)), this.catchErrorFor(meta), rx.finalize(() => dispatchCompleted(meta)));
+                }
+                else {
                     dispatchResolved(meta, res);
                     dispatchCompleted(meta);
+                    return rx.EMPTY;
                 }
-                catch (e) {
-                    this.dispatchErrorFor(e, meta);
-                }
+            }
+            catch (err) {
+                this.dispatchErrorFor(err, meta);
                 return rx.EMPTY;
             }
         })));

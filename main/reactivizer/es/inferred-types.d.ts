@@ -4,6 +4,7 @@ import { SingleActionFactory } from './control2';
 import { ReactorComposite } from './epic';
 import { ReactorCompositeOpt } from './reactor-base';
 import { ReactorComposite2 } from './reactor-composite';
+import { SimplexReactor } from './simplex-reactor';
 /**
  * If we consider ActionTable a 2-dimentional data structure, this is the infer type of it.
  * Each row is latest action payload of an action type (or name),
@@ -26,7 +27,7 @@ type InferInputActionsType<R> = R extends ReactorComposite<infer I, any, any, an
 type InferOutputEventsType<R> = R extends ReactorComposite<any, infer O, any, any> ? O : Record<never, never>;
 type InferLatestInputType<R> = R extends ReactorComposite<any, any, infer LI, any> ? ExtractTupleElement<LI> : never;
 type InferLatestOutputType<R> = R extends ReactorComposite<any, any, any, infer LO> ? ExtractTupleElement<LO> : never;
-type ExtractTupleElement<T> = T extends readonly (infer R)[] ? R : never;
+export type ExtractTupleElement<T> = T extends readonly (infer R)[] ? R : never;
 type InferInputType2<R> = R extends ReactorComposite2<infer I, any, any, any> ? I : Record<never, never>;
 type InferOutputType2<R> = R extends ReactorComposite2<any, infer O, any, any> ? O : Record<never, never>;
 type InferLatestInputType2<R> = R extends ReactorComposite2<any, any, infer LI, any> ? ExtractTupleElement<LI> : never;
@@ -52,4 +53,7 @@ export type InferRCOfFuncs<F> = ReactorComposite2<ActionFactoryOfPlainType<F>, I
 export type InferRCOfRecursiveFuncs<F> = ReactorComposite2<ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, InferFuncReturnEvents<F>>;
 export type InferRCOptionsOfFuncs<F> = ReactorCompositeOpt<ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F>>;
 export type InferRCOptionsOfRecursiveFuncs<F> = ReactorCompositeOpt<ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, InferFuncReturnEvents<F>>;
+type InferActionsOfSimplexReactor<R> = R extends SimplexReactor<infer I, any> ? I : unknown;
+type InferLastestOfSimplexReactor<R> = R extends SimplexReactor<any, infer L> ? ExtractTupleElement<L> : never;
+export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> = SimplexReactor<InferActionsOfSimplexReactor<R1> & InferActionsOfSimplexReactor<R2>, readonly (InferLastestOfSimplexReactor<R1> | InferLastestOfSimplexReactor<R2>)[]>;
 export {};
