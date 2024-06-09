@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { ActionFunctions, ActionMeta } from './control';
+import { ActionFunctions, ActionMeta, Action } from './control';
 import { SingleActionFactory } from './control2';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
@@ -74,6 +74,13 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
      * This method emits an event "__onError" under the hood.
      */
     dispatchErrorFor(err: any, actionMeta: ActionMeta, ...moreActionMetas: ActionMeta[]): void;
+    /** Rx operator function, filter action or payload stream by:
+     *  action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
+     *  invokes "catchErrorFor()" or "dispatchErrorFor()"
+     **/
+    actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
+        i: ActionMeta['i'];
+    }): (up: rx.Observable<T>) => rx.Observable<T>;
     reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     protected logError(label: string, err: any): void;
     protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;

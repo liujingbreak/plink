@@ -26,7 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.assignActionReferParam = exports.actionMetaToStr = exports.nameOfAction = exports.ControllerCore = exports.has = void 0;
 const rx = __importStar(require("rxjs"));
 const global_config_1 = require("./global-config");
-let SEQ = 1;
+let SEQ = 0;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 exports.has = Object.prototype.hasOwnProperty;
 class ControllerCore {
@@ -35,7 +35,6 @@ class ControllerCore {
         /** Insert action "interceptor" operator function
          */
         this.interceptor$ = new rx.Subject();
-        this.typePrefix = 't' + SEQ++ + ' ';
         this.logPrefix = '';
         this.debugExcludeSet = new Set();
         this.configChange = new rx.Subject();
@@ -120,7 +119,7 @@ class ControllerCore {
     }
     createAction(name, params) {
         return {
-            t: this.typePrefix + name,
+            t: name,
             i: ACTION_SEQ++,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             p: params !== null && params !== void 0 ? params : []
@@ -135,7 +134,7 @@ class ControllerCore {
     }
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name) {
-        this.logPrefix = name !== null && name !== void 0 ? name : this.typePrefix.trim();
+        this.logPrefix = name !== null && name !== void 0 ? name : ++SEQ + '';
     }
     config(opts) {
         const changedProperties = new Set();
@@ -180,19 +179,19 @@ class ControllerCore {
     // eslint-disable-next-line space-before-function-paren
     ofType(...types) {
         return (up) => {
-            const matchTypes = types.map(type => this.typePrefix + type);
+            const matchTypes = types.map(type => type);
             return up.pipe(rx.filter((a) => matchTypes.some(matchType => a.t === matchType)));
         };
     }
     // eslint-disable-next-line space-before-function-paren
     notOfType(...types) {
         return (up) => {
-            const matchTypes = types.map(type => this.typePrefix + type);
+            const matchTypes = types.map(type => type);
             return up.pipe(rx.filter((a) => matchTypes.every(matchType => a.t !== matchType)));
         };
     }
     isType(action, type) {
-        return action.t === this.typePrefix + type;
+        return action.t === type;
     }
     connect() {
         rx.concat(rx.of(this.connectableAction$), this.configChange).pipe(rx.filter(() => this.connectableAction$ != null), rx.map(() => this.connectableAction$), rx.take(1)).subscribe(() => this.connectableAction$.connect());
@@ -207,8 +206,9 @@ exports.ControllerCore = ControllerCore;
  */
 // eslint-disable-next-line space-before-function-paren
 function nameOfAction(action) {
-    const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
-    return (match ? match[1] : action.t);
+    // const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
+    // return (match ? match[1] : action.t) as keyof I;
+    return action.t;
 }
 exports.nameOfAction = nameOfAction;
 function actionMetaToStr(action) {

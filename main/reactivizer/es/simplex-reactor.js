@@ -81,6 +81,17 @@ export class SimplexReactor {
             return rx.EMPTY;
         }));
     }
+    /** Rx operator function, filter action or payload stream by:
+   *  action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
+   *  invokes "catchErrorFor()" or "dispatchErrorFor()"
+   **/
+    actionRelatedToAction(actionOrMeta) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const s = this.s;
+        return function (up) {
+            return s.doOperator$.pipe(rx.switchMap(operator => up.pipe(operator(actionOrMeta), actionRelatedToAction(actionOrMeta))));
+        };
+    }
     /** Respond an error to actions specified by "actionMeta",
      * be aware that this message is not an Observable's "error" message,
      * it will not terminate observable stream.

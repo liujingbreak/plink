@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { ActionMeta, ActionFunctions } from './stream-core';
+import { Action, ActionMeta, ActionFunctions } from './stream-core';
 import { RxController2 } from './control2';
 import { SingleActionFactory } from './action-factory';
 import { SimplexReactorOptions } from './reactor-base';
@@ -19,7 +19,7 @@ type LE<LI extends readonly any[]> = readonly (LI[number] | ExtractTupleElement<
 export declare class SimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = []> {
     opts?: SimplexReactorOptions<I & BaseActions<LI, readonly []>, LE<LI>> | undefined;
     protected errorSubject: rx.Subject<[lable: string, originError: any] | [lable: string, originError: any, relevantActions: ActionMeta[]]>;
-    /** All catched error goes here */
+    /** All catched error goes here, including those from "dispatchErrorFor" */
     error$: rx.Observable<any>;
     destory$: rx.Observable<unknown>;
     dispose: () => void;
@@ -40,6 +40,13 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
      */
     labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T>;
     catchErrorFor<T>(actionMeta: ActionMeta, ...actionMetas: ActionMeta[]): (upStream: rx.Observable<T>) => rx.Observable<T>;
+    /** Rx operator function, filter action or payload stream by:
+   *  action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
+   *  invokes "catchErrorFor()" or "dispatchErrorFor()"
+   **/
+    actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {
+        i: ActionMeta['i'];
+    }): (up: rx.Observable<T>) => rx.Observable<T>;
     /** Respond an error to actions specified by "actionMeta",
      * be aware that this message is not an Observable's "error" message,
      * it will not terminate observable stream.

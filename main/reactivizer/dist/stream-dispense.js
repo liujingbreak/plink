@@ -36,10 +36,9 @@ const control_1 = require("./control");
  */
 class ActionDispenser {
     static ofRxController(control) {
-        return new ActionDispenser(control.action$, control.typePrefix);
+        return new ActionDispenser(control.action$);
     }
-    constructor(source$, typePrefix) {
-        this.typePrefix = typePrefix;
+    constructor(source$) {
         this.actionByType = new Map();
         this.countSubscriber = new rx.BehaviorSubject(0);
         const disconnectSignal = new rx.Subject();
@@ -94,8 +93,7 @@ class ActionDispenser {
         });
     }
     ofType(type) {
-        const key = this.typePrefix + type;
-        const control = this.actionByType.get(key);
+        const control = this.actionByType.get(type);
         if (control) {
             const [, stream] = control;
             return stream;
@@ -106,7 +104,7 @@ class ActionDispenser {
         })).pipe(rx.finalize(() => {
             this.countSubscriber.next(this.countSubscriber.getValue() - 1);
         }));
-        this.actionByType.set(key, [dispenser$, stream]);
+        this.actionByType.set(type, [dispenser$, stream]);
         return stream;
     }
     ofOtherTypes() {

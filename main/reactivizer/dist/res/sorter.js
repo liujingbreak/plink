@@ -36,8 +36,8 @@ function createSorter(comparator, opts) {
     const cmp = comparator !== null && comparator !== void 0 ? comparator : new sort_comparator_interf_1.DefaultComparator();
     const sortActions = {
         async sortAllInWorker(buf, offset, len, noForkThreshold) {
-            const forkDone = await rx.firstValueFrom(sorter.o.ft.fork('sort', buf, offset, len, noForkThreshold)
-                .do(sorter.i.at.sortResolved));
+            const forkDone = await rx.firstValueFrom(sorter.s.ft.fork('sort', buf, offset, len, noForkThreshold)
+                .do(sorter.s.pt.sortResolved));
             return forkDone[1];
         },
         /**
@@ -51,7 +51,7 @@ function createSorter(comparator, opts) {
                 const rightPartOffset = offset + leftPartLen;
                 const rightpartLen = arr.length - leftPartLen;
                 // o.dp.log('create fork sort action for half', rightPartOffset, rightpartLen, `action id: ${sortAction.i}`);
-                const forkDone = sorter.o.ft.fork('sort', buf, rightPartOffset, rightpartLen, noForkThreshold).do(sorter.i.at.sortResolved);
+                const forkDone = sorter.s.ft.fork('sort', buf, rightPartOffset, rightpartLen, noForkThreshold).do(sorter.s.at.sortResolved);
                 await sortActions.sort(buf, offset, leftPartLen, noForkThreshold);
                 await node_worker_1.setIdleDuring.asPromise(sorter, forkDone);
                 const mergeRes = await sortActions.merge(buf, offset, leftPartLen, rightPartOffset, rightpartLen, noForkThreshold, buf, offset);
@@ -101,7 +101,7 @@ function createSorter(comparator, opts) {
                 // o.dp.log('merge with fork', offset1, len1, [...arr1], offset2, len2, [...arr2], ', binarySerach pivot value:', arr1[arr1LeftLen - 1], '\n',
                 //   '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n',
                 //   '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
-                const forkDone = sorter.o.ft.fork('merge', buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold).do(sorter.i.at.mergeResolved);
+                const forkDone = sorter.s.ft.fork('merge', buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold).do(sorter.s.pt.mergeResolved);
                 const leftMerged = (_a = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))) === null || _a === void 0 ? void 0 : _a.content;
                 const [, forkResult] = await node_worker_1.setIdleDuring.asPromise(sorter, forkDone);
                 const rightMerged = forkResult === null || forkResult === void 0 ? void 0 : forkResult.content;

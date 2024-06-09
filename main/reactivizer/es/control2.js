@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
 import { ControllerCore, nameOfAction } from './stream-core';
-import { mapActionToPayload } from './control';
 import { ActionDataTable } from './action-table';
 import { ActionDispenser } from './stream-dispense';
 import { SingleActionFactoryImpl } from './action-factory';
@@ -21,8 +20,8 @@ export class RxController2 extends ControllerCore {
                 }
                 const fn = (...args) => {
                     return new SingleActionFactoryImpl(key, args, control, {
-                        slowLog() {
-                            const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key}"`;
+                        slowLog(a) {
+                            const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key} #${a.i}"`;
                             if (opts === null || opts === void 0 ? void 0 : opts.log) {
                                 opts.log(msg);
                             }
@@ -48,44 +47,38 @@ export class RxController2 extends ControllerCore {
     constructor(opts) {
         super(opts);
         this.factories = new Map();
-        /** Rx operator for `do()`, we can change it by emit new value to this observable,
+        /**
          * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
          * */
         this.doOperator$ = new rx.BehaviorSubject((_dispatchingAction) => input => input);
-        // addConfigurable(this);
-        const actionsByType = new Map();
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const actionDispenseByType = ActionDispenser.ofRxController(this);
-        const actionByTypeProxy = new Proxy({}, {
-            get(_target, type, _rec) {
-                return actionDispenseByType.ofType(type);
-            },
-            has(_target, key) {
-                return actionsByType.has(key);
-            },
-            ownKeys() {
-                return [...actionsByType.keys()];
-            }
+        this.at = actionDispenseByType.at;
+        this.pt = actionDispenseByType.pt;
+    }
+    /**
+     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of target controller always
+     * recieves earlier than any subscribers of this controller.
+     * It help to conquer recursive message emitting problem when extending reactor.
+     *
+     * 1. Target dispatches --message--> target.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> target.action$, this.action$
+     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> target.action$, this.action$
+     *
+     * Target controller will always recieve a copy of each action from this controller, and awlays recieves earlier than this controller's subscribers,
+     * Any action dispatched by target controller will always be piped to this controller's actionUpstream instead of its owns, so that again both
+     * target and this controller will recieves them.
+     *
+     */
+    forkController() {
+        const targetCtl = new RxController2({ debug: false });
+        const targetUpStream = new rx.Subject();
+        targetCtl.interceptor$.next(a$ => {
+            return rx.merge(a$.pipe(rx.map(a => this.actionUpstream.next(a)), rx.ignoreElements()), targetUpStream);
         });
-        const payloadsByType = new Map();
-        this.at = actionByTypeProxy;
-        this.pt = new Proxy({}, {
-            get(_target, key, _rec) {
-                let p$ = payloadsByType.get(key);
-                if (p$ == null) {
-                    const a$ = actionDispenseByType.ofType(key);
-                    p$ = a$.pipe(mapActionToPayload(), rx.share());
-                    payloadsByType.set(key, p$);
-                }
-                return p$;
-            },
-            has(_target, key) {
-                return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);
-            },
-            ownKeys() {
-                return Object.keys(actionByTypeProxy);
-            }
-        });
+        this.interceptor$.next(a$ => a$.pipe(rx.tap(a => {
+            targetUpStream.next(a);
+        })));
+        return targetCtl;
     }
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy(keySelector, groupedCtlOptionsFn) {
@@ -117,7 +110,7 @@ export class RxController2 extends ControllerCore {
         }, [null, new Map()]));
     }
     /**
-     * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
+     * create a new RxController, pipe actions whose tyoes are specofied in parameter `actionTypes` from this controller to the new controller
      */
     subForTypes(actionTypes, opts) {
         const sub = new RxController2(opts);
@@ -188,12 +181,7 @@ export class GroupedRxController2 extends RxController2 {
  * @return that dispatched new action object
  */
 export function deserializeAction2(actionObj, toController) {
-    const newAction = toController.createAction(nameOfAction(actionObj), actionObj.p);
-    newAction.i = actionObj.i;
-    if (actionObj.r)
-        newAction.r = actionObj.r;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    toController.actionUpstream.next(newAction);
-    return newAction;
+    const act = toController.copyActionFrom(actionObj);
+    toController.actionUpstream.next(act);
 }
 //# sourceMappingURL=control2.js.map

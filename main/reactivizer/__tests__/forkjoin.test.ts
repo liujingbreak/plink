@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
-import {initProcess, initConfig, logConfig} from '@wfh/plink';
+// import {initProcess, initConfig, logConfig} from '@wfh/plink';
 import {describe, it, afterEach}  from '@jest/globals';
 import * as forkMergeSortModule from '../src/__tests__/fork-merge-sort';
 
-initProcess('none');
-logConfig(initConfig({})());
+// initProcess('none');
+// logConfig(initConfig({})());
 
 describe('forkjoin worker', () => {
 

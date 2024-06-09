@@ -53,7 +53,7 @@ export type CoreOptions<I> = {
   log?: null | ((msg: string, ...objs: any[]) => unknown);
 };
 
-let SEQ = 1;
+let SEQ = 0;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 
 export const has = Object.prototype.hasOwnProperty;
@@ -64,7 +64,6 @@ export class ControllerCore<I> {
   /** Insert action "interceptor" operator function
    */
   interceptor$ = new rx.Subject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>();
-  typePrefix = 't' + SEQ++ + ' ';
   logPrefix = '';
   action$: rx.Observable<Action<I[keyof I]>>;
   debugIncludeSet: Set<string | number | symbol> | null | undefined;
@@ -179,7 +178,7 @@ export class ControllerCore<I> {
 
   createAction<J = I, K extends keyof J = keyof J>(name: K, params?: InferPayload<J[K]>) {
     return {
-      t: this.typePrefix + (name as string),
+      t: name as string,
       i: ACTION_SEQ++,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       p: params ?? []
@@ -196,7 +195,7 @@ export class ControllerCore<I> {
 
   /** change the "name" as previous specified in CoreOptions of constructor */
   setName(name: string | null | undefined) {
-    this.logPrefix = name ?? this.typePrefix.trim();
+    this.logPrefix = name ?? ++SEQ + '';
   }
 
   config(opts: RxControlConfigType<I>) {
@@ -245,7 +244,7 @@ export class ControllerCore<I> {
   // eslint-disable-next-line space-before-function-paren
   ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[T[number]]>> {
     return (up: rx.Observable<Action<any>>) => {
-      const matchTypes = types.map(type => this.typePrefix + (type as string));
+      const matchTypes = types.map(type => type as string);
       return up.pipe(
         rx.filter((a): a is Action<I[T[number]]> => matchTypes.some(matchType => a.t === matchType))
       );
@@ -255,7 +254,7 @@ export class ControllerCore<I> {
   // eslint-disable-next-line space-before-function-paren
   notOfType<T extends (keyof I)[]>(...types: T) {
     return (up: rx.Observable<Action<any>>) => {
-      const matchTypes = types.map(type => this.typePrefix + (type as string));
+      const matchTypes = types.map(type => type as string);
       return up.pipe(
         rx.filter((a): a is Action<I[Exclude<(keyof I), T[number]>]> => matchTypes.every(matchType => a.t !== matchType))
       );
@@ -263,7 +262,7 @@ export class ControllerCore<I> {
   }
 
   isType<K extends keyof I>(action: Action<I[keyof I]>, type: K): action is Action<I[K]> {
-    return action.t === this.typePrefix + (type as string);
+    return action.t === (type as string);
   }
 
   connect() {
@@ -288,8 +287,9 @@ export class ControllerCore<I> {
 export function nameOfAction<I = ActionFunctions>(
   action: Pick<Action<I[keyof I]>, 't'>
 ): keyof I {
-  const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
-  return (match ? match[1] : action.t) as keyof I;
+  // const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
+  // return (match ? match[1] : action.t) as keyof I;
+  return action.t as keyof I;
 }
 
 export function actionMetaToStr(action: ActionMeta) {

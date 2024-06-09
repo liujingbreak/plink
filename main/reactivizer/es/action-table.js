@@ -18,7 +18,7 @@ export class ActionTable {
     get dataChange$() {
         if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f"))
             return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
-        __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))), rx.map(() => {
+        __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.from(this.actionNames)), rx.mergeMap(actionName => this.l[actionName]), rx.map(() => {
             this.data = {};
             for (const k of this.actionNames) {
                 const v = this.actionSnapshot.get(k);
@@ -27,9 +27,10 @@ export class ActionTable {
                     this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
                 else {
                     if (v) {
-                        old.splice(0);
-                        for (let i = 1, l = v.length; i < l; i++)
-                            old.push(v[i]);
+                        this.data[k] = v.slice(1);
+                        // old.splice(0);
+                        // for (let i = 1, l = v.length; i < l; i++)
+                        //   (old as any[]).push(v[i]);
                     }
                     else
                         this.data[k] = EMPTY_ARRY;
@@ -48,7 +49,7 @@ export class ActionTable {
         _ActionTable_latestPayloadsByName$.set(this, void 0);
         // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
         this.actionNamesAdded$ = new rx.ReplaySubject(1);
-        this.actionNames = [];
+        this.actionNames = new Set();
         this.l = this.latestPayloads;
         this.addActions(...actionNames);
         this.actionNamesAdded$.pipe(rx.map(actionNames => {
@@ -63,8 +64,11 @@ export class ActionTable {
      * by creating `ReplaySubject(1)` for each action payload stream respectively
      */
     addActions(...actionNames) {
-        this.actionNames = this.actionNames.concat(actionNames);
-        this.actionNamesAdded$.next(actionNames);
+        const uniqueNewActions = actionNames.filter(a => !this.actionNames.has(a));
+        for (const a of uniqueNewActions) {
+            this.actionNames.add(a);
+        }
+        this.actionNamesAdded$.next(uniqueNewActions);
         return this;
     }
     onAddActions(actionNames) {

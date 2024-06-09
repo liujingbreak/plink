@@ -1,10 +1,11 @@
 import type {Worker as NodeWorker} from 'node:worker_threads';
 import * as algorithms from '@wfh/algorithms';
 import * as rx from 'rxjs';
-import {ReactorComposite2, ActionMeta} from '..';
+import {ActionMeta} from '../stream-core';
+import {SimplexReactor} from '../simplex-reactor';
 import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor, ThreadExpirationEvents} from './types';
 
-export function applyScheduler(broker: Broker<any, any>, opts: {
+export function applyScheduler(broker: Broker<any>, opts: {
   maxNumOfWorker: number;
   /** Default `false`, in which case the current thread (main) will also be assigned for tasks */
   excludeCurrentThead?: boolean;
@@ -16,13 +17,10 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
   workerFactory(): Worker | NodeWorker;
 }) {
   let WORKER_NO_SEQ = 0;
-
-  const {r, o, i, outputTable} = broker as unknown as ReactorComposite2<
-  BrokerInput,
-  BrokerEvent & ThreadExpirationEvents,
-  [],
-  typeof brokerOutputTableFor>;
-
+  const brokerForSchedule = broker as unknown as
+    SimplexReactor<BrokerInput & BrokerEvent & ThreadExpirationEvents,
+    typeof brokerOutputTableFor>;
+  const {r, table} = brokerForSchedule;
   let algo: typeof algorithms;
   try {
     algo = require('@wfh/algorithms') as typeof algorithms;
@@ -30,6 +28,7 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
     // Inside Plink
     algo = require('../../../algorithms') as typeof algorithms;
   }
+  const s = brokerForSchedule.s.forkController();
   const {RedBlackTree} = algo;
   const workerRankTree = new RedBlackTree<number, number[]>();
   /** Indicate how busy each thread is */
@@ -38,8 +37,7 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
   const tasksByWorkerNo = new Map<number, [worker: Worker | NodeWorker | 'main', numTasks: number, workerNo: number]>();
 
   const {maxNumOfWorker} = opts;
-
-  r('assignWorker -> workerAssigned', outputTable.l.assignWorker.pipe(
+  r('assignWorker -> workerAssigned', table.l.assignWorker.pipe(
     rx.map(([m]) => {
       try {
         const minTreeNode = workerRankTree.minimum();
@@ -50,13 +48,13 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
             throw new Error('ranksByWorkerNo has null for ' + workerNo);
 
           const [worker] = ranksByWorkerNo.get(workerNo)!;
-          i.ft.workerAssigned(minTreeNode.value[0], worker, false, minTreeNode.key).dp(m);
+          s.ft.workerAssigned(minTreeNode.value[0], worker, false, minTreeNode.key).dp(m);
         } else if (ranksByWorkerNo.size < maxNumOfWorker) {
           const newWorker = (ranksByWorkerNo.size === 0 && opts.excludeCurrentThead !== true) ? 'main' : opts.workerFactory();
           if (newWorker !== 'main' && WORKER_NO_SEQ === 0) {
             WORKER_NO_SEQ = 1; // 0 is always for "main"
           }
-          i.ft.workerAssigned(WORKER_NO_SEQ, newWorker, true, 0).dp(m);
+          s.ft.workerAssigned(WORKER_NO_SEQ, newWorker, true, 0).dp(m);
           WORKER_NO_SEQ++;
         }
       } catch (e) {
@@ -65,7 +63,7 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
     })
   ));
 
-  r('workerAssigned -> changeWorkerRank()', i.pt.workerAssigned.pipe(
+  r('workerAssigned -> changeWorkerRank()', s.pt.workerAssigned.pipe(
     rx.map(([m, workerNo, newWorker, isNew]) => {
       if (opts.excludeCurrentThead === true && newWorker === 'main')
         return;
@@ -87,8 +85,14 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
   ));
 
   r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()',
-    o.pt.newWorkerReady.pipe(
-      rx.mergeMap(([m, workerNo, workerOutputCtl]) => rx.merge(
+    rx.concat(
+      table.l.allReadyWorkers.pipe(
+        rx.take(1),
+        rx.mergeMap(([, set]) => set)
+      ),
+      s.pt.newWorkerReady.pipe(rx.map(([, ...rest]) => rest))
+    ).pipe(
+      rx.mergeMap(([workerNo, workerOutputCtl]) => rx.merge(
         workerOutputCtl.pt.stopWaiting.pipe(
           rx.tap(() => changeWorkerRank(workerNo, 1)),
           broker.labelError(`worker #${workerNo} stopWaiting -> ...`)
@@ -98,7 +102,7 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
           broker.labelError(`worker #${workerNo} wait`)
         ),
         workerOutputCtl.pt.returned.pipe(
-          rx.tap(() => {
+          rx.tap(([m]) => {
             changeWorkerRank(workerNo, -1);
             const taskCount = tasksByWorkerNo.get(workerNo);
             if (taskCount) {
@@ -111,7 +115,7 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
       ))
     ));
 
-  r('letWorkerExit', i.pt.letWorkerExit.pipe(
+  r('letWorkerExit', s.pt.letWorkerExit.pipe(
     rx.tap(([, workerNo]) => {
       if (ranksByWorkerNo.has(workerNo)) {
         const [, rank] = ranksByWorkerNo.get(workerNo)!;
@@ -133,43 +137,43 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
     })
   ));
 
-  r('letAllWorkerExit', i.at.letAllWorkerExit.pipe(
+  r('letAllWorkerExit', s.at.letAllWorkerExit.pipe(
     rx.exhaustMap(a => {
       let exitCount = 0;
       for (const [worker, , workerNo] of ranksByWorkerNo.values()) {
         if (worker !== 'main') {
-          i.ft.letWorkerExit(workerNo).dp(a);
+          s.ft.letWorkerExit(workerNo).dp(a);
           exitCount++;
         }
       }
       return rx.concat(
-        o.at.onWorkerExit.pipe(
+        s.at.onWorkerExit.pipe(
           rx.take(exitCount)
         ),
         new rx.Observable((sub) => {
-          o.ft.onAllWorkerExit().dp(a);
+          s.ft.onAllWorkerExit().dp(a);
           sub.complete();
         })
       );
     })
   ));
 
-  r('startExpirationTimer -> letWorkerExit', o.subForTypes(['startExpirationTimer', 'clearExpirationTimer'] as const).groupControllerBy(({p: [workerNo]}) => workerNo).pipe(
+  r('startExpirationTimer -> letWorkerExit', s.subForTypes(['startExpirationTimer', 'clearExpirationTimer'] as const).groupControllerBy(({p: [workerNo]}) => workerNo).pipe(
     rx.mergeMap(([grouped]) => grouped.pt.startExpirationTimer.pipe(
       rx.switchMap(([m, workerNo]) => rx.timer(opts.threadMaxIdleTime!).pipe(
         rx.takeUntil(grouped.at.clearExpirationTimer),
         rx.tap(() => {
           const [worker] = ranksByWorkerNo.get(workerNo)!;
           if (worker !== 'main') {
-            i.ft.letWorkerExit(workerNo).dp(m);
+            s.ft.letWorkerExit(workerNo).dp(m);
           }
         })
       ))
     ))
   ));
 
-  r('onWorkerExit', o.pt.onWorkerExit.pipe(
-    rx.tap(([m, workerNo]) => o.ft.clearExpirationTimer(workerNo).dp(m))
+  r('onWorkerExit', s.pt.onWorkerExit.pipe(
+    rx.tap(([m, workerNo]) => s.ft.clearExpirationTimer(workerNo).dp(m))
   ));
 
   function changeWorkerRank(workerNo: number, changeValue: number) {
@@ -196,12 +200,12 @@ export function applyScheduler(broker: Broker<any, any>, opts: {
   }
 
   function checkNumOfTasks(actionMeta: ActionMeta, workerNo: number, numTasks: number) {
-    o.ft.workerRankChanged(workerNo, numTasks).dp();
+    s.ft.workerRankChanged(workerNo, numTasks).dp();
     if (workerNo !== 0 && opts.threadMaxIdleTime != null) {
       if (numTasks === 0)
-        o.ft.startExpirationTimer(workerNo).dp(actionMeta);
+        s.ft.startExpirationTimer(workerNo).dp(actionMeta);
       else if (numTasks > 0)
-        o.ft.clearExpirationTimer(workerNo).dp(actionMeta);
+        s.ft.clearExpirationTimer(workerNo).dp(actionMeta);
       else {
         throw new Error(`Current thread worker #${workerNo} is ranked to a negative work load value ${numTasks},` +
           ' it could also caused by an unexpected error');

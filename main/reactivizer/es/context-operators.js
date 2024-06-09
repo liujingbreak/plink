@@ -65,10 +65,19 @@ export function pairActionToActionStream(responding$, syncCacheSize, mapFn) {
         if (!replayCntProvided && typeof syncCacheSize === 'function') {
             mapFn = syncCacheSize;
         }
+        // When up stream completes and all mapped down streams are unsubscribed (completed),
+        // stop recording messages to replay subject, otherwise it will continue until the main output stream being explicitly unsubscribed
+        const upStreamDone = new rx.Subject();
+        const downStreamUnsub = new rx.BehaviorSubject(0);
+        const countDownStream = new rx.BehaviorSubject(0);
         const replay$ = new rx.ReplaySubject(replayCnt);
-        return rx.merge(responding$.pipe(rx.tap(replay$), rx.ignoreElements()), up.pipe(rx.map(ctxAction => {
-            const filted$ = replay$.pipe(actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction));
+        return rx.merge(responding$.pipe(rx.tap(replay$), rx.ignoreElements(), rx.takeUntil(rx.combineLatest([upStreamDone, downStreamUnsub, countDownStream]).pipe(rx.filter(([, unsub, count]) => unsub === count)))), up.pipe(rx.map((ctxAction, idx) => {
+            countDownStream.next(idx + 1);
+            const filted$ = replay$.pipe(actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction), rx.finalize(() => downStreamUnsub.next(downStreamUnsub.getValue() + 1)));
             return mapFn ? mapFn(ctxAction, filted$) : filted$;
+        }), rx.finalize(() => {
+            upStreamDone.next();
+            upStreamDone.complete();
         })));
     };
 }

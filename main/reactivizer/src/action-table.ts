@@ -8,7 +8,7 @@ import {ActionTableDataType, PayloadByType} from './inferred-types';
 const EMPTY_ARRY = [] as [];
 
 export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
-  actionNames: KS;
+  actionNames: Set<KS[number]>;
   latestPayloads = {} as PayloadByType<{[K in KS[number]]: I[K]}>;
   /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
   l: PayloadByType<{[K in KS[number]]: I[K]}>;
@@ -18,7 +18,8 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
       return this.#latestPayloadsByName$;
 
     this.#latestPayloadsByName$ = this.actionNamesAdded$.pipe(
-      rx.switchMap(() => rx.merge(...this.actionNames.map(actionName => this.l[actionName]))),
+      rx.switchMap(() => rx.from(this.actionNames)),
+      rx.mergeMap(actionName => this.l[actionName]),
       rx.map(() => {
         this.data = {} as ActionTableDataType<I, KS>;
         for (const k of this.actionNames) {
@@ -29,9 +30,10 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
             this.data[k] = v ? v.slice(1) as InferPayload<I[keyof I]> : EMPTY_ARRY;
           else {
             if (v) {
-              old.splice(0);
-              for (let i = 1, l = v.length; i < l; i++)
-                (old as any[]).push(v[i]);
+              this.data[k] = v.slice(1) as InferPayload<I[keyof I]>;
+              // old.splice(0);
+              // for (let i = 1, l = v.length; i < l; i++)
+              //   (old as any[]).push(v[i]);
             } else
               this.data[k] = EMPTY_ARRY;
           }
@@ -53,7 +55,7 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
   private actionNamesAdded$ = new rx.ReplaySubject<ReadonlyArray<keyof I>>(1);
 
   constructor(private streamCtl: RxController<I> | RxController2<any>, actionNames: KS) {
-    this.actionNames = [] as unknown as KS;
+    this.actionNames = new Set();
     this.l = this.latestPayloads;
     this.addActions(...actionNames);
     this.actionNamesAdded$.pipe(
@@ -72,8 +74,11 @@ export class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
    * by creating `ReplaySubject(1)` for each action payload stream respectively
    */
   addActions<M extends Array<keyof I>>(...actionNames: M) {
-    this.actionNames = this.actionNames.concat(actionNames) as unknown as KS;
-    this.actionNamesAdded$.next(actionNames);
+    const uniqueNewActions = actionNames.filter(a => !this.actionNames.has(a));
+    for (const a of uniqueNewActions) {
+      this.actionNames.add(a);
+    }
+    this.actionNamesAdded$.next(uniqueNewActions);
     return this as unknown as ActionTable<I, Array<KS[number] | M[number]>>;
   }
 

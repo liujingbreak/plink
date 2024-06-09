@@ -1,17 +1,12 @@
 import * as rx from 'rxjs';
 import { Action, InferPayload, ActionMeta, ArrayOrTuple } from './stream-core';
 import { RxController2 } from './control2';
-type ActionOrPayloadLike<P extends unknown[]> = {
-    i: Action<unknown>['i'];
-    t: Action<unknown>['t'];
+export type ActionOfUnknownType<P extends any[]> = {
+    i: ActionMeta['i'];
+    r: ActionMeta['r'];
     p: P;
-} | [ActionMeta, ...P];
-type ActionOrPayloadStreamTuple<T extends [...any[]]> = {
-    [K in keyof T]: rx.Observable<ActionOrPayloadLike<T[K]>>;
 };
-type ActionStreamTuple<T extends [...any[]]> = {
-    [K in keyof T]: rx.Observable<[ActionMeta, ...T[K]]>;
-};
+export type ActionOrPayloadLike<P extends any[], A extends [ActionMeta, ...P] | ActionOfUnknownType<P>> = A;
 export interface SingleActionFactory {
     re(...actionMeta: ArrayOrTuple<ActionMeta | ActionMeta['r']>): this;
     /** Dispatch message */
@@ -24,7 +19,7 @@ export interface SingleActionFactory {
      * responding messages, only the lastest responsive message is recorded by ReplaySubject and returned,
      * see od<F> as alternative
      **/
-    do<P extends [...any[]]>(response$: rx.Observable<ActionOrPayloadLike<P>>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
+    do<A extends [ActionMeta, ...any[]] | Action<any>>(response$: rx.Observable<A>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<A>;
     /**
      * @deprecated use `od(...response$)`
      * `Deferred dispatch and observe` response message.
@@ -33,7 +28,7 @@ export interface SingleActionFactory {
      * observable is subscribed.
      * An asyncronized form of this method is `rx.firstValueFrom(...)` which returns a Promise
      */
-    ddo<P extends [...any[]]>(response$: rx.Observable<ActionOrPayloadLike<P>>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
+    ddo<A extends [ActionMeta, ...any[]] | Action<any>>(response$: rx.Observable<A>, referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<A>;
     /**
      * "Observe and Dispatch", the action message is sent only when response messages are all subscribed.
      * This method accept multiple types of "observable response message" as parameter, and it
@@ -42,7 +37,11 @@ export interface SingleActionFactory {
      * - The action message will not be dispatched until all of returned response streams are subscribed.
      * - The action message will be dispatched only once, even any of the returned response streams are re-subscribe
      * */
-    od<P extends unknown[], PA extends any[]>(response$: rx.Observable<ActionOrPayloadLike<P>>, ...moreResponses: [...ActionOrPayloadStreamTuple<PA>]): PA['length'] extends 0 ? rx.Observable<[ActionMeta, ...P]> : [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>];
+    od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(response$: rx.Observable<T>, ...moreResponses: [...{
+        [K in keyof TA]: rx.Observable<TA[K]>;
+    }]): TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{
+        [K in keyof TA]: rx.Observable<TA[K]>;
+    }];
 }
 export declare class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFactory {
     private type;
@@ -54,18 +53,17 @@ export declare class SingleActionFactoryImpl<I, K extends keyof I> implements Si
         /** default: 20000 ms */
         slowDispatchObservableTime?: number;
         /** Print a log message or any slow responding message of a dispatched action */
-        slowLog?(): void;
+        slowLog?(initialAction: Action<I[K]>): void;
     });
     /** Make this action become related to another action message
      */
     re(...actionMeta: ArrayOrTuple<ActionMeta | ActionMeta['r']>): this;
     dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | ActionMeta['r']>): Action<I[K]>;
-    do<P extends [...any[]]>(response$: rx.Observable<{
-        i: Action<unknown>['i'];
-        t: Action<unknown>['t'];
-        p: P;
-    } | [ActionMeta, ...P]>, referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
-    ddo<P extends [...any[]]>(response$: rx.Observable<ActionOrPayloadLike<P>>, referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<[ActionMeta, ...P]>;
-    od<P extends unknown[], PA extends any[]>(response: rx.Observable<ActionOrPayloadLike<P>>, ...moreResponses: [...ActionOrPayloadStreamTuple<PA>]): PA['length'] extends 0 ? rx.Observable<[ActionMeta, ...P]> : [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>];
+    do<A extends [ActionMeta, ...any[]] | Action<any>>(response$: rx.Observable<A>, referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<A>;
+    ddo<A extends [ActionMeta, ...any[]] | Action<any>>(response$: rx.Observable<A>, referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<A>;
+    od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(response: rx.Observable<T>, ...moreResponses: [...{
+        [K in keyof TA]: rx.Observable<TA[K]>;
+    }]): TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{
+        [K in keyof TA]: rx.Observable<TA[K]>;
+    }];
 }
-export {};

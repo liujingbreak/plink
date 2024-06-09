@@ -9,5 +9,6 @@ export * from './context-operators';
 export * from './reactor-composite';
 export * from './stream-dispense';
 export * from './simplex-reactor';
+export * from './reactor-base';
 export * from './action-factory';
 //# sourceMappingURL=index.js.map

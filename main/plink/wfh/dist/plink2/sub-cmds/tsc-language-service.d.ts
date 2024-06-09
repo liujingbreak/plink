@@ -31,6 +31,7 @@ export type LangServiceOutput = {
     onEmitFailure(file: string, diagnostics: string, type: 'compilerOptions' | 'syntactic' | 'semantic'): SingleActionFactory;
     /** Under context of addSourceFile */
     emitFile(file: string, content: string): SingleActionFactory;
+    setWatching(inWatching: boolean): SingleActionFactory;
 };
 interface LangServiceStore {
     versionsUpdated(versions: Map<string, number>): SingleActionFactory;
@@ -39,7 +40,7 @@ interface LangServiceStore {
     setStopped(stopped: boolean): SingleActionFactory;
     fileContentCache(cache: Map<string, string>): SingleActionFactory;
 }
-declare const tableFor: readonly ["setTsConfig", "setSourceFileTranspiler", "setDiagnosticFileNameFormatter", "versionsUpdated", "fileChanged", "unemittedUpdated", "setStopped", "fileContentCache", "doneResolveCompilerOption"];
+declare const tableFor: readonly ["setTsConfig", "setSourceFileTranspiler", "setDiagnosticFileNameFormatter", "versionsUpdated", "fileChanged", "unemittedUpdated", "setStopped", "fileContentCache", "doneResolveCompilerOption", "setWatching"];
 export declare function languageServices(ts?: any): LanguageServiceType;
 export type LanguageServiceType = SimplexReactor<LangServiceInput & LangServiceOutput & LangServiceStore, typeof tableFor> & {
     i: SimplexReactor<LangServiceInput & LangServiceOutput & LangServiceStore>['s'];

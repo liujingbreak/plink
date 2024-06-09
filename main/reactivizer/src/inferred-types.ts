@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import {InferPayload, ActionMeta, Action} from './stream-core';
 import {SingleActionFactory} from './control2';
 import {ReactorComposite} from './epic';
-import {ReactorCompositeOpt} from './reactor-base';
+import {ReactorCompositeOpt, SimplexReactorOptions} from './reactor-base';
 import {ReactorComposite2} from './reactor-composite';
 import {SimplexReactor} from './simplex-reactor';
 /**
@@ -109,3 +109,6 @@ export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any>, R2 exte
   SimplexReactor<InferActionsOfSimplexReactor<R1> & InferActionsOfSimplexReactor<R2>,
   readonly (InferLastestOfSimplexReactor<R1> | InferLastestOfSimplexReactor<R2>)[]
   >;
+export type SimplexReactorMergeOptions<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
+  SimplexReactorOptions<InferActionsOfSimplexReactor<R1> & InferActionsOfSimplexReactor<R2>,
+  readonly (InferLastestOfSimplexReactor<R1> | InferLastestOfSimplexReactor<R2>)[]>;

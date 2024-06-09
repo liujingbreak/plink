@@ -39,7 +39,7 @@ export class ReactorComposite2 extends DuplexController {
             output$.ft.__onNew().dp();
         }
         this.reactorSubj = new rx.ReplaySubject();
-        const doOperator = (dispatchingAction) => (wait$) => rx.merge(wait$, this.o.pt.__onError.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
+        const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, this.o.pt.__onError.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
         input$.doOperator$.next(doOperator);
@@ -150,6 +150,17 @@ export class ReactorComposite2 extends DuplexController {
      */
     dispatchErrorFor(err, actionMeta, ...moreActionMetas) {
         this.o.ft.__onError(err).dp(actionMeta, ...moreActionMetas);
+    }
+    /** Rx operator function, filter action or payload stream by:
+     *  action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
+     *  invokes "catchErrorFor()" or "dispatchErrorFor()"
+     **/
+    actionRelatedToAction(actionOrMeta) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const s = this.o;
+        return function (up) {
+            return s.doOperator$.pipe(rx.switchMap(operator => up.pipe(operator(actionOrMeta), actionRelatedToAction(actionOrMeta))));
+        };
     }
     reactivizeFunction(key, func, funcThisRef) {
         const resolveFuncKey = key + 'Resolved';

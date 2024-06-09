@@ -59,10 +59,10 @@ export class RxController2<I> extends ControllerCore<I> {
   }
   private ftProxy: I | undefined;
   private factories = new Map<string | symbol, (...args: any[]) => any>();
-  /** Rx operator for `do()`, we can change it by emit new value to this observable,
+  /**
    * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
    * */
-  doOperator$ = new rx.BehaviorSubject<<A, F>(dispatchingAction: Action<A>) => (response$: rx.Observable<Action<F>>) => rx.Observable<Action<F>>>(
+  doOperator$ = new rx.BehaviorSubject<<A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.Observable<A>>(
     (_dispatchingAction) => input => input
   );
 
@@ -89,7 +89,6 @@ export class RxController2<I> extends ControllerCore<I> {
    */
   forkController() {
     const targetCtl = new RxController2<I>({debug: false});
-    targetCtl.typePrefix = this.typePrefix;
     const targetUpStream = new rx.Subject<Action<I[keyof I]>>();
     targetCtl.interceptor$.next(a$ => {
       return rx.merge(
@@ -164,7 +163,6 @@ export class RxController2<I> extends ControllerCore<I> {
    */
   subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]>> {
     const sub = new RxController2<Pick<I, KS[number]>>(opts);
-    sub.typePrefix = this.typePrefix;
     const typeSet = new Set(actionTypes);
     this.action$.pipe(
       rx.filter(a => typeSet.has(nameOfAction(a))),
@@ -242,5 +240,6 @@ export class GroupedRxController2<I, K> extends RxController2<I> {
  * @return that dispatched new action object
  */
 export function deserializeAction2<I>(actionObj: any, toController: RxController2<I>) {
-  return toController.copyActionFrom(actionObj);
+  const act = toController.copyActionFrom(actionObj);
+  toController.actionUpstream.next(act);
 }

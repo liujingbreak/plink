@@ -42,6 +42,7 @@ function define(rootDir, onShutdown) {
             console.log((0, misc_1.sexyFont)('PLink').string);
             console.log(program.helpInformation());
         });
+        program.addHelpCommand('help [command]', 'show help information, same as "-h". ');
         program.command('switch')
             .argument('<directory>', 'target directory')
             .description('switch installation directory')
@@ -64,7 +65,7 @@ function define(rootDir, onShutdown) {
                 console.log('Enabled');
             });
         }
-        program.command('tsc')
+        const tsc = program.command('tsc')
             .argument('[package...]', 'target packages')
             .description('Run Typescript compiler')
             .option('-w, --watch', 'Typescript compiler watch mode', false)
@@ -77,25 +78,34 @@ function define(rootDir, onShutdown) {
             console.log('Run tsc on', ...packages);
             const { s } = langExt;
             s.ft.setTsConfigOfPlinkBase().dp();
-            const [emitFile$, done$] = s.ft.addSourcePackage(packages).od(s.pt.onEmitFileForPackage, s.pt.didAddSourcePackage);
-            await rx.lastValueFrom(rx.merge(emitFile$.pipe(
+            if (tsc.opts().watch) {
+                if (langExt.table.getData().setWatching[0] === true) {
+                    console.log('Previous "tsc" watching command is still in process, you need to run "tsc --stop" command to stop it before you proceed new watching command.');
+                    return;
+                }
+                s.ft.watchSourcePackage(packages).dp();
+                console.log('watching and compiling...');
+                return;
+            }
+            const done$ = s.ft.addSourcePackage(packages).od(s.pt.didAddSourcePackage);
+            await rx.lastValueFrom(rx.merge(s.pt.emitFile.pipe(
             // rx.mergeMap(([, file, content]) => {
             //   return fs.promises.writeFile(file, content);
             // }),
             rx.takeUntil(done$)), done$.pipe(rx.take(1), rx.mergeMap(([, countFile, emitFiles, suggests, fails]) => packageMgrService.ot.l.rootDir.pipe(rx.take(1), rx.map(([, _rootDir]) => {
-                console.log('Compiled:');
+                console.log('Written files:');
                 for (const emitFile of emitFiles) {
                     console.log(' ', emitFile);
                 }
                 if (suggests.length > 0) {
-                    for (const msg of suggests)
-                        console.log(chalk_1.default.yellow('[suggestion]'), chalk_1.default.yellow(msg));
+                    for (const [, msg] of suggests)
+                        console.log(chalk_1.default.yellow('[suggestion]'), msg);
                 }
                 if (fails.length > 0) {
                     for (const [, diag] of fails)
-                        console.log(chalk_1.default.red('[error]'), chalk_1.default.red(diag));
+                        console.log(chalk_1.default.red('[error]'), diag);
                 }
-                console.log(`Total ${countFile} files, ${emitFiles.length} compiled successfully`);
+                console.log(`Total ${countFile} files, ${emitFiles.length} is written successfully`);
             }))))));
         });
         program.command('stop')

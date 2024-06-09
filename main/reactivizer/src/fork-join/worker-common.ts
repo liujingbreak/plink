@@ -3,32 +3,32 @@ import type {promises as fsPromises} from 'node:fs';
 import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import * as rx from 'rxjs';
-import {deserializeAction2, ReactorComposite2, Action, serializeAction, actionRelatedToAction, nameOfAction} from '..';
-import {ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
-  workerOutputTableFor as outputTableFor} from './types';
+import {deserializeAction2, Action, serializeAction, actionRelatedToAction, nameOfAction} from '..';
+import {SimplexReactor} from '../simplex-reactor';
+import {ForkWorkerInput, ForkWorkerOutput, workerActionTableFor} from './types';
 
 export function applySharedReactors(isMainWorker: boolean,
-  comp: ReactorComposite2<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>,
+  comp: SimplexReactor<ForkWorkerInput & ForkWorkerOutput, typeof workerActionTableFor>,
   log: (...a: any[]) => any
 ) {
-  const {r, i, o, outputTable, inputTable} = comp;
-  const lo = comp.outputTable.l;
+  const {r, s, table} = comp;
+  const lo = comp.table.l;
   if (!isMainWorker) {
-    r('exit', comp.inputTable.l.exit.pipe(
-      rx.switchMap(() => lo.workerInited),
+    r('exit', comp.table.l.exit.pipe(
+      rx.switchMap(() => lo.inited),
       rx.take(1),
       rx.map(() => {
         comp.dispose();
       })
     ));
 
-    r('postMessage wait, stopWaiting, returned message to broker', lo.workerInited.pipe(
+    r('(inited), wait, stopWaiting, returned -> "postMessage message to broker"', lo.inited.pipe(
       rx.filter(([, , , port]) => port != null),
       rx.take(1),
       rx.switchMap(([, , , port]) => rx.merge(
-        o.at.wait,
-        o.at.stopWaiting,
-        o.at.returned
+        s.at.wait,
+        s.at.stopWaiting,
+        s.at.returned
       ).pipe(
         rx.map(action => {
           port!.postMessage(serializeAction(action));
@@ -36,7 +36,7 @@ export function applySharedReactors(isMainWorker: boolean,
       ))
     ));
 
-    r('postMessage log to broker (parent thread)', lo.workerInited.pipe(
+    r('(inited) log -> "postMessage to broker (parent thread)"', lo.inited.pipe(
       rx.filter(([, , , port]) => port != null),
       rx.take(1),
       rx.switchMap(([, , logPrefix, port]) => lo.log.pipe(
@@ -44,9 +44,13 @@ export function applySharedReactors(isMainWorker: boolean,
         rx.map(([, ...p]) => port?.postMessage({type: 'log', p: [logPrefix, ...p]}))
       ))
     ));
+
+    r('changeConfig', s.pt.changeConfig.pipe(
+      rx.map(([, config]) => comp.config(config))
+    ));
   } else {
     // main thread
-    r('log, warn > console.log', lo.workerInited.pipe(
+    r('log, warn > console.log', lo.inited.pipe(
       rx.take(1),
       rx.switchMap(([, , logPrefix]) => rx.merge(lo.log, lo.warn).pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -55,10 +59,10 @@ export function applySharedReactors(isMainWorker: boolean,
     ));
   }
 
-  r('onFork -> wait for fork action returns, postMessage to forking parent thread', i.pt.onFork.pipe(
+  r('onFork -> returned "wait for fork action returns, postMessage to forking parent thread"', s.pt.onFork.pipe(
     rx.mergeMap(([, origAct, port]) => {
       return rx.merge(
-        o.action$.pipe(
+        s.action$.pipe(
           actionRelatedToAction(origAct),
           rx.take(1),
           rx.map(action => {
@@ -71,18 +75,18 @@ export function applySharedReactors(isMainWorker: boolean,
             } else {
               port.postMessage(serializeAction(action));
             }
-            o.ft.returned().dp();
+            s.ft.returned().dp();
           })
         ),
         new rx.Observable(() => {
-          deserializeAction2(origAct, i);
+          deserializeAction2(origAct, s);
         })
       );
     })
   ));
 
-  r('Pass error to broker', comp.error$.pipe(
-    rx.switchMap(a => outputTable.l.workerInited.pipe(
+  r('error$ -> "Pass error to broker"', comp.error$.pipe(
+    rx.switchMap(a => table.l.inited.pipe(
       rx.map(b => [a, b] as const),
       rx.take(1)
     )),
@@ -90,20 +94,17 @@ export function applySharedReactors(isMainWorker: boolean,
       if (mainPort) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         mainPort.postMessage({error: {label, detail: err}});
-      } // else if (broker) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      // broker.o.dp.onWorkerError(-1, {label, detail: err}, 'customized error');
-      // }
+      }
     })
   ));
 
-  r('setLiftUpActions -> postMessage to main thread',
-    inputTable.l.setLiftUpActions.pipe(
+  r('setLiftUpActions -> "postMessage to main thread"',
+    table.l.setLiftUpActions.pipe(
       rx.mergeMap(([, action$]) => action$),
-      rx.withLatestFrom(outputTable.l.workerInited),
+      rx.withLatestFrom(table.l.inited),
       rx.tap(([action, [, , , port]]) => {
         if (port) {
-          o.ft.log(`pass action ${nameOfAction(action) as string} to main thread`).dp();
+          s.ft.log(`pass action ${nameOfAction(action) as string} to main thread`).dp();
           port.postMessage(serializeAction(action));
         }
       })

@@ -27,7 +27,7 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson,
         let unknownOutputFile;
         let error;
         s.ft.addSourceFile(file, true, content)
-            .od(s.at.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
+            .od(s.pt.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
             if (/\.[mc]?js/.test(outputFile)) {
                 destFile = outputContent;
             }
@@ -65,7 +65,7 @@ var LogLevel;
 const tableFor = [
     'setTsConfig', 'setSourceFileTranspiler', 'setDiagnosticFileNameFormatter',
     'versionsUpdated', 'fileChanged', 'unemittedUpdated',
-    'setStopped', 'fileContentCache', 'doneResolveCompilerOption'
+    'setStopped', 'fileContentCache', 'doneResolveCompilerOption', 'setWatching'
 ];
 function languageServices(ts = typescript_1.default) {
     const ts0 = ts;
@@ -94,7 +94,8 @@ function languageServices(ts = typescript_1.default) {
     // const co = typeof opts.tscOpts === 'function' ? opts.tscOpts() : plinkNodeJsCompilerOption(ts0, opts.tscOpts);
     let services;
     let watcher;
-    r('watch -> addSourceFile, changeSourceFile', s.pt.watch.pipe(rx.exhaustMap(([, dirs, watchOpts]) => new rx.Observable(() => {
+    r('watch -> addSourceFile, changeSourceFile', s.pt.watch.pipe(rx.exhaustMap(([m, dirs, watchOpts]) => new rx.Observable(() => {
+        s.ft.setWatching(true).dp(m);
         if (watcher == null)
             watcher = chokidar_1.default.watch(dirs.map(dir => dir.replace(/\\/g, '/')), watchOpts);
         watcher.on('add', path => s.ft.addSourceFile(path, false).dp());
@@ -106,11 +107,12 @@ function languageServices(ts = typescript_1.default) {
         });
         return () => {
             void watcher.close().then(() => {
+                s.ft.setWatching(false).dp(m);
                 // eslint-disable-next-line no-console
                 console.log('[tsc-util] chokidar watcher stops');
             });
         };
-    }))));
+    }).pipe(rc.catchErrorFor(m), rx.takeUntil(s.pt.stop)))));
     const state$ = rx.combineLatest([
         table.l.fileChanged, table.l.versionsUpdated,
         table.l.fileContentCache, table.l.unemittedUpdated
@@ -257,6 +259,7 @@ function languageServices(ts = typescript_1.default) {
     s.ft.fileChanged(new Set()).dp();
     s.ft.setSourceFileTranspiler((_file, content) => content).dp();
     s.ft.setDiagnosticFileNameFormatter(file => file).dp();
+    s.ft.setWatching(false).dp();
     rc.i = s;
     rc.o = s;
     return rc;

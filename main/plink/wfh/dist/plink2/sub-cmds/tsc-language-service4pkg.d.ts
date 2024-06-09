@@ -5,10 +5,10 @@ import { LanguageServiceType, LangServiceOutput } from './tsc-language-service';
 interface PackageFeatureInput {
     setTsConfigOfPlinkBase(): SingleActionFactory;
     addSourcePackage(pkgNames: string[]): SingleActionFactory;
+    watchSourcePackage(pkgNames: string[]): SingleActionFactory;
 }
 interface PackageFeatureOutput {
     /** In context of "addSourcePackage" */
-    onEmitFileForPackage(file: string, content: string): SingleActionFactory;
     didAddSourcePackage(countFiles: number, emitFiles: string[], suggestions: [file: string, msg: string][], fails: InferPayload<LangServiceOutput['onEmitFailure']>[]): SingleActionFactory;
     onTscDirsConfig(data: Map<string, {
         isom?: string;

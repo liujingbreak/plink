@@ -31,7 +31,7 @@ export class SimplexReactor<
 > {
   protected errorSubject: rx.Subject<[lable: string, originError: any] | [lable: string, originError: any, relevantActions: ActionMeta[] ]> =
     new rx.ReplaySubject(20);
-  /** All catched error goes here */
+  /** All catched error goes here, including those from "dispatchErrorFor" */
   error$: rx.Observable<any>;
   destory$: rx.Observable<unknown>;
   dispose: () => void;
@@ -54,7 +54,7 @@ export class SimplexReactor<
       internalMsg$.ft.__onNew().dp();
     }
 
-    const doOperator = <A, F>(dispatchingAction: Action<A>) => (response$: rx.Observable<Action<F>>) => rx.merge(
+    const doOperator = <A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.merge(
       response$,
       internalMsg$.pt.__onError.pipe(
         actionRelatedToAction(dispatchingAction),
@@ -136,6 +136,22 @@ export class SimplexReactor<
         return rx.EMPTY;
       })
     );
+  }
+  /** Rx operator function, filter action or payload stream by:
+ *  action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
+ *  invokes "catchErrorFor()" or "dispatchErrorFor()"
+ **/
+  actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i: ActionMeta['i']}): (up: rx.Observable<T>) => rx.Observable<T> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const s = this.s;
+    return function(up: rx.Observable<T>) {
+      return s.doOperator$.pipe(
+        rx.switchMap(operator => up.pipe(
+          operator(actionOrMeta),
+          actionRelatedToAction(actionOrMeta)
+        ))
+      );
+    };
   }
 
   /** Respond an error to actions specified by "actionMeta",

@@ -5,7 +5,7 @@ import {setupReactingForPlain} from '../../isom/markdown-process-extend';
 
 const log = log4File(__filename);
 
-export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions, MdOutputEvents>({
+export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions & MdOutputEvents>({
   name: 'markdownFileProc',
   debug: false,
   debugExcludeTypes: ['wait', 'stopWaiting'],

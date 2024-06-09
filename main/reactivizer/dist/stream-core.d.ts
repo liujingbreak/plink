@@ -48,7 +48,6 @@ export declare class ControllerCore<I> {
     /** Insert action "interceptor" operator function
      */
     interceptor$: rx.Subject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>;
-    typePrefix: string;
     logPrefix: string;
     action$: rx.Observable<Action<I[keyof I]>>;
     debugIncludeSet: Set<string | number | symbol> | null | undefined;
@@ -57,7 +56,7 @@ export declare class ControllerCore<I> {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.Subject<Set<"debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
+    configChange: rx.Subject<Set<"log" | "debug" | "debugExcludeTypes" | "debugIncludeTypes" | "logStyle">>;
     opts: CoreOptions<I>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };

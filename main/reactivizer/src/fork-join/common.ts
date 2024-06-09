@@ -1,39 +1,6 @@
 import * as rx from 'rxjs';
-import {ReactorComposite2} from '..';
+import {SimplexReactor} from '../simplex-reactor';
 import {ForkWorkerOutput} from './types';
-
-/**
- * @param returnedActionName the name of action that is observed as "returned" message from forked worker, default is `${actionName}Resolved`
- */
-// export function fork<I extends ActionFunctions, K extends string & keyof I, R extends string & keyof I = `${K}Resolved`>(
-//   comp: ReactorComposite<I, any, any, any>,
-//   actionName: K & string,
-//   params: InferPayload<I[K]>,
-//   returnedActionName?: R,
-//   relatedToAction?: ActionMeta
-// ): Promise<[...InferPayload<I[R]>]> {
-//   const forkedAction = comp.o.createAction(actionName, ...params);
-//   if (relatedToAction)
-//     forkedAction.r = relatedToAction.i;
-
-//   const forkDone = rx.firstValueFrom(
-//     rx.merge(
-//       (returnedActionName ? comp.i.at[returnedActionName] : comp.i.at[actionName + 'Resolved']).pipe(
-//         actionRelatedToAction(forkedAction),
-//         rx.map(a => a.p)
-//       ),
-//       (comp as ReactorComposite<I, Record<string, never>, any, any>).o.pt._onErrorFor.pipe(
-//         actionRelatedToAction(forkedAction),
-//         // eslint-disable-next-line no-throw-literal
-//         rx.map(([, err]) => {throw (err as Error); })
-//       )
-//     ));
-//   if (relatedToAction)
-//     (comp.o as unknown as RxController<ForkWorkerOutput>).dpf.fork(relatedToAction, forkedAction);
-//   else
-//     (comp.o as unknown as RxController<ForkWorkerOutput>).dp.fork(forkedAction);
-//   return forkDone;
-// }
 
 /**
  * Informs broker that current step is waiting on forked function returns or any other outside asynchronous operation,
@@ -42,13 +9,13 @@ import {ForkWorkerOutput} from './types';
  * @return {Observable} which should `complete`, so that it notifies scheduler to demote current thread
  * worker as current thread will be back to continue previous task.
  */
-export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: ReactorComposite2<any, O, any, any>, waitingTask$: rx.ObservableInput<T>): rx.Observable<T> {
-  const worker = workerCtl as unknown as ReactorComposite2<any, ForkWorkerOutput>;
-  worker.o.ft.wait().dp();
+export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: SimplexReactor<O, any>, waitingTask$: rx.ObservableInput<T>): rx.Observable<T> {
+  const worker = workerCtl as unknown as SimplexReactor<ForkWorkerOutput>;
+  worker.s.ft.wait().dp();
   return rx.from(waitingTask$).pipe(
     rx.tap({
       finalize() {
-        worker.o.ft.stopWaiting().dp();
+        worker.s.ft.stopWaiting().dp();
       }
     })
   );
@@ -62,7 +29,7 @@ export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: ReactorC
  * worker as current thread will be back to continue previous task.
  */
 export namespace setIdleDuring {
-  export function asPromise<T, O extends ForkWorkerOutput>(workerCtl: ReactorComposite2<any, O, any, any>, waitingTask$: rx.ObservableInput<T>) {
+  export function asPromise<T, O extends ForkWorkerOutput>(workerCtl: SimplexReactor<O, any>, waitingTask$: rx.ObservableInput<T>) {
     return rx.firstValueFrom(setIdleDuring(workerCtl, waitingTask$));
   }
 }

@@ -118,7 +118,7 @@ export class RxController<I> {
         get(_target, type, _rec) {
           let a$ = actionsByType[type as keyof I];
           if (a$ == null) {
-            const matchType = core.typePrefix + (type as string);
+            const matchType = type as string;
             a$ = actionsByType[type as keyof I] = core.action$.pipe(
               rx.filter(({t}) => t === matchType),
               rx.share()

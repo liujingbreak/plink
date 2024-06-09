@@ -11,9 +11,7 @@ exports.plinkRootDir = (0, process_common_1.lookupPlinkRoot)(process.cwd());
 exports.tsconfigFile = path_1.default.resolve(exports.plinkRootDir, 'tsconfig.json');
 exports.tsconfigJson = JSON.parse(fs_1.default.readFileSync(exports.tsconfigFile, 'utf8'));
 const lookupTool = (0, package_mgr2_lookup_1.createPlinkPackageLookupService)();
-console.log('here');
 lookupTool.input.fromTsconfig(exports.plinkRootDir, exports.tsconfigJson).dp();
-console.log('there');
 exports.packageToPathMap = lookupTool.table.getData().packageToPathMap[0];
 function lookupPackage(file) {
     let resolved;

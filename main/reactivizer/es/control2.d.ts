@@ -16,17 +16,33 @@ export declare class RxController2<I> extends ControllerCore<I> {
     get ft(): I;
     private ftProxy;
     private factories;
-    /** Rx operator for `do()`, we can change it by emit new value to this observable,
+    /**
      * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
      * */
-    doOperator$: rx.BehaviorSubject<(<A, F>(dispatchingAction: Action<A>) => (response$: rx.Observable<Action<F>>) => rx.Observable<Action<F>>)>;
+    doOperator$: rx.BehaviorSubject<(<A>(dispatchingAction: {
+        i: ActionMeta['i'];
+    }) => (response$: rx.Observable<A>) => rx.Observable<A>)>;
     constructor(opts?: CoreOptions<I> & {
         debugTableAction?: boolean;
     });
+    /**
+     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of target controller always
+     * recieves earlier than any subscribers of this controller.
+     * It help to conquer recursive message emitting problem when extending reactor.
+     *
+     * 1. Target dispatches --message--> target.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> target.action$, this.action$
+     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> target.action$, this.action$
+     *
+     * Target controller will always recieve a copy of each action from this controller, and awlays recieves earlier than this controller's subscribers,
+     * Any action dispatched by target controller will always be piped to this controller's actionUpstream instead of its owns, so that again both
+     * target and this controller will recieves them.
+     *
+     */
+    forkController(): RxController2<I>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**
-     * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
+     * create a new RxController, pipe actions whose tyoes are specofied in parameter `actionTypes` from this controller to the new controller
      */
     subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]>>;
     /**
@@ -58,4 +74,4 @@ export declare class GroupedRxController2<I, K> extends RxController2<I> {
  * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
-export declare function deserializeAction2<I>(actionObj: any, toController: RxController2<I>): Action<I[keyof I]>;
+export declare function deserializeAction2<I>(actionObj: any, toController: RxController2<I>): void;

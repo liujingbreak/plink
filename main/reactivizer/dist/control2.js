@@ -73,7 +73,7 @@ class RxController2 extends stream_core_1.ControllerCore {
     constructor(opts) {
         super(opts);
         this.factories = new Map();
-        /** Rx operator for `do()`, we can change it by emit new value to this observable,
+        /**
          * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
          * */
         this.doOperator$ = new rx.BehaviorSubject((_dispatchingAction) => input => input);
@@ -97,7 +97,6 @@ class RxController2 extends stream_core_1.ControllerCore {
      */
     forkController() {
         const targetCtl = new RxController2({ debug: false });
-        targetCtl.typePrefix = this.typePrefix;
         const targetUpStream = new rx.Subject();
         targetCtl.interceptor$.next(a$ => {
             return rx.merge(a$.pipe(rx.map(a => this.actionUpstream.next(a)), rx.ignoreElements()), targetUpStream);
@@ -141,7 +140,6 @@ class RxController2 extends stream_core_1.ControllerCore {
      */
     subForTypes(actionTypes, opts) {
         const sub = new RxController2(opts);
-        sub.typePrefix = this.typePrefix;
         const typeSet = new Set(actionTypes);
         this.action$.pipe(rx.filter(a => typeSet.has((0, stream_core_1.nameOfAction)(a))), rx.tap(value => {
             sub.actionUpstream.next(value);
@@ -211,7 +209,8 @@ exports.GroupedRxController2 = GroupedRxController2;
  * @return that dispatched new action object
  */
 function deserializeAction2(actionObj, toController) {
-    return toController.copyActionFrom(actionObj);
+    const act = toController.copyActionFrom(actionObj);
+    toController.actionUpstream.next(act);
 }
 exports.deserializeAction2 = deserializeAction2;
 //# sourceMappingURL=control2.js.map

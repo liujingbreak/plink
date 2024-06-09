@@ -26,7 +26,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SingleActionFactoryImpl = void 0;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
-const control_1 = require("./control");
 const context_operators_1 = require("./context-operators");
 const utils_1 = require("./utils");
 class SingleActionFactoryImpl {
@@ -76,14 +75,10 @@ class SingleActionFactoryImpl {
             sub.complete();
         }).pipe(rx.mergeMap(action => {
             var _a;
-            return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => response$.pipe(rx.map(actionOrPayload => {
-                if (Array.isArray(actionOrPayload)) {
-                    const [actionMeta, ...payload] = actionOrPayload;
-                    actionMeta.p = payload;
-                    return actionMeta;
-                }
-                return actionOrPayload;
-            }), operator(action), (0, context_operators_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
+            return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => response$.pipe(operator(action), (0, context_operators_1.actionRelatedToAction)(action)
+            // mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...P]>,
+            // rx.take(1)
+            )), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
             // eslint-disable-next-line no-console
             this.opts.slowLog ? () => this.opts.slowLog(action) : () => console.log('Slow observable action detected'))), new rx.Observable(sub => {
                 this.control.actionUpstream.next(action);
@@ -112,14 +107,10 @@ class SingleActionFactoryImpl {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return responses.map((res$, idx) => {
                 var _a;
-                return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(rx.map(actionOrPayload => {
-                    if (Array.isArray(actionOrPayload)) {
-                        const [actionMeta, ...payload] = actionOrPayload;
-                        actionMeta.p = payload;
-                        return actionMeta;
-                    }
-                    return actionOrPayload;
-                }), operator(action), (0, context_operators_1.actionRelatedToAction)(action), (0, control_1.mapActionToPayload)(), rx.take(1))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
+                return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(operator(action), (0, context_operators_1.actionRelatedToAction)(action)
+                // mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...any[]]>,
+                // rx.take(1)
+                )), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
                 // eslint-disable-next-line no-console
                 this.opts.slowLog ? () => this.opts.slowLog(action) : () => console.log('Slow observable action detected'))), new rx.Observable(sink => {
                     onSubscribe$.next(idx);

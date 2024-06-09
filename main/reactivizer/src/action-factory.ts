@@ -1,13 +1,13 @@
 import * as rx from 'rxjs';
 import {Action, InferPayload, ActionMeta, ArrayOrTuple, assignActionReferParam} from './stream-core';
-import {mapActionToPayload} from './control';
 import {actionRelatedToAction} from './context-operators';
 import {timeoutLog} from './utils';
 import {RxController2} from './control2';
 
-type ActionOrPayloadLike<P extends unknown[]> = {i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P];
-type ActionOrPayloadStreamTuple<T extends [...any[]]> = {[K in keyof T]: rx.Observable<ActionOrPayloadLike<T[K]>>};
-type ActionStreamTuple<T extends [...any[]]> = {[K in keyof T]: rx.Observable<[ActionMeta, ...T[K]]>};
+export type ActionOfUnknownType<P extends any[]> = {i: ActionMeta['i']; r: ActionMeta['r']; p: P};
+export type ActionOrPayloadLike<P extends any[], A extends [ActionMeta, ...P] | ActionOfUnknownType<P>> = A;
+// type ActionOrPayloadStreamTuple<T extends [...any[]]> = {[K in keyof T]: rx.Observable<ActionOrPayloadLike<T[K]>>};
+// type ActionStreamTuple<T extends [...any[]]> = {[K in keyof T]: rx.Observable<[ActionMeta, ...T[K]]>};
 
 export interface SingleActionFactory {
   re(...actionMeta: ArrayOrTuple<ActionMeta | ActionMeta['r']>): this;
@@ -21,10 +21,10 @@ export interface SingleActionFactory {
    * responding messages, only the lastest responsive message is recorded by ReplaySubject and returned,
    * see od<F> as alternative
    **/
-  do<P extends [...any[]]>(
-    response$: rx.Observable<ActionOrPayloadLike<P>>,
+  do<A extends [ActionMeta, ...any[]] | Action<any>>(
+    response$: rx.Observable<A>,
     referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
-  ): rx.Observable<[ActionMeta, ...P]>;
+  ): rx.Observable<A>;
 
   /**
    * @deprecated use `od(...response$)`
@@ -34,10 +34,10 @@ export interface SingleActionFactory {
    * observable is subscribed.
    * An asyncronized form of this method is `rx.firstValueFrom(...)` which returns a Promise
    */
-  ddo<P extends [...any[]]>(
-    response$: rx.Observable<ActionOrPayloadLike<P>>,
+  ddo<A extends [ActionMeta, ...any[]] | Action<any>>(
+    response$: rx.Observable<A>,
     referActionMeta?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
-  ): rx.Observable<[ActionMeta, ...P]>;
+  ): rx.Observable<A>;
 
   /**
    * "Observe and Dispatch", the action message is sent only when response messages are all subscribed.
@@ -47,9 +47,9 @@ export interface SingleActionFactory {
    * - The action message will not be dispatched until all of returned response streams are subscribed.
    * - The action message will be dispatched only once, even any of the returned response streams are re-subscribe
    * */
-  od<P extends unknown[], PA extends any[]>(
-    response$: rx.Observable<ActionOrPayloadLike<P>>, ...moreResponses: [...ActionOrPayloadStreamTuple<PA>]
-  ):  PA['length'] extends 0 ? rx.Observable<[ActionMeta, ...P]> : [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>];
+  od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(
+    response$: rx.Observable<T>, ...moreResponses: [...{[K in keyof TA]: rx.Observable<TA[K]>}]
+  ):  TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{[K in keyof TA]: rx.Observable<TA[K]>}];
 }
 
 export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFactory {
@@ -83,9 +83,10 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
       return this.control.dispatchFactory(this.type)(...this.payload);
   }
 
-  do<P extends [...any[]]>(response$: rx.Observable<{i: Action<unknown>['i']; t: Action<unknown>['t']; p: P} | [ActionMeta, ...P]>,
+  do<A extends [ActionMeta, ...any[]] | Action<any>>(
+    response$: rx.Observable<A>,
     referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
-  ) {
+  ): rx.Observable<A> {
     const action = this.control.createAction(this.type, this.payload);
 
     if (referAction) {
@@ -93,15 +94,15 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
     } else if (this.relateToAction && this.relateToAction.length > 0) {
       assignActionReferParam(action, this.relateToAction);
     }
-    const r$ = new rx.ReplaySubject<[ActionMeta, ...P]>(1);
+    const r$ = new rx.ReplaySubject<A>(1);
     this.ddo(response$, referAction).subscribe(r$);
     return r$.asObservable();
   }
 
-  ddo<P extends [...any[]]>(
-    response$: rx.Observable<ActionOrPayloadLike<P>>,
+  ddo<A extends [ActionMeta, ...any[]] | Action<any>>(
+    response$: rx.Observable<A>,
     referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
-  ) {
+  ): rx.Observable<A> {
     return new rx.Observable<Action<I[K]>>(sub => {
       const action = this.control.createAction(this.type, this.payload);
       if (referAction) {
@@ -116,20 +117,12 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
         this.control.doOperator$.pipe(
           rx.take(1),
           rx.switchMap(operator => response$.pipe(
-            rx.map(actionOrPayload => {
-              if (Array.isArray(actionOrPayload)) {
-                const [actionMeta, ...payload] = actionOrPayload;
-                (actionMeta as Action<any>).p = payload;
-                return actionMeta as Action<any>;
-              }
-              return actionOrPayload as Action<any>;
-            }),
             operator(action),
-            actionRelatedToAction(action),
-            mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...P]>,
-            rx.take(1)
+            actionRelatedToAction(action)
+            // mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...P]>,
+            // rx.take(1)
           )),
-          timeoutLog<[ActionMeta, ...P]>(
+          timeoutLog(
             this.opts.slowDispatchObservableTime ?? 20000,
             // eslint-disable-next-line no-console
             this.opts.slowLog ? () => this.opts.slowLog!(action) : () => console.log('Slow observable action detected')
@@ -143,9 +136,9 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
     );
   }
 
-  od<P extends unknown[], PA extends any[]>(
-    response: rx.Observable<ActionOrPayloadLike<P>>, ...moreResponses: [...ActionOrPayloadStreamTuple<PA>]
-  ):  PA['length'] extends 0 ? rx.Observable<[ActionMeta, ...P]> : [rx.Observable<[ActionMeta, ...P]>, ...ActionStreamTuple<PA>] {
+  od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(
+    response: rx.Observable<T>, ...moreResponses: [...{[K in keyof TA]: rx.Observable<TA[K]>}]
+  ):  TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{[K in keyof TA]: rx.Observable<TA[K]>}] {
     if (moreResponses.length === 0) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return this.ddo(response) as any;
@@ -170,20 +163,12 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
         this.control.doOperator$.pipe(
           rx.take(1),
           rx.switchMap(operator => res$.pipe(
-            rx.map(actionOrPayload => {
-              if (Array.isArray(actionOrPayload)) {
-                const [actionMeta, ...payload] = actionOrPayload as [ActionMeta, ...unknown[]];
-                (actionMeta as Action<any>).p = payload;
-                return actionMeta as Action<any>;
-              }
-              return actionOrPayload as Action<any>;
-            }),
             operator(action),
-            actionRelatedToAction(action),
-            mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...any[]]>,
-            rx.take(1)
+            actionRelatedToAction(action)
+            // mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...any[]]>,
+            // rx.take(1)
           )),
-          timeoutLog<[ActionMeta, ...any[]]>(
+          timeoutLog(
             this.opts.slowDispatchObservableTime ?? 20000,
             // eslint-disable-next-line no-console
             this.opts.slowLog ? () => this.opts.slowLog!(action) : () => console.log('Slow observable action detected')

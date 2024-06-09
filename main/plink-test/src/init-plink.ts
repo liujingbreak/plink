@@ -9,9 +9,7 @@ export const plinkRootDir = lookupPlinkRoot(process.cwd())!;
 export const tsconfigFile = Path.resolve(plinkRootDir, 'tsconfig.json');
 export const tsconfigJson = JSON.parse(fs.readFileSync(tsconfigFile, 'utf8')) as TsconfigType;
 const lookupTool = createPlinkPackageLookupService();
-console.log('here');
 lookupTool.input.fromTsconfig(plinkRootDir, tsconfigJson).dp();
-console.log('there');
 export const packageToPathMap = lookupTool.table.getData().packageToPathMap[0]!;
 export function lookupPackage(file: string) {
   let resolved: string | undefined | null;

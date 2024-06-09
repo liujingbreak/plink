@@ -17,3 +17,4 @@ export interface SimplexReactorOptions<
 > extends CoreOptions<I> {
   tableFor?: LI;
 }
+

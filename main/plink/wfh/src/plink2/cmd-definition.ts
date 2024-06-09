@@ -54,6 +54,7 @@ export function define(rootDir: string, onShutdown: () => void) {
           console.log(sexyFont('PLink').string);
           console.log(program.helpInformation());
         });
+      program.addHelpCommand('help [command]', 'show help information, same as "-h". ');
 
       program.command('switch')
         .argument('<directory>', 'target directory')
@@ -79,7 +80,7 @@ export function define(rootDir: string, onShutdown: () => void) {
           });
       }
 
-      program.command('tsc')
+      const tsc = program.command('tsc')
         .argument('[package...]', 'target packages')
         .description('Run Typescript compiler')
         .option('-w, --watch', 'Typescript compiler watch mode', false)
@@ -92,9 +93,18 @@ export function define(rootDir: string, onShutdown: () => void) {
           const {s} = langExt;
           s.ft.setTsConfigOfPlinkBase().dp();
 
-          const [emitFile$, done$] = s.ft.addSourcePackage(packages).od(s.pt.onEmitFileForPackage, s.pt.didAddSourcePackage);
+          if (tsc.opts().watch) {
+            if (langExt.table.getData().setWatching[0] === true) {
+              console.log('Previous "tsc" watching command is still in process, you need to run "tsc --stop" command to stop it before you proceed new watching command.');
+              return;
+            }
+            s.ft.watchSourcePackage(packages).dp();
+            console.log('watching and compiling...');
+            return;
+          }
+          const done$ = s.ft.addSourcePackage(packages).od(s.pt.didAddSourcePackage);
           await rx.lastValueFrom(rx.merge(
-            emitFile$.pipe(
+            s.pt.emitFile.pipe(
               // rx.mergeMap(([, file, content]) => {
               //   return fs.promises.writeFile(file, content);
               // }),
@@ -105,19 +115,19 @@ export function define(rootDir: string, onShutdown: () => void) {
               rx.mergeMap(([, countFile, emitFiles, suggests, fails]) => packageMgrService.ot.l.rootDir.pipe(
                 rx.take(1),
                 rx.map(([, _rootDir]) => {
-                  console.log('Compiled:');
+                  console.log('Written files:');
                   for (const emitFile of emitFiles) {
                     console.log(' ', emitFile);
                   }
                   if (suggests.length > 0) {
-                    for (const msg of suggests)
-                      console.log(chalk.yellow('[suggestion]'), chalk.yellow(msg));
+                    for (const [, msg] of suggests)
+                      console.log(chalk.yellow('[suggestion]'), msg);
                   }
                   if (fails.length > 0) {
                     for (const [, diag] of fails)
-                      console.log(chalk.red('[error]'), chalk.red(diag));
+                      console.log(chalk.red('[error]'), diag);
                   }
-                  console.log(`Total ${countFile} files, ${emitFiles.length} compiled successfully`);
+                  console.log(`Total ${countFile} files, ${emitFiles.length} is written successfully`);
                 })
               ))
             )

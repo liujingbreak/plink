@@ -1,4 +1,3 @@
-// import * as rx from 'rxjs';
 import {CoreOptions} from './stream-core';
 
 export type RxControlConfigType<I = any> = Omit<CoreOptions<I>, 'name' | 'autoConnect'>;

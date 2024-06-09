@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {Action, ActionFunctions, ActionMeta} from './control';
+import {ActionFunctions, ActionMeta, Action} from './control';
 import {actionRelatedToAction} from './context-operators';
 import {SingleActionFactory, RxController2} from './control2';
 import {DuplexController} from './duplex2';
@@ -75,8 +75,8 @@ export class ReactorComposite2<
       output$.ft.__onNew().dp();
     }
     this.reactorSubj = new rx.ReplaySubject();
-    const doOperator = <A, F>(dispatchingAction: Action<A>) => (wait$: rx.Observable<Action<F>>) => rx.merge(
-      wait$,
+    const doOperator = <A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.merge(
+      response$,
       this.o.pt.__onError.pipe(
         actionRelatedToAction(dispatchingAction),
         rx.map(([, err]) => {
@@ -229,6 +229,22 @@ export class ReactorComposite2<
     (this.o as unknown as RxController2<BaseEvents>).ft.__onError(err).dp(actionMeta, ...moreActionMetas);
   }
 
+  /** Rx operator function, filter action or payload stream by:
+   *  action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
+   *  invokes "catchErrorFor()" or "dispatchErrorFor()"
+   **/
+  actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i: ActionMeta['i']}): (up: rx.Observable<T>) => rx.Observable<T> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const s = this.o;
+    return function(up: rx.Observable<T>) {
+      return s.doOperator$.pipe(
+        rx.switchMap(operator => up.pipe(
+          operator(actionOrMeta),
+          actionRelatedToAction(actionOrMeta)
+        ))
+      );
+    };
+  }
   reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {
     const resolveFuncKey = key + 'Resolved';
     const finishFuncKey = key + 'Completed';

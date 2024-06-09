@@ -6,11 +6,10 @@ import {parentPort, MessageChannel, threadId, isMainThread, MessagePort} from 'w
 import * as rx from 'rxjs';
 import {Action, serializeAction, ActionFunctions} from '../control';
 import {deserializeAction2, actionRelatedToAction, nameOfAction} from '..';
-import {ReactorComposite2} from '../reactor-composite';
-import {ReactorCompositeOpt} from '../epic';
-import {InferFuncReturnEvents, ActionFactoryOfPlainType} from '../inferred-types';
-import {ForkWorkerInput, ForkWorkerOutput, workerInputTableFor as inputTableFor,
-  workerOutputTableFor as outputTableFor, WorkerControl} from './types';
+import {SimplexReactor} from '../simplex-reactor';
+import {InferFuncReturnEvents, ActionFactoryOfPlainType, SimplexReactorMergeOptions} from '../inferred-types';
+import {SimplexReactorOptions} from '../reactor-base';
+import {ForkWorkerInput, ForkWorkerOutput, WorkerControl, workerActionTableFor} from './types';
 import {applySharedReactors} from './worker-common';
 
 export {setIdleDuring} from './common';
@@ -23,18 +22,15 @@ const inspectOptions = {depth: 0, showHidden: false, compact: true, maxStringLen
  */
 export function createWorkerControl<
   I = Record<string, never>,
-  O = Record<string, never>,
-  LI extends ReadonlyArray<keyof I> = readonly [],
-  LO extends ReadonlyArray<keyof O> = readonly []
+  LI extends ReadonlyArray<keyof I> = readonly []
 >(
-  opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput & I, ForkWorkerOutput & O>
+  opts?: SimplexReactorMergeOptions<SimplexReactor<ForkWorkerInput & ForkWorkerOutput, typeof workerActionTableFor>, SimplexReactor<I, LI>>
 ) {
-  let mainPort: MessagePort | undefined; // parent thread port
+  let mainPort: MessagePort | undefined; // Broker's message port
   // eslint-disable-next-line @typescript-eslint/ban-types
-  const comp = new ReactorComposite2<ForkWorkerInput, ForkWorkerOutput, typeof inputTableFor, typeof outputTableFor>({
+  const comp = new SimplexReactor<ForkWorkerInput & ForkWorkerOutput, typeof workerActionTableFor>({
     ...(opts ?? {}),
-    inputTableFor: [...(opts?.inputTableFor ?? []), ...inputTableFor],
-    outputTableFor: [...(opts?.outputTableFor ?? []), ...outputTableFor],
+    tableFor: workerActionTableFor,
     name: (opts?.name ?? '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')),
     debug: opts?.debug,
     log: isMainThread ?
@@ -49,39 +45,17 @@ export function createWorkerControl<
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)],
     debugIncludeTypes: opts?.debugIncludeTypes as any[]
-    // logStyle: 'noParam'
   });
+  const {r, s, table} = comp;
+  // eslint-disable-next-line no-console
+  applySharedReactors(isMainThread, comp, opts?.log ?? console.log);
 
-  const {r, i, o, outputTable} = comp;
-
-  r('-> workerInited', new rx.Observable(() => {
-    const handler = (event: {type?: string; workerNo: number; mainPort: MessagePort}) => {
-      const msg = event;
-      if (msg.type === 'ASSIGN_WORKER_NO') {
-        msg.mainPort.postMessage({type: 'WORKER_READY'});
-        mainPort = msg.mainPort;
-        const workerNo = msg.workerNo;
-        const logPrefix = (opts?.name ?? '') + '(W/' + workerNo + ')';
-        o.ft.workerInited(workerNo, logPrefix, msg.mainPort).dp();
-        comp.setName(logPrefix);
-      }
-    };
-    if (parentPort) {
-      /* eslint-disable no-restricted-globals */
-      parentPort.on('message', handler);
-    } else {
-      o.ft.workerInited('main', '[main]', null).dp();
-    }
-    return () => parentPort?.off('message', handler);
-  }));
-
-  r('workerInited -> main worker message port listener', o.pt.workerInited.pipe(
+  r('inited -> main worker message port listener', s.pt.inited.pipe(
     rx.filter(([, , , port]) => port != null),
     rx.switchMap(([, , , port]) => new rx.Observable(() => {
       function handler(event: unknown) {
         const act = event as Action<any>;
-        deserializeAction2(act, i);
-        // o.ft.log('message action.p=', act.p[0]).dp();
+        deserializeAction2(act, s);
       }
       (port as MessagePort).on('message', handler);
       return () => {
@@ -90,14 +64,31 @@ export function createWorkerControl<
       };
     }))
   ));
+  r('-> inited', new rx.Observable(() => {
+    const handler = (event: {type?: string; workerNo: number; mainPort: MessagePort}) => {
+      const msg = event;
+      if (msg.type === 'ASSIGN_WORKER_NO') {
+        mainPort = msg.mainPort;
+        mainPort.postMessage({type: 'WORKER_READY'});
+        const workerNo = msg.workerNo;
+        const logPrefix = (opts?.name ?? '') + '(W/' + workerNo + ')';
+        s.ft.inited(workerNo, logPrefix, mainPort).dp();
+        comp.s.setName(logPrefix);
+      }
+    };
+    if (parentPort) {
+      /* eslint-disable no-restricted-globals */
+      parentPort.on('message', handler);
+    } else {
+      s.ft.inited('main', '[main]', null).dp();
+    }
+    return () => parentPort?.off('message', handler);
+  }));
 
-  // eslint-disable-next-line no-console
-  applySharedReactors(isMainThread, comp, opts?.log ?? console.log);
-
-  r('"fork" -> mainPort.postMessage, forkByBroker', o.pt.fork.pipe(
-    rx.switchMap(a => outputTable.l.workerInited.pipe(rx.map(b => [a, b] as const), rx.take(1))),
+  r('"fork" -> mainPort.postMessage, forkByBroker', s.pt.fork.pipe(
+    rx.switchMap(a => table.l.inited.pipe(rx.map(b => [a, b] as const), rx.take(1))),
     rx.mergeMap(([[m, forkActionName, ...forkActionParams], [, , , mainPort]]) => {
-      const wrappedAct = o.createAction(forkActionName as keyof ForkWorkerOutput, forkActionParams);
+      const wrappedAct = s.createAction(forkActionName as keyof ForkWorkerOutput, forkActionParams);
       const chan = new MessageChannel();
       const error$ = rx.fromEventPattern(
         h => chan.port1.addListener('messageerror', h),
@@ -115,38 +106,41 @@ export function createWorkerControl<
             chan.port1.close();
           }
         ).pipe(
-          rx.map(event => deserializeAction2(event, i)),
+          rx.map(event => {
+            s.ft.onForkReturn(event as Action<any>).dp();
+          }),
           rx.take(1),
           rx.takeUntil(rx.merge(error$, close$))
         ),
         error$.pipe(
           rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))
         ),
-        i.action$.pipe(
+        s.pt.onForkReturn.pipe(
+          rx.map(([, retAction]) => retAction),
           actionRelatedToAction(wrappedAct),
           rx.tap(retAction => {
-            const replyFork = i.createAction(
+            const replyFork = s.createAction(
               nameOfAction(retAction) as keyof ForkWorkerInput,
               retAction.p as any
             );
             replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
-            i.actionUpstream.next(replyFork);
+            s.actionUpstream.next(replyFork);
           }),
           rx.take(1)
         ),
         new rx.Observable<void>(_sub => {
           if (mainPort) {
-            const forkByBroker = o.createAction('forkByBroker', [wrappedAct, chan.port2]);
+            const forkByBroker = s.createAction('forkByBroker', [wrappedAct, chan.port2]);
             mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
           } else {
-            o.ft.forkByBroker(wrappedAct, chan.port2).dp(m);
+            s.ft.forkByBroker(wrappedAct, chan.port2).dp(m);
           }
         })
       );
     })
   ));
 
-  return comp as unknown as WorkerControl<I, O, LI, LO>;
+  return comp as unknown as WorkerControl<I, LI>;
 }
 
 export type ForkTransferablePayload<T = unknown> = {
@@ -156,7 +150,8 @@ export type ForkTransferablePayload<T = unknown> = {
 
 export function createWorkerControlOfFn<F extends ActionFunctions>(
   recursiveFuncs: F,
-  opts?: ReactorCompositeOpt<any, any>) {
-  const ctl = createWorkerControl(opts).reativizeRecursiveFuncs(recursiveFuncs);
-  return ctl as WorkerControl<InferFuncReturnEvents<F> & ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F>>;
+  opts?: SimplexReactorOptions<any, any>
+) {
+  const ctl = createWorkerControl(opts).reactivize(recursiveFuncs);
+  return ctl as WorkerControl<InferFuncReturnEvents<F> & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>>;
 }

@@ -24,7 +24,7 @@ export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: Tsco
     let unknownOutputFile: string | undefined;
     let error: Error | undefined;
     s.ft.addSourceFile(file, true, content)
-      .od(s.at.emitFile).pipe(
+      .od(s.pt.emitFile).pipe(
         rx.map(([, outputFile, outputContent]) => {
           if (/\.[mc]?js/.test(outputFile)) {
             destFile = outputContent;
@@ -89,6 +89,7 @@ export type LangServiceOutput = {
   ): SingleActionFactory;
   /** Under context of addSourceFile */
   emitFile(file: string, content: string): SingleActionFactory;
+  setWatching(inWatching: boolean): SingleActionFactory;
 };
 
 interface LangServiceStore {
@@ -102,7 +103,7 @@ interface LangServiceStore {
 const tableFor = [
   'setTsConfig', 'setSourceFileTranspiler', 'setDiagnosticFileNameFormatter',
   'versionsUpdated', 'fileChanged', 'unemittedUpdated',
-  'setStopped', 'fileContentCache', 'doneResolveCompilerOption'
+  'setStopped', 'fileContentCache', 'doneResolveCompilerOption', 'setWatching'
 ] as const;
 
 export function languageServices(ts: any = _ts): LanguageServiceType {
@@ -136,8 +137,9 @@ export function languageServices(ts: any = _ts): LanguageServiceType {
   let services: _ts.LanguageService | undefined;
   let watcher: ReturnType<typeof chokidar.watch>;
   r('watch -> addSourceFile, changeSourceFile', s.pt.watch.pipe(
-    rx.exhaustMap(([, dirs, watchOpts]) =>
+    rx.exhaustMap(([m, dirs, watchOpts]) =>
       new rx.Observable<never>(() => {
+        s.ft.setWatching(true).dp(m);
         if (watcher == null)
           watcher = chokidar.watch(dirs.map(dir => dir.replace(/\\/g, '/')), watchOpts);
 
@@ -150,11 +152,15 @@ export function languageServices(ts: any = _ts): LanguageServiceType {
         });
         return () => {
           void watcher.close().then(() => {
+            s.ft.setWatching(false).dp(m);
             // eslint-disable-next-line no-console
             console.log('[tsc-util] chokidar watcher stops');
           });
         };
-      })
+      }).pipe(
+        rc.catchErrorFor(m),
+        rx.takeUntil(s.pt.stop)
+      )
     )
   ));
   const state$ = rx.combineLatest([
@@ -351,6 +357,7 @@ export function languageServices(ts: any = _ts): LanguageServiceType {
   s.ft.fileChanged(new Set()).dp();
   s.ft.setSourceFileTranspiler((_file, content) => content).dp();
   s.ft.setDiagnosticFileNameFormatter(file => file).dp();
+  s.ft.setWatching(false).dp();
   (rc as LanguageServiceType).i = s;
   (rc as LanguageServiceType).o = s;
   return rc as LanguageServiceType;

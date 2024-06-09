@@ -69,7 +69,7 @@ export class RxController {
             get(_target, type, _rec) {
                 let a$ = actionsByType[type];
                 if (a$ == null) {
-                    const matchType = core.typePrefix + type;
+                    const matchType = type;
                     a$ = actionsByType[type] = core.action$.pipe(rx.filter(({ t }) => t === matchType), rx.share());
                 }
                 return a$;

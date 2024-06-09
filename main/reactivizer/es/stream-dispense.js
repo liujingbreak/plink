@@ -1,4 +1,5 @@
 import * as rx from 'rxjs';
+import { mapActionToPayload } from './control';
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.
@@ -9,10 +10,9 @@ import * as rx from 'rxjs';
  */
 export class ActionDispenser {
     static ofRxController(control) {
-        return new ActionDispenser(control.action$, control.typePrefix);
+        return new ActionDispenser(control.action$);
     }
-    constructor(source$, typePrefix) {
-        this.typePrefix = typePrefix;
+    constructor(source$) {
         this.actionByType = new Map();
         this.countSubscriber = new rx.BehaviorSubject(0);
         const disconnectSignal = new rx.Subject();
@@ -34,10 +34,40 @@ export class ActionDispenser {
                 disconnectSignal.next();
             return v;
         })).subscribe();
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const self = this;
+        this.at = new Proxy({}, {
+            get(_target, type, _rec) {
+                return self.ofType(type);
+            },
+            has(_target, key) {
+                return self.actionByType.has(key);
+            },
+            ownKeys() {
+                return [...self.actionByType.keys()];
+            }
+        });
+        const payloadsByType = new Map();
+        this.pt = new Proxy({}, {
+            get(_target, key, _rec) {
+                let p$ = payloadsByType.get(key);
+                if (p$ == null) {
+                    const a$ = self.ofType(key);
+                    p$ = a$.pipe(mapActionToPayload(), rx.share());
+                    payloadsByType.set(key, p$);
+                }
+                return p$;
+            },
+            has(_target, key) {
+                return typeof key === 'string';
+            },
+            ownKeys() {
+                return [];
+            }
+        });
     }
     ofType(type) {
-        const key = this.typePrefix + type;
-        const control = this.actionByType.get(key);
+        const control = this.actionByType.get(type);
         if (control) {
             const [, stream] = control;
             return stream;
@@ -48,7 +78,7 @@ export class ActionDispenser {
         })).pipe(rx.finalize(() => {
             this.countSubscriber.next(this.countSubscriber.getValue() - 1);
         }));
-        this.actionByType.set(key, [dispenser$, stream]);
+        this.actionByType.set(type, [dispenser$, stream]);
         return stream;
     }
     ofOtherTypes() {

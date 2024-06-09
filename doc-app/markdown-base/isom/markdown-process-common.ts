@@ -39,7 +39,7 @@ const md = new MarkdownIt({
   highlight(str, lang, _attrs) {
     if (lang && lang !== 'mermaid') {
       try {
-        const parsed = highlight.highlight(str, {language: lang}).value;
+        const parsed = highlight.highlight(lang, str).value;
         return parsed;
       } catch (e) {
         console.error(e); // skip non-important error like: Unknown language: "mermaid"
@@ -48,24 +48,24 @@ const md = new MarkdownIt({
     return str;
   }
 });
-export type MarkdownProcessor = WorkerControl<MdInputActions, MdOutputEvents>;
+export type MarkdownProcessor = WorkerControl<MdInputActions & MdOutputEvents>;
 
 export function setupReacting(markdownProcessor: MarkdownProcessor) {
-  const {r, i, o} = markdownProcessor;
-  r('forkProcessFile -> fork processFile, processFileDone', i.pt.forkProcessFile.pipe(
+  const {r, s} = markdownProcessor;
+  r('forkProcessFile -> fork processFile, processFileDone', s.pt.forkProcessFile.pipe(
     rx.mergeMap(async ([m, content, file]) => {
       try {
-        const resultDone = o.ft.fork('processFile', str2ArrayBuffer<SharedArrayBuffer>(content, true), file)
-          .do(i.at.processFileDone, m);
+        const resultDone = s.ft.fork('processFile', str2ArrayBuffer<SharedArrayBuffer>(content, true), file)
+          .do(s.pt.processFileDone, m);
         const [, result] = await setIdleDuring.asPromise(markdownProcessor, resultDone);
-        o.ft.processFileDone(result).dp(m);
+        s.ft.processFileDone(result).dp(m);
       } catch (e) {
         markdownProcessor.dispatchErrorFor(e, m);
       }
     })
   ));
 
-  r('processFile -> processFileDone', i.pt.processFile.pipe(
+  r('processFile -> processFileDone', s.pt.processFile.pipe(
     rx.mergeMap(([m, content, file]) => {
       return rx.defer(() => {
         const html = md.render(arrayBuffer2str(content));
@@ -76,14 +76,14 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
         rx.map(([content, toc, mermaidCodes]) => {
           const buf = str2ArrayBuffer<ArrayBuffer>(content);
           const mermaidBufs = mermaidCodes.map(code => str2ArrayBuffer<ArrayBuffer>(code));
-          o.ft.processFileDone({resultHtml: buf, toc: createTocTree(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs]}).dp(m);
+          s.ft.processFileDone({resultHtml: buf, toc: createTocTree(toc), mermaid: mermaidBufs, transferList: [buf, ...mermaidBufs]}).dp(m);
         }),
         markdownProcessor.catchErrorFor(m)
       );
     })
   ));
 
-  r('onHtmlParsedSnippet -> htmlParsedSnippetAssembled', o.pt.onHtmlParsedSnippet.pipe(
+  r('onHtmlParsedSnippet -> htmlParsedSnippetAssembled', s.pt.onHtmlParsedSnippet.pipe(
     rx.mergeMap(([m, snippets]) => {
       return rx.from(snippets).pipe(
         rx.concatMap(item => typeof item === 'string' ? rx.of(JSON.stringify(item)) : item),
@@ -92,15 +92,15 @@ export function setupReacting(markdownProcessor: MarkdownProcessor) {
           return acc;
         }, []),
         rx.map(frags => {
-          o.ft.htmlParsedSnippetAssembled(frags.join(' + ')).dp(m);
+          s.ft.htmlParsedSnippetAssembled(frags.join(' + ')).dp(m);
         })
       );
     })
   ));
 
-  i.ft.setLiftUpActions(rx.merge(
-    o.at.imageToBeResolved,
-    o.at.linkToBeResolved
+  s.ft.setLiftUpActions(rx.merge(
+    s.at.imageToBeResolved,
+    s.at.linkToBeResolved
   )).dp();
 }
 
@@ -114,7 +114,7 @@ function dfsAccessElement(
   root: DefaultTreeAdapterMap['document']
   // transpileCode?: (language: string, sourceCode: string) => Promise<string> | rx.Observable<string> | void,
 ) {
-  const {i, o} = processor;
+  const {s} = processor;
   const toc: TOC[] = [];
   const mermaidCode = [] as string[];
 
@@ -150,13 +150,13 @@ function dfsAccessElement(
     } else if (nodeName === 'img') {
       const imgSrc = el.attrs.find(item => item.name === 'src');
       if (imgSrc && !imgSrc.value.startsWith('/') && !/^https?:\/\//.test(imgSrc.value)) {
-        o.ft.log('Found img src=' + imgSrc.value).dp();
+        s.ft.log('Found img src=' + imgSrc.value).dp();
         output.push(sourceHtml.slice(htmlOffset, el.sourceCodeLocation!.attrs!.src!.startOffset + 'src="'.length));
         // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
         htmlOffset = el.sourceCodeLocation!.attrs?.src.endOffset! - 1;
 
         const result$ = new rx.ReplaySubject<string>(1);
-        o.ft.imageToBeResolved(imgSrc.value, file).do(i.at.imageResolved).pipe(
+        s.ft.imageToBeResolved(imgSrc.value, file).do(s.pt.imageResolved).pipe(
           rx.take(1),
           rx.map(([, url]) => url)
         ).subscribe(result$);
@@ -188,7 +188,7 @@ function dfsAccessElement(
         output.push(sourceHtml.slice(htmlOffset, insertPos));
         htmlOffset = insertPos;
         // const result$ = new rx.ReplaySubject<string>(1);
-        await rx.firstValueFrom(o.ft.linkToBeResolved(hrefAttr?.value, file).do(i.at.linkResolved).pipe(
+        await rx.firstValueFrom(s.ft.linkToBeResolved(hrefAttr?.value, file).do(s.pt.linkResolved).pipe(
           rx.take(1),
           rx.map(([, hash]) => {
             if (hash) {
@@ -214,7 +214,7 @@ function dfsAccessElement(
     }),
     setIdleDuring(
       processor,
-      o.ft.onHtmlParsedSnippet(output).ddo(o.pt.htmlParsedSnippetAssembled).pipe(
+      s.ft.onHtmlParsedSnippet(output).ddo(s.pt.htmlParsedSnippetAssembled).pipe(
         rx.map(([, content]) => {
           return [content, toc, mermaidCode] as const;
         }),

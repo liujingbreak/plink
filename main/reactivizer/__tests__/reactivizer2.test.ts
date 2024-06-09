@@ -2,11 +2,17 @@
 // import util from 'node:util';
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
+import {SimplexReactorOptions} from '../src/index';
+import {formatToConcise} from '../src/nodejs-utils';
 import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives, SimplexReactor, pairActionToActionStream} from '../src';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
 const inputTableFor = ['message3', 'message1'] as const;
+const stdoutLogger: SimplexReactorOptions<any, any>['log'] = (...msgs) => {
+  process.stdout.write(formatToConcise(...msgs));
+  process.stdout.write('\n');
+};
 
 describe('reactivizer2', () => {
   describe('RxController2', () => {
@@ -28,7 +34,7 @@ describe('reactivizer2', () => {
       r('reply1 -> message2 | reply2 -> ', o.pt.reply1.pipe(
         rx.mergeMap(([m, ...msg]) => {
           mockFn(...msg);
-          return i.ft.message2('message2').do(o.at.reply2, m);
+          return i.ft.message2('message2').do(o.pt.reply2, m);
         }),
         rx.tap(([, msg]) => mockFn(msg))
       ));
@@ -181,8 +187,52 @@ describe('reactivizer2', () => {
       expect(mock.mock.calls.length).toBe(1);
     });
 
+    it('simplexReactor.actionRelatedToAction()', async () => {
+      const reactor = new SimplexReactor<TestActions & TestResponse>();
+      const {s, r} = reactor;
+      const mockFn = jest.fn();
+      const mockFnError = jest.fn();
+      const done = rx.firstValueFrom(s.pt.reply1.pipe(
+        rx.filter(([, msg]) => msg === 'done')
+      ));
+      r('message1', s.pt.message1.pipe(
+        rx.mergeMap(([m]) => {
+          return s.pt.reply1.pipe(
+            reactor.actionRelatedToAction(m),
+            rx.tap(([, msg]) => mockFn(msg)),
+            rx.catchError(err => {
+              mockFnError(err);
+              return rx.EMPTY;
+            })
+          );
+        })
+      ));
+      r('message1 -> reply1', s.pt.message1.pipe(
+        rx.map(([m]) => {
+          s.ft.reply1('this is reply1').dp();
+          s.ft.reply1('this is reply1 in context').dp(m);
+          s.ft.reply1('this is reply1').dp();
+          void Promise.resolve().then(() => {
+            s.ft.reply1('this is reply1 in context again').dp(m);
+            reactor.dispatchErrorFor(new Error('test'), m);
+            s.ft.reply1('done').dp();
+          });
+        })
+      ));
+      s.ft.message1().dp();
+      await done;
+      expect(mockFn.mock.calls[0][0]).toBe('this is reply1 in context');
+      expect(mockFn.mock.calls.length).toBe(2);
+      expect(mockFn.mock.calls[1][0]).toBe('this is reply1 in context again');
+      expect(mockFnError.mock.calls.length).toBe(1);
+    });
+
     it('pairActionToActionStream can deal with synchronously recursive actions within a single context', () => {
-      const reactor = new SimplexReactor<TestActions & TestResponse>({name: 'pairActionToActionStreamTest', debug: true});
+      const reactor = new SimplexReactor<TestActions & TestResponse>({
+        name: 'pairActionToActionStreamTest',
+        debug: true,
+        log: stdoutLogger
+      });
       const {r, s} = reactor;
       r('message1 -> reply1', s.pt.message1.pipe(
         rx.map(([m]) => {
@@ -219,7 +269,8 @@ describe('reactivizer2', () => {
     it('base actions', async () => {
       const s = new SimplexReactor<TestActions & TestResponse>({
         name: 'test simplex',
-        debug: true
+        debug: true,
+        log: stdoutLogger
       });
       s.s.pt.message2.subscribe(a => console.log(a));
       s.r('test simplexReactor', s.s.pt.message2.pipe(

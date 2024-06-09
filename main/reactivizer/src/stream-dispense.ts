@@ -14,7 +14,7 @@ import {RxController2} from './control2';
  */
 export class ActionDispenser<I> {
   static ofRxController<X>(control: RxController2<X>) {
-    return new ActionDispenser(control.action$, control.typePrefix);
+    return new ActionDispenser(control.action$);
   }
   /** Action observable streamby type */
   at: ActionByType<I>;
@@ -25,7 +25,7 @@ export class ActionDispenser<I> {
   private ofOtherTypesDispenser: rx.Subject<Action<I[keyof I]>> | undefined;
   private ofOtherTypesStream: rx.Observable<Action<I[keyof I]>> | undefined;
 
-  constructor(source$: rx.Observable<Action<I[keyof I]>>, private typePrefix: string) {
+  constructor(source$: rx.Observable<Action<I[keyof I]>>) {
     const disconnectSignal = new rx.Subject<void>();
     const connectSignal = new rx.Subject<void>();
     connectSignal.pipe(
@@ -95,8 +95,7 @@ export class ActionDispenser<I> {
   }
 
   ofType<K extends keyof I & string>(type: K): rx.Observable<Action<I[K]>> {
-    const key = this.typePrefix + type;
-    const control = this.actionByType.get(key);
+    const control = this.actionByType.get(type);
     if (control) {
       const [, stream] = control;
       return stream as rx.Observable<Action<I[K]>>;
@@ -112,7 +111,7 @@ export class ActionDispenser<I> {
         this.countSubscriber.next(this.countSubscriber.getValue() - 1);
       })
     );
-    this.actionByType.set(key, [dispenser$, stream] as const);
+    this.actionByType.set(type, [dispenser$, stream] as const);
     return stream;
   }
 

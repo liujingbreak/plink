@@ -1,10 +1,9 @@
 import * as rx from 'rxjs';
-import {ReactorComposite, ReactorCompositeOpt} from '../epic';
-// import {timeoutLog} from '../utils';
-import {ReactorComposite2} from '../reactor-composite';
+import {SimplexReactorOptions} from '../reactor-base';
+import {SimplexReactor, BaseActions} from '../simplex-reactor';
 import {deserializeAction2, RxController2} from '../control2';
-import {Action, serializeAction, deserializeAction} from '../control';
-import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as outputTableFor, ForkWorkerInput, ForkWorkerOutput, WorkerControl, ThreadExpirationEvents} from './types';
+import {Action, serializeAction, InferPayload} from '../control';
+import {Broker, BrokerInput, BrokerEvent, brokerOutputTableFor as tableFor, ForkWorkerInput, ForkWorkerOutput, WorkerControl, ThreadExpirationEvents} from './types';
 import {applyScheduler} from './worker-scheduler';
 export * from './types';
 
@@ -12,49 +11,41 @@ interface WorkerProperties {
   no: number;
   worker: Worker;
   port: MessagePort;
-  input: ReactorComposite2<any, any, any, any>['i'];
-  output: ReactorComposite2<any, any, any, any>['o'];
+  input: RxController2<any>;
+  output: RxController2<any>;
   state: 'inited' | 'init' | 'exit';
 }
 /** Broker manages worker threads, create message channels between child worker threads and main thread, transmits actions
 */
-export function createBroker<
-  I = Record<never, never>,
-  O = Record<never, never>
->(
-  workerController: WorkerControl<I, O, any, any>,
-  opts?: ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
+export function createBroker<I = Record<never, never>>(
+  workerController: WorkerControl<I, any>,
+  opts?: SimplexReactorOptions<BrokerInput & ForkWorkerInput & BrokerEvent<I> & ForkWorkerOutput & ThreadExpirationEvents>
 ) {
-  const options = opts ? {...opts, outputTableFor} : {outputTableFor};
-  const mainWorkerComp = workerController as unknown as ReactorComposite<ForkWorkerInput, ForkWorkerOutput>;
-
-  const broker = new ReactorComposite2<
-  BrokerInput & ForkWorkerOutput,
-  BrokerEvent<I, O>,
-  [],
-    typeof outputTableFor
-  >(options as any);
-
+  const options = opts ? {...opts, tableFor} : {tableFor};
+  const mainWorkerComp = workerController as unknown as SimplexReactor<ForkWorkerInput & ForkWorkerOutput>;
+  const broker = new SimplexReactor<BrokerInput & ForkWorkerOutput & BrokerEvent<I>,
+    typeof tableFor>(options as any);
+  broker.table.addActions(...tableFor);
   const workerProps = new Map<number, WorkerProperties>();
+  const allReadyWorkers = new Set<InferPayload<BrokerEvent<I>['newWorkerReady']>>();
+  const {r, s} = broker;
 
-  const {r, i, o} = broker;
-
-  r('workerInited -> newWorkerReady', o.pt.workerInited.pipe(
+  r('workerInited -> newWorkerReady', s.pt.workerInited.pipe(
     rx.filter(([, , , , skipped]) => !skipped),
-    rx.tap(([meta, workerNo, , outputCtrl]) => o.ft.newWorkerReady(workerNo, outputCtrl, workerProps.get(workerNo)!.input).dp(meta))
+    rx.tap(([meta, workerNo, , outputCtrl]) => s.ft.newWorkerReady(workerNo, outputCtrl, workerProps.get(workerNo)!.input).dp(meta))
   ));
 
-  r('ensureInitWorker, message channel -> workerInited, onWorkerExit, onWorkerError', i.pt.ensureInitWorker.pipe(
+  r('ensureInitWorker, message channel -> workerInited, onWorkerExit, onWorkerError', s.pt.ensureInitWorker.pipe(
     rx.mergeMap(([meta, workerNo, worker]) => {
       let props = workerProps.get(workerNo);
       if (props?.state === 'inited') {
-        o.ft.workerInited(workerNo, null, workerProps.get(workerNo)!.output, true).dp(meta);
+        s.ft.workerInited(workerNo, null, workerProps.get(workerNo)!.output, true).dp(meta);
         return rx.EMPTY;
       } else if (props?.state === 'init') {
-        return o.pt.workerInited.pipe(
+        return s.pt.workerInited.pipe(
           rx.filter(() => props?.state === 'inited'),
           rx.take(1),
-          rx.tap(() => o.ft.workerInited(workerNo, null, workerProps.get(workerNo)!.output, true).dp(meta))
+          rx.tap(() => s.ft.workerInited(workerNo, null, workerProps.get(workerNo)!.output, true).dp(meta))
         );
       }
       if (props == null) {
@@ -63,13 +54,13 @@ export function createBroker<
       }
       const chan = new MessageChannel();
       props.port = chan.port1;
-      const wo = new RxController2<ReactorComposite2<any, ForkWorkerOutput & O>['o'] extends RxController2<infer T> ? T : unknown>({
+      const wo = new RxController2<ForkWorkerInput & ForkWorkerOutput & I>({
         name: '#' + workerNo + ' worker output',
-        debugExcludeTypes: (opts as ReactorCompositeOpt<ForkWorkerOutput> | undefined)?.debugExcludeTypes
+        debugExcludeTypes: (opts as SimplexReactorOptions<ForkWorkerOutput> | undefined)?.debugExcludeTypes
       });
-      const wi = new RxController2<ForkWorkerInput & I>({
+      const wi = new RxController2<ForkWorkerInput & ForkWorkerOutput & I>({
         name: '#' + workerNo + ' worker input',
-        debugExcludeTypes: (opts as ReactorCompositeOpt<ForkWorkerInput> | undefined)?.debugExcludeTypes
+        debugExcludeTypes: (opts as SimplexReactorOptions<ForkWorkerInput> | undefined)?.debugExcludeTypes
       });
       props.input = wi;
       props.output = wo;
@@ -77,12 +68,12 @@ export function createBroker<
       chan.port1.onmessage = ({data: event}: MessageEvent<Action<any> | {type: string}>) => {
         if ((event as {type: string}).type === 'WORKER_READY') {
           props.state = 'inited';
-          o.ft.workerInited(workerNo, null, wo, false).dp(meta);
+          s.ft.workerInited(workerNo, null, wo, false).dp(meta);
         } else if ((event as {type: string}).type === 'log') {
           // eslint-disable-next-line no-console
           (opts?.log ?? console.log)(...(event as unknown as {p: [any, ...any[]]}).p);
         } else if ((event as {error?: any}).error) {
-          o.ft.onWorkerError(
+          s.ft.onWorkerError(
             workerNo,
             (event as {error?: any}).error,
             'customized error'
@@ -94,19 +85,19 @@ export function createBroker<
       };
 
       (worker as Worker).onerror = event => {
-        o.ft.onWorkerError(workerNo, event, 'web worker error').dp();
+        s.ft.onWorkerError(workerNo, event, 'web worker error').dp();
         broker.dispatchErrorFor(event, meta);
       };
 
       chan.port1.onmessageerror = event => {
-        o.ft.onWorkerError(workerNo, event, 'message errror').dp();
+        s.ft.onWorkerError(workerNo, event, 'message errror').dp();
         broker.dispatchErrorFor(event, meta);
       };
 
       // TODO: web worker does not have 'close' event, I need
       // to.find a way resolve this worker exit notification
       // (worker as Worker).on('exit', code => {
-      //   o.dp.onWorkerExit(workerNo, code);
+      //   s.dp.onWorkerExit(workerNo, code);
       // });
 
       (worker as Worker).postMessage({type: 'ASSIGN_WORKER_NO', workerNo, mainPort: chan.port2}, [chan.port2]);
@@ -114,68 +105,72 @@ export function createBroker<
         rx.tap(action => chan.port1.postMessage(serializeAction(action)))
       );
     })
-    // rx.takeUntil(o.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
+    // rx.takeUntil(s.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
   ));
 
-  r('(newWorkerReady) forkByBroker, workerInited -> ensureInitWorker, worker chan postMessage()', o.pt.newWorkerReady.pipe(
-    rx.mergeMap(([, fromWorkerNo, workerOutput]) => (workerOutput as unknown as RxController2<ForkWorkerOutput>).pt.forkByBroker.pipe(
-      rx.mergeMap(async ([, targetAction, port]) => {
-        let assignedWorkerNo: number | undefined;
-        try {
-          const [, assignedWorkerNo_, worker] = await rx.firstValueFrom(o.ft.assignWorker().do(i.at.workerAssigned
-            // timeoutLog<typeof i.at.workerAssigned extends rx.Observable<infer T> ? T : never>(3000, () => console.log('worker assignment timeout'))
-          ));
-          assignedWorkerNo = assignedWorkerNo_;
-          const fa = mainWorkerComp.i.createAction('onFork', targetAction, port);
+  r('(newWorkerReady) forkByBroker, workerInited -> ensureInitWorker, worker chan postMessage()',
+    s.pt.newWorkerReady.pipe(
+      rx.tap(([, ...props]) => {
+        allReadyWorkers.add(props);
+      }),
+      rx.mergeMap(([, fromWorkerNo, workerOutput]) => (workerOutput as unknown as RxController2<ForkWorkerOutput>).pt.forkByBroker.pipe(
+        rx.mergeMap(async ([, targetAction, port]) => {
+          let assignedWorkerNo: number | undefined;
+          try {
+            const [, assignedWorkerNo_, worker] = await rx.firstValueFrom(s.ft.assignWorker().od(s.pt.workerAssigned
+            // timeoutLog<typeof s.at.workerAssigned extends rx.Observable<infer T> ? T : never>(3000, () => console.log('worker assignment timeout'))
+            ));
+            assignedWorkerNo = assignedWorkerNo_;
+            const fa = mainWorkerComp.s.createAction('onFork', [targetAction, port]);
 
-          if (worker === 'main') {
-            deserializeAction(fa, mainWorkerComp.i);
-          } else {
-            await rx.firstValueFrom(i.ft.ensureInitWorker(assignedWorkerNo, worker).do(o.at.workerInited));
-            workerProps.get(assignedWorkerNo)!.port.postMessage(serializeAction(fa), [port as MessagePort]);
+            if (worker === 'main') {
+              deserializeAction2(fa, mainWorkerComp.s);
+            } else {
+              await rx.firstValueFrom(s.ft.ensureInitWorker(assignedWorkerNo, worker).od(s.pt.workerInited));
+              workerProps.get(assignedWorkerNo)!.port.postMessage(serializeAction(fa), [port as MessagePort]);
+            }
+          } catch (e) {
+            if (opts?.log)
+              opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo ?? ''}`);
+            const errorFor = (broker.s as unknown as RxController2<BaseActions>).createAction('__onError', [e]);
+            errorFor.r = targetAction.i;
+            port.postMessage(serializeAction(errorFor));
+            throw e;
           }
-        } catch (e) {
-          if (opts?.log)
-            opts.log(`Error encountered when forked by worker #${fromWorkerNo}, to #${assignedWorkerNo ?? ''}`);
-          const errorFor = broker.o.createAction('__onError', [e]);
-          errorFor.r = targetAction.i;
-          port.postMessage(serializeAction(errorFor));
-          throw e;
-        }
-      })
-    ))
-  ));
+        })
+      ))
+    ));
 
-  r('letWorkerExit -> postMessage to thread worker', i.pt.letWorkerExit.pipe(
+  r('letWorkerExit -> postMessage to thread worker', s.pt.letWorkerExit.pipe(
     rx.map(([, workerNo]) => {
       const prop = workerProps.get(workerNo)!;
       // eslint-disable-next-line @typescript-eslint/ban-types
       prop.port.postMessage(serializeAction(
-        (o as unknown as RxController2<ForkWorkerInput>).createAction('exit')
+        (s as unknown as RxController2<ForkWorkerInput>).createAction('exit')
       ));
       prop.state = 'exit';
     })
   ));
 
-  r('mainThreadInit', i.pt.mainThreadInit.pipe(
+  r('mainThreadInit', s.pt.mainThreadInit.pipe(
     rx.tap(() => {
-      broker.i.ft.workerAssigned(0, 'main', true, 0).dp();
-      broker.o.ft.newWorkerReady(0, workerController.o, workerController.i).dp();
+      broker.s.ft.workerAssigned(0, 'main', true, 0).dp();
+      broker.s.ft.newWorkerReady(0, workerController.s, workerController.s).dp();
     })
   ));
-  return broker as unknown as Broker<I, O>;
+  s.ft.mainThreadInit().dp();
+  s.ft.allReadyWorkers<I>(allReadyWorkers).dp();
+  return broker as unknown as Broker<I>;
 }
 
 type ScheduleOptions = typeof applyScheduler extends (c: any, o: infer O) => any ? O : unknown;
 
 export function setupForMainWorker<
-  I = Record<never, never>,
-  O = Record<never, never>
->(workerController: WorkerControl<I, O, any, any>,
-  opts: ScheduleOptions & ReactorCompositeOpt<BrokerInput & ForkWorkerInput, BrokerEvent<I, O> & ForkWorkerOutput & ThreadExpirationEvents>
-): Broker<I, O> {
-  const broker = createBroker(workerController, opts);
-  applyScheduler(broker, opts);
-  broker.i.ft.mainThreadInit().dp();
+  I = Record<never, never>
+>(workerController: WorkerControl<I, any>,
+  brokerCreationOptions: ScheduleOptions & SimplexReactorOptions<BrokerInput & ForkWorkerInput & BrokerEvent<I> & ForkWorkerOutput & ThreadExpirationEvents>
+): Broker<I> {
+  const broker = createBroker(workerController, brokerCreationOptions);
+  applyScheduler(broker, brokerCreationOptions);
   return broker;
 }

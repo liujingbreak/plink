@@ -12,11 +12,12 @@ import {LanguageServiceType, LogLevel, LangServiceOutput} from './tsc-language-s
 interface PackageFeatureInput {
   setTsConfigOfPlinkBase(): SingleActionFactory;
   addSourcePackage(pkgNames: string[]): SingleActionFactory;
+  watchSourcePackage(pkgNames: string[]): SingleActionFactory;
 }
 
 interface PackageFeatureOutput {
   /** In context of "addSourcePackage" */
-  onEmitFileForPackage(file: string, content: string): SingleActionFactory;
+  // onEmitFileForPackage(file: string, content: string): SingleActionFactory;
   didAddSourcePackage(countFiles: number, emitFiles: string[], suggestions: [file: string, msg: string][], fails: InferPayload<LangServiceOutput['onEmitFailure']>[]): SingleActionFactory;
   onTscDirsConfig(data: Map<string, {isom?: string; srcRoots: string[]; dest: string}>): SingleActionFactory;
 }
@@ -33,7 +34,7 @@ export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: P
   lookupService.input.fromPackageService(pkgMgr).dp();
   const packageToTscDirMap = new Map<string, {isom?: string; srcRoots: string[]; dest: string}>();
   s.interceptor$.next(a$ => {
-    const dispenser = new ActionDispenser<OutputEvents>(a$, s.typePrefix);
+    const dispenser = new ActionDispenser<OutputEvents>(a$);
     return rx.merge(
       dispenser.ofType('emitFile').pipe(
         rx.mergeMap(a => rx.concat(
@@ -129,32 +130,9 @@ export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: P
         );
       })
     ));
-  r('addSourcePackage -> addSourceFile, onEmitFileForPackage, didAddSourcePackage', s.pt.addSourcePackage.pipe(
+  r('addSourcePackage -> addSourceFile, didAddSourcePackage', s.pt.addSourcePackage.pipe(
     rx.mergeMap(([m, pkgNames]) => {
-      const dir$ = pkgMgr.ot.l.data_allPackages.pipe(
-        // eslint-disable-next-line no-console
-        rx.take(1),
-        rx.mergeMap(([, allPackages]) => {
-          return pkgNames.map(pkgName => [pkgName, allPackages.get(pkgName)] as const);
-        }),
-        rx.mergeMap(([pkgName, pkgInfo]) => {
-          if (pkgInfo == null) {
-            baseService.dispatchErrorFor(`Source directory of ${pkgName} is not found`, m);
-            ft.log(LogLevel.error, `Source directory of ${pkgName} is not found`).dp();
-            return rx.EMPTY;
-          }
-          const tscCfg = getTscConfigOfPkg(pkgInfo.json);
-          return rx.merge(
-            rx.from(tscCfg.include ?? []),
-            rx.of(
-              Path.resolve(pkgInfo.realPath, tscCfg.srcDir),
-              Path.resolve(pkgInfo.realPath, tscCfg.isomDir)
-            )
-          );
-        }),
-        rx.mergeMap(dir => fs.promises.access(dir).then(() => dir).catch(() => null)),
-        rx.filter((dir): dir is string => dir != null)
-      );
+      const dir$ = fetchPackageSourceDirectories(pkgNames);
       const compileFile$ = new rx.Subject<InferMapParam<LangServiceOutput['compileFile']>>();
       const emitFile$ = new rx.Subject<InferMapParam<LangServiceOutput['emitFile']>>();
       const allDone$ = new rx.Subject<void>();
@@ -182,16 +160,14 @@ export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: P
             });
           });
         }),
-        rx.mergeMap(([a, b]) => {
-          return rx.merge(
-            a.pipe(
-              rx.map(action => compileFile$.next(action))
-            ),
-            b.pipe(
-              rx.map(action => emitFile$.next(action))
-            )
+        rx.mergeMap(([compileFiles, emitFiles]) => {
+          emitFiles.subscribe(a => emitFile$.next(a));
+          // compileFiles will complete, but emitFiles is infinite, so only merge complileFiles to main stream to make sure main stream can complete at last
+          return compileFiles.pipe(
+            rx.map(action => compileFile$.next(action))
           );
         }),
+        rx.finalize(() => compileFile$.complete()),
         rx.ignoreElements()
       );
       return rx.merge(
@@ -252,6 +228,20 @@ export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: P
       );
     })
   ));
+  r('watchSourcePackage -> watch', s.pt.watchSourcePackage.pipe(
+    rx.mergeMap(([m, pkgNames]) => {
+      const dir$ = fetchPackageSourceDirectories(pkgNames);
+      return dir$.pipe(
+        rx.reduce((arr, it) => {
+          arr.push(it);
+          return arr;
+        }, [] as string[]),
+        rx.map(dirs => {
+          ft.watch(dirs).dp(m);
+        })
+      );
+    })
+  ));
   r('setTsConfigOfPlinkBase -> ', s.pt.setTsConfigOfPlinkBase.pipe(
     rx.mergeMap(a => pkgMgr.ot.l.updateCommonSrcDir.pipe(
       rx.map(b => [a, b] as const), rx.take(1)
@@ -270,5 +260,32 @@ export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: P
       ft.setTsConfig(json, dir).dp(m);
     })
   ));
+
+  function fetchPackageSourceDirectories(pkgNames: string[]) {
+    return pkgMgr.ot.l.data_allPackages.pipe(
+      // eslint-disable-next-line no-console
+      rx.take(1),
+      rx.mergeMap(([, allPackages]) => {
+        return pkgNames.map(pkgName => [pkgName, allPackages.get(pkgName)] as const);
+      }),
+      rx.mergeMap(([pkgName, pkgInfo]) => {
+        if (pkgInfo == null) {
+          // baseService.dispatchErrorFor(`Source directory of ${pkgName} is not found`, m);
+          ft.log(LogLevel.error, `Source directory of ${pkgName} is not found`).dp();
+          return rx.EMPTY;
+        }
+        const tscCfg = getTscConfigOfPkg(pkgInfo.json);
+        return rx.merge(
+          rx.from(tscCfg.include ?? []),
+          rx.of(
+            Path.resolve(pkgInfo.realPath, tscCfg.srcDir),
+            Path.resolve(pkgInfo.realPath, tscCfg.isomDir)
+          )
+        );
+      }),
+      rx.mergeMap(dir => fs.promises.access(dir).then(() => dir).catch(() => null)),
+      rx.filter((dir): dir is string => dir != null)
+    );
+  }
   return baseService as unknown as FullFeaturedType;
 }

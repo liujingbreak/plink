@@ -1,20 +1,20 @@
 import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
 import {createWorkerControlOfFn, ForkTransferablePayload, setIdleDuring} from '../fork-join/node-worker';
-import type {ReactorCompositeOpt} from '../epic';
+import type {SimplexReactorOptions} from '../index';
 // import {patch} from '../reactor-composite';
 import {ForkWorkerInput, ForkWorkerOutput} from '../fork-join/types';
 // import {SingleActionFactory} from '..';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
 
-export function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput>) {
+export function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: SimplexReactorOptions<ForkWorkerInput & ForkWorkerOutput>) {
   const cmp = comparator ?? new DefaultComparator();
 
   const sortActions = {
     async sortAllInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): Promise<[number, number]> {
       const forkDone = await rx.firstValueFrom(
-        sorter.o.ft.fork('sort', buf, offset, len, noForkThreshold)
-          .do(sorter.i.at.sortResolved)
+        sorter.s.ft.fork('sort', buf, offset, len, noForkThreshold)
+          .do(sorter.s.pt.sortResolved)
       );
       return forkDone[1];
     },
@@ -31,7 +31,7 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
         const rightpartLen = arr.length - leftPartLen;
 
         // o.dp.log('create fork sort action for half', rightPartOffset, rightpartLen, `action id: ${sortAction.i}`);
-        const forkDone = sorter.o.ft.fork('sort', buf, rightPartOffset, rightpartLen, noForkThreshold).do(sorter.i.at.sortResolved);
+        const forkDone = sorter.s.ft.fork('sort', buf, rightPartOffset, rightpartLen, noForkThreshold).do(sorter.s.at.sortResolved);
 
         await sortActions.sort(buf, offset, leftPartLen, noForkThreshold);
         await setIdleDuring.asPromise(sorter, forkDone);
@@ -89,7 +89,7 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
         //   '1st: left', [...arr1.slice(0, arr1LeftLen)], 'right', [...arr1.slice(arr1LeftLen, arr1LeftLen + arr1RightLen)], '\n',
         //   '2nd: left', [...arr2.slice(0, arr2LeftLen)], 'right', [...arr2.slice(arr2LeftLen, arr2LeftLen + arr2RightLen)]);
 
-        const forkDone = sorter.o.ft.fork('merge', buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold).do(sorter.i.at.mergeResolved);
+        const forkDone = sorter.s.ft.fork('merge', buf, arr1RightOffset, arr1RightLen, arr2RightOffset, arr2RightLen, noForkThreshold).do(sorter.s.pt.mergeResolved);
         const leftMerged = (await sortActions.merge(buf, arr1LeftOffset, arr1LeftLen, arr2LeftOffset, arr2LeftLen, noForkThreshold))?.content;
         const [, forkResult] = await setIdleDuring.asPromise(sorter, forkDone);
         const rightMerged = forkResult?.content;
@@ -135,7 +135,6 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
   };
 
   const sorter = createWorkerControlOfFn(sortActions, opts);
-  // const sorterWithConfig = patch<{config(opts: Omit<ReactorCompositeOpt<I, O, LI, LO>, 'name' | 'autoConnect'>): SingleActionFactory}>().to(sorter);
   return sorter;
 }
 

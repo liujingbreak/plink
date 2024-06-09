@@ -16,10 +16,12 @@ export declare class RxController2<I> extends ControllerCore<I> {
     get ft(): I;
     private ftProxy;
     private factories;
-    /** Rx operator for `do()`, we can change it by emit new value to this observable,
+    /**
      * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
      * */
-    doOperator$: rx.BehaviorSubject<(<A, F>(dispatchingAction: Action<A>) => (response$: rx.Observable<Action<F>>) => rx.Observable<Action<F>>)>;
+    doOperator$: rx.BehaviorSubject<(<A>(dispatchingAction: {
+        i: ActionMeta['i'];
+    }) => (response$: rx.Observable<A>) => rx.Observable<A>)>;
     constructor(opts?: CoreOptions<I> & {
         debugTableAction?: boolean;
     });
@@ -72,4 +74,4 @@ export declare class GroupedRxController2<I, K> extends RxController2<I> {
  * but changed "t" property which comfort to target "toRxController"
  * @return that dispatched new action object
  */
-export declare function deserializeAction2<I>(actionObj: any, toController: RxController2<I>): Action<I[keyof I]>;
+export declare function deserializeAction2<I>(actionObj: any, toController: RxController2<I>): void;

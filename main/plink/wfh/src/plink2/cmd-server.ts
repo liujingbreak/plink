@@ -172,6 +172,10 @@ r('onRequestLine -> processManager.sendCommand', o.pt.onRequestLine.pipe(
       processManager.o.pt.onCommandDoneAnyway
     ).pipe(
       rx.take(1),
+      rx.catchError(err => {
+        console.log('cmd-server catch error', err);
+        return rx.EMPTY;
+      }),
       rx.finalize(() => {
         void Promise.resolve().then(() => res.end());
       })
