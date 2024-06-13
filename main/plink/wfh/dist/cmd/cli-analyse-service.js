@@ -55,7 +55,7 @@ function createService() {
         name: 'ts-analyser',
         debug: false
     });
-    const { i, o, r } = service;
+    const { s: i, s: o, r } = service;
     r('forkDfsTraverseFiles -> doneDfsTraverseFiles', i.pt.forkDfsTraverseFiles.pipe(rx.mergeMap(async ([m, ...args]) => {
         const done$ = o.ft.fork('dfsTraverseFiles', ...args).do(i.pt.doneDfsTraverseFiles, m);
         const [, result] = await node_worker_1.setIdleDuring.asPromise(service, done$);

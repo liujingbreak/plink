@@ -75,12 +75,12 @@ export interface AnalyseOutput {
 }
 
 export function createService() {
-  const service = createWorkerControl<AnalyseInput, AnalyseOutput>({
+  const service = createWorkerControl<AnalyseInput & AnalyseOutput>({
     name: 'ts-analyser',
     debug: false
   });
 
-  const {i, o, r} = service;
+  const {s: i, s: o, r} = service;
   r('forkDfsTraverseFiles -> doneDfsTraverseFiles', i.pt.forkDfsTraverseFiles.pipe(
     rx.mergeMap(async ([m, ...args]) => {
       const done$ = o.ft.fork('dfsTraverseFiles', ...args).do(i.pt.doneDfsTraverseFiles, m);

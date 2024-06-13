@@ -64,7 +64,7 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         debugExcludeTypes: ['workerAssigned', 'workerInited', 'ensureInitWorker', 'newWorkerReady', 'forkByBroker', 'wait', 'stopWaiting', 'assignWorker', 'clearExpirationTimer']
     });
     broker.s.pt.onWorkerError.pipe(rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))).subscribe();
-    broker.s.pt.newWorkerReady.pipe(rx.map(([, , , input]) => input.config({ debug: true }))).subscribe();
+    broker.table.l.allReadyWorkers.pipe(rx.switchMap(([, worker$]) => worker$), rx.map(([, , input]) => input.ft.changeConfig({ debug: true }).dp())).subscribe();
     const { s } = broker;
     const numOfWorkers = workerNum !== null && workerNum !== void 0 ? workerNum : node_os_1.default.availableParallelism();
     console.log('numOfWorkers:', numOfWorkers);
@@ -157,11 +157,11 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         await new Promise(r => setTimeout(r, 500));
         console.log('Ranks of workers:', [...scheduleState.ranksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
         console.log('Num of tasks of workers:', [...scheduleState.tasksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
-        for (const [, [, rank]] of scheduleState.tasksByWorkerNo.entries()) {
-            (0, globals_1.expect)(rank).toBe(0);
+        for (const [, [workerNo, rank]] of scheduleState.tasksByWorkerNo.entries()) {
+            (0, globals_1.expect)(rank).toBe(workerNo === 'main' ? 1 : 0);
         }
-        for (const [, [, rank]] of scheduleState.ranksByWorkerNo.entries()) {
-            (0, globals_1.expect)(rank).toBe(0);
+        for (const [, [workerNo, rank]] of scheduleState.ranksByWorkerNo.entries()) {
+            (0, globals_1.expect)(rank).toBe(workerNo === 'main' ? 1 : 0);
         }
     }
     const latestBrokerEvents = broker.table.addActions('onWorkerExit').l;

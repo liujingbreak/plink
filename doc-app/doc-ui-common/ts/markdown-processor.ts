@@ -4,7 +4,7 @@ import {MdInputActions, MdOutputEvents, setupReacting, MarkdownProcessor} from '
 
 const log = log4File(__filename);
 
-export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions, MdOutputEvents>({
+export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions & MdOutputEvents>({
   name: 'markdownProcessor',
   debug: false,
   debugExcludeTypes: ['wait', 'stopWaiting'],

@@ -133,6 +133,7 @@ export function define(rootDir: string, onShutdown: () => void) {
             )
           ));
         });
+      tsc.addHelpCommand();
 
       program.command('stop')
         .description('Stop daemon process')
@@ -144,6 +145,17 @@ export function define(rootDir: string, onShutdown: () => void) {
           cmdModelService.dispose();
           // eslint-disable-next-line no-console
           console.log('Bye');
+        });
+
+      program.command('dev:test').description('A test command')
+        .action(async () => {
+          console.log('hellow world');
+          await new Promise<void>(resolve => setTimeout(() => {
+            process.stdout.moveCursor(0, -1);
+            process.stdout.clearLine(0);
+            console.log('hellow boss');
+            resolve();
+          }, 1000));
         });
       return program;
     })

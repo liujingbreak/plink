@@ -14,7 +14,7 @@ export interface ConfigViewState {
     updateChecksum: number;
 }
 export declare const configViewSlice: import("@reduxjs/toolkit").Slice<ConfigViewState, {
-    loadPackageSettingMeta(d: import("immer/dist/internal.js").WritableDraft<ConfigViewState>, action: PayloadAction<{
+    loadPackageSettingMeta(_d: import("immer/dist/internal.js").WritableDraft<ConfigViewState>, _action: PayloadAction<{
         workspaceKey: string;
         packageName?: string;
     }>): void;
@@ -22,7 +22,7 @@ export declare const configViewSlice: import("@reduxjs/toolkit").Slice<ConfigVie
     packageSettingsMetaLoaded(s: import("immer/dist/internal.js").WritableDraft<ConfigViewState>): void;
 } & import("@wfh/redux-toolkit-observable").ExtraSliceReducers<ConfigViewState>, "configView">;
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<{
-    loadPackageSettingMeta(d: import("immer/dist/internal.js").WritableDraft<ConfigViewState>, action: PayloadAction<{
+    loadPackageSettingMeta(_d: import("immer/dist/internal.js").WritableDraft<ConfigViewState>, _action: PayloadAction<{
         workspaceKey: string;
         packageName?: string;
     }>): void;

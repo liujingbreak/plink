@@ -4,10 +4,12 @@ import * as rx from 'rxjs';
 import { Action, InferPayload } from '../control';
 import { SingleActionFactory } from '../control2';
 import { SimplexReactorMergeType } from '../inferred-types';
+import { RxControlConfigType } from '../global-config';
 import { SimplexReactor } from '../simplex-reactor';
 export declare const brokerOutputTableFor: readonly ["assignWorker", "allReadyWorkers"];
 export type Broker<WI = Record<never, never>> = SimplexReactor<BrokerInput & BrokerEvent<WI>, typeof brokerOutputTableFor>;
 export type ForkWorkerInput = {
+    changeConfig<I>(config: RxControlConfigType<I>): SingleActionFactory;
     exit(): SingleActionFactory;
     onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): SingleActionFactory;
     /** set actions which are supposed to be sent to parent main thread by "messagePort.postMessage()",
@@ -53,7 +55,7 @@ export type BrokerEvent<I = Record<never, never>> = {
     onAllWorkerExit(): SingleActionFactory;
     assignWorker(): SingleActionFactory;
     workerRankChanged(workerNo: number, value: number): SingleActionFactory;
-    allReadyWorkers<T>(workerSet: Set<InferPayload<BrokerEvent<T>['newWorkerReady']>>): SingleActionFactory;
+    allReadyWorkers<T>(workersReplay$: rx.Observable<InferPayload<BrokerEvent<T>['newWorkerReady']>>): SingleActionFactory;
 };
 export type ThreadExpirationEvents = {
     startExpirationTimer(workerNo: number): SingleActionFactory;

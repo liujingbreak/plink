@@ -46,8 +46,9 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
     rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))
   ).subscribe();
 
-  broker.s.pt.newWorkerReady.pipe(
-    rx.map(([, , , input]) => input.config({debug: true}))
+  broker.table.l.allReadyWorkers.pipe(
+    rx.switchMap(([, worker$]) => worker$),
+    rx.map(([ , , input]) => input.ft.changeConfig({debug: true}).dp())
   ).subscribe();
 
   const {s} = broker;
@@ -153,11 +154,11 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
     await new Promise(r => setTimeout(r, 500));
     console.log('Ranks of workers:', [...scheduleState!.ranksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
     console.log('Num of tasks of workers:', [...scheduleState!.tasksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
-    for (const [, [, rank]] of scheduleState!.tasksByWorkerNo.entries()) {
-      expect(rank).toBe(0);
+    for (const [, [workerNo, rank]] of scheduleState!.tasksByWorkerNo.entries()) {
+      expect(rank).toBe(workerNo === 'main' ? 1 : 0);
     }
-    for (const [, [, rank]] of scheduleState!.ranksByWorkerNo.entries()) {
-      expect(rank).toBe(0);
+    for (const [, [workerNo, rank]] of scheduleState!.ranksByWorkerNo.entries()) {
+      expect(rank).toBe(workerNo === 'main' ? 1 : 0);
     }
   }
 

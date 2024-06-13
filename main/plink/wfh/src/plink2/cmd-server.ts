@@ -7,13 +7,13 @@ import fs from 'fs';
 import * as rx from 'rxjs';
 import chalk from 'chalk';
 import {SingleActionFactory, ReactorComposite2} from '@wfh/reactivizer';
-import {initProcess} from '../utils/bootstrap-process';
+// import {initProcess} from '../utils/bootstrap-process';
 import {createProcessManager} from './server-process';
 import * as sps0 from './server-process-stdout';
 
 const startTime = new Date().getTime();
-process.env.__plinkLogMainPid = process.pid + '';
-initProcess('save');
+// process.env.__plinkLogMainPid = process.pid + '';
+// initProcess('save');
 
 process.on('exit', (code) => {
   // eslint-disable-next-line no-console
@@ -33,7 +33,7 @@ if (process.argv.every(arg => arg !== '--print-std')) {
   // eslint-disable-next-line no-console
   console.log('Redirect ouput to file');
   fout = fs.createWriteStream('plink-daemon.log', {
-    flags: 'a',
+    flags: 'w',
     encoding: 'binary' // output chunk is most likely Buffer object
   });
   const {createCurrentProcessOutputReader} = require('./server-process-stdout') as typeof sps0;
@@ -57,10 +57,8 @@ const outputTableFor = ['isStarted'] as const;
 
 // process.stdout.on('data', chunk => fout.write(chunk));
 
-function reactorLog(msg: string, ...args: any[]) {
+function reactorLog(...args: any[]) {
   fout.write(new Date().toLocaleTimeString());
-  fout.write(' ');
-  fout.write(msg);
   for (const arg of args) {
     fout.write(' ');
     fout.write(util.inspect(arg, false, 0));
@@ -173,7 +171,7 @@ r('onRequestLine -> processManager.sendCommand', o.pt.onRequestLine.pipe(
     ).pipe(
       rx.take(1),
       rx.catchError(err => {
-        console.log('cmd-server catch error', err);
+        console.error('Server catch error', err);
         return rx.EMPTY;
       }),
       rx.finalize(() => {

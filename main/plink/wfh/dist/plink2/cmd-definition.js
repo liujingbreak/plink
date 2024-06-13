@@ -108,6 +108,7 @@ function define(rootDir, onShutdown) {
                 console.log(`Total ${countFile} files, ${emitFiles.length} is written successfully`);
             }))))));
         });
+        tsc.addHelpCommand();
         program.command('stop')
             .description('Stop daemon process')
             .action(async () => {
@@ -116,6 +117,16 @@ function define(rootDir, onShutdown) {
             cmd_model_1.cmdModelService.dispose();
             // eslint-disable-next-line no-console
             console.log('Bye');
+        });
+        program.command('dev:test').description('A test command')
+            .action(async () => {
+            console.log('hellow world');
+            await new Promise(resolve => setTimeout(() => {
+                process.stdout.moveCursor(0, -1);
+                process.stdout.clearLine(0);
+                console.log('hellow boss');
+                resolve();
+            }, 1000));
         });
         return program;
     }));

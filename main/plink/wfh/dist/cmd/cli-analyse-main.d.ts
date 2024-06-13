@@ -1,1 +1,1 @@
-export default function (): import("@wfh/reactivizer/dist/fork-join/types").WorkerControl<import("./cli-analyse-service").AnalyseInput, import("./cli-analyse-service").AnalyseOutput, readonly [], readonly []>;
+export default function (): import("@wfh/reactivizer/dist/fork-join/types").WorkerControl<import("./cli-analyse-service").AnalyseInput & import("./cli-analyse-service").AnalyseOutput, readonly []>;

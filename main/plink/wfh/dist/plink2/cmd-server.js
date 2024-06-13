@@ -9,11 +9,11 @@ const fs_1 = tslib_1.__importDefault(require("fs"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const reactivizer_1 = require("@wfh/reactivizer");
-const bootstrap_process_1 = require("../utils/bootstrap-process");
+// import {initProcess} from '../utils/bootstrap-process';
 const server_process_1 = require("./server-process");
 const startTime = new Date().getTime();
-process.env.__plinkLogMainPid = process.pid + '';
-(0, bootstrap_process_1.initProcess)('save');
+// process.env.__plinkLogMainPid = process.pid + '';
+// initProcess('save');
 process.on('exit', (code) => {
     // eslint-disable-next-line no-console
     console.log((process.send || !worker_threads_1.isMainThread ? `[P${process.pid}.T${worker_threads_1.threadId}] ` : '') +
@@ -24,7 +24,7 @@ if (process.argv.every(arg => arg !== '--print-std')) {
     // eslint-disable-next-line no-console
     console.log('Redirect ouput to file');
     fout = fs_1.default.createWriteStream('plink-daemon.log', {
-        flags: 'a',
+        flags: 'w',
         encoding: 'binary' // output chunk is most likely Buffer object
     });
     const { createCurrentProcessOutputReader } = require('./server-process-stdout');
@@ -34,10 +34,8 @@ if (process.argv.every(arg => arg !== '--print-std')) {
 const inputTableFor = ['setTTYSize'];
 const outputTableFor = ['isStarted'];
 // process.stdout.on('data', chunk => fout.write(chunk));
-function reactorLog(msg, ...args) {
+function reactorLog(...args) {
     fout.write(new Date().toLocaleTimeString());
-    fout.write(' ');
-    fout.write(msg);
     for (const arg of args) {
         fout.write(' ');
         fout.write(util.inspect(arg, false, 0));
@@ -124,7 +122,7 @@ r('onRequestLine -> processManager.sendCommand', o.pt.onRequestLine.pipe(rx.merg
         }
     });
     return processManager.i.ft.sendCommand(inputTable.getData().setTTYSize, dir, args, out).od(processManager.o.pt.onCommandDoneAnyway).pipe(rx.take(1), rx.catchError(err => {
-        console.log('cmd-server catch error', err);
+        console.error('Server catch error', err);
         return rx.EMPTY;
     }), rx.finalize(() => {
         void Promise.resolve().then(() => res.end());

@@ -19,7 +19,7 @@ export function applyScheduler(broker, opts) {
     /** Used to check if current workerr can be terminated later */
     const tasksByWorkerNo = new Map();
     const { maxNumOfWorker } = opts;
-    r('assignWorker -> workerAssigned', table.l.assignWorker.pipe(rx.map(([m]) => {
+    r('assignWorker -> workerAssigned', s.pt.assignWorker.pipe(rx.map(([m]) => {
         try {
             const minTreeNode = workerRankTree.minimum();
             if (minTreeNode && (minTreeNode.key === 0 ||
@@ -62,7 +62,7 @@ export function applyScheduler(broker, opts) {
         tasks[1]++;
         checkNumOfTasks(m, workerNo, tasks[1]);
     })));
-    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', rx.concat(table.l.allReadyWorkers.pipe(rx.take(1), rx.mergeMap(([, set]) => set)), s.pt.newWorkerReady.pipe(rx.map(([, ...rest]) => rest))).pipe(rx.mergeMap(([workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError(`worker #${workerNo} stopWaiting -> ...`)), workerOutputCtl.pt.wait.pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError(`worker #${workerNo} wait`)), workerOutputCtl.pt.returned.pipe(rx.tap(([m]) => {
+    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', table.l.allReadyWorkers.pipe(rx.switchMap(([, worker$]) => worker$), rx.mergeMap(([workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError(`worker #${workerNo} stopWaiting -> ...`)), workerOutputCtl.pt.wait.pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError(`worker #${workerNo} wait`)), workerOutputCtl.pt.returned.pipe(rx.tap(([m]) => {
         changeWorkerRank(workerNo, -1);
         const taskCount = tasksByWorkerNo.get(workerNo);
         if (taskCount) {
@@ -142,6 +142,7 @@ export function applyScheduler(broker, opts) {
             }
         }
     }
+    s.ft.workerAssigned(0, 'main', true, 0).dp(); // Always rank busy level of main thread starting from 1, so that the real first assignment can go to other thread
     return { ranksByWorkerNo, tasksByWorkerNo };
 }
 //# sourceMappingURL=worker-scheduler.js.map

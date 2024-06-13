@@ -14,10 +14,7 @@ export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<i
     analyzeFile(d: AnalyzeState, payload: {
         files: string[];
         tsconfig?: string;
-        alias: [
-            pattern: string,
-            replace: string
-        ][];
+        alias: [pattern: string, replace: string][];
         ignore?: string;
     }): void;
 }> & import("@wfh/redux-toolkit-observable").ExtraSliceReducers<AnalyzeState>, "analyze">;

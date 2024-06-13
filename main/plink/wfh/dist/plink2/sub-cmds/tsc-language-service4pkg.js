@@ -169,7 +169,7 @@ function addOnPackageFeatures(baseService, pkgMgr, lookupService) {
             var _a;
             if (pkgInfo == null) {
                 // baseService.dispatchErrorFor(`Source directory of ${pkgName} is not found`, m);
-                ft.log(tsc_language_service_1.LogLevel.error, `Source directory of ${pkgName} is not found`).dp();
+                ft.log(tsc_language_service_1.LogLevel.error, `Source directory of "${pkgName}" is not found`).dp();
                 return rx.EMPTY;
             }
             const tscCfg = (0, package_mgr2_utils_1.getTscConfigOfPkg)(pkgInfo.json);

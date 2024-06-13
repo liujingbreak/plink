@@ -36,7 +36,7 @@ export const configViewSlice = stateFactory.newSlice({
   name: 'configView',
   initialState,
   reducers: {
-    loadPackageSettingMeta(d, action: PayloadAction<{workspaceKey: string; packageName?: string}>) {},
+    loadPackageSettingMeta(_d, _action: PayloadAction<{workspaceKey: string; packageName?: string}>) {},
     _packageSettingMetaLoaded(s,
       {payload: [propMetas, dtsFile, pkg]}: PayloadAction<[PropertyMeta[], string, PackageInfo]>) {
       s.packageMetaByName.set(pkg.name, {
@@ -64,7 +64,7 @@ export const configViewSlice = stateFactory.newSlice({
 export const dispatcher = stateFactory.bindActionCreators(configViewSlice);
 const parallelService = createMainWorkerAndBroker();
 
-stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
+stateFactory.addEpic<{configView: ConfigViewState}>((action$, _state$) => {
   return rx.merge(
     action$.pipe(ofPayloadAction(configViewSlice.actions.loadPackageSettingMeta),
       op.switchMap(({payload}) => {
@@ -79,7 +79,7 @@ stateFactory.addEpic<{configView: ConfigViewState}>((action$, state$) => {
 
             const dtsFileBase = Path.resolve(pkg.realPath, typeFile);
             const [, propMetas, dtsFile] = await rx.firstValueFrom(
-              parallelService.i.ft.parseDtsInWorker(dtsFileBase, typeExport).do(parallelService.o.pt.parseDtsDone)
+              parallelService.s.ft.parseDtsInWorker(dtsFileBase, typeExport).do(parallelService.s.pt.parseDtsDone)
             );
             log.debug(propMetas);
             dispatcher._packageSettingMetaLoaded([propMetas, Path.relative(pkg.realPath, dtsFile), pkg]);

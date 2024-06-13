@@ -8,4 +8,4 @@ export interface WorkerInput {
 export interface WorkerOutput {
     parseDtsDone(metas: PropertyMeta[], dfsFile: string): SingleActionFactory;
 }
-export declare function createService(debug?: boolean): import("@wfh/reactivizer/dist/fork-join/types").WorkerControl<WorkerInput, WorkerOutput, readonly [], readonly []>;
+export declare function createService(debug?: boolean): import("@wfh/reactivizer/dist/fork-join/types").WorkerControl<WorkerInput & WorkerOutput, readonly []>;

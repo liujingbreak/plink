@@ -9,7 +9,7 @@ import {markdownProcessor, setupBroker} from './markdown-processor-main';
 
 const log = log4File(__filename);
 const broker = setupBroker(false);
-const {i, o} = markdownProcessor;
+const {s} = markdownProcessor;
 
 type ProcessStateOfFile = {
   importCode: string[];
@@ -20,7 +20,7 @@ type ProcessStateOfFile = {
 const processStateByFile = new Map<string, ProcessStateOfFile>();
 
 broker.r('newWorkerReady, (imageToBeResolved, linkToBeResolved)',
-  broker.outputTable.l.newWorkerReady.pipe(
+  broker.table.l.newWorkerReady.pipe(
     rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => rx.merge(
       workerOutput.pt.imageToBeResolved.pipe(
         rx.tap(([m, imgSrc, file]) => {
@@ -61,7 +61,7 @@ const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
   const cb = this.async();
   processStateByFile.set(this.resourcePath, {importCode: [], imgIdx: 0, links: []});
 
-  i.ft.forkProcessFile(source, this.resourcePath).ddo(o.at.processFileDone).pipe(
+  s.ft.forkProcessFile(source, this.resourcePath).od(s.pt.processFileDone).pipe(
     rx.take(1),
     rx.tap(([, {resultHtml, toc, mermaid}]) => {
       const {importCode, links} = processStateByFile.get(this.resourcePath)!;

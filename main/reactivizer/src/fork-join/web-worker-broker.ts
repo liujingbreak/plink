@@ -27,7 +27,7 @@ export function createBroker<I = Record<never, never>>(
     typeof tableFor>(options as any);
   broker.table.addActions(...tableFor);
   const workerProps = new Map<number, WorkerProperties>();
-  const allReadyWorkers = new Set<InferPayload<BrokerEvent<I>['newWorkerReady']>>();
+  const allReadyWorkers = new rx.ReplaySubject<InferPayload<BrokerEvent<I>['newWorkerReady']>>();
   const {r, s} = broker;
 
   r('workerInited -> newWorkerReady', s.pt.workerInited.pipe(
@@ -111,7 +111,7 @@ export function createBroker<I = Record<never, never>>(
   r('(newWorkerReady) forkByBroker, workerInited -> ensureInitWorker, worker chan postMessage()',
     s.pt.newWorkerReady.pipe(
       rx.tap(([, ...props]) => {
-        allReadyWorkers.add(props);
+        allReadyWorkers.next(props);
       }),
       rx.mergeMap(([, fromWorkerNo, workerOutput]) => (workerOutput as unknown as RxController2<ForkWorkerOutput>).pt.forkByBroker.pipe(
         rx.mergeMap(async ([, targetAction, port]) => {
@@ -154,7 +154,6 @@ export function createBroker<I = Record<never, never>>(
 
   r('mainThreadInit', s.pt.mainThreadInit.pipe(
     rx.tap(() => {
-      broker.s.ft.workerAssigned(0, 'main', true, 0).dp();
       broker.s.ft.newWorkerReady(0, workerController.s, workerController.s).dp();
     })
   ));

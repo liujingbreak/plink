@@ -2,9 +2,8 @@ import util from 'node:util';
 import {isMainThread, threadId} from 'worker_threads';
 import * as rx from 'rxjs';
 import chalk from 'chalk';
-import {ReactorComposite2, serializeAction, deserializeAction2} from '@wfh/reactivizer';
-import {initProcess} from '../utils/bootstrap-process';
-import {parseCommand} from '../cmd/cli';
+import {BaseActions, serializeAction, deserializeAction2, SimplexReactor, RxController2} from '@wfh/reactivizer';
+// import {initProcess} from '../utils/bootstrap-process';
 import {workDirChangedByCli} from '../fork-for-preserve-symlink';
 import {cmdModelService} from './cmd-model';
 import {define as defineCommand} from './cmd-definition';
@@ -19,12 +18,12 @@ if (process.send) {
   process.on('message', (msg: any) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (msg.type === 'rx:message') {
-      deserializeAction2((msg as {content: any}).content, service.i);
+      deserializeAction2((msg as {content: any}).content, service.s);
       return;
     }
   });
   process.env.__plinkLogMainPid = process.pid + '';
-  initProcess('save');
+  // initProcess('save');
   process.on('exit', (code) => {
     // eslint-disable-next-line no-console
     console.log((process.send || !isMainThread ? `[P${process.pid}.T${threadId}] ` : '') +
@@ -32,35 +31,28 @@ if (process.send) {
   });
 }
 
-const inputTableFor = ['setRootDir'] as const;
-const outputTableFor = ['onCommanderInited'] as const;
-export const service = new ReactorComposite2<CmdChildProcessInput, CmdChildProcessEvents, typeof inputTableFor, typeof outputTableFor>({
+const tableFor = ['setRootDir', 'onCommanderInited'] as const;
+export const service = new SimplexReactor<CmdChildProcessInput & CmdChildProcessEvents, typeof tableFor>({
   name: 'server-child-process-entry',
-  debug: false,
-  inputTableFor,
-  outputTableFor,
+  debug: true,
+  tableFor,
   log(msg, ...objs) {
-    // const [, logger] = service.inputTable.getData().setRootDir;
-    // if (logger) {
-    //   logger(msg, ...objs);
-    // } else {
     // eslint-disable-next-line no-console
     console.log(msg, ...objs.map(it => util.inspect(it, false, 0)));
-    // }
   }
 });
 
-const {i, o, r, outputTable} = service;
+const {s, r, table} = service;
 
 const rootDir$ = (process.send ?
   rx.of(process.cwd()) :
-  service.inputTable.l.setRootDir.pipe(
+  service.table.l.setRootDir.pipe(
     rx.map(([, dir]) => dir)
   ));
 
 r('setRootDir? -> onCommanderInited', rootDir$.pipe(
-  rx.mergeMap(dir => defineCommand(dir, () => o.ft.onShutdown().dp())),
-  rx.tap(program => o.ft.onCommanderInited(program).dp())
+  rx.mergeMap(dir => defineCommand(dir, () => s.ft.onShutdown().dp())),
+  rx.tap(program => s.ft.onCommanderInited(program).dp())
 ));
 
 r('cmdModelService.enableRxMessageTrace ->', cmdModelService.inputTable.l.enableRxMessageTrace.pipe(
@@ -70,8 +62,8 @@ r('cmdModelService.enableRxMessageTrace ->', cmdModelService.inputTable.l.enable
   })
 ));
 
-r('doCommand -> onCommandDone', i.pt.doCommand.pipe(
-  rx.mergeMap((a) => outputTable.l.onCommanderInited.pipe(
+r('doCommand -> onCommandDone', s.pt.doCommand.pipe(
+  rx.mergeMap((a) => table.l.onCommanderInited.pipe(
     rx.map(([, commander]) => [...a, commander] as const),
     rx.take(1)
   )),
@@ -81,19 +73,30 @@ r('doCommand -> onCommandDone', i.pt.doCommand.pipe(
       process.chdir(cwd);
       workDirChangedByCli(cmd);
     }
+    const exit = process.exit;
     try {
-      await parseCommand(commander, cmd);
-      o.ft.onCommandDone().dp(m);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      process.exit = (() => {
+        throw new Error('cmd-help');
+      }) as any; // commander's help() will invoke process.exit(), I have to void this happends
+      await commander.parseAsync(cmd, {from: 'user'});
+      s.ft.onCommandDone().dp(m);
     } catch (err) {
-      o.ft.onCommandError(util.inspect(err)).dp(m);
-      service.dispatchErrorFor(err, m);
+      if (err.message === 'cmd-help') {
+        s.ft.onCommandDone().dp(m);
+      } else {
+        s.ft.onCommandError(util.inspect(err)).dp(m);
+        service.dispatchErrorFor(err, m);
+      }
+    } finally {
+      process.exit = exit;
     }
   })
 ));
 
 if (process.send) {
   r('events should be lifted to parent process', rx.merge(
-    o.at.onCommandError, o.at.onCommandDone, o.at.onReady, o.at.onShutdown, o.at.__onError
+    s.at.onCommandError, s.at.onCommandDone, s.at.onReady, s.at.onShutdown, (s as unknown as RxController2<BaseActions>).at.__onError
   ).pipe(
     rx.map(a => process.send!({
       type: 'rx:message',
@@ -102,9 +105,9 @@ if (process.send) {
   ));
 }
 
-r('onShutdown', o.pt.onShutdown.pipe(
+r('onShutdown', s.pt.onShutdown.pipe(
   rx.map(() => setImmediate(() => service.dispose()))
 ));
 
 if (process.send)
-  o.ft.onReady().dp({i: Number(process.argv[2])});
+  s.ft.onReady().dp({i: Number(process.argv[2])});

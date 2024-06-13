@@ -70,7 +70,6 @@ class SimplexReactor {
                 this.opts.log(err);
             else
                 console.error(err);
-            internalMsg$.ft.__onError(err).dp();
             return src;
         })).subscribe();
         this.table = new action_table_1.ActionTable(this.s, [...(_b = opts === null || opts === void 0 ? void 0 : opts.tableFor) !== null && _b !== void 0 ? _b : [], ...baseTableFor]);

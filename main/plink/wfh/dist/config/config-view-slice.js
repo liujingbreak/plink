@@ -22,7 +22,7 @@ exports.configViewSlice = store_1.stateFactory.newSlice({
     name: 'configView',
     initialState,
     reducers: {
-        loadPackageSettingMeta(d, action) { },
+        loadPackageSettingMeta(_d, _action) { },
         _packageSettingMetaLoaded(s, { payload: [propMetas, dtsFile, pkg] }) {
             s.packageMetaByName.set(pkg.name, {
                 typeFile: dtsFile,
@@ -45,7 +45,7 @@ exports.configViewSlice = store_1.stateFactory.newSlice({
 // type MapValue<M> = M extends Map<string, infer T> ? T : never;
 exports.dispatcher = store_1.stateFactory.bindActionCreators(exports.configViewSlice);
 const parallelService = (0, config_view_slice_worker_main_1.createMainWorkerAndBroker)();
-store_1.stateFactory.addEpic((action$, state$) => {
+store_1.stateFactory.addEpic((action$, _state$) => {
     return rx.merge(action$.pipe((0, store_1.ofPayloadAction)(exports.configViewSlice.actions.loadPackageSettingMeta), op.switchMap(({ payload }) => {
         // const pool = new Pool(os.cpus().length - 1);
         const pkgState = (0, package_mgr_1.getState)();
@@ -53,7 +53,7 @@ store_1.stateFactory.addEpic((action$, state$) => {
         return Promise.all(Array.from((0, index_1.getPackageSettingFiles)(payload.workspaceKey, payload.packageName ? new Set([payload.packageName]) : undefined)).concat([['wfh/dist/config/config-slice', 'PlinkSettings', '', '', plinkPkg]])
             .map(async ([typeFile, typeExport, , , pkg]) => {
             const dtsFileBase = path_1.default.resolve(pkg.realPath, typeFile);
-            const [, propMetas, dtsFile] = await rx.firstValueFrom(parallelService.i.ft.parseDtsInWorker(dtsFileBase, typeExport).do(parallelService.o.pt.parseDtsDone));
+            const [, propMetas, dtsFile] = await rx.firstValueFrom(parallelService.s.ft.parseDtsInWorker(dtsFileBase, typeExport).do(parallelService.s.pt.parseDtsDone));
             log.debug(propMetas);
             exports.dispatcher._packageSettingMetaLoaded([propMetas, path_1.default.relative(pkg.realPath, dtsFile), pkg]);
         }));

@@ -13,7 +13,7 @@ export function createBroker(workerController, opts) {
     const broker = new SimplexReactor(options);
     broker.table.addActions(...tableFor);
     const workerProps = new Map();
-    const allReadyWorkers = new Set();
+    const allReadyWorkers = new rx.ReplaySubject();
     const { r, s } = broker;
     r('workerInited -> newWorkerReady', s.pt.workerInited.pipe(rx.filter(([, , , , skipped]) => !skipped), rx.tap(([meta, workerNo, , outputCtrl]) => s.ft.newWorkerReady(workerNo, outputCtrl, workerProps.get(workerNo).input).dp(meta))));
     r('ensureInitWorker, message channel -> workerInited, onWorkerExit, onWorkerError', s.pt.ensureInitWorker.pipe(rx.mergeMap(([meta, workerNo, worker]) => {
@@ -78,7 +78,7 @@ export function createBroker(workerController, opts) {
     // rx.takeUntil(s.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
     r('(newWorkerReady) forkByBroker, workerInited -> ensureInitWorker, worker chan postMessage()', s.pt.newWorkerReady.pipe(rx.tap(([, ...props]) => {
-        allReadyWorkers.add(props);
+        allReadyWorkers.next(props);
     }), rx.mergeMap(([, fromWorkerNo, workerOutput]) => workerOutput.pt.forkByBroker.pipe(rx.mergeMap(async ([, targetAction, port]) => {
         let assignedWorkerNo;
         try {
@@ -111,7 +111,6 @@ export function createBroker(workerController, opts) {
         prop.state = 'exit';
     })));
     r('mainThreadInit', s.pt.mainThreadInit.pipe(rx.tap(() => {
-        broker.s.ft.workerAssigned(0, 'main', true, 0).dp();
         broker.s.ft.newWorkerReady(0, workerController.s, workerController.s).dp();
     })));
     s.ft.mainThreadInit().dp();

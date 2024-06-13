@@ -271,7 +271,7 @@ export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: P
       rx.mergeMap(([pkgName, pkgInfo]) => {
         if (pkgInfo == null) {
           // baseService.dispatchErrorFor(`Source directory of ${pkgName} is not found`, m);
-          ft.log(LogLevel.error, `Source directory of ${pkgName} is not found`).dp();
+          ft.log(LogLevel.error, `Source directory of "${pkgName}" is not found`).dp();
           return rx.EMPTY;
         }
         const tscCfg = getTscConfigOfPkg(pkgInfo.json);

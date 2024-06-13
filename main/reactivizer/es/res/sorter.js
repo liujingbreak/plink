@@ -118,7 +118,6 @@ export function createSorter(comparator, opts) {
         }
     };
     const sorter = createWorkerControlOfFn(sortActions, opts);
-    // const sorterWithConfig = patch<{config(opts: Omit<ReactorCompositeOpt<I, O, LI, LO>, 'name' | 'autoConnect'>): SingleActionFactory}>().to(sorter);
     return sorter;
 }
 //# sourceMappingURL=sorter.js.map

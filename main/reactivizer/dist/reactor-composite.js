@@ -91,7 +91,6 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
                 this.opts.log(err);
             else
                 console.error(err);
-            output$.ft.__onError(err).dp();
             return src;
         })).subscribe();
         // this.logSubj = new rx.ReplaySubject(50);

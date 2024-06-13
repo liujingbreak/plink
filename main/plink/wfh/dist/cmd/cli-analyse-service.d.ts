@@ -47,4 +47,4 @@ export interface AnalyseInput {
 export interface AnalyseOutput {
     doneDfsTraverseFiles(res: ReturnType<Context['toPlainObject']>): SingleActionFactory;
 }
-export declare function createService(): import("@wfh/reactivizer/dist/fork-join/types").WorkerControl<AnalyseInput, AnalyseOutput, readonly [], readonly []>;
+export declare function createService(): import("@wfh/reactivizer/dist/fork-join/types").WorkerControl<AnalyseInput & AnalyseOutput, readonly []>;

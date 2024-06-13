@@ -17,7 +17,7 @@ function createProcessManager(log) {
     const plinkProcessByDir = new Map();
     if (mainPlinkRoot) {
         plinkProcessByDir.set(mainPlinkRoot, { process: 'main', ready: true });
-        server_child_process_entry_1.service.i.ft.setRootDir(mainPlinkRoot, log).dp();
+        server_child_process_entry_1.service.s.ft.setRootDir(mainPlinkRoot, log).dp();
     }
     else {
         throw new Error('can not find @wfh/plink directory in');
@@ -28,15 +28,17 @@ function createProcessManager(log) {
         log
     });
     /** Child process service */
-    const cpService = new reactivizer_1.ReactorComposite2({
+    const cpService = new reactivizer_1.SimplexReactor({
         name: 'cmdChildProcessProcProxy',
         debug: false,
         log
     });
     const { i, o, r } = processManager;
     r('cmdModelService.enableRxMessageTrace ->', cmd_model_1.cmdModelService.inputTable.l.enableRxMessageTrace.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([, enabled]) => {
-        processManager.config({ debug: enabled });
-        cpService.config({ debug: enabled });
+        const opts = { debug: enabled };
+        server_child_process_entry_1.service.config(opts);
+        processManager.config(opts);
+        cpService.config(opts);
     })));
     r('getProcessFor -> processFor', i.pt.getProcessFor.pipe(rx.map(([m, dir]) => {
         const root = (0, process_common_2.lookupPlinkRoot)(Path.resolve(dir));
@@ -74,51 +76,57 @@ function createProcessManager(log) {
     // Using concatMap: commands should be queued up by correspoding child process or rootDir
     rx.mergeMap(([m, cols, rows, cmd, output, p, rootDir, cwd]) => {
         var _a;
-        if (p === 'main') {
-            (0, process_common_1.setupTTY)(cols, rows);
-            if (process.cwd() !== cwd) {
-                process.chdir(cwd);
-                (0, fork_for_preserve_symlink_1.workDirChangedByCli)(cmd);
+        try {
+            if (p === 'main') {
+                (0, process_common_1.setupTTY)(cols, rows);
+                if (process.cwd() !== cwd) {
+                    process.chdir(cwd);
+                    (0, fork_for_preserve_symlink_1.workDirChangedByCli)(cmd);
+                }
+                const [stdout, stopReadStdout] = (0, server_process_stdout_1.createCurrentProcessOutputReader)();
+                stdout.pipe(output);
+                return server_child_process_entry_1.service.s.ft.doCommand(cols, rows, cwd, cmd)
+                    .od(server_child_process_entry_1.service.s.pt.onCommandDone).pipe(rx.take(1), rx.timeout(120000), // 2 min
+                rx.catchError(err => {
+                    processManager.dispatchErrorFor(err, m);
+                    return rx.EMPTY;
+                }), rx.finalize(() => {
+                    stopReadStdout();
+                    o.ft.onCommandDoneAnyway().dp(m);
+                }));
             }
-            const [stdout, stopReadStdout] = (0, server_process_stdout_1.createCurrentProcessOutputReader)(true);
-            stdout.pipe(output);
-            return server_child_process_entry_1.service.i.ft.doCommand(cols, rows, cwd, cmd)
-                .od(server_child_process_entry_1.service.o.pt.onCommandDone).pipe(rx.take(1), rx.timeout(120000), // 2 min
-            rx.catchError(err => {
-                processManager.dispatchErrorFor(err, m);
-                return rx.EMPTY;
-            }), rx.finalize(() => {
-                stopReadStdout();
-                o.ft.onCommandDoneAnyway().dp(m);
-            }));
+            else {
+                p.stdout.pipe(output);
+                p.stderr.pipe(output);
+                return (
+                // wait for child process ready
+                ((_a = plinkProcessByDir.get(rootDir)) === null || _a === void 0 ? void 0 : _a.ready) ?
+                    rx.of(p) :
+                    o.pt.onChildProcessReady.pipe(rx.filter(([, d]) => rootDir === d), rx.take(1), rx.map(() => p))).pipe(rx.mergeMap(() => {
+                    const msg = cpService.s.createAction('doCommand', [cols, rows, cwd, cmd]);
+                    msg.r = m.i;
+                    p.send({
+                        type: 'rx:message',
+                        content: (0, reactivizer_1.serializeAction)(msg)
+                    });
+                    return rx.merge(cpService.s.pt.onCommandDone, cpService.s.pt.onCommandError).pipe((0, reactivizer_1.actionRelatedToAction)(msg), rx.take(1));
+                }), rx.finalize(() => {
+                    o.ft.onCommandDoneAnyway().dp(m);
+                    p.stdout.unpipe(output);
+                    p.stderr.unpipe(output);
+                }));
+            }
         }
-        else {
-            p.stdout.pipe(output);
-            p.stderr.pipe(output);
-            return (
-            // wait for child process ready
-            ((_a = plinkProcessByDir.get(rootDir)) === null || _a === void 0 ? void 0 : _a.ready) ?
-                rx.of(p) :
-                o.pt.onChildProcessReady.pipe(rx.filter(([, d]) => rootDir === d), rx.take(1), rx.map(() => p))).pipe(rx.mergeMap(() => {
-                const msg = cpService.i.createAction('doCommand', [cols, rows, cwd, cmd]);
-                msg.r = m.i;
-                p.send({
-                    type: 'rx:message',
-                    content: (0, reactivizer_1.serializeAction)(msg)
-                });
-                return rx.merge(cpService.o.pt.onCommandDone, cpService.o.pt.onCommandError).pipe((0, reactivizer_1.actionRelatedToAction)(msg), rx.take(1));
-            }), rx.finalize(() => {
-                o.ft.onCommandDoneAnyway().dp(m);
-                p.stdout.unpipe(output);
-                p.stderr.unpipe(output);
-            }));
+        catch (err) {
+            processManager.dispatchErrorFor(err, m);
+            return rx.EMPTY;
         }
     })))));
-    r('processFor (onReady) -> change plinkProcessByDir', o.pt.processFor.pipe(rx.mergeMap(([m, , dir]) => cpService.o.pt.onReady.pipe((0, reactivizer_1.actionRelatedToActionRelatives)(m), rx.map(() => {
+    r('processFor (onReady) -> change plinkProcessByDir', o.pt.processFor.pipe(rx.mergeMap(([m, , dir]) => cpService.s.pt.onReady.pipe((0, reactivizer_1.actionRelatedToActionRelatives)(m), rx.map(() => {
         plinkProcessByDir.get(dir).ready = true;
         o.ft.onChildProcessReady(dir).dp(m);
     }), rx.take(1)))));
-    r('onShutdown -> dispose', rx.merge(server_child_process_entry_1.service.o.pt.onShutdown, cpService.o.pt.onShutdown).pipe(rx.concatMap(() => rx.timer(500)), rx.mergeMap(() => rx.from(plinkProcessByDir.entries()).pipe(rx.mergeMap(([dir, { ready, process: child }]) => (child === 'main' ?
+    r('onShutdown -> dispose', rx.merge(server_child_process_entry_1.service.s.pt.onShutdown, cpService.s.pt.onShutdown).pipe(rx.concatMap(() => rx.timer(500)), rx.mergeMap(() => rx.from(plinkProcessByDir.entries()).pipe(rx.mergeMap(([dir, { ready, process: child }]) => (child === 'main' ?
         rx.of(null) :
         ready ?
             rx.of(child) :
@@ -156,7 +164,7 @@ function createProcessManager(log) {
                 const action = msg.content;
                 if (action.r == null)
                     action.r = m.i;
-                (0, reactivizer_1.deserializeAction2)(action, cpService.o);
+                (0, reactivizer_1.deserializeAction2)(action, cpService.s);
             }
         });
         // rx.merge(

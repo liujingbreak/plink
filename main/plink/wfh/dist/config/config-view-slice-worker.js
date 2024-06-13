@@ -10,9 +10,9 @@ function createService(debug = false) {
     const service = (0, node_worker_1.createWorkerControl)({
         name: 'configViewSliceWorker',
         debug,
-        debugExcludeTypes: ['workerInited']
+        debugExcludeTypes: ['inited']
     });
-    const { i, o, r } = service;
+    const { s: i, s: o, r } = service;
     r('parseDtsInWorker', i.pt.parseDtsInWorker.pipe(rx.mergeMap(async ([m, dtsFileBase, typeExport]) => {
         const done$ = o.ft.fork('parseDts', dtsFileBase, typeExport).do(i.pt.parseDtsDone);
         const [, ...results] = await node_worker_1.setIdleDuring.asPromise(service, done$);
@@ -30,7 +30,7 @@ async function doParse(dtsFileBase, typeExport) {
     const content = await fs_1.default.promises.readFile(dtsFile, 'utf-8');
     const sel = new ts_ast_query_1.default(content, dtsFile);
     let interfAst;
-    sel.some(null, '^:InterfaceDeclaration', (ast, path, parents, isLeaf, comment) => {
+    sel.some(null, '^:InterfaceDeclaration', (ast, _path, _parents, _isLeaf, _comment) => {
         if (ast.name.getText() === typeExport) {
             // const symbol = checker.getSymbolsInScope((ast as ts.InterfaceDeclaration).name, ts.SymbolFlags.Interface);
             // console.log(symbol);
@@ -40,7 +40,7 @@ async function doParse(dtsFileBase, typeExport) {
     });
     const metas = [];
     if (interfAst) {
-        sel.some(interfAst, '^.members:PropertySignature', (ast, path, parents, isLeaf, comment) => {
+        sel.some(interfAst, '^.members:PropertySignature', (ast, _path, _parents, _isLeaf, comment) => {
             var _a;
             const node = ast;
             // const symbol = checker.getSymbolAtLocation(node.type!);

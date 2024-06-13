@@ -13,6 +13,7 @@ export function applySharedReactors(isMainWorker, comp, log) {
         r('(inited) log -> "postMessage to broker (parent thread)"', lo.inited.pipe(rx.filter(([, , , port]) => port != null), rx.take(1), rx.switchMap(([, , logPrefix, port]) => lo.log.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         rx.map(([, ...p]) => port === null || port === void 0 ? void 0 : port.postMessage({ type: 'log', p: [logPrefix, ...p] }))))));
+        r('changeConfig', s.pt.changeConfig.pipe(rx.map(([, config]) => comp.config(config))));
     }
     else {
         // main thread

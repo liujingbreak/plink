@@ -1,16 +1,16 @@
 import { ForkTransferablePayload } from '../fork-join/node-worker';
-import type { ReactorCompositeOpt } from '../epic';
+import type { SimplexReactorOptions } from '../index';
 import { ForkWorkerInput, ForkWorkerOutput } from '../fork-join/types';
 import { ForkSortComparator, WritableArray } from './sort-comparator-interf';
-export declare function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: ReactorCompositeOpt<ForkWorkerInput & ForkWorkerOutput>): import("../fork-join/types").WorkerControl<{
-    sortAllInWorkerResolved: (p: [number, number]) => import("..").SingleActionFactory;
-    sortResolved: (p: [offset: number, len: number]) => import("..").SingleActionFactory;
-    mergeResolved: (p: ForkTransferablePayload<ArrayBuffer | null> | null) => import("..").SingleActionFactory;
+export declare function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: SimplexReactorOptions<ForkWorkerInput & ForkWorkerOutput>): import("../fork-join/types").WorkerControl<{
+    sortAllInWorkerResolved: (p: [number, number]) => import("../action-factory").SingleActionFactory;
+    sortResolved: (p: [offset: number, len: number]) => import("../action-factory").SingleActionFactory;
+    mergeResolved: (p: ForkTransferablePayload<ArrayBuffer | null> | null) => import("../action-factory").SingleActionFactory;
 } & {
-    sortAllInWorkerCompleted: () => import("..").SingleActionFactory;
-    sortCompleted: () => import("..").SingleActionFactory;
-    mergeCompleted: () => import("..").SingleActionFactory;
-} & import("..").ActionFactoryOfPlainType<{
+    sortAllInWorkerCompleted: () => import("../action-factory").SingleActionFactory;
+    sortCompleted: () => import("../action-factory").SingleActionFactory;
+    mergeCompleted: () => import("../action-factory").SingleActionFactory;
+} & import("../inferred-types").ActionFactoryOfPlainType<{
     sortAllInWorker(buf: SharedArrayBuffer, offset: number, len: number, noForkThreshold: number): Promise<[number, number]>;
     /**
      * @param noForkThreshold if `len` is larger than this number, `sort` function should fork half of array to recursive call, otherwise it just go with Array.sort() directly in current worker/thread

@@ -89,7 +89,6 @@ export class SimplexReactor<
           this.opts.log(err);
         else
           console.error(err);
-        internalMsg$.ft.__onError(err).dp();
         return src;
       })
     ).subscribe();

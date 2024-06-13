@@ -73,7 +73,7 @@ export type BrokerEvent<I = Record<never, never>> = {
   onAllWorkerExit(): SingleActionFactory;
   assignWorker(): SingleActionFactory;
   workerRankChanged(workerNo: number, value: number): SingleActionFactory;
-  allReadyWorkers<T>(workerSet: Set<InferPayload<BrokerEvent<T>['newWorkerReady']>>): SingleActionFactory;
+  allReadyWorkers<T>(workersReplay$: rx.Observable<InferPayload<BrokerEvent<T>['newWorkerReady']>>): SingleActionFactory;
 };
 
 export type ThreadExpirationEvents = {

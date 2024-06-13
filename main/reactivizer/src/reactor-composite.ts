@@ -115,7 +115,6 @@ export class ReactorComposite2<
           this.opts.log(err);
         else
           console.error(err);
-        output$.ft.__onError(err).dp();
         return src;
       })
     ).subscribe();

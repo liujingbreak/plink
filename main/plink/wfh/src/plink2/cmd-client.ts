@@ -57,14 +57,14 @@ r('onReqError -> onConnRefused', o.pt.onReqError.pipe(
     if ((err as unknown as {code: string}).code === 'ECONNREFUSED') {
       o.ft.onConnRefused().dp();
     } else {
-      console.error(err);
+      console.error('Client error', err);
       clientSerivce.dispose();
       process.exit(1);
     }
   })
 ));
 
-r('startCmdServer, onConnRefused -> request()', o.pt.startCmdServer.pipe(
+r('startCmdServer, onConnRefused -> requesting', o.pt.startCmdServer.pipe(
   rx.concatMap(([m]) => {
     // child_process.fork is not stable, it will quit by itself when second request is recieved, I have no clue on this.
     // It seems child_process.spawn works fine
@@ -99,7 +99,7 @@ r('startCmdServer, onConnRefused -> request()', o.pt.startCmdServer.pipe(
         ),
         new rx.Observable(sub => {
           function h(err: Error) {
-            console.error(err);
+            console.error('Client catch error of server process', err);
           }
           cp.on('error', h);
           o.ft.requesting().dp(m);

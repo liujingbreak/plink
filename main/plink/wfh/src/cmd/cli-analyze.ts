@@ -219,8 +219,8 @@ export async function analyseFiles(files: string[],
     return null;
   }
 
-  const [, result] = await firstValueFrom(mainWorker.i.ft.forkDfsTraverseFiles(files.map(p => Path.resolve(p)), tsconfigFile, alias, ignore).do(
-    mainWorker.o.pt.doneDfsTraverseFiles
+  const [, result] = await firstValueFrom(mainWorker.s.ft.forkDfsTraverseFiles(files.map(p => Path.resolve(p)), tsconfigFile, alias, ignore).do(
+    mainWorker.s.pt.doneDfsTraverseFiles
   ));
   return result;
 }

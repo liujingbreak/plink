@@ -37,7 +37,7 @@ export function applyScheduler(broker: Broker<any>, opts: {
   const tasksByWorkerNo = new Map<number, [worker: Worker | NodeWorker | 'main', numTasks: number, workerNo: number]>();
 
   const {maxNumOfWorker} = opts;
-  r('assignWorker -> workerAssigned', table.l.assignWorker.pipe(
+  r('assignWorker -> workerAssigned', s.pt.assignWorker.pipe(
     rx.map(([m]) => {
       try {
         const minTreeNode = workerRankTree.minimum();
@@ -85,13 +85,8 @@ export function applyScheduler(broker: Broker<any>, opts: {
   ));
 
   r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()',
-    rx.concat(
-      table.l.allReadyWorkers.pipe(
-        rx.take(1),
-        rx.mergeMap(([, set]) => set)
-      ),
-      s.pt.newWorkerReady.pipe(rx.map(([, ...rest]) => rest))
-    ).pipe(
+    table.l.allReadyWorkers.pipe(
+      rx.switchMap(([, worker$]) => worker$),
       rx.mergeMap(([workerNo, workerOutputCtl]) => rx.merge(
         workerOutputCtl.pt.stopWaiting.pipe(
           rx.tap(() => changeWorkerRank(workerNo, 1)),
@@ -212,5 +207,6 @@ export function applyScheduler(broker: Broker<any>, opts: {
       }
     }
   }
+  s.ft.workerAssigned(0, 'main', true, 0).dp(); // Always rank busy level of main thread starting from 1, so that the real first assignment can go to other thread
   return {ranksByWorkerNo, tasksByWorkerNo};
 }

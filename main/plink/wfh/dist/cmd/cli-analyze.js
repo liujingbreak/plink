@@ -186,7 +186,7 @@ async function analyseFiles(files, tsconfigFile, alias, ignore) {
         log.warn('No source files are found');
         return null;
     }
-    const [, result] = await (0, rxjs_1.firstValueFrom)(mainWorker.i.ft.forkDfsTraverseFiles(files.map(p => path_1.default.resolve(p)), tsconfigFile, alias, ignore).do(mainWorker.o.pt.doneDfsTraverseFiles));
+    const [, result] = await (0, rxjs_1.firstValueFrom)(mainWorker.s.ft.forkDfsTraverseFiles(files.map(p => path_1.default.resolve(p)), tsconfigFile, alias, ignore).do(mainWorker.s.pt.doneDfsTraverseFiles));
     return result;
 }
 exports.analyseFiles = analyseFiles;
