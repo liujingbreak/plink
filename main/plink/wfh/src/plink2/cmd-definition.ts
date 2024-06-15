@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 // import fs from 'fs';
+import rl from 'node:readline';
 import * as rx from 'rxjs';
 import commander from 'commander';
 import chalk from 'chalk';
@@ -85,15 +86,19 @@ export function define(rootDir: string, onShutdown: () => void) {
         .description('Run Typescript compiler')
         .option('-w, --watch', 'Typescript compiler watch mode', false)
         .option('--poll', 'Use poll mode watch', false)
-        .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
-          prev.push(...v.split(',')); return prev;
-        }, [] as string[])
+        .option('--stop', 'stop watching', false)
+        // .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
+        //   prev.push(...v.split(',')); return prev;
+        // }, [] as string[])
         .action(async (packages: string[]) => {
           console.log('Run tsc on', ...packages);
           const {s} = langExt;
           s.ft.setTsConfigOfPlinkBase().dp();
 
-          if (tsc.opts().watch) {
+          if (tsc.opts().stop) {
+            s.ft.stop().dp();
+            return;
+          } else if (tsc.opts().watch) {
             if (langExt.table.getData().setWatching[0] === true) {
               console.log('Previous "tsc" watching command is still in process, you need to run "tsc --stop" command to stop it before you proceed new watching command.');
               return;
@@ -151,8 +156,8 @@ export function define(rootDir: string, onShutdown: () => void) {
         .action(async () => {
           console.log('hellow world');
           await new Promise<void>(resolve => setTimeout(() => {
-            process.stdout.moveCursor(0, -1);
-            process.stdout.clearLine(0);
+            rl.moveCursor(process.stdout, 0, -1);
+            rl.clearLine(process.stdout, 0);
             console.log('hellow boss');
             resolve();
           }, 1000));

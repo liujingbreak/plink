@@ -4,6 +4,7 @@ exports.define = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable no-console */
 // import fs from 'fs';
+const node_readline_1 = tslib_1.__importDefault(require("node:readline"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const commander_1 = tslib_1.__importDefault(require("commander"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
@@ -70,15 +71,19 @@ function define(rootDir, onShutdown) {
             .description('Run Typescript compiler')
             .option('-w, --watch', 'Typescript compiler watch mode', false)
             .option('--poll', 'Use poll mode watch', false)
-            .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
-            prev.push(...v.split(','));
-            return prev;
-        }, [])
+            .option('--stop', 'stop watching', false)
+            // .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
+            //   prev.push(...v.split(',')); return prev;
+            // }, [] as string[])
             .action(async (packages) => {
             console.log('Run tsc on', ...packages);
             const { s } = langExt;
             s.ft.setTsConfigOfPlinkBase().dp();
-            if (tsc.opts().watch) {
+            if (tsc.opts().stop) {
+                s.ft.stop().dp();
+                return;
+            }
+            else if (tsc.opts().watch) {
                 if (langExt.table.getData().setWatching[0] === true) {
                     console.log('Previous "tsc" watching command is still in process, you need to run "tsc --stop" command to stop it before you proceed new watching command.');
                     return;
@@ -122,8 +127,8 @@ function define(rootDir, onShutdown) {
             .action(async () => {
             console.log('hellow world');
             await new Promise(resolve => setTimeout(() => {
-                process.stdout.moveCursor(0, -1);
-                process.stdout.clearLine(0);
+                node_readline_1.default.moveCursor(process.stdout, 0, -1);
+                node_readline_1.default.clearLine(process.stdout, 0);
                 console.log('hellow boss');
                 resolve();
             }, 1000));

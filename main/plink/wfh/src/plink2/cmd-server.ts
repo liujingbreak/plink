@@ -21,6 +21,13 @@ process.on('exit', (code) => {
     chalk.green(`${code !== 0 ? 'Failed' : 'Done'} in ${new Date().getTime() - startTime} ms`));
 });
 
+process.on('uncaughtException', (err, origin) => {
+  console.error('uncaughtException', err, origin);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('unhandledRejection', reason, promise);
+});
+
 interface ServerInput {
   start(port?: number): SingleActionFactory;
   // stop(): SingleActionFactory;
