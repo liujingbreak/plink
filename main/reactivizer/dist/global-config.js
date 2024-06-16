@@ -4,6 +4,7 @@ exports.configAll = exports.iterateConfigurables = exports.addConfigurable = exp
 // const globalConfigChange$ = new rx.Subject<RxControlConfigEntryType>();
 // export const globalConfigChanges = globalConfigChange$.asObservable();
 exports.defaultConfig = {
+    name: '',
     debug: false,
     debugIncludeTypes: null,
     debugExcludeTypes: [],

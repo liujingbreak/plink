@@ -95,7 +95,7 @@ class RxController2 extends stream_core_1.ControllerCore {
      * target and this controller will recieves them.
      *
      */
-    forkController() {
+    prependController() {
         const targetCtl = new RxController2({ debug: false });
         const targetUpStream = new rx.Subject();
         targetCtl.interceptor$.next(a$ => {

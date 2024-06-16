@@ -27,7 +27,7 @@ export class DuplexController<I, O> {
     this.o.setName(value + `#${this.id}.o `);
   }
 
-  config(opts: RxControlConfigType<I & O>) {
+  config<I2, O2>(opts: RxControlConfigType<I2 & O2 & I & O>) {
     this.i.config(opts as RxControlConfigType<I>);
     this.o.config(opts as RxControlConfigType<O>);
   }

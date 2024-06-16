@@ -26,7 +26,7 @@ type FullFeaturedType = SimplexReactorMergeType<LanguageServiceType, SimplexReac
 type OutputEvents = FullFeaturedType extends SimplexReactor<infer T, any> ? T : never;
 
 export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: PackageMgrFullServiceType, lookupService: PlinkPackageLookupService) {
-  const s = (baseService as unknown as FullFeaturedType).s.forkController();
+  const s = (baseService as unknown as FullFeaturedType).s.prependController();
   const table = (baseService as unknown as FullFeaturedType).table.addActions('onTscDirsConfig');
   const {r} = baseService;
   const ft = s.ft;

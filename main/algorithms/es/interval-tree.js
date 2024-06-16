@@ -2,11 +2,10 @@ import { RedBlackTree } from './rb-tree';
 /**
  * Maintaining:
  *  node.max = max(node.int[1], node.left.max, node.right.max)
- *
- *
  */
 export class IntervalTree extends RedBlackTree {
-    /** Return tree node, if property value is undefined */
+    /** Return tree node which could be either NonDuplicateNode or a node of DuplicateNode['highValuesTree'],
+     */
     insertInterval(low, high) {
         var _a;
         let valueContainer;
@@ -22,9 +21,9 @@ export class IntervalTree extends RedBlackTree {
                 return node;
             }
             // A duplicate low boundray
-            node.highValuesTree = new RedBlackTree();
-            node.highValuesTree.insert(node.int[1]).value = node.value;
-            valueContainer = node.highValuesTree.insert(high);
+            const highValuesTree = node.highValuesTree = new RedBlackTree();
+            highValuesTree.insert(node.int[1]).value = node.value;
+            valueContainer = highValuesTree.insert(high);
             node.int = undefined;
             node.weight++;
         }
@@ -56,7 +55,7 @@ export class IntervalTree extends RedBlackTree {
             this.deleteNode(node);
             return true;
         }
-        else if (node.highValuesTree) {
+        else if (isDuplicateNode(node)) {
             const origMaxHigh = node.maxHighOfMulti;
             const deleted = node.highValuesTree.delete(high);
             if (deleted) {
@@ -65,7 +64,7 @@ export class IntervalTree extends RedBlackTree {
                     node.int = [node.key, node.highValuesTree.root.key];
                     node.value = node.highValuesTree.root.value;
                     node.highValuesTree = undefined;
-                    node.maxHighOfMulti = node.int[1];
+                    node.maxHighOfMulti = node.highValuesTree.root.key;
                     if (origMaxHigh !== node.maxHighOfMulti)
                         maintainNodeMaxValue(node);
                     return true;
@@ -111,12 +110,11 @@ export class IntervalTree extends RedBlackTree {
     *searchMultipleOverlaps(low, high) {
         const foundNodes = [];
         searchMultipleOverlaps(foundNodes, low, high, this.root);
-        // const intervals = new Array<[number, number, V, IntervalTreeNode<V>]>(foundNodes.length);
         for (const node of foundNodes) {
             if (node.int) {
                 yield [...node.int, node.value, node];
             }
-            else if (node.highValuesTree) {
+            else if (isDuplicateNode(node)) {
                 for (const highTreeNode of node.highValuesTree.keysSmallererThan(high)) {
                     yield [node.key, highTreeNode.key, highTreeNode.value, node];
                 }
@@ -133,6 +131,10 @@ export class IntervalTree extends RedBlackTree {
     onRightChildChange(parent, child) {
         maintainNodeMaxValue(parent);
     }
+}
+/** A multi-value tree node can contain multiple intervals, in this case the tree node is assignable to type "DuplicateNode" */
+export function isDuplicateNode(node) {
+    return !!node.highValuesTree;
 }
 function maintainNodeMaxValue(node) {
     var _a, _b, _c, _d, _e;

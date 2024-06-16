@@ -1,6 +1,7 @@
 // const globalConfigChange$ = new rx.Subject<RxControlConfigEntryType>();
 // export const globalConfigChanges = globalConfigChange$.asObservable();
 export const defaultConfig = {
+    name: '',
     debug: false,
     debugIncludeTypes: null,
     debugExcludeTypes: [],

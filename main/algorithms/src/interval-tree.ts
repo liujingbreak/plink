@@ -4,25 +4,39 @@ import {RbTreeNode, RedBlackTree} from './rb-tree';
  * A Red black tree node to contains multiple intervals which has same "low" value,
  * "key" is interval's low value
  */
-export interface IntervalTreeNode<V = unknown> extends RbTreeNode<number, V, IntervalTreeNode<V>> {
-  /** For no duplicate single interval*/
-  int?: [low: number, high: number];
-  /** For multiple intervals, a tree to store different "high" value */
-  highValuesTree?: RedBlackTree<number, V>;
-  /** Maximum "high" value of multi intervals that this node contains */
-  maxHighOfMulti?: number;
+interface IntervalTreeBaseNode<V = unknown> extends RbTreeNode<number, V, NonDuplicateNode<V> | DuplicateNode<V>> {
+  // /** For no duplicate single interval*/
+  // int?: [low: number, high: number];
+  // /** For multiple intervals, a tree to store different "high" value */
+  // highValuesTree?: RedBlackTree<number, V>;
   /** Maximum "high" of children */
   max: number;
 }
 
+export interface NonDuplicateNode<V = unknown> extends IntervalTreeBaseNode<V> {
+  /** For no duplicate single interval*/
+  int?: [low: number, high: number];
+  highValuesTree?: undefined;
+  maxHighOfMulti?: undefined;
+}
+
+export interface DuplicateNode<V = unknown> extends IntervalTreeBaseNode<V> {
+  int?: undefined;
+  /** For multiple intervals, a tree to store different "high" value */
+  highValuesTree: RedBlackTree<number, V>;
+  /** Maximum "high" value of multi intervals that this node contains */
+  maxHighOfMulti: number;
+}
+
+export type IntervalTreeNode<V = unknown> = NonDuplicateNode<V> | DuplicateNode<V>;
+
 /**
  * Maintaining:
  *  node.max = max(node.int[1], node.left.max, node.right.max)
- *
- *
  */
 export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalTreeNode<V>> {
-  /** Return tree node, if property value is undefined */
+  /** Return tree node which could be either NonDuplicateNode or a node of DuplicateNode['highValuesTree'],
+   */
   insertInterval(low: number, high: number):
   Omit<IntervalTreeNode<V>, 'value'> & {value?: V} | Omit<RbTreeNode<number, V>, 'value'> & {value?: V} {
 
@@ -32,33 +46,33 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
       low = temp;
     }
     const node = this.insert(low);
-    if (node.int) {
-      if (node.int[1] === high) {
+    if ((node as NonDuplicateNode<V>).int) {
+      if ((node as NonDuplicateNode<V>).int![1] === high) {
         // duplicate high boundray value
         // node.value = data;
         return node;
       }
       // A duplicate low boundray
-      node.highValuesTree = new RedBlackTree<number, V>();
-      node.highValuesTree.insert(node.int[1]).value = node.value;
-      valueContainer = node.highValuesTree.insert(high);
+      const highValuesTree = (node as DuplicateNode<V>).highValuesTree = new RedBlackTree<number, V>();
+      highValuesTree.insert((node as NonDuplicateNode<V>).int![1]).value = node.value;
+      valueContainer = highValuesTree.insert(high);
 
       node.int = undefined;
       node.weight++;
     }
-    if (node.highValuesTree) {
+    if ((node as DuplicateNode<V>).highValuesTree) {
       // node.highValuesTree.insert(high).value = data;
-      valueContainer = node.highValuesTree.insert(high);
-      node.weight = node.highValuesTree.size();
+      valueContainer = (node as DuplicateNode<V>).highValuesTree.insert(high);
+      node.weight = (node as DuplicateNode<V>).highValuesTree.size();
     } else {
       node.int = [low, high];
       // node.value = data;
       valueContainer = node;
     }
-    if (high > (node.maxHighOfMulti ?? Number.MIN_VALUE)) {
-      node.maxHighOfMulti = high;
+    if (high > ((node as DuplicateNode<V>).maxHighOfMulti ?? Number.MIN_VALUE)) {
+      (node as DuplicateNode<V>).maxHighOfMulti = high;
     }
-    maintainNodeMaxValue(node);
+    maintainNodeMaxValue(node as IntervalTreeNode<V>);
     return valueContainer;
   }
 
@@ -73,16 +87,16 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
     if (node.int && node.int[1] === high) {
       this.deleteNode(node);
       return true;
-    } else if (node.highValuesTree) {
+    } else if (isDuplicateNode(node)) {
       const origMaxHigh = node.maxHighOfMulti;
       const deleted = node.highValuesTree.delete(high);
       if (deleted) {
         node.weight--;
         if (node.highValuesTree.size() === 1) {
-          node.int = [node.key, node.highValuesTree.root!.key];
+          (node as unknown as NonDuplicateNode<V>).int = [node.key, node.highValuesTree.root!.key];
           node.value = node.highValuesTree.root!.value;
-          node.highValuesTree = undefined;
-          node.maxHighOfMulti = node.int[1];
+          (node as unknown as NonDuplicateNode).highValuesTree = undefined;
+          node.maxHighOfMulti = node.highValuesTree.root!.key;
           if (origMaxHigh !== node.maxHighOfMulti)
             maintainNodeMaxValue(node);
           return true;
@@ -128,11 +142,10 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
   *searchMultipleOverlaps(low: number, high: number): Generator<[low: number, high: number, data: V, node: IntervalTreeNode<V>]> {
     const foundNodes = [] as IntervalTreeNode<V>[];
     searchMultipleOverlaps(foundNodes, low, high, this.root);
-    // const intervals = new Array<[number, number, V, IntervalTreeNode<V>]>(foundNodes.length);
     for (const node of foundNodes) {
       if (node.int) {
         yield [...node.int, node.value, node];
-      } else if (node.highValuesTree) {
+      } else if (isDuplicateNode(node)) {
         for (const highTreeNode of node.highValuesTree.keysSmallererThan(high)) {
           yield [node.key, highTreeNode.key, highTreeNode.value, node];
         }
@@ -152,6 +165,10 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
   }
 }
 
+/** A multi-value tree node can contain multiple intervals, in this case the tree node is assignable to type "DuplicateNode" */
+export function isDuplicateNode<V>(node: IntervalTreeNode<V>): node is DuplicateNode<V> {
+  return !!(node as DuplicateNode<V>).highValuesTree;
+}
 function maintainNodeMaxValue<V>(node: Partial<IntervalTreeNode<V>>) {
   let currNode: Partial<IntervalTreeNode<V>> | null | undefined = node;
   while (currNode) {

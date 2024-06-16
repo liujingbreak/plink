@@ -6,7 +6,7 @@ import { ActionTableDataType, PayloadByType } from './inferred-types';
 export declare class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
     #private;
     private streamCtl;
-    actionNames: Set<KS[number]>;
+    private actionNames;
     latestPayloads: PayloadByType<{ [K in KS[number]]: I[K]; }>;
     /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
     l: PayloadByType<{
@@ -14,14 +14,14 @@ export declare class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
     }>;
     get dataChange$(): rx.Observable<ActionTableDataType<I, KS>>;
     private data;
-    actionSnapshot: Map<keyof I, [import("./stream-core").ActionMeta, ...InferPayload<I[keyof I]>]>;
+    actionSnapshot: Map<string, [import("./stream-core").ActionMeta, ...InferPayload<I[keyof I]>]>;
     private actionNamesAdded$;
-    constructor(streamCtl: RxController<I> | RxController2<any>, actionNames: KS);
+    constructor(streamCtl: RxController<any> | RxController2<any>, actionNames: KS);
     getData(): ActionTableDataType<I, KS>;
     /** Add actions to be recoreded in table map,
      * by creating `ReplaySubject(1)` for each action payload stream respectively
      */
-    addActions<M extends Array<keyof I>>(...actionNames: M): ActionTable<I, (KS[number] | M[number])[]>;
+    addActions<M extends ReadonlyArray<any> | Array<any>>(...actionNames: M): ActionTable<I, (KS[number] | M[number])[]>;
     private onAddActions;
     getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I[K]> | undefined;
     protected debugLogLatestActionOperator<K extends keyof I, P extends InferMapParam<I[K]>>(type: K): rx.OperatorFunction<P, P>;

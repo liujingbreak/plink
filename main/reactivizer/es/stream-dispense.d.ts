@@ -1,6 +1,7 @@
 import * as rx from 'rxjs';
 import { Action } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
+import { SimplexReactor } from './simplex-reactor';
 import { RxController2 } from './control2';
 /**
  * A very core functionality of @reactivizer is splitting action stream
@@ -12,6 +13,8 @@ import { RxController2 } from './control2';
  */
 export declare class ActionDispenser<I> {
     static ofRxController<X>(control: RxController2<X>): ActionDispenser<X>;
+    /** you need explicitly specify generic type parameter of this function, it won't inference proper type itself */
+    static ofAction$<X extends SimplexReactor<any, any> = never>(action$: rx.Observable<Action<X extends SimplexReactor<infer Y, any> ? Y : never>>): ActionDispenser<X extends SimplexReactor<infer Y, any> ? Y : never>;
     /** Action observable streamby type */
     at: ActionByType<I>;
     /** Abbrevation of payloadByType */

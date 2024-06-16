@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {SingleActionFactory, ReactorComposite2, patch, actionRelatedToActionRelatives, actionRelatedToAction} from '@wfh/reactivizer';
+import {SingleActionFactory, ReactorComposite2, ReactorCompositeMergeType, actionRelatedToActionRelatives, actionRelatedToAction} from '@wfh/reactivizer';
 import {PackageInfo} from './index';
 
 export interface RepoPackageJson {
@@ -56,100 +56,102 @@ export function createStoreService<R extends ReactorComposite2<any, any, any, an
   const spaceDependencyMap = new Map<string, Set<string>>();
   const spacePkgMap = new Map<string, Set<string>>();
 
-  const service = patch<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>({
-    debugExcludeTypes: ['addPackageToProject', 'addPackageToSpace', 'updateDependencyOfSpace'],
-    inputTableFor,
+  const service = base.config<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>({
     outputTableFor
-  }, service => {
-    const {i, o, r} = service;
+  }) as ReactorComposite2<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>;
+  // const service0 = patch<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>({
+  //   debugExcludeTypes: ['addPackageToProject', 'addPackageToSpace', 'updateDependencyOfSpace'],
+  //   inputTableFor,
+  //   outputTableFor
+  // }, service => {
+  const {i, o, r} = service;
 
-    r('updatePackagesBegin, addPackageToProject, updatePackagesEnd -> data_allPackages', i.pt.updatePackagesBegin.pipe(
-      rx.concatMap(([m]) => {
-        const useless = new Map(allPackages);
-        projPkgMap.clear();
-        return i.pt.addPackageToProject.pipe(
-          actionRelatedToAction(m),
-          rx.map(([, proj, _type, pkg]) => {
-            const pkgsStore = projPkgMap.get(proj);
-            allPackages.set(pkg.name, pkg);
-            useless.delete(pkg.name);
-            if (pkgsStore) {
-              pkgsStore.add(pkg.name);
-            } else {
-              projPkgMap.set(proj, new Set([pkg.name]));
-            }
-          }),
-          rx.takeUntil(i.pt.updatePackagesEnd.pipe(
-            actionRelatedToActionRelatives(m)
-          )),
-          rx.count(),
-          rx.map(() => {
-            if (useless.size > 0) {
-              o.ft.onSourcPackageRemoved(useless.values()).dp(m.r as number);
-            }
-            o.ft.data_allPackages(allPackages).dp(m);
-          })
-        );
-      })
-    ));
+  r('updatePackagesBegin, addPackageToProject, updatePackagesEnd -> data_allPackages', i.pt.updatePackagesBegin.pipe(
+    rx.concatMap(([m]) => {
+      const useless = new Map(allPackages);
+      projPkgMap.clear();
+      return i.pt.addPackageToProject.pipe(
+        actionRelatedToAction(m),
+        rx.map(([, proj, _type, pkg]) => {
+          const pkgsStore = projPkgMap.get(proj);
+          allPackages.set(pkg.name, pkg);
+          useless.delete(pkg.name);
+          if (pkgsStore) {
+            pkgsStore.add(pkg.name);
+          } else {
+            projPkgMap.set(proj, new Set([pkg.name]));
+          }
+        }),
+        rx.takeUntil(i.pt.updatePackagesEnd.pipe(
+          actionRelatedToActionRelatives(m)
+        )),
+        rx.count(),
+        rx.map(() => {
+          if (useless.size > 0) {
+            o.ft.onSourcPackageRemoved(useless.values()).dp(m.r as number);
+          }
+          o.ft.data_allPackages(allPackages).dp(m);
+        })
+      );
+    })
+  ));
 
-    r('updateDependencyOfSpace -> onNewSpace, data_spaceDependencyMap', i.pt.updateDependencyOfSpace.pipe(
-      rx.map(([m, spaceKey, pkgNames]) => {
-        let packageSet = spaceDependencyMap.get(spaceKey);
-        if (packageSet == null) {
-          packageSet = new Set<string>();
-          spaceDependencyMap.set(spaceKey, packageSet);
-          o.ft.onNewSpace(spaceKey).dp(m.r as number);
-        } else {
-          packageSet.clear();
-        }
-        pkgNames.forEach(pkgName => packageSet!.add(pkgName));
+  r('updateDependencyOfSpace -> onNewSpace, data_spaceDependencyMap', i.pt.updateDependencyOfSpace.pipe(
+    rx.map(([m, spaceKey, pkgNames]) => {
+      let packageSet = spaceDependencyMap.get(spaceKey);
+      if (packageSet == null) {
+        packageSet = new Set<string>();
+        spaceDependencyMap.set(spaceKey, packageSet);
+        o.ft.onNewSpace(spaceKey).dp(m.r as number);
+      } else {
+        packageSet.clear();
+      }
+      pkgNames.forEach(pkgName => packageSet.add(pkgName));
+      o.ft.data_spaceDependencyMap(spaceDependencyMap).dp(m);
+    })
+  ));
+
+  r('removeSpace -> [spacePkgMap], [spaceDependencyMap]', i.pt.removeSpace.pipe(
+    rx.map(([m, key]) => {
+      if (spacePkgMap.delete(key))
+        o.ft.data_spacePkgMap(spacePkgMap).dp(m);
+
+      if (spaceDependencyMap.delete(key))
         o.ft.data_spaceDependencyMap(spaceDependencyMap).dp(m);
-      })
-    ));
+    })
+  ));
 
-    r('removeSpace -> [spacePkgMap], [spaceDependencyMap]', i.pt.removeSpace.pipe(
-      rx.map(([m, key]) => {
-        if (spacePkgMap.delete(key))
-          o.ft.data_spacePkgMap(spacePkgMap).dp(m);
+  r('deletePackageOfSpace', i.pt.deletePackageOfSpace.pipe(
+    rx.map(([m, key, pkg]) => {
+      const pkgSet = spacePkgMap.get(key);
+      if (pkgSet) {
+        pkgSet.delete(pkg);
+        if (pkgSet.size === 0)
+          spacePkgMap.delete(key);
+      }
+      o.ft.data_spacePkgMap(spacePkgMap).dp(m);
+    })
+  ));
 
-        if (spaceDependencyMap.delete(key))
-          o.ft.data_spaceDependencyMap(spaceDependencyMap).dp(m);
-      })
-    ));
+  r('addPackageToSpace', i.pt.addPackageToSpace.pipe(
+    rx.map(([m, key, pkg]) => {
+      let space = spacePkgMap.get(key);
+      if (space == null) {
+        space = new Set();
+        spacePkgMap.set(key, space);
+      }
+      space.add(pkg);
+      o.ft.data_spacePkgMap(spacePkgMap).dp(m);
+    })
+  ));
 
-    r('deletePackageOfSpace', i.pt.deletePackageOfSpace.pipe(
-      rx.map(([m, key, pkg]) => {
-        const pkgSet = spacePkgMap.get(key);
-        if (pkgSet) {
-          pkgSet.delete(pkg);
-          if (pkgSet.size === 0)
-            spacePkgMap.delete(key);
-        }
-        o.ft.data_spacePkgMap(spacePkgMap).dp(m);
-      })
-    ));
-
-    r('addPackageToSpace', i.pt.addPackageToSpace.pipe(
-      rx.map(([m, key, pkg]) => {
-        let space = spacePkgMap.get(key);
-        if (space == null) {
-          space = new Set();
-          spacePkgMap.set(key, space);
-        }
-        space.add(pkg);
-        o.ft.data_spacePkgMap(spacePkgMap).dp(m);
-      })
-    ));
-
-    o.ft.data_spacePkgMap(spacePkgMap).dp();
-    o.ft.data_spaceDependencyMap(spaceDependencyMap).dp();
-    o.ft.data_allPackages(allPackages).dp();
-    o.ft.data_projPkgMap(projPkgMap).dp();
-  }).to(base);
+  o.ft.data_spacePkgMap(spacePkgMap).dp();
+  o.ft.data_spaceDependencyMap(spaceDependencyMap).dp();
+  o.ft.data_allPackages(allPackages).dp();
+  o.ft.data_projPkgMap(projPkgMap).dp();
 
   return {
-    service
+    service: service as unknown as ReactorCompositeMergeType<R, typeof service>
   };
 }
 

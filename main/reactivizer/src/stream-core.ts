@@ -74,7 +74,7 @@ export class ControllerCore<I> {
   /** Event when `action$` is entirely unsubscribed by all observers */
   actionUnsubscribed$: rx.Observable<void>;
   configChange = new rx.Subject<Set<keyof RxControlConfigType<I>>>();
-  opts: CoreOptions<I> = {};
+  opts: CoreOptions<any> = {}; // Using CoreOption<I> here will results in non-assignable issue of entire controller type, always use <any> instead
   protected dispatcher = {} as {[K in keyof I]: Dispatch<I[K]>};
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[K]>};
   private connectableAction$: rx.Connectable<Action<I[keyof I]>> | undefined;
@@ -93,6 +93,9 @@ export class ControllerCore<I> {
       this.configChange.pipe(
         rx.map((props, i) => {
           let switchActionStream = i === 0; // always create action stream at first time
+          if (props.has('name')) {
+            this.setName(this.opts.name);
+          }
           if (props.has('debugIncludeTypes')) {
             if (this.debugIncludeSet == null)
               this.debugIncludeSet = this.opts?.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null;
@@ -198,6 +201,8 @@ export class ControllerCore<I> {
     this.logPrefix = name ?? ++SEQ + '';
   }
 
+  /** This method is used to change `this.opts` which is initially provided in constructor.
+   * Only changed properties are merged to current options */
   config(opts: RxControlConfigType<I>) {
     const changedProperties = new Set<keyof RxControlConfigType>();
     for (const [p, v] of Object.entries(opts)) {

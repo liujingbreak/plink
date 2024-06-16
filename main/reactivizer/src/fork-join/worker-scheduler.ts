@@ -28,7 +28,7 @@ export function applyScheduler(broker: Broker<any>, opts: {
     // Inside Plink
     algo = require('../../../algorithms') as typeof algorithms;
   }
-  const s = brokerForSchedule.s.forkController();
+  const s = brokerForSchedule.s.prependController();
   const {RedBlackTree} = algo;
   const workerRankTree = new RedBlackTree<number, number[]>();
   /** Indicate how busy each thread is */

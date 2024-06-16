@@ -23,12 +23,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.patch = exports.ReactorComposite2 = void 0;
+exports.ReactorComposite2 = void 0;
 const rx = __importStar(require("rxjs"));
 const context_operators_1 = require("./context-operators");
 const duplex2_1 = require("./duplex2");
 const action_table_1 = require("./action-table");
 const baseTableFor = ['__onError', '__onDisposed'];
+/**
+ * Recommend to use SimplexReactor instead of this class, this class will be deprecated in future version
+ */
 class ReactorComposite2 extends duplex2_1.DuplexController {
     get inputTable() {
         return this.it;
@@ -126,6 +129,7 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
             }
             return obj;
         }, {}));
+        return this;
     }
     // eslint-disable-next-line space-before-function-paren
     reactivize(fObject) {
@@ -235,42 +239,4 @@ class ReactorComposite2 extends duplex2_1.DuplexController {
     }
 }
 exports.ReactorComposite2 = ReactorComposite2;
-class ExtendHelper {
-    define(fn) {
-        this.defineFn = fn;
-        return this;
-    }
-    options(override) {
-        this.optsOverride = override;
-        return this;
-    }
-    to(base) {
-        var _a, _b, _c, _d;
-        if (this.optsOverride) {
-            const opts = Object.assign({}, this.optsOverride);
-            if (this.optsOverride.debugIncludeTypes) {
-                opts.debugIncludeTypes = this.optsOverride.debugIncludeTypes.concat((_b = (_a = base.i.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) !== null && _b !== void 0 ? _b : []);
-            }
-            if (this.optsOverride.debugExcludeTypes) {
-                opts.debugExcludeTypes = this.optsOverride.debugExcludeTypes.concat((_d = (_c = base.i.opts) === null || _c === void 0 ? void 0 : _c.debugExcludeTypes) !== null && _d !== void 0 ? _d : []);
-            }
-            base.config(opts);
-        }
-        if (this.defineFn)
-            this.defineFn(base);
-        return base;
-    }
-}
-function patch(optionsOrDef, definition) {
-    const helper = new ExtendHelper();
-    if (definition) {
-        helper.options(optionsOrDef);
-        helper.define(definition);
-    }
-    else if (optionsOrDef) {
-        helper.define(optionsOrDef);
-    }
-    return helper;
-}
-exports.patch = patch;
 //# sourceMappingURL=reactor-composite.js.map

@@ -12,6 +12,10 @@ export class ActionDispenser {
     static ofRxController(control) {
         return new ActionDispenser(control.action$);
     }
+    /** you need explicitly specify generic type parameter of this function, it won't inference proper type itself */
+    static ofAction$(action$) {
+        return new ActionDispenser(action$);
+    }
     constructor(source$) {
         this.actionByType = new Map();
         this.countSubscriber = new rx.BehaviorSubject(0);

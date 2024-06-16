@@ -1,5 +1,5 @@
 import { CoreOptions } from './stream-core';
-export type RxControlConfigType<I = any> = Omit<CoreOptions<I>, 'name' | 'autoConnect'>;
+export type RxControlConfigType<I = any> = Partial<Omit<CoreOptions<I>, 'autoConnect'>>;
 export type RxControlConfigEntryType<K extends keyof RxControlConfigType = keyof RxControlConfigType> = [K, RxControlConfigType[K]];
 export declare const defaultConfig: Required<RxControlConfigType>;
 export type GlobalConfigOptions = Pick<CoreOptions<any>, 'log' | 'logStyle' | 'debug'>;

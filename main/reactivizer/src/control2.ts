@@ -87,7 +87,7 @@ export class RxController2<I> extends ControllerCore<I> {
    * target and this controller will recieves them.
    *
    */
-  forkController() {
+  prependController() {
     const targetCtl = new RxController2<I>({debug: false});
     const targetUpStream = new rx.Subject<Action<I[keyof I]>>();
     targetCtl.interceptor$.next(a$ => {

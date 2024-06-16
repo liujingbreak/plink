@@ -38,7 +38,7 @@ class ControllerCore {
         this.logPrefix = '';
         this.debugExcludeSet = new Set();
         this.configChange = new rx.Subject();
-        this.opts = {};
+        this.opts = {}; // Using CoreOption<I> here will results in non-assignable issue of entire controller type, always use <any> instead
         this.dispatcher = {};
         this.dispatcherFor = {};
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
@@ -50,6 +50,9 @@ class ControllerCore {
         this.connectableAction$ = rx.connectable(this.configChange.pipe(rx.map((props, i) => {
             var _a, _b, _c;
             let switchActionStream = i === 0; // always create action stream at first time
+            if (props.has('name')) {
+                this.setName(this.opts.name);
+            }
             if (props.has('debugIncludeTypes')) {
                 if (this.debugIncludeSet == null)
                     this.debugIncludeSet = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) ? new Set(this.opts.debugIncludeTypes) : null;
@@ -136,6 +139,8 @@ class ControllerCore {
     setName(name) {
         this.logPrefix = name !== null && name !== void 0 ? name : ++SEQ + '';
     }
+    /** This method is used to change `this.opts` which is initially provided in constructor.
+     * Only changed properties are merged to current options */
     config(opts) {
         const changedProperties = new Set();
         for (const [p, v] of Object.entries(opts)) {

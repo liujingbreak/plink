@@ -13,5 +13,5 @@ export declare class DuplexController<I, O> {
     constructor(opts?: DuplexOptions<I & O>);
     /** Invoke `setName` on RxController */
     setName(value: string): void;
-    config(opts: RxControlConfigType<I & O>): void;
+    config<I2, O2>(opts: RxControlConfigType<I2 & O2 & I & O>): void;
 }

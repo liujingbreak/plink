@@ -101,14 +101,14 @@ export type InferRCOptionsOfFuncs<F> = ReactorCompositeOpt<ActionFactoryOfPlainT
 export type InferRCOptionsOfRecursiveFuncs<F> = ReactorCompositeOpt<ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, InferFuncReturnEvents<F>>;
 
 // SimplexReactor.....
-type InferActionsOfSimplexReactor<R> =
+export type InferActionsOfSmplxRctr<R> =
   R extends SimplexReactor<infer I, any> ? I : unknown;
-type InferLastestOfSimplexReactor<R> =
+export type InferTableForSmplxRctr<R> =
   R extends SimplexReactor<any, infer L> ? ExtractTupleElement<L> : never;
 export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
-  SimplexReactor<InferActionsOfSimplexReactor<R1> & InferActionsOfSimplexReactor<R2>,
-  readonly (InferLastestOfSimplexReactor<R1> | InferLastestOfSimplexReactor<R2>)[]
+  SimplexReactor<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
+  readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]
   >;
-export type SimplexReactorMergeOptions<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
-  SimplexReactorOptions<InferActionsOfSimplexReactor<R1> & InferActionsOfSimplexReactor<R2>,
-  readonly (InferLastestOfSimplexReactor<R1> | InferLastestOfSimplexReactor<R2>)[]>;
+export type OptionsOfMergedSmplxRctr<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
+  SimplexReactorOptions<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
+  readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]>;

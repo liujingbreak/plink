@@ -43,7 +43,7 @@ function createWorkerControl(opts) {
     var _a, _b, _c;
     let mainPort; // Broker's message port
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new simplex_reactor_1.SimplexReactor(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { tableFor: types_1.workerActionTableFor, name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + ('(W/' + (worker_threads_1.isMainThread ? 'main)' : worker_threads_1.threadId + '?)')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: worker_threads_1.isMainThread ?
+    const comp = new simplex_reactor_1.SimplexReactor(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { tableFor: (opts === null || opts === void 0 ? void 0 : opts.tableFor) ? [...types_1.workerActionTableFor, ...opts.tableFor] : types_1.workerActionTableFor, name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + ('(W/' + (worker_threads_1.isMainThread ? 'main)' : worker_threads_1.threadId + '?)')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: worker_threads_1.isMainThread ?
             opts === null || opts === void 0 ? void 0 : opts.log :
             (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({
                 type: 'log',
@@ -118,6 +118,7 @@ function createWorkerControl(opts) {
     return comp;
 }
 exports.createWorkerControl = createWorkerControl;
+// eslint-disable-next-line space-before-function-paren
 function createWorkerControlOfFn(recursiveFuncs, opts) {
     const ctl = createWorkerControl(opts).reactivize(recursiveFuncs);
     return ctl;

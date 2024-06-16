@@ -10,5 +10,5 @@ export * from './reactor-composite';
 export * from './stream-dispense';
 export * from './simplex-reactor';
 export * from './reactor-base';
-export * from './action-factory';
+// export * from './action-factory'; duplicate exports from control2
 //# sourceMappingURL=index.js.map

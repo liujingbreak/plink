@@ -3,6 +3,7 @@
  * https://jestjs.io/docs/configuration
  */
 import Path from 'path';
+import fs from 'fs';
 import type {Config} from 'jest';
 import {packageToPathMap, plinkRootDir} from './init-plink';
 // import {defaults} from 'jest-config';
@@ -14,7 +15,10 @@ const transform: Config['transform'] = {
 
 // Jest does not support symlinks for search directory, so I have to use "realPath"
 const packageDirs = [...packageToPathMap.values()].map(path => Path.resolve(plinkRootDir, path));
-
+const plinkPackageDir = Path.resolve(plinkRootDir, 'main/plink');
+if (fs.existsSync(plinkPackageDir)) {
+  packageDirs.push(plinkPackageDir);
+}
 const config: Config = {
   // All imported modules in your tests should be mocked automatically
   // automock: false,

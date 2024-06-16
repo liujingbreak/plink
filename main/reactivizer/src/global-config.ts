@@ -1,11 +1,12 @@
 import {CoreOptions} from './stream-core';
 
-export type RxControlConfigType<I = any> = Omit<CoreOptions<I>, 'name' | 'autoConnect'>;
+export type RxControlConfigType<I = any> = Partial<Omit<CoreOptions<I>, 'autoConnect'>>;
 export type RxControlConfigEntryType<K extends keyof RxControlConfigType = keyof RxControlConfigType> = [K, RxControlConfigType[K]];
 // const globalConfigChange$ = new rx.Subject<RxControlConfigEntryType>();
 // export const globalConfigChanges = globalConfigChange$.asObservable();
 
 export const defaultConfig: Required<RxControlConfigType> = {
+  name: '',
   debug: false,
   debugIncludeTypes: null,
   debugExcludeTypes: [],

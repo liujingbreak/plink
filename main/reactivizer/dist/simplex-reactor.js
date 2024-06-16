@@ -33,7 +33,6 @@ let SEQ = new Date().getUTCMilliseconds();
 class SimplexReactor {
     constructor(opts) {
         var _a, _b;
-        this.opts = opts;
         this.errorSubject = new rx.ReplaySubject(20);
         this.r = (...params) => {
             if (typeof params[0] === 'string')
@@ -43,6 +42,7 @@ class SimplexReactor {
         };
         this.reactorSubj = new rx.ReplaySubject();
         this.id = SEQ++;
+        this.opts = opts;
         this.s = new control2_1.RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `#${this.id}` }));
         const internalMsg$ = this.s;
         if (opts === null || opts === void 0 ? void 0 : opts.debug) {
@@ -83,9 +83,28 @@ class SimplexReactor {
         };
         this.r('__config', internalMsg$.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
     }
+    /**
+     * This method can be used to change "options" after SimplexReactor instanciation, e.g. `.change({debug: true})` to enable action tracing log for debug.
+     * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
+     * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
+     **/
     config(opts) {
-        this.opts = opts;
-        this.s.config(opts);
+        if (this.opts) {
+            Object.assign(this.opts, opts);
+            if (opts.tableFor) {
+                this.table.addActions(...opts.tableFor);
+            }
+        }
+        else
+            this.opts = opts;
+        this.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
+            if (p !== 'tableFor') {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                obj[p] = v;
+            }
+            return obj;
+        }, {}));
+        return this;
     }
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.

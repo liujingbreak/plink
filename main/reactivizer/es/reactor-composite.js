@@ -3,6 +3,9 @@ import { actionRelatedToAction } from './context-operators';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 const baseTableFor = ['__onError', '__onDisposed'];
+/**
+ * Recommend to use SimplexReactor instead of this class, this class will be deprecated in future version
+ */
 export class ReactorComposite2 extends DuplexController {
     get inputTable() {
         return this.it;
@@ -65,7 +68,6 @@ export class ReactorComposite2 extends DuplexController {
                 this.opts.log(err);
             else
                 console.error(err);
-            output$.ft.__onError(err).dp();
             return src;
         })).subscribe();
         // this.logSubj = new rx.ReplaySubject(50);
@@ -101,6 +103,7 @@ export class ReactorComposite2 extends DuplexController {
             }
             return obj;
         }, {}));
+        return this;
     }
     // eslint-disable-next-line space-before-function-paren
     reactivize(fObject) {
@@ -208,42 +211,5 @@ export class ReactorComposite2 extends DuplexController {
             return hehavior === 'continue' ? src : rx.EMPTY;
         }));
     }
-}
-class ExtendHelper {
-    define(fn) {
-        this.defineFn = fn;
-        return this;
-    }
-    options(override) {
-        this.optsOverride = override;
-        return this;
-    }
-    to(base) {
-        var _a, _b, _c, _d;
-        if (this.optsOverride) {
-            const opts = Object.assign({}, this.optsOverride);
-            if (this.optsOverride.debugIncludeTypes) {
-                opts.debugIncludeTypes = this.optsOverride.debugIncludeTypes.concat((_b = (_a = base.i.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) !== null && _b !== void 0 ? _b : []);
-            }
-            if (this.optsOverride.debugExcludeTypes) {
-                opts.debugExcludeTypes = this.optsOverride.debugExcludeTypes.concat((_d = (_c = base.i.opts) === null || _c === void 0 ? void 0 : _c.debugExcludeTypes) !== null && _d !== void 0 ? _d : []);
-            }
-            base.config(opts);
-        }
-        if (this.defineFn)
-            this.defineFn(base);
-        return base;
-    }
-}
-export function patch(optionsOrDef, definition) {
-    const helper = new ExtendHelper();
-    if (definition) {
-        helper.options(optionsOrDef);
-        helper.define(definition);
-    }
-    else if (optionsOrDef) {
-        helper.define(optionsOrDef);
-    }
-    return helper;
 }
 //# sourceMappingURL=reactor-composite.js.map

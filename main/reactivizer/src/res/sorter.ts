@@ -1,13 +1,17 @@
 import * as rx from 'rxjs';
 import binarySearch from 'lodash/sortedIndex';
 import {createWorkerControlOfFn, ForkTransferablePayload, setIdleDuring} from '../fork-join/node-worker';
-import type {SimplexReactorOptions} from '../index';
 // import {patch} from '../reactor-composite';
 import {ForkWorkerInput, ForkWorkerOutput} from '../fork-join/types';
+import {SimplexReactorCfgOpts} from '../reactor-base';
 // import {SingleActionFactory} from '..';
 import {ForkSortComparator, DefaultComparator, WritableArray} from './sort-comparator-interf';
 
-export function createSorter<D extends WritableArray>(comparator?: ForkSortComparator<D> | null, opts?: SimplexReactorOptions<ForkWorkerInput & ForkWorkerOutput>) {
+export function createSorter<D extends WritableArray>(
+  comparator?: ForkSortComparator<D> | null,
+  opts?: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput>
+) {
+
   const cmp = comparator ?? new DefaultComparator();
 
   const sortActions = {
@@ -134,7 +138,7 @@ export function createSorter<D extends WritableArray>(comparator?: ForkSortCompa
     }
   };
 
-  const sorter = createWorkerControlOfFn(sortActions, opts);
+  const sorter = createWorkerControlOfFn(sortActions, opts as any);
   return sorter;
 }
 

@@ -56,8 +56,8 @@ export declare class ControllerCore<I> {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.Subject<Set<"log" | "debug" | "debugExcludeTypes" | "debugIncludeTypes" | "logStyle">>;
-    opts: CoreOptions<I>;
+    configChange: rx.Subject<Set<"name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
+    opts: CoreOptions<any>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
     private connectableAction$;
@@ -67,6 +67,8 @@ export declare class ControllerCore<I> {
     copyActionFrom(source: Action<any>): Action<I[keyof I]>;
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name: string | null | undefined): void;
+    /** This method is used to change `this.opts` which is initially provided in constructor.
+     * Only changed properties are merged to current options */
     config(opts: RxControlConfigType<I>): void;
     /** This method is not meant to be used directly */
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]>;

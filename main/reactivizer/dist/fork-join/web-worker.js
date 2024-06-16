@@ -37,7 +37,7 @@ Object.defineProperty(exports, "setIdleDuring", { enumerable: true, get: functio
 function createWorkerControl(isInWorker, opts) {
     var _a, _b;
     let mainPort; // Broker's message port
-    const comp = new simplex_reactor_1.SimplexReactor(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { tableFor: types_1.workerActionTableFor, name: 'unknown worker No', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), 
+    const comp = new simplex_reactor_1.SimplexReactor(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { tableFor: (opts === null || opts === void 0 ? void 0 : opts.tableFor) ? [...types_1.workerActionTableFor, ...opts.tableFor] : types_1.workerActionTableFor, name: 'unknown worker No', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: !isInWorker ? opts === null || opts === void 0 ? void 0 : opts.log : (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({ type: 'log', p: args }), 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : [])], debugIncludeTypes: opts === null || opts === void 0 ? void 0 : opts.debugIncludeTypes }));
     const { r, s, table } = comp;
@@ -105,6 +105,7 @@ function createWorkerControl(isInWorker, opts) {
     return comp;
 }
 exports.createWorkerControl = createWorkerControl;
+// eslint-disable-next-line space-before-function-paren
 function createWorkerControlOfFn(recursiveFuncs, isInWorker, opts) {
     const ctl = createWorkerControl(isInWorker, opts).reactivize(recursiveFuncs);
     return ctl;

@@ -86,10 +86,10 @@ export function createPlinkPackageLookupService() {
       pkgPathLenToPathMap = new Map();
       const pkg2PathMap = new Map<string, string>();
       for (const [key, list] of Object.entries(json.compilerOptions.paths)) {
-        const match = /^((?:@[^/]+\/)?[^/]+)\/\*/.exec(key);
+        const match = /^((?:@[^/]+\/)?[^/]+)\//.exec(key); // matches form of "<package-name>/"
         if (match) {
           const path = list[0];
-          const relPath = /^.+(?!\/\*).(?=\/\*)/.exec(path)?.[0];
+          const relPath = /^.+(?!\/\*).(?=\/\*)/.exec(path)?.[0]; // Matches form of "<package-name>/*"
           if (relPath) {
             const pkgName = match[1];
             pkg2PathMap.set(pkgName, Path.resolve(baseDir, relPath));

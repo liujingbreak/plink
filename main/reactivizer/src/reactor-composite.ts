@@ -5,7 +5,7 @@ import {SingleActionFactory, RxController2} from './control2';
 import {DuplexController} from './duplex2';
 import {ActionTable} from './action-table';
 import {ReactorCompositeOpt} from './reactor-base';
-import {InferFuncReturnEvents, ActionFactoryOfPlainType, ReactorCompositeExtendType, ExtractTupleElement} from './inferred-types';
+import {InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement} from './inferred-types';
 // inspector.open(9222, 'localhost', true);
 
 interface BaseEvents {
@@ -28,6 +28,9 @@ interface BaseActions<
 const baseTableFor = ['__onError', '__onDisposed'] as const;
 type LOE<LI extends readonly any[]> = readonly (LI[number] | ExtractTupleElement<typeof baseTableFor>)[];
 
+/**
+ * Recommend to use SimplexReactor instead of this class, this class will be deprecated in future version
+ */
 export class ReactorComposite2<
   I = Record<never, never>,
   O = Record<never, never>,
@@ -146,19 +149,22 @@ export class ReactorComposite2<
    * For properties "inputTableFor", "outputTableFor", the elements inside them are considered as being added new action
    * keys to existing action table's structure
    */
-  config(opts: Omit<ReactorCompositeOpt<I, O, LI, LO>, 'name' | 'autoConnect'>) {
+  config<I2 = Record<string, never>, O2 = Record<string, never>, LI2 extends ReadonlyArray<keyof I2> | Array<keyof I2> = [], LO2 extends ReadonlyArray<keyof O2> | Array<keyof O2> = []>(
+    opts: ReactorCompositeOpt<I & I2 & BaseActions<unknown>, O & O2 & BaseEvents, LI2, LO2>
+  ) {
     if (opts.inputTableFor) {
       this.inputTable.addActions(...opts.inputTableFor);
     }
     if (opts.outputTableFor) {
       this.outputTable.addActions(...opts.outputTableFor);
     }
-    super.config(Object.entries(opts).reduce((obj, [p, v]) => {
+    super.config<I2, O2>(Object.entries(opts).reduce((obj, [p, v]) => {
       if (p !== 'inputTableFor' && p !== 'outputTableFor') {
-        obj[p as keyof typeof opts] = v as any;
+        obj[p as keyof typeof opts] = v;
       }
       return obj;
-    }, {} as typeof opts));
+    }, {} as any));
+    return this as unknown as ReactorComposite2<I & I2, O & O2, (LI[number] | LI2[number])[], (LO[number] | LO2[number])[]>;
   }
   // eslint-disable-next-line space-before-function-paren
   reactivize<F extends ActionFunctions>(fObject: F) {
@@ -304,84 +310,3 @@ export class ReactorComposite2<
   }
 }
 
-class ExtendHelper<
-  I = Record<never, never>,
-  O = Record<never, never>,
-  // eslint-disable-next-line space-before-function-paren
-  LI extends readonly (keyof I)[] = readonly [],
-  LO extends readonly (keyof O)[] = readonly []
-> {
-  private defineFn: ((composite: ReactorComposite2<I, O, LI, LO>) => any) | undefined;
-  private optsOverride: ReactorCompositeOpt<I, O, LI, LO> | undefined;
-
-  define(fn: (composite: ReactorComposite2<I, O, LI, LO>) => any) {
-    this.defineFn = fn;
-    return this;
-  }
-
-  options(override: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>) {
-    this.optsOverride = override;
-    return this;
-  }
-
-  to<G extends ReactorComposite2<any, any, any, any>>(base: G) {
-    if (this.optsOverride) {
-      const opts = {...this.optsOverride};
-      if (this.optsOverride.debugIncludeTypes) {
-        opts.debugIncludeTypes = this.optsOverride.debugIncludeTypes.concat(base.i.opts?.debugIncludeTypes as any[] ?? []);
-      }
-      if (this.optsOverride.debugExcludeTypes) {
-        opts.debugExcludeTypes = this.optsOverride.debugExcludeTypes.concat(base.i.opts?.debugExcludeTypes as any[] ?? []);
-      }
-      base.config(opts);
-    }
-    if (this.defineFn)
-      this.defineFn(base);
-    return base as ReactorCompositeExtendType<G, I, O, LI, LO>;
-  }
-}
-
-/**
- * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar functionality of inheritance being used in OO programming
- */
-export function patch<
-  I = Record<never, never>,
-  O = Record<never, never>,
-  // eslint-disable-next-line space-before-function-paren
-  LI extends readonly (keyof I)[] = readonly [],
-  LO extends readonly (keyof O)[] = readonly []
->(patchDefinition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
-
-export function patch<
-  I = Record<never, never>,
-  O = Record<never, never>,
-  // eslint-disable-next-line space-before-function-paren
-  LI extends readonly (keyof I)[] = readonly [],
-  LO extends readonly (keyof O)[] = readonly []
->(
-  options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>,
-  patchDefinition?: (composite: ReactorComposite2<I, O, LI, LO>) => void
-) : ExtendHelper<I, O, LI, LO>;
-
-export function patch<
-  I = Record<never, never>,
-  O = Record<never, never>,
-  // eslint-disable-next-line space-before-function-paren
-  LI extends readonly (keyof I)[] = readonly [],
-  LO extends readonly (keyof O)[] = readonly []
->(
-  optionsOrDef?: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'> |
-  ((composite: ReactorComposite2<I, O, LI, LO>) => void),
-
-  definition?: (composite: ReactorComposite2<I, O, LI, LO>) => void
-) {
-
-  const helper = new ExtendHelper<I, O, LI, LO>();
-  if (definition) {
-    helper.options(optionsOrDef as Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>);
-    helper.define(definition);
-  } else if (optionsOrDef) {
-    helper.define(optionsOrDef as (composite: ReactorComposite2<I, O, LI, LO>) => void);
-  }
-  return helper;
-}

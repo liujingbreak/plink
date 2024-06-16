@@ -4,12 +4,12 @@ import * as rx from 'rxjs';
 import { Action, InferPayload } from '../control';
 import { SingleActionFactory } from '../control2';
 import { SimplexReactorMergeType } from '../inferred-types';
-import { RxControlConfigType } from '../global-config';
+import { SimplexReactorCfgOpts } from '../reactor-base';
 import { SimplexReactor } from '../simplex-reactor';
 export declare const brokerOutputTableFor: readonly ["assignWorker", "allReadyWorkers"];
 export type Broker<WI = Record<never, never>> = SimplexReactor<BrokerInput & BrokerEvent<WI>, typeof brokerOutputTableFor>;
 export type ForkWorkerInput = {
-    changeConfig<I>(config: RxControlConfigType<I>): SingleActionFactory;
+    changeConfig<I, LI extends (keyof I)[]>(config: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, I, LI>): SingleActionFactory;
     exit(): SingleActionFactory;
     onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): SingleActionFactory;
     /** set actions which are supposed to be sent to parent main thread by "messagePort.postMessage()",
@@ -33,8 +33,6 @@ export interface ForkWorkerOutput<I = Record<string, any>> {
     onForkReturn(retAction: Action<any>): SingleActionFactory;
 }
 export declare const workerActionTableFor: readonly ["setLiftUpActions", "exit", "inited", "log", "warn"];
-export declare const workerInputTableFor: readonly ["setLiftUpActions", "exit"];
-export declare const workerOutputTableFor: readonly ["inited", "log", "warn"];
 export type WorkerControl<I = Record<never, never>, LI extends ReadonlyArray<keyof I> = readonly []> = SimplexReactorMergeType<SimplexReactor<ForkWorkerInput & ForkWorkerOutput<I>, typeof workerActionTableFor>, SimplexReactor<I, LI>>;
 export type BrokerInput = {
     ensureInitWorker(workerNo: number, worker: Worker | NodeWorker): SingleActionFactory;

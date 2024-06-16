@@ -4,7 +4,7 @@ import { SingleActionFactory } from './control2';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 import { ReactorCompositeOpt } from './reactor-base';
-import { ActionFactoryOfPlainType, ReactorCompositeExtendType, ExtractTupleElement } from './inferred-types';
+import { ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
 interface BaseEvents {
     /** Internal use, when option `debug` is `true`, this message will be dispatched when
      * ReactorComposite2 is instantiated */
@@ -17,6 +17,9 @@ interface BaseActions<I = Record<never, never>, O = Record<never, never>, LI ext
 }
 declare const baseTableFor: readonly ["__onError", "__onDisposed"];
 type LOE<LI extends readonly any[]> = readonly (LI[number] | ExtractTupleElement<typeof baseTableFor>)[];
+/**
+ * Recommend to use SimplexReactor instead of this class, this class will be deprecated in future version
+ */
 export declare class ReactorComposite2<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = [], LO extends readonly (keyof O)[] | (keyof O)[] = []> extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
     private opts?;
     destory$: rx.Observable<unknown>;
@@ -48,7 +51,7 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
      * For properties "inputTableFor", "outputTableFor", the elements inside them are considered as being added new action
      * keys to existing action table's structure
      */
-    config(opts: Omit<ReactorCompositeOpt<I, O, LI, LO>, 'name' | 'autoConnect'>): void;
+    config<I2 = Record<string, never>, O2 = Record<string, never>, LI2 extends ReadonlyArray<keyof I2> | Array<keyof I2> = [], LO2 extends ReadonlyArray<keyof O2> | Array<keyof O2> = []>(opts: ReactorCompositeOpt<I & I2 & BaseActions<unknown>, O & O2 & BaseEvents, LI2, LO2>): ReactorComposite2<I & I2, O & O2, (LI[number] | LI2[number])[], (LO[number] | LO2[number])[]>;
     reactivize<F extends ActionFunctions>(fObject: F): ReactorComposite2<I & ActionFactoryOfPlainType<F>, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & O, LI, LO>;
     reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F): ReactorComposite2<{ [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & I & ActionFactoryOfPlainType<F>, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & O, LI, LO>;
     /**
@@ -85,16 +88,4 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
     protected logError(label: string, err: any): void;
     protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;
 }
-declare class ExtendHelper<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []> {
-    private defineFn;
-    private optsOverride;
-    define(fn: (composite: ReactorComposite2<I, O, LI, LO>) => any): this;
-    options(override: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>): this;
-    to<G extends ReactorComposite2<any, any, any, any>>(base: G): ReactorCompositeExtendType<G, I, O, LI, LO>;
-}
-/**
- * A function just helps to monkey-patch an existing ReactorComposite2 instance, consider this as similiar functionality of inheritance being used in OO programming
- */
-export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(patchDefinition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
-export declare function patch<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], LO extends readonly (keyof O)[] = readonly []>(options: Pick<ReactorCompositeOpt<I, O, LI, LO>, 'inputTableFor' | 'outputTableFor' | 'debugIncludeTypes' | 'debugExcludeTypes'>, patchDefinition?: (composite: ReactorComposite2<I, O, LI, LO>) => void): ExtendHelper<I, O, LI, LO>;
 export {};

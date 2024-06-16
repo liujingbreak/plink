@@ -1,7 +1,7 @@
 {
   "name": "@wfh/reactivizer",
   "version": "0.2.2",
-  "description": "Another RxJS auxiliary tool, which \"reactive-ize\" plain Javascript (Typescript) object",
+  "description": "Aiming for promoting and exhibiting opinionated modeling and abstracting of reactive-programming as alternative counterpart to OOP, remedy demerits and inconvenience in adopting reactive programming paradigm in prevalent languages",
   "main": "dist/index.js",
   "module": "es/index.js",
   "types": "dist/index.d.ts",
@@ -45,7 +45,7 @@
     "directory": "main/packages/reactivizer"
   },
   "keywords": [
-    "rxjs", "reactive", "rx", "forkjoin", "thread", "web worker"
+    "rxjs", "reactive", "rx", "forkjoin", "worker thread", "web worker"
   ],
   "author": "Liu Jing <liujing.break@gmail.com>",
   "license": "MIT"

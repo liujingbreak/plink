@@ -7,8 +7,8 @@ import * as rx from 'rxjs';
 import {Action, serializeAction, ActionFunctions} from '../control';
 import {deserializeAction2, actionRelatedToAction, nameOfAction} from '..';
 import {SimplexReactor} from '../simplex-reactor';
-import {InferFuncReturnEvents, ActionFactoryOfPlainType, SimplexReactorMergeOptions} from '../inferred-types';
-import {SimplexReactorOptions} from '../reactor-base';
+import {InferFuncReturnEvents, ActionFactoryOfPlainType} from '../inferred-types';
+import {SimplexReactorCfgOpts} from '../reactor-base';
 import {ForkWorkerInput, ForkWorkerOutput, WorkerControl, workerActionTableFor} from './types';
 import {applySharedReactors} from './worker-common';
 
@@ -24,13 +24,13 @@ export function createWorkerControl<
   I = Record<string, never>,
   LI extends ReadonlyArray<keyof I> = readonly []
 >(
-  opts?: SimplexReactorMergeOptions<SimplexReactor<ForkWorkerInput & ForkWorkerOutput, typeof workerActionTableFor>, SimplexReactor<I, LI>>
+  opts?: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, I, LI>
 ) {
   let mainPort: MessagePort | undefined; // Broker's message port
   // eslint-disable-next-line @typescript-eslint/ban-types
   const comp = new SimplexReactor<ForkWorkerInput & ForkWorkerOutput, typeof workerActionTableFor>({
     ...(opts ?? {}),
-    tableFor: workerActionTableFor,
+    tableFor: opts?.tableFor ? [...workerActionTableFor, ...opts.tableFor] as unknown as typeof workerActionTableFor : workerActionTableFor,
     name: (opts?.name ?? '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')),
     debug: opts?.debug,
     log: isMainThread ?
@@ -148,10 +148,11 @@ export type ForkTransferablePayload<T = unknown> = {
   transferList: (ArrayBuffer | MessagePort | fsPromises.FileHandle | X509Certificate | Blob)[];
 };
 
-export function createWorkerControlOfFn<F extends ActionFunctions>(
+// eslint-disable-next-line space-before-function-paren
+export function createWorkerControlOfFn<F extends ActionFunctions, LI extends (keyof ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>)[]>(
   recursiveFuncs: F,
-  opts?: SimplexReactorOptions<any, any>
+  opts?: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>
 ) {
   const ctl = createWorkerControl(opts).reactivize(recursiveFuncs);
-  return ctl as WorkerControl<InferFuncReturnEvents<F> & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>>;
+  return ctl as WorkerControl<ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>>;
 }

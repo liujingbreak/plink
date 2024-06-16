@@ -46,7 +46,7 @@ export function applySharedReactors(isMainWorker: boolean,
     ));
 
     r('changeConfig', s.pt.changeConfig.pipe(
-      rx.map(([, config]) => comp.config(config))
+      rx.map(([, config]) => comp.config(config as any))
     ));
   } else {
     // main thread

@@ -38,7 +38,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * target and this controller will recieves them.
      *
      */
-    forkController(): RxController2<I>;
+    prependController(): RxController2<I>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**
