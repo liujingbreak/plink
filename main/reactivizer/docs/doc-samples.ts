@@ -5,7 +5,7 @@ import {SimplexReactor, SingleActionFactory} from '@wfh/reactivizer';
 // Use interface or type to define input message
 interface InputActions {
   greeting(byName: string): SingleActionFactory;
-  askQuestion(topic: string, detial: string): SingleActionFactory;
+  askQuestion(topic: string, details: string): SingleActionFactory;
   setLanguage(locale: string): SingleActionFactory;
 }
 

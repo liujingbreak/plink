@@ -75,16 +75,17 @@ export class RxController2<I> extends ControllerCore<I> {
   }
 
   /**
-   * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of target controller always
+   * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
+   * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "prepend" controller always
    * recieves earlier than any subscribers of this controller.
-   * It help to conquer recursive message emitting problem when extending reactor.
+   * It helps to conquer recursive message emitting problem when add more reactors to existing message stream.
    *
-   * 1. Target dispatches --message--> target.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> target.action$, this.action$
-   * 2. This dispatches --message--> this.actionUpstream (intercepted) --> target.action$, this.action$
+   * 1. current dispatches --message--> current.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> current.action$, this.action$
+   * 2. This dispatches --message--> this.actionUpstream (intercepted) --> current.action$, this.action$
    *
-   * Target controller will always recieve a copy of each action from this controller, and awlays recieves earlier than this controller's subscribers,
-   * Any action dispatched by target controller will always be piped to this controller's actionUpstream instead of its owns, so that again both
-   * target and this controller will recieves them.
+   * The "prepend" controller will always recieve a copy of each action message from current controller, and awlays recieves earlier than this controller's subscribers,
+   * Any action dispatched by current controller will always be piped to this controller's actionUpstream instead of its owns, so that again, both
+   * current and prepend controller will recieves them.
    *
    */
   prependController() {
@@ -100,9 +101,7 @@ export class RxController2<I> extends ControllerCore<I> {
       );
     });
     this.interceptor$.next(a$ => a$.pipe(
-      rx.tap(a => {
-        targetUpStream.next(a);
-      })
+      rx.tap(a => { targetUpStream.next(a); })
     ));
     return targetCtl;
   }

@@ -10,17 +10,18 @@ interface TwInput {
   removeChild(...children: (TerminalWidget | RenderFn)[]): SingleActionFactory;
   setParent(p: TerminalWidget): SingleActionFactory;
   render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
-  setSize(width: number): SingleActionFactory;
+  setSize(width: number, height: number): SingleActionFactory;
 }
 
 interface TwOutput {
   rendered(): SingleActionFactory;
   renderChild(index: number, child: RenderFn | TerminalWidget, canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
   allChildren(children: Iterable<TerminalWidget | RenderFn>): SingleActionFactory;
-  preferSize(width: number): SingleActionFactory;
+  preferredSize(width: number, height: number): SingleActionFactory;
+  resized(width: number, height: number): SingleActionFactory;
 }
 
-const tableFor = ['setParent', 'allChildren', 'setTransform', 'setSize', 'preferSize'] as const;
+const tableFor = ['setParent', 'allChildren', 'setTransform', 'setSize', 'preferredSize'] as const;
 export type TerminalWidget = SimplexReactor<TwInput & TwOutput, typeof tableFor>;
 
 export function createWidget() {
@@ -36,6 +37,15 @@ export function createWidget() {
       for (const child of children) {
         if ((child as TerminalWidget).s)
           (child as TerminalWidget).s.ft.setParent(service).dp(m);
+      }
+    })
+  ));
+  r('removeChild', s.pt.removeChild.pipe(
+    rx.map(([m, ...widgets]) => {
+      for (const w of widgets) {
+        const idx = children.findIndex(c => c === w);
+        if (idx >= 0)
+          children.splice(idx, 1);
       }
     })
   ));
@@ -61,6 +71,8 @@ export function createWidget() {
   ));
   s.ft.allChildren(children).dp();
   s.ft.setTransform(mat4.create()).dp();
+  s.ft.setSize(0, 0).dp();
+  s.ft.preferredSize(0, 0).dp();
   return service;
 }
 

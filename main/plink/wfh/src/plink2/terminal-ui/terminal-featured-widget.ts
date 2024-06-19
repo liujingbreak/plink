@@ -9,12 +9,16 @@ export interface ListContainerInput {
   align(value: 'start' | 'middle' | 'end'): SingleActionFactory;
 }
 
+export interface ListContainerEvents {
+  onChildPreferredSizeChange(sizes: [w: number, h: number][]): SingleActionFactory;
+}
+
 const tableForListContainer = ['setDirection', 'align'] as const;
 
-type ListContainer = SimplexReactorMergeType<TerminalWidget, SimplexReactor<ListContainerInput, typeof tableForListContainer>>;
+type ListContainer = SimplexReactorMergeType<TerminalWidget, SimplexReactor<ListContainerInput & ListContainerEvents, typeof tableForListContainer>>;
 export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>, 'tableFor'>) {
   const base = createWidget();
-  const listContainer = base.config<ListContainerInput, typeof tableForListContainer>({...opts, tableFor: tableForListContainer});
+  const listContainer = base.config<ListContainerInput & ListContainerEvents, typeof tableForListContainer>({...opts, tableFor: tableForListContainer});
   const s = listContainer.s.prependController();
 
   s.interceptor$.next(action$ => {
@@ -30,5 +34,27 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
     );
   });
 
-  const {r} = base;
+  const {r, table} = listContainer;
+  r('addChild, removeChild, children.preferredSize -> onChildPreferredSizeChange', rx.merge(
+    s.pt.addChild,
+    s.pt.removeChild
+  ).pipe(
+    rx.switchMap(() => table.l.allChildren.pipe(
+      rx.switchMap(([, children]) => {
+        return rx.zip([...children].filter(child => (child as TerminalWidget).s != null)
+          .map(widget => (widget as TerminalWidget).table.l.preferredSize));
+      }),
+      rx.map(preferredSizeOfChildren => {
+        s.ft.onChildPreferredSizeChange(preferredSizeOfChildren.map(([, w, h]) => [w, h] as const)).dp();
+      })
+    )),
+  ));
+
+  r('onChildPreferredSizeChange', s.pt.onChildPreferredSizeChange.pipe(
+    rx.withLatestFrom(table.l.setDirection),
+    rx.map(([[m, sizes], [, direction]]) => {
+      // TODO
+    })
+  ));
+  s.ft.setDirection('row').dp();
 }

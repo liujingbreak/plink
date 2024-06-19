@@ -39,7 +39,7 @@ import {SimplexReactor, SingleActionFactory} from '@wfh/reactivizer';
 // Use interface or type to define input message
 interface InputActions {
   greeting(byName: string): SingleActionFactory;
-  askQuestion(topic: string, detial: string): SingleActionFactory;
+  askQuestion(topic: string, details: string): SingleActionFactory;
   setLanguage(locale: string): SingleActionFactory;
 }
 
@@ -70,7 +70,25 @@ export function consumeServiceExample(service: SimplexReactor<InputActions & Out
 - `.dp` (stands for "dispatch") is a member function of implementation of type `SingleActionFactory`, it dispatchs specific message to stream controller and returns that message instance of type `Action<InputActions['greeting']>`.
 
 #### 2.3.2 Consuming message
-To cosume message of 
+To cosume message of a certain type of message,
+We can subscribe Action observable
+```ts
+s.at.askQuestion.pipe(
+  rx.map(action => {
+    const [question, details] = action.p;
+    console.log(question, details);
+  })
+).subscribe();
+```
+or subscribe to Action variant **Payload**, which is more convenient data structure to extract action payload data from
+```ts
+s.pt.greeting.pipe(
+  rx.map(([_actionMeta, question, details]) => {
+    console.log(question, details);
+  })
+).subscribe();
+```
+
 ### 2.4 Creating service
 
 #### 2.4.1 Error hanlding
