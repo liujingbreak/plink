@@ -87,21 +87,41 @@ export class RxController2<I> extends ControllerCore<I> {
    * Any action dispatched by current controller will always be piped to this controller's actionUpstream instead of its owns, so that again, both
    * current and prepend controller will recieves them.
    *
+   * Notice the order of prependController and interceptors set by `interceptor$.next()`, it behaves differetly as below:
+   * - prependController should recieve message dispatched by both controllers, but base controller can not recieve message from either controller,
+   *   **when interceptor of base controller is added before prependController() invocation** (interceptor is appended after prependController to pipeline as reverse order)
+   * - prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor
+   *   when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)
    */
   prependController() {
     const targetCtl = new RxController2<I>({debug: false});
-    const targetUpStream = new rx.Subject<Action<I[keyof I]>>();
+    // unlike actionUpstream, thisUpStream is posterior to interceptors
+    const thisUpStream = new rx.Subject<Action<I[keyof I]>>();
+    const targetUpstream = new rx.Subject<Action<I[keyof I]>>();
     targetCtl.interceptor$.next(a$ => {
       return rx.merge(
+        targetUpstream,
         a$.pipe(
-          rx.map(a => this.actionUpstream.next(a)),
+          rx.map(a => {
+            targetUpstream.next(a);
+            // emit to current controller as well but later than other subscribers
+            thisUpStream.next(a);
+          }),
           rx.ignoreElements()
-        ),
-        targetUpStream
+        )
       );
     });
-    this.interceptor$.next(a$ => a$.pipe(
-      rx.tap(a => { targetUpStream.next(a); })
+    this.interceptor$.next(a$ => rx.merge(
+      thisUpStream,
+      a$.pipe(
+        rx.map(a => {
+          // Ensure prependController recieve earlier than current controller
+          targetUpstream.next(a);
+          // Ensure action emitted later than prependController
+          thisUpStream.next(a);
+        }),
+        rx.ignoreElements()
+      )
     ));
     return targetCtl;
   }

@@ -1,4 +1,4 @@
-import { SingleActionFactory, ReactorComposite2 } from '@wfh/reactivizer';
+import { SingleActionFactory, ReactorComposite2, ReactorCompositeMergeType } from '@wfh/reactivizer';
 import { PackageInfo } from './index';
 export interface RepoPackageJson {
     packages: string[];
@@ -42,7 +42,7 @@ export interface PackageMgr2ModuleOutput {
 declare const inputTableFor: readonly [];
 declare const outputTableFor: readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"];
 export declare function createStoreService<R extends ReactorComposite2<any, any, any, any>>(base: R): {
-    service: import("@wfh/reactivizer").ReactorCompositeExtendType<R, PackageMgrModelInput, PackageMgr2ModuleOutput, readonly [], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>;
+    service: ReactorCompositeMergeType<R, ReactorComposite2<PackageMgrModelInput, PackageMgr2ModuleOutput, readonly [], readonly ["data_spacePkgMap", "data_spaceDependencyMap", "data_allPackages", "data_projPkgMap"]>>;
 };
 export type PackageMgr2ModelType = ReactorComposite2<PackageMgrModelInput, PackageMgr2ModuleOutput, typeof inputTableFor, typeof outputTableFor>;
 export {};

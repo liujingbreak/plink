@@ -125,7 +125,7 @@ export class SimplexReactor<
     this.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
       if (p !== 'tableFor') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        obj[p as keyof RxControlConfigType<I>] = v as any;
+        obj[p as keyof RxControlConfigType<I>] = v;
       }
       return obj;
     }, {} as RxControlConfigType<I>));

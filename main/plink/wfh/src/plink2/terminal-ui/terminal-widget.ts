@@ -1,13 +1,18 @@
 import * as rx from 'rxjs';
-import {mat4} from 'gl-matrix';
+import {mat4, vec2} from 'gl-matrix';
 import {SingleActionFactory, SimplexReactor} from '@wfh/reactivizer';
 import {TerminalCanvas} from './terminal-canvas';
 
-export type RenderFn = (canvas: TerminalCanvas, absTransform: mat4) => unknown;
+/** A pristine single line text rendable unit */
+export type StaticTextLabel = {
+  text: string;
+  displayLength: number;
+  width?: number;
+};
 interface TwInput {
   setTransform(mat: mat4): SingleActionFactory;
-  addChild(...children: (TerminalWidget | RenderFn)[]): SingleActionFactory;
-  removeChild(...children: (TerminalWidget | RenderFn)[]): SingleActionFactory;
+  addChild(...children: (TerminalWidget | StaticTextLabel)[]): SingleActionFactory;
+  removeChild(...children: (TerminalWidget | string)[]): SingleActionFactory;
   setParent(p: TerminalWidget): SingleActionFactory;
   render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
   setSize(width: number, height: number): SingleActionFactory;
@@ -15,8 +20,8 @@ interface TwInput {
 
 interface TwOutput {
   rendered(): SingleActionFactory;
-  renderChild(index: number, child: RenderFn | TerminalWidget, canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
-  allChildren(children: Iterable<TerminalWidget | RenderFn>): SingleActionFactory;
+  renderChild(index: number, child: StaticTextLabel | TerminalWidget, canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
+  allChildren(children: Array<TerminalWidget | StaticTextLabel>): SingleActionFactory;
   preferredSize(width: number, height: number): SingleActionFactory;
   resized(width: number, height: number): SingleActionFactory;
 }
@@ -29,7 +34,7 @@ export function createWidget() {
     tableFor
   });
   const {r, s} = service;
-  const children = [] as (RenderFn | TerminalWidget)[];
+  const children = [] as (StaticTextLabel | TerminalWidget)[];
 
   r('addChild -> child.setParent', s.pt.addChild.pipe(
     rx.map(([m, ...added]) => {
@@ -41,7 +46,7 @@ export function createWidget() {
     })
   ));
   r('removeChild', s.pt.removeChild.pipe(
-    rx.map(([m, ...widgets]) => {
+    rx.map(([, ...widgets]) => {
       for (const w of widgets) {
         const idx = children.findIndex(c => c === w);
         if (idx >= 0)
@@ -61,12 +66,15 @@ export function createWidget() {
       s.ft.rendered().dp(m);
     })
   ));
-  r('renderChild -> child.render', s.pt.renderChild.pipe(
+  r('renderChild -> child.render, canvas.addString', s.pt.renderChild.pipe(
     rx.map(([m, _index, chr, canvas, trans]) => {
-      if ((chr as TerminalWidget).s)
-        (chr as TerminalWidget).s.ft.render(canvas, trans).re(m).dp();
-      else
-        (chr as RenderFn)(canvas, trans);
+      if (isStaticTextLabel(chr)) {
+        const vec = vec2.create();
+        vec2.transformMat4(vec, vec, trans);
+        canvas.s.ft.addString(vec[0], vec[1], chr.text).dp(m);
+      } else {
+        chr.s.ft.render(canvas, trans).re(m).dp();
+      }
     })
   ));
   s.ft.allChildren(children).dp();
@@ -74,5 +82,9 @@ export function createWidget() {
   s.ft.setSize(0, 0).dp();
   s.ft.preferredSize(0, 0).dp();
   return service;
+}
+
+export function isStaticTextLabel(obj: any): obj is StaticTextLabel {
+  return (obj as StaticTextLabel).displayLength != null && (obj as StaticTextLabel).text != null;
 }
 

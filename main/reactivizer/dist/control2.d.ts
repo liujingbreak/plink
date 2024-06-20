@@ -26,17 +26,23 @@ export declare class RxController2<I> extends ControllerCore<I> {
         debugTableAction?: boolean;
     });
     /**
-     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of target controller always
+     * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
+     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "prepend" controller always
      * recieves earlier than any subscribers of this controller.
-     * It help to conquer recursive message emitting problem when extending reactor.
+     * It helps to conquer recursive message emitting problem when add more reactors to existing message stream.
      *
-     * 1. Target dispatches --message--> target.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> target.action$, this.action$
-     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> target.action$, this.action$
+     * 1. current dispatches --message--> current.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> current.action$, this.action$
+     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> current.action$, this.action$
      *
-     * Target controller will always recieve a copy of each action from this controller, and awlays recieves earlier than this controller's subscribers,
-     * Any action dispatched by target controller will always be piped to this controller's actionUpstream instead of its owns, so that again both
-     * target and this controller will recieves them.
+     * The "prepend" controller will always recieve a copy of each action message from current controller, and awlays recieves earlier than this controller's subscribers,
+     * Any action dispatched by current controller will always be piped to this controller's actionUpstream instead of its owns, so that again, both
+     * current and prepend controller will recieves them.
      *
+     * Notice the order of prependController and interceptors set by `interceptor$.next()`, it behaves differetly as below:
+     * - prependController should recieve message dispatched by both controllers, but base controller can not recieve message from either controller,
+     *   **when interceptor of base controller is added before prependController() invocation** (interceptor is appended after prependController to pipeline as reverse order)
+     * - prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor
+     *   when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)
      */
     prependController(): RxController2<I>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */

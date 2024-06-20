@@ -12,7 +12,9 @@ export class ActionDispenser {
     static ofRxController(control) {
         return new ActionDispenser(control.action$);
     }
-    /** you need explicitly specify generic type parameter of this function, it won't inference proper type itself */
+    /** you need explicitly specify generic type parameter of this function, it won't inference proper type itself
+     * X - SimplexReactor or RxController2
+     * */
     static ofAction$(action$) {
         return new ActionDispenser(action$);
     }

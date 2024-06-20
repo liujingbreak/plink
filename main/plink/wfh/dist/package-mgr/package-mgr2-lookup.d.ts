@@ -25,7 +25,7 @@ interface PlinkPackageLookupInternal {
 export declare function createPlinkPackageLookupService(): {
     input: PlinkPackageLookupInput;
     output: PayloadByType<PlinkPackageLookupOutput>;
-    table: import("@wfh/reactivizer").ActionTable<PlinkPackageLookupInput & PlinkPackageLookupOutput & PlinkPackageLookupInternal & import("@wfh/reactivizer").BaseActions<PlinkPackageLookupInput & PlinkPackageLookupOutput & PlinkPackageLookupInternal, readonly []>, readonly ("rootDir" | "fromPackageService" | "pkgPathLenToPathMapChanged" | "packageToPathMap" | "__onError" | "__onDisposed")[]>;
+    table: import("@wfh/reactivizer").ActionTable<PlinkPackageLookupInput & PlinkPackageLookupOutput & PlinkPackageLookupInternal & import("@wfh/reactivizer").BaseActions<PlinkPackageLookupInput & PlinkPackageLookupOutput & PlinkPackageLookupInternal, readonly []>, readonly ("__onError" | "__onDisposed" | "rootDir" | "fromPackageService" | "pkgPathLenToPathMapChanged" | "packageToPathMap")[]>;
     service: SimplexReactor<PlinkPackageLookupInput & PlinkPackageLookupOutput & PlinkPackageLookupInternal, readonly ["rootDir", "fromPackageService", "pkgPathLenToPathMapChanged", "packageToPathMap"]>;
 };
 export type PlinkPackageLookupService = ReturnType<typeof createPlinkPackageLookupService>;

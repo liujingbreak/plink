@@ -11,7 +11,7 @@ const package_mgr2_utils_1 = require("../../package-mgr/package-mgr2-utils");
 const tsc_language_service_1 = require("./tsc-language-service");
 const newTableActions = ['onTscDirsConfig'];
 function addOnPackageFeatures(baseService, pkgMgr, lookupService) {
-    const s = baseService.s.forkController();
+    const s = baseService.s.prependController();
     const table = baseService.table.addActions('onTscDirsConfig');
     const { r } = baseService;
     const ft = s.ft;

@@ -13,7 +13,7 @@ function setupTTY(screenColumns, screenRows) {
     process.stderr.columns = screenColumns;
     process.stdout.rows = screenRows;
     process.stderr.rows = screenRows;
-    process.stdout.hasColors = process.stderr.hasColors = (...cnt) => {
+    process.stdout.hasColors = process.stderr.hasColors = (..._cnt) => {
         return true;
     };
     process.stdout.getWindowSize = process.stderr.getWindowSize = () => [screenColumns, screenRows];

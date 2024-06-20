@@ -83,27 +83,42 @@ class RxController2 extends stream_core_1.ControllerCore {
         this.pt = actionDispenseByType.pt;
     }
     /**
-     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of target controller always
+     * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
+     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "prepend" controller always
      * recieves earlier than any subscribers of this controller.
-     * It help to conquer recursive message emitting problem when extending reactor.
+     * It helps to conquer recursive message emitting problem when add more reactors to existing message stream.
      *
-     * 1. Target dispatches --message--> target.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> target.action$, this.action$
-     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> target.action$, this.action$
+     * 1. current dispatches --message--> current.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> current.action$, this.action$
+     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> current.action$, this.action$
      *
-     * Target controller will always recieve a copy of each action from this controller, and awlays recieves earlier than this controller's subscribers,
-     * Any action dispatched by target controller will always be piped to this controller's actionUpstream instead of its owns, so that again both
-     * target and this controller will recieves them.
+     * The "prepend" controller will always recieve a copy of each action message from current controller, and awlays recieves earlier than this controller's subscribers,
+     * Any action dispatched by current controller will always be piped to this controller's actionUpstream instead of its owns, so that again, both
+     * current and prepend controller will recieves them.
      *
+     * Notice the order of prependController and interceptors set by `interceptor$.next()`, it behaves differetly as below:
+     * - prependController should recieve message dispatched by both controllers, but base controller can not recieve message from either controller,
+     *   **when interceptor of base controller is added before prependController() invocation** (interceptor is appended after prependController to pipeline as reverse order)
+     * - prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor
+     *   when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)
      */
     prependController() {
         const targetCtl = new RxController2({ debug: false });
-        const targetUpStream = new rx.Subject();
+        // unlike actionUpstream, thisUpStream is posterior to interceptors
+        const thisUpStream = new rx.Subject();
+        const targetUpstream = new rx.Subject();
         targetCtl.interceptor$.next(a$ => {
-            return rx.merge(a$.pipe(rx.map(a => this.actionUpstream.next(a)), rx.ignoreElements()), targetUpStream);
+            return rx.merge(targetUpstream, a$.pipe(rx.map(a => {
+                targetUpstream.next(a);
+                // emit to current controller as well but later than other subscribers
+                thisUpStream.next(a);
+            }), rx.ignoreElements()));
         });
-        this.interceptor$.next(a$ => a$.pipe(rx.tap(a => {
-            targetUpStream.next(a);
-        })));
+        this.interceptor$.next(a$ => rx.merge(thisUpStream, a$.pipe(rx.map(a => {
+            // Ensure prependController recieve earlier than current controller
+            targetUpstream.next(a);
+            // Ensure action emitted later than prependController
+            thisUpStream.next(a);
+        }), rx.ignoreElements())));
         return targetCtl;
     }
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
