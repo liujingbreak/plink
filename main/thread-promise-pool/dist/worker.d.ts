@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { WorkerOptions } from 'worker_threads';
 export interface InitialOptions {
     verbose?: boolean;

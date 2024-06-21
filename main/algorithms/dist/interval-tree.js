@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isDuplicateNode = exports.IntervalTree = void 0;
+exports.IntervalTree = void 0;
+exports.isDuplicateNode = isDuplicateNode;
 const rb_tree_1 = require("./rb-tree");
 /**
  * Maintaining:
@@ -140,7 +141,6 @@ exports.IntervalTree = IntervalTree;
 function isDuplicateNode(node) {
     return !!node.highValuesTree;
 }
-exports.isDuplicateNode = isDuplicateNode;
 function maintainNodeMaxValue(node) {
     var _a, _b, _c, _d, _e;
     let currNode = node;

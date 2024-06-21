@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import type { Worker as NodeWorker } from 'node:worker_threads';
 import { Broker } from './types';
 export declare function applyScheduler(broker: Broker<any>, opts: {

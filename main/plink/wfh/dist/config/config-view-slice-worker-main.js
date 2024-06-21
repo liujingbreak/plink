@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createMainWorkerAndBroker = void 0;
+exports.createMainWorkerAndBroker = createMainWorkerAndBroker;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_worker_threads_1 = require("node:worker_threads");
@@ -24,5 +24,4 @@ function createMainWorkerAndBroker(debug = false) {
     });
     return mainService;
 }
-exports.createMainWorkerAndBroker = createMainWorkerAndBroker;
 //# sourceMappingURL=config-view-slice-worker-main.js.map

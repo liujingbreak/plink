@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.log4File = void 0;
+exports.log4File = log4File;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const log4js_1 = require("log4js");
@@ -31,5 +31,4 @@ function log4File(file, subName) {
         return (0, log4js_1.getLogger)(/^(.*?)\.[^.]*$/.exec(node_path_1.default.basename(file))[1] + (subName ? '.' + subName : ''));
     }
 }
-exports.log4File = log4File;
 //# sourceMappingURL=logger.js.map

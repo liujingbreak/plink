@@ -128,6 +128,10 @@ export class ControllerCore {
             this.configChange.next(changedProperties);
         }
     }
+    /** Insert action "interceptor" operator function */
+    prependInterceptor(interceptor) {
+        this.interceptor$.next(interceptor);
+    }
     /** This method is not meant to be used directly */
     dispatchFactory(type) {
         if (has.call(this.dispatcher, type)) {

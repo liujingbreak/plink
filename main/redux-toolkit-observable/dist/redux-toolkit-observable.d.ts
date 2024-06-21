@@ -1,5 +1,3 @@
-/// <reference path="../hmr-module.d.ts" />
-/// <reference lib="es2017" />
 /**
  * A combo set for using Redux-toolkit along with redux-observable
  */

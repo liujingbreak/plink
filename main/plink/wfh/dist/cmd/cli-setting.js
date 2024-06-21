@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = default_1;
 const tslib_1 = require("tslib");
 // eslint-disable  max-len, no-console
 const util = tslib_1.__importStar(require("util"));
@@ -50,7 +51,6 @@ function default_1(pkgName) {
     })).subscribe();
     config_view_slice_1.dispatcher.loadPackageSettingMeta({ workspaceKey: wskey, packageName: pkgName });
 }
-exports.default = default_1;
 function printPackage({ name: pkgName, realPath }) {
     const state = (0, config_view_slice_1.getState)();
     const meta = state.packageMetaByName.get(pkgName);

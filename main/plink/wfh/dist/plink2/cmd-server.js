@@ -9,6 +9,7 @@ const fs_1 = tslib_1.__importDefault(require("fs"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const reactivizer_1 = require("@wfh/reactivizer");
+const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 // import {initProcess} from '../utils/bootstrap-process';
 const server_process_1 = require("./server-process");
 const startTime = new Date().getTime();
@@ -42,10 +43,8 @@ const outputTableFor = ['isStarted'];
 // process.stdout.on('data', chunk => fout.write(chunk));
 function reactorLog(...args) {
     fout.write(new Date().toLocaleTimeString());
-    for (const arg of args) {
-        fout.write(' ');
-        fout.write(util.inspect(arg, false, 0));
-    }
+    fout.write(' ');
+    fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
     fout.write('\n');
 }
 const service = new reactivizer_1.ReactorComposite2({
@@ -97,7 +96,7 @@ r('start', i.pt.start.pipe(rx.exhaustMap(([m, port]) => {
         server.listen(actPort);
     }));
 })));
-r('processManager.onChildProcessExit', processManager.destory$.pipe(rx.exhaustMap(() => service.outputTable.l.isStarted.pipe(rx.filter(([, yes]) => yes), rx.take(1), rx.concatMap(() => rx.timer(500)), rx.map(() => {
+r('processManager.destory$', processManager.destory$.pipe(rx.exhaustMap(() => service.outputTable.l.isStarted.pipe(rx.filter(([, yes]) => yes), rx.take(1), rx.concatMap(() => rx.timer(500)), rx.map(() => {
     service.dispose();
     server === null || server === void 0 ? void 0 : server.close();
 })))));

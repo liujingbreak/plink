@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyseFiles = exports.dispatcher = exports.getStore = exports.printResult = void 0;
+exports.dispatcher = void 0;
+exports.default = default_1;
+exports.printResult = printResult;
+exports.getStore = getStore;
+exports.analyseFiles = analyseFiles;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const glob_1 = tslib_1.__importDefault(require("glob"));
@@ -69,7 +73,6 @@ function default_1(packages, opts) {
         printResult(result, opts);
     }), op.take(1)).subscribe();
 }
-exports.default = default_1;
 function printResult(result, opts) {
     if (result.canNotResolve.length > 0) {
         const table = (0, misc_1.createCliTable)({ horizontalLines: false });
@@ -145,7 +148,6 @@ function printResult(result, opts) {
         console.log(table.toString());
     }
 }
-exports.printResult = printResult;
 const initState = {};
 const slice = store_1.stateFactory.newSlice({
     name: 'analyze',
@@ -160,7 +162,6 @@ const slice = store_1.stateFactory.newSlice({
 function getStore() {
     return store_1.stateFactory.sliceStore(slice);
 }
-exports.getStore = getStore;
 exports.dispatcher = store_1.stateFactory.bindActionCreators(slice);
 store_1.stateFactory.addEpic((action$, state$) => {
     return (0, rxjs_1.merge)(action$.pipe((0, store_1.ofPayloadAction)(slice.actions.analyzeFile), (0, operators_1.mergeMap)(({ payload }) => analyseFiles(payload.files, payload.tsconfig, payload.alias, payload.ignore)), (0, operators_1.map)(result => {
@@ -189,5 +190,4 @@ async function analyseFiles(files, tsconfigFile, alias, ignore) {
     const [, result] = await (0, rxjs_1.firstValueFrom)(mainWorker.s.ft.forkDfsTraverseFiles(files.map(p => path_1.default.resolve(p)), tsconfigFile, alias, ignore).do(mainWorker.s.pt.doneDfsTraverseFiles));
     return result;
 }
-exports.analyseFiles = analyseFiles;
 //# sourceMappingURL=cli-analyze.js.map

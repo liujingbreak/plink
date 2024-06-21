@@ -7,6 +7,7 @@ const worker_threads_1 = require("worker_threads");
 const rx = tslib_1.__importStar(require("rxjs"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const reactivizer_1 = require("@wfh/reactivizer");
+const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 // import {initProcess} from '../utils/bootstrap-process';
 const fork_for_preserve_symlink_1 = require("../fork-for-preserve-symlink");
 const cmd_model_1 = require("./cmd-model");
@@ -38,14 +39,19 @@ exports.service = new reactivizer_1.SimplexReactor({
     tableFor,
     log(msg, ...objs) {
         // eslint-disable-next-line no-console
-        console.log(msg, ...objs.map(it => node_util_1.default.inspect(it, false, 0)));
+        console.log(new Date().toLocaleTimeString(), (0, nodejs_utils_1.formatToConciseNoColor)(msg, ...objs));
     }
 });
 const { s, r, table } = exports.service;
-const rootDir$ = (process.send ?
-    rx.of(process.cwd()) :
-    exports.service.table.l.setRootDir.pipe(rx.map(([, dir]) => dir)));
-r('setRootDir? -> onCommanderInited', rootDir$.pipe(rx.mergeMap(dir => (0, cmd_definition_1.define)(dir, () => s.ft.onShutdown().dp())), rx.tap(program => s.ft.onCommanderInited(program).dp())));
+// const rootDir$ = (process.send ?
+//   rx.of(process.cwd()) :
+//   service.table.l.setRootDir.pipe(
+//     rx.map(([, dir]) => dir)
+//   ));
+if (process.send) {
+    s.ft.setRootDir(process.cwd()).dp();
+}
+(0, cmd_definition_1.define)(exports.service);
 r('cmdModelService.enableRxMessageTrace ->', cmd_model_1.cmdModelService.inputTable.l.enableRxMessageTrace.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([, enabled]) => {
     exports.service.config({ debug: enabled });
 })));
@@ -78,7 +84,7 @@ r('doCommand -> onCommandDone', s.pt.doCommand.pipe(rx.mergeMap((a) => table.l.o
     }
 })));
 if (process.send) {
-    r('events should be lifted to parent process', rx.merge(s.at.onCommandError, s.at.onCommandDone, s.at.onReady, s.at.onShutdown, s.at.__onError).pipe(rx.map(a => process.send({
+    r('events should be lifted to parent process', rx.merge(s.at.onCommandError, s.at.onCommandDone, s.at.onReady, s.at.onShutdown, s.at.__onError, s.at.onUncaughtServiceError).pipe(rx.map(a => process.send({
         type: 'rx:message',
         content: (0, reactivizer_1.serializeAction)(a)
     }))));

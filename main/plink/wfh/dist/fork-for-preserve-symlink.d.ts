@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { ForkOptions } from 'child_process';
 declare global {
     namespace NodeJS {

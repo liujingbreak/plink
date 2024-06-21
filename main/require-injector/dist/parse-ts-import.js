@@ -26,7 +26,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TypescriptParser = exports.parseTs = void 0;
+exports.TypescriptParser = void 0;
+exports.parseTs = parseTs;
 // tslint:disable:max-line-length
 const _ts = __importStar(require("typescript"));
 const fs = __importStar(require("fs"));
@@ -58,7 +59,6 @@ function parseTs(file) {
         // }
     }
 }
-exports.parseTs = parseTs;
 class TypescriptParser {
     constructor(esReplacer = null, ts = _ts) {
         this.esReplacer = esReplacer;

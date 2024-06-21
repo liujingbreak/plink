@@ -1,6 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapPackagesByType = exports.prepareLazyNodeInjector = exports.initInjectorForNodePackages = exports.runPackages = exports.runSinglePackage = exports.runServer = exports.readPriorityProperty = exports.isServerPackage = void 0;
+exports.isServerPackage = isServerPackage;
+exports.readPriorityProperty = readPriorityProperty;
+exports.runServer = runServer;
+exports.runSinglePackage = runSinglePackage;
+exports.runPackages = runPackages;
+exports.initInjectorForNodePackages = initInjectorForNodePackages;
+exports.prepareLazyNodeInjector = prepareLazyNodeInjector;
+exports.mapPackagesByType = mapPackagesByType;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable  max-len */
@@ -23,11 +30,9 @@ function isServerPackage(pkg) {
     const plinkProp = pkg.json.plink || pkg.json.dr;
     return plinkProp && (plinkProp.type === 'server' || (Array.isArray(plinkProp.type) && plinkProp.type.includes('server')));
 }
-exports.isServerPackage = isServerPackage;
 function readPriorityProperty(json) {
     return _.get(json, 'plink.serverPriority', _.get(json, 'dr.serverPriority'));
 }
-exports.readPriorityProperty = readPriorityProperty;
 function runServer() {
     let wsKey = (0, package_mgr_1.workspaceKey)((0, misc_1.getWorkDir)());
     wsKey = (0, package_mgr_1.getState)().workspaces.has(wsKey) ? wsKey : (0, package_mgr_1.getState)().currWorkspace;
@@ -76,7 +81,6 @@ function runServer() {
         }
     };
 }
-exports.runServer = runServer;
 const apiCache = new Map();
 // const packageTree = new DirTree<PackageInstance>();
 /**
@@ -104,11 +108,9 @@ async function runSinglePackage({ target, args }) {
         await Promise.resolve(_exports[func].apply(global, args || []));
     }
 }
-exports.runSinglePackage = runSinglePackage;
 function runPackages(target, includePackages) {
     return _runPackages(includePackages, () => target.split('#'));
 }
-exports.runPackages = runPackages;
 async function _runPackages(includePackages, targetOfPkg) {
     const includeNameSet = new Set(includePackages);
     const pkgExportsInDescendOrder = [];
@@ -177,7 +179,6 @@ function initInjectorForNodePackages() {
     injector_factory_1.webInjector.readInjectFile('module-resolve.browser');
     return [packageInfo, proto];
 }
-exports.initInjectorForNodePackages = initInjectorForNodePackages;
 /**
  * @deprecated
  * Support `import api from '__api';`
@@ -210,7 +211,6 @@ function prepareLazyNodeInjector(argv) {
         return null;
     });
 }
-exports.prepareLazyNodeInjector = prepareLazyNodeInjector;
 function mapPackagesByType(types, onEachPackage) {
     const packagesMap = {};
     types.forEach(type => {
@@ -240,7 +240,6 @@ function mapPackagesByType(types, onEachPackage) {
     }
     return packagesMap;
 }
-exports.mapPackagesByType = mapPackagesByType;
 function setupRequireInjects(pkInstance, NodeApi) {
     function apiFactory() {
         return getApiForPackage(pkInstance, NodeApi);

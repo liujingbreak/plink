@@ -13,7 +13,21 @@
 # --- Below is PLink 1 relevant ---
 
 ## Package Link core
+### PLink 2
+```mermaid
+mindmap
+((Root))
+  Requirements
+    add/remove project,src directory
+    scan packages of repo
+    install workspace<br>tree dependencies
+  ORM
+    project
+      package.json
+        patterns
+>>>>>>> Stashed changes
 
+```
 ### Entities
 
 1. #### Source packages

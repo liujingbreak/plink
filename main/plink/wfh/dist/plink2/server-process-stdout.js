@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCurrentProcessOutputReader = void 0;
+exports.createCurrentProcessOutputReader = createCurrentProcessOutputReader;
 const tslib_1 = require("tslib");
 const stream = tslib_1.__importStar(require("node:stream"));
 // import util from 'node:util';
@@ -53,5 +53,4 @@ function createCurrentProcessOutputReader(base64 = false) {
         }
     ];
 }
-exports.createCurrentProcessOutputReader = createCurrentProcessOutputReader;
 //# sourceMappingURL=server-process-stdout.js.map

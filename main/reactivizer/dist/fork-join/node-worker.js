@@ -23,7 +23,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createWorkerControlOfFn = exports.createWorkerControl = exports.setIdleDuring = void 0;
+exports.setIdleDuring = void 0;
+exports.createWorkerControl = createWorkerControl;
+exports.createWorkerControlOfFn = createWorkerControlOfFn;
 const node_util_1 = require("node:util");
 const worker_threads_1 = require("worker_threads");
 const rx = __importStar(require("rxjs"));
@@ -117,11 +119,9 @@ function createWorkerControl(opts) {
     })));
     return comp;
 }
-exports.createWorkerControl = createWorkerControl;
 // eslint-disable-next-line space-before-function-paren
 function createWorkerControlOfFn(recursiveFuncs, opts) {
     const ctl = createWorkerControl(opts).reactivize(recursiveFuncs);
     return ctl;
 }
-exports.createWorkerControlOfFn = createWorkerControlOfFn;
 //# sourceMappingURL=node-worker.js.map

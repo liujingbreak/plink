@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.doInjectorConfig = exports.doInjectorConfigSync = exports.webInjector = exports.nodeInjector = exports.DrPackageInjector = void 0;
+exports.webInjector = exports.nodeInjector = exports.DrPackageInjector = void 0;
+exports.doInjectorConfigSync = doInjectorConfigSync;
+exports.doInjectorConfig = doInjectorConfig;
 const tslib_1 = require("tslib");
 const fs = tslib_1.__importStar(require("fs"));
 const Path = tslib_1.__importStar(require("path"));
@@ -109,7 +111,6 @@ function doInjectorConfigSync(factory, isNode = false) {
         }, 'Injector configuration for ' + (isNode ? 'Node.js runtime' : 'client side build tool'));
     });
 }
-exports.doInjectorConfigSync = doInjectorConfigSync;
 function emptryChainableFunction() {
     return emptyFactoryMap;
 }
@@ -125,5 +126,4 @@ function doInjectorConfig(factory, isNode = false) {
         }, 'Injector configuration for ' + (isNode ? 'Node.js runtime' : 'client side build tool'));
     });
 }
-exports.doInjectorConfig = doInjectorConfig;
 //# sourceMappingURL=injector-factory.js.map

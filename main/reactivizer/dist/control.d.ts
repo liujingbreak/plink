@@ -6,7 +6,7 @@ export type DispatchAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx
 export type DispatchForAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
 export declare class RxController<I> {
     opts?: (CoreOptions<I> & {
-        debugTableAction?: boolean | undefined;
+        debugTableAction?: boolean;
     }) | undefined;
     core: ControllerCore<I>;
     dispatcher: {
@@ -45,7 +45,7 @@ export declare class RxController<I> {
     at: ActionByType<I>;
     interceptor$: ControllerCore<I>['interceptor$'];
     constructor(opts?: (CoreOptions<I> & {
-        debugTableAction?: boolean | undefined;
+        debugTableAction?: boolean;
     }) | undefined);
     /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
     * belongs to
@@ -81,7 +81,7 @@ export declare function serializeAction<I = any, K extends keyof I = any>(action
     t: string;
     p: InferPayload<I[K]>;
     i: number;
-    r?: number | number[] | undefined;
+    r?: number | number[];
 };
 /**
  * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,

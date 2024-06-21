@@ -93,7 +93,7 @@ s.pt.greeting.pipe(
 
 #### 2.4.1 Error hanlding
 #### 2.4.2 Type inference and access control
-
+#### 2.4.3 Extend created service instance
 ### 3 Advanced features
 - Dispatching and filtering contextual actions
 - Statement menagement - action table

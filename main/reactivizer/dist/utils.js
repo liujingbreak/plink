@@ -23,8 +23,21 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.arrayBuffer2ascii = exports.ascii2ArrayBuffer = exports.arrayBuffer2str = exports.str2ArrayBuffer = exports.timeoutLog = void 0;
+exports.defineParialSimplexReactor = defineParialSimplexReactor;
+exports.timeoutLog = timeoutLog;
+exports.str2ArrayBuffer = str2ArrayBuffer;
+exports.arrayBuffer2str = arrayBuffer2str;
+exports.ascii2ArrayBuffer = ascii2ArrayBuffer;
+exports.arrayBuffer2ascii = arrayBuffer2ascii;
 const rx = __importStar(require("rxjs"));
+/** This function must be invoked by providing all generic type parameters, otherwise type inference won't work */
+function defineParialSimplexReactor(tableFor) {
+    return function applyTo(targetService) {
+        if (tableFor)
+            targetService.table.addActions(...tableFor);
+        return targetService;
+    };
+}
 function timeoutLog(millseconds, callbackOnTimeout) {
     return function (up) {
         let hasValue = false;
@@ -38,7 +51,6 @@ function timeoutLog(millseconds, callbackOnTimeout) {
         }), rx.take(1), rx.ignoreElements()));
     };
 }
-exports.timeoutLog = timeoutLog;
 /**
  * Turn string to web worker transferable `ArrayBuffer`
  */
@@ -50,11 +62,9 @@ function str2ArrayBuffer(str, isShared = false) {
     }
     return buf;
 }
-exports.str2ArrayBuffer = str2ArrayBuffer;
 function arrayBuffer2str(buf, byteOffset, length) {
     return String.fromCharCode.apply(null, (new Uint16Array(buf, byteOffset, length)));
 }
-exports.arrayBuffer2str = arrayBuffer2str;
 /**
  * Turn ascii string to web worker transferable `ArrayBuffer` by Uint8Array
  */
@@ -66,9 +76,7 @@ function ascii2ArrayBuffer(str, isShared = false) {
     }
     return buf;
 }
-exports.ascii2ArrayBuffer = ascii2ArrayBuffer;
 function arrayBuffer2ascii(buf, byteOffset, length) {
     return String.fromCharCode.apply(null, (new Uint8Array(buf, byteOffset, length)));
 }
-exports.arrayBuffer2ascii = arrayBuffer2ascii;
 //# sourceMappingURL=utils.js.map

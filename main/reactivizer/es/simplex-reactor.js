@@ -48,9 +48,9 @@ export class SimplexReactor {
         })).subscribe();
         this.table = new ActionTable(this.s, [...(_b = opts === null || opts === void 0 ? void 0 : opts.tableFor) !== null && _b !== void 0 ? _b : [], ...baseTableFor]);
         const internalTable = this.table;
-        this.error$ = internalTable.l.__onError.pipe(
+        this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), internalTable.l.__onError.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        rx.map(([, err]) => err));
+        rx.map(([, err]) => [err, null]))).pipe(rx.share());
         this.destory$ = internalTable.l.__onDisposed;
         this.dispose = () => {
             internalMsg$.ft.__onDisposed().dp();
@@ -61,20 +61,25 @@ export class SimplexReactor {
      * This method can be used to change "options" after SimplexReactor instanciation, e.g. `.change({debug: true})` to enable action tracing log for debug.
      * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
      * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
-     **/
+     */
     config(opts) {
         if (this.opts) {
             Object.assign(this.opts, opts);
-            if (opts.tableFor) {
-                this.table.addActions(...opts.tableFor);
-            }
         }
-        else
+        else {
             this.opts = opts;
+        }
+        if (opts.tableFor) {
+            this.table.addActions(...opts.tableFor);
+        }
         this.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
             if (p !== 'tableFor') {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                obj[p] = v;
+                if (p === 'name')
+                    obj.name = opts.name + '#' + this.id;
+                else {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    obj[p] = v;
+                }
             }
             return obj;
         }, {}));
@@ -85,7 +90,7 @@ export class SimplexReactor {
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
      * errors, you should add your own "catchError" after.
      *
-     * `addReaction(lable, ...)` uses this op internally.
+     * `addReaction(label, ...)` uses this op internally.
      */
     labelError(label) {
         return (upStream) => upStream.pipe(rx.catchError((err) => {
@@ -100,9 +105,9 @@ export class SimplexReactor {
         }));
     }
     /** Rx operator function, filter action or payload stream by:
-   *  action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
-   *  invokes "catchErrorFor()" or "dispatchErrorFor()"
-   **/
+    * action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
+    * invokes "catchErrorFor()" or "dispatchErrorFor()"
+    */
     actionRelatedToAction(actionOrMeta) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const s = this.s;
@@ -164,8 +169,8 @@ export class SimplexReactor {
     }
     logError(label, err) {
         var _a, _b;
-        const message = '@' + (((_a = this.opts) === null || _a === void 0 ? void 0 : _a.name) ? this.opts.name + '::' : '') + label;
-        this.errorSubject.next([err, message]);
+        const message = 'Error@' + (((_a = this.opts) === null || _a === void 0 ? void 0 : _a.name) ? this.opts.name + '::' : '') + label;
+        this.errorSubject.next([message, err]);
         if ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.log)
             this.opts.log(message, err);
         else

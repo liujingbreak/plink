@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = default_1;
 const tslib_1 = require("tslib");
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
 // import { isMainThread, threadId } from 'worker_threads';
@@ -22,5 +23,4 @@ function default_1() {
     console.log(report);
     return report;
 }
-exports.default = default_1;
 //# sourceMappingURL=mem-stats.js.map

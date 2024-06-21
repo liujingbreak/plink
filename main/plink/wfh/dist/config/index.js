@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPackageSettingFiles = exports.configHandlerMgr$ = void 0;
+exports.configHandlerMgr$ = void 0;
+exports.getPackageSettingFiles = getPackageSettingFiles;
 const tslib_1 = require("tslib");
 /* eslint-disable prefer-const, max-len */
 const fs_1 = tslib_1.__importDefault(require("fs"));
@@ -212,7 +213,6 @@ function* getPackageSettingFiles(workspaceKey, includePkg) {
         }
     }
 }
-exports.getPackageSettingFiles = getPackageSettingFiles;
 /**
  * @returns absulte path of setting JS files which contains exports named with "default"
  */

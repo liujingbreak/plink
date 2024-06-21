@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isToken = exports.isArrayAst = exports.isObjectAst = void 0;
+exports.isObjectAst = isObjectAst;
+exports.isArrayAst = isArrayAst;
+exports.isToken = isToken;
+exports.default = parse;
 const LLn_parser_1 = require("../LLn-parser");
 const lexer = function (strLookAhead, emitter) {
     let char = strLookAhead.la();
@@ -61,15 +64,12 @@ var AstType;
 function isObjectAst(ast) {
     return ast.type === AstType.object;
 }
-exports.isObjectAst = isObjectAst;
 function isArrayAst(ast) {
     return ast.type === AstType.array;
 }
-exports.isArrayAst = isArrayAst;
 function isToken(ast) {
     return ast.text != null;
 }
-exports.isToken = isToken;
 const grammar = function (tokenLa) {
     return doObject(tokenLa);
 };
@@ -148,5 +148,4 @@ function parse(content) {
     jsonParser.end();
     return jsonParser.getResult();
 }
-exports.default = parse;
 //# sourceMappingURL=json-sync-parser.js.map

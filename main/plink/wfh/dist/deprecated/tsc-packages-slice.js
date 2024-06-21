@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStore = exports.getState = exports.tscActionDispatcher = exports.tscSlice = void 0;
+exports.tscActionDispatcher = exports.tscSlice = void 0;
+exports.getState = getState;
+exports.getStore = getStore;
 const tslib_1 = require("tslib");
 const store_1 = require("../store");
 const fs_1 = tslib_1.__importDefault(require("fs"));
@@ -23,7 +25,7 @@ exports.tscSlice = store_1.stateFactory.newSlice({
     }
 });
 exports.tscActionDispatcher = store_1.stateFactory.bindActionCreators(exports.tscSlice);
-const releaseEpic = store_1.stateFactory.addEpic((action$) => {
+store_1.stateFactory.addEpic((action$) => {
     return (0, rxjs_1.merge)((0, package_mgr_1.getStore)().pipe((0, operators_1.map)(s => s.srcPackages), (0, operators_1.distinctUntilChanged)(), (0, operators_1.skip)(1), (0, operators_1.debounceTime)(500), (0, operators_1.mergeMap)(pkgMap => {
         return (0, rxjs_1.merge)(...Array.from(pkgMap.values())
             .map(pkg => normalizePackageJsonTscProperty$(pkg)))
@@ -40,11 +42,9 @@ const releaseEpic = store_1.stateFactory.addEpic((action$) => {
 function getState() {
     return store_1.stateFactory.sliceState(exports.tscSlice);
 }
-exports.getState = getState;
 function getStore() {
     return store_1.stateFactory.sliceStore(exports.tscSlice);
 }
-exports.getStore = getStore;
 function normalizePackageJsonTscProperty$(pkg) {
     const dr = pkg.json.dr;
     let rawConfigs;
@@ -75,10 +75,10 @@ function normalizePackageJsonTscProperty$(pkg) {
         return { pkg: pkg.name, items };
     }));
 }
-if (module.hot) {
-    module.hot.dispose(data => {
-        store_1.stateFactory.removeSlice(exports.tscSlice);
-        releaseEpic();
-    });
-}
+// if (module.hot) {
+//   module.hot.dispose(data => {
+//     stateFactory.removeSlice(tscSlice);
+//     releaseEpic();
+//   });
+// }
 //# sourceMappingURL=tsc-packages-slice.js.map

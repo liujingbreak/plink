@@ -1,6 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.appendTypeRoots = exports.setTsCompilerOptForNodePath = exports.workspacesOfDependencies = exports.packages4Workspace = exports.packages4WorkspaceKey = exports.allPackages = void 0;
+exports.allPackages = allPackages;
+exports.packages4WorkspaceKey = packages4WorkspaceKey;
+exports.packages4Workspace = packages4Workspace;
+exports.workspacesOfDependencies = workspacesOfDependencies;
+exports.setTsCompilerOptForNodePath = setTsCompilerOptForNodePath;
+exports.appendTypeRoots = appendTypeRoots;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
@@ -42,7 +47,6 @@ function* allPackages(_types, recipeType, projectDirs) {
         }
     }
 }
-exports.allPackages = allPackages;
 function* packages4WorkspaceKey(wsKey, includeInstalled = true) {
     const ws = (0, index_1.getState)().workspaces.get(wsKey);
     if (!ws)
@@ -77,12 +81,10 @@ function* packages4WorkspaceKey(wsKey, includeInstalled = true) {
         }
     }
 }
-exports.packages4WorkspaceKey = packages4WorkspaceKey;
 function packages4Workspace(workspaceDir, includeInstalled = true) {
     const wsKey = (0, index_1.workspaceKey)(workspaceDir || misc_1.plinkEnv.workDir);
     return packages4WorkspaceKey(wsKey, includeInstalled);
 }
-exports.packages4Workspace = packages4Workspace;
 /**
  * @returns a map of workspace keys of which has specified dependency
  */
@@ -104,7 +106,6 @@ function workspacesOfDependencies(...depPkgNames) {
     }
     return wsKeys;
 }
-exports.workspacesOfDependencies = workspacesOfDependencies;
 /**
  * Set "baseUrl", "paths" and "typeRoots" property relative to tsconfigDir, process.cwd()
  * and process.env.NODE_PATHS
@@ -143,7 +144,6 @@ function setTsCompilerOptForNodePath(tsconfigDir, assigneeOptions, opts = { enab
     appendTypeRoots(pathsDirs, tsconfigDir, assigneeOptions, opts);
     return assigneeOptions;
 }
-exports.setTsCompilerOptForNodePath = setTsCompilerOptForNodePath;
 /** baseUrlAbsPath is no longer necessary for non-AMD module resolution, use tsconfig dir instead */
 function pathMappingForLinkedPkgs(baseUrlAbsPath) {
     var _a;
@@ -218,7 +218,6 @@ function appendTypeRoots(pathsDirs, tsconfigDir, assigneeOptions, opts) {
     if (assigneeOptions.typeRoots != null && assigneeOptions.typeRoots.length === 0)
         delete assigneeOptions.typeRoots;
 }
-exports.appendTypeRoots = appendTypeRoots;
 function typeRootsInPackages(onlyIncludedWorkspace) {
     var _a, _b;
     // const {getState, workspaceKey}: typeof _pkgMgr = require('./package-mgr');

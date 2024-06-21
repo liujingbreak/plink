@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateTsconfigFiles = exports.tsc = void 0;
+exports.tsc = tsc;
+exports.generateTsconfigFiles = generateTsconfigFiles;
 const tslib_1 = require("tslib");
 /* eslint-disable import/order */
 /**
@@ -52,7 +53,6 @@ function tsc(opts) {
     }
     return rxjs_1.EMPTY;
 }
-exports.tsc = tsc;
 function generateTsconfigFiles(pkgs, opts) {
     let wsKey = (0, package_mgr_1.workspaceKey)(misc_1.plinkEnv.workDir);
     const walked = new Set();
@@ -161,7 +161,6 @@ function generateTsconfigFiles(pkgs, opts) {
     }
     return (0, rxjs_1.merge)(...done);
 }
-exports.generateTsconfigFiles = generateTsconfigFiles;
 function tsconfigFileNames(packageName) {
     const configs = (0, tsc_packages_slice_1.getState)().configs.get(packageName);
     if (configs == null) {

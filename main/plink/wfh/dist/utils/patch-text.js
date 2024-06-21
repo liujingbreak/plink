@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports._replaceSorted = exports._sortAndRemoveOverlap = exports.Replacement = void 0;
+exports.Replacement = void 0;
+exports._sortAndRemoveOverlap = _sortAndRemoveOverlap;
+exports._replaceSorted = _replaceSorted;
+exports.default = replaceCode;
 const tslib_1 = require("tslib");
 const assert = tslib_1.__importStar(require("assert"));
 const util_1 = tslib_1.__importDefault(require("util"));
@@ -43,7 +46,6 @@ function _sortAndRemoveOverlap(replacements, removeOverlap = true, text) {
             i++;
     }
 }
-exports._sortAndRemoveOverlap = _sortAndRemoveOverlap;
 function _replaceSorted(text, replacements) {
     let offset = 0;
     return replacements.reduce((text, update) => {
@@ -54,10 +56,8 @@ function _replaceSorted(text, replacements) {
         return text.slice(0, start) + replacement + text.slice(end);
     }, text);
 }
-exports._replaceSorted = _replaceSorted;
 function replaceCode(text, replacements, removeOverlap = false) {
     _sortAndRemoveOverlap(replacements, removeOverlap, text);
     return _replaceSorted(text, replacements);
 }
-exports.default = replaceCode;
 //# sourceMappingURL=patch-text.js.map

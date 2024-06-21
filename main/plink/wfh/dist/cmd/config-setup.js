@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addupConfigs = void 0;
+exports.addupConfigs = addupConfigs;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -69,7 +69,6 @@ function addupConfigs(onEachYaml) {
     config_1.default.reload();
     return Promise.resolve(null);
 }
-exports.addupConfigs = addupConfigs;
 function _addupCompConfigProp(componentConfigs, compName, browserSideConfigProp, configJson) {
     if (!configJson)
         return;

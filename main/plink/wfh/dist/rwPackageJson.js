@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.symbolicLinkPackages = void 0;
+exports.symbolicLinkPackages = symbolicLinkPackages;
 const tslib_1 = require("tslib");
 const Path = tslib_1.__importStar(require("path"));
 const os_1 = tslib_1.__importDefault(require("os"));
@@ -46,7 +46,6 @@ function symbolicLinkPackages(destDir) {
         }));
     };
 }
-exports.symbolicLinkPackages = symbolicLinkPackages;
 function isSymlinkTo(newPath, realPath) {
     try {
         return fs.realpathSync(newPath) === realPath;

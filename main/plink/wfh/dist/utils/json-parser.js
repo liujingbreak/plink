@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Token = void 0;
+exports.default = parse;
 const async_LLn_parser_1 = require("../async-LLn-parser");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return async_LLn_parser_1.Token; } });
 const rxjs_1 = require("rxjs");
@@ -13,7 +14,6 @@ function parse(reader, onToken) {
     const operators = onToken ? [(0, operators_1.tap)(onToken)] : null;
     return (0, async_LLn_parser_1.parser)('JSON', input, parseLex, operators, parseGrammar);
 }
-exports.default = parse;
 async function parseLex(strLookAhead, tokenSub) {
     let char = await strLookAhead.la();
     while (char != null) {

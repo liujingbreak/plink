@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = default_1;
 const tslib_1 = require("tslib");
 require("source-map-support/register");
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -14,7 +15,6 @@ const cpus = os_1.default.cpus().length;
 async function default_1(packages, opts) {
     return lint(packages, opts.pj, opts.fix);
 }
-exports.default = default_1;
 function lint(packages, projects, fix) {
     let prom = Promise.resolve();
     const errors = [];

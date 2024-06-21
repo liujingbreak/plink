@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createService = exports.Context = void 0;
+exports.Context = void 0;
+exports.createService = createService;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const fs_1 = tslib_1.__importDefault(require("fs"));
@@ -67,7 +68,6 @@ function createService() {
     })));
     return service;
 }
-exports.createService = createService;
 function dfsTraverseFiles(files, tsconfigFile, alias, ignore) {
     var _a;
     init(tsconfigFile);

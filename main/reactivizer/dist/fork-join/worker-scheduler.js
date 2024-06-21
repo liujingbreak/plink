@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.applyScheduler = void 0;
+exports.applyScheduler = applyScheduler;
 const rx = __importStar(require("rxjs"));
 function applyScheduler(broker, opts) {
     let WORKER_NO_SEQ = 0;
@@ -171,5 +171,4 @@ function applyScheduler(broker, opts) {
     s.ft.workerAssigned(0, 'main', true, 0).dp(); // Always rank busy level of main thread starting from 1, so that the real first assignment can go to other thread
     return { ranksByWorkerNo, tasksByWorkerNo };
 }
-exports.applyScheduler = applyScheduler;
 //# sourceMappingURL=worker-scheduler.js.map

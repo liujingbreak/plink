@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createStoreService = void 0;
+exports.createStoreService = createStoreService;
 const tslib_1 = require("tslib");
 const rx = tslib_1.__importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
@@ -85,5 +85,4 @@ function createStoreService(base) {
         service: service
     };
 }
-exports.createStoreService = createStoreService;
 //# sourceMappingURL=package-mgr2-model.js.map

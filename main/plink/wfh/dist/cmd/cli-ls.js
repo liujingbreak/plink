@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listPackagesByProjects = exports.checkDir = void 0;
+exports.default = list;
+exports.checkDir = checkDir;
+exports.listPackagesByProjects = listPackagesByProjects;
 const tslib_1 = require("tslib");
 /* eslint-disable no-console */
 const config_1 = tslib_1.__importDefault(require("../config"));
@@ -36,7 +38,6 @@ async function list(opt) {
     console.log(table.toString());
     (0, cli_init_1.printWorkspaces)();
 }
-exports.default = list;
 function checkDir(opt) {
     store_1.dispatcher.changeActionOnExit('save');
     pkMgr.getStore().pipe((0, operators_1.map)(s => s.packagesUpdateChecksum), (0, operators_1.distinctUntilChanged)(), (0, operators_1.skip)(1), (0, operators_1.take)(1), (0, operators_1.map)((curr) => {
@@ -45,7 +46,6 @@ function checkDir(opt) {
     })).subscribe();
     pkMgr.actionDispatcher.updateDir();
 }
-exports.checkDir = checkDir;
 function listPackagesByProjects(state) {
     const cwd = process.cwd();
     const linkedPkgs = state.srcPackages;
@@ -83,7 +83,6 @@ function listPackagesByProjects(state) {
     }
     return table.toString();
 }
-exports.listPackagesByProjects = listPackagesByProjects;
 function jsonOfLinkedPackageForProjects() {
     const all = {};
     const linkedPkgs = pkMgr.getState().srcPackages;

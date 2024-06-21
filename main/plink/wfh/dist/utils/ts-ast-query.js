@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Query = exports.printFile = exports.setAstPropertyCache = exports.saveAstPropertyCache = exports.astSchemaCache = exports.typescript = void 0;
+exports.Query = exports.astSchemaCache = exports.typescript = void 0;
+exports.saveAstPropertyCache = saveAstPropertyCache;
+exports.setAstPropertyCache = setAstPropertyCache;
+exports.printFile = printFile;
 const tslib_1 = require("tslib");
 const fs = tslib_1.__importStar(require("fs"));
 // import keysIn from 'lodash/keysIn';
@@ -15,11 +18,9 @@ exports.astSchemaCache = {};
 function saveAstPropertyCache(file) {
     fs.writeFileSync(file, JSON.stringify(exports.astSchemaCache, null, '  '));
 }
-exports.saveAstPropertyCache = saveAstPropertyCache;
 function setAstPropertyCache(cache) {
     exports.astSchemaCache = cache;
 }
-exports.setAstPropertyCache = setAstPropertyCache;
 function printFile(file, query, withType = true) {
     if (query) {
         const selector = new Selector(fs.readFileSync(file, 'utf8'), file);
@@ -37,7 +38,6 @@ function printFile(file, query, withType = true) {
     }
     // console.log(astSchemaCache);
 }
-exports.printFile = printFile;
 function createPrintNodeCb(withType) {
     const printNode = (child, path, parents, isLeaf, comment) => {
         if (comment) {

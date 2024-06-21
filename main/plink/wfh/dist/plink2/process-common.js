@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isCodePointFullWidth = exports.lookupPlinkRoot = exports.setupTTY = void 0;
+exports.setupTTY = setupTTY;
+exports.lookupPlinkRoot = lookupPlinkRoot;
+exports.isCodePointFullWidth = isCodePointFullWidth;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
@@ -18,7 +20,6 @@ function setupTTY(screenColumns, screenRows) {
     };
     process.stdout.getWindowSize = process.stderr.getWindowSize = () => [screenColumns, screenRows];
 }
-exports.setupTTY = setupTTY;
 function lookupPlinkRoot(cwd) {
     const { root } = node_path_1.default.parse(cwd);
     let plinkRoot;
@@ -31,7 +32,6 @@ function lookupPlinkRoot(cwd) {
     }
     return plinkRoot;
 }
-exports.lookupPlinkRoot = lookupPlinkRoot;
 /**
 Block                                   Range       Comment
 CJK Unified Ideographs                  4E00-9FFF   Common
@@ -55,5 +55,4 @@ const CJK_CODE_RANGE = [
 function isCodePointFullWidth(codePoint) {
     return codePoint > 0xffff || CJK_CODE_RANGE.some(([low, high]) => codePoint >= low && codePoint <= high);
 }
-exports.isCodePointFullWidth = isCodePointFullWidth;
 //# sourceMappingURL=process-common.js.map

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.transpileSingleFile = void 0;
+exports.transpileSingleFile = transpileSingleFile;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const typescript_1 = tslib_1.__importDefault(require("typescript"));
@@ -45,7 +45,6 @@ function transpileSingleFile(content, ts = typescript_1.default) {
         diagnosticsText: diagnostics
     };
 }
-exports.transpileSingleFile = transpileSingleFile;
 // export function registerNode() {
 //   const compile = createTranspileFileWithTsCheck(_ts, {
 //     tscOpts: {

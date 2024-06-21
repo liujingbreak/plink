@@ -23,7 +23,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports._replaceSorted = exports._sortAndRemoveOverlap = exports.Replacement = void 0;
+exports.Replacement = void 0;
+exports._sortAndRemoveOverlap = _sortAndRemoveOverlap;
+exports._replaceSorted = _replaceSorted;
+exports.default = replaceCode;
 const assert = __importStar(require("assert"));
 const util = require("util");
 class Replacement {
@@ -59,7 +62,6 @@ function _sortAndRemoveOverlap(replacements, removeOverlap = true, text) {
             i++;
     }
 }
-exports._sortAndRemoveOverlap = _sortAndRemoveOverlap;
 function _replaceSorted(text, replacements) {
     var offset = 0;
     return replacements.reduce((text, update) => {
@@ -70,10 +72,8 @@ function _replaceSorted(text, replacements) {
         return text.slice(0, start) + replacement + text.slice(end);
     }, text);
 }
-exports._replaceSorted = _replaceSorted;
 function replaceCode(text, replacements, removeOverlap = false) {
     _sortAndRemoveOverlap(replacements, removeOverlap, text);
     return _replaceSorted(text, replacements);
 }
-exports.default = replaceCode;
 //# sourceMappingURL=patch-text.js.map

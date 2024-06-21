@@ -1,3 +1,2 @@
-import * as rx from 'rxjs';
-import commander from 'commander';
-export declare function define(rootDir: string, onShutdown: () => void): rx.Observable<commander.Command>;
+import { ServcerChildProcessEntry } from './server-child-process-service';
+export declare function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) => void): void;

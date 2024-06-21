@@ -114,7 +114,7 @@ export declare const slice: import("@reduxjs/toolkit").Slice<PackagesState, {
     }>): void;
     updateDir(): void;
     _updatePlinkPackageInfo(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
-    _syncLinkedPackages(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
+    _syncLinkedPackages(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: "update" | "clean"]>): void;
     onLinkedPackageAdded(_d: import("immer/dist/internal.js").WritableDraft<PackagesState>, _action: PayloadAction<string[]>): void;
     addProject(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteProject(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
@@ -173,7 +173,7 @@ export declare const actionDispatcher: import("@reduxjs/toolkit").CaseReducerAct
     }>): void;
     updateDir(): void;
     _updatePlinkPackageInfo(d: import("immer/dist/internal.js").WritableDraft<PackagesState>): void;
-    _syncLinkedPackages(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: 'update' | 'clean']>): void;
+    _syncLinkedPackages(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, { payload }: PayloadAction<[pkgs: PackageInfo[], operator: "update" | "clean"]>): void;
     onLinkedPackageAdded(_d: import("immer/dist/internal.js").WritableDraft<PackagesState>, _action: PayloadAction<string[]>): void;
     addProject(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;
     deleteProject(d: import("immer/dist/internal.js").WritableDraft<PackagesState>, action: PayloadAction<string[]>): void;

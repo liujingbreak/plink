@@ -23,7 +23,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sliceRefActionOp = exports.action$ByType = exports.action$OfSlice = exports.createSlice = exports.isActionOfCreator = exports.castByActionType = exports.ofPayloadAction = void 0;
+exports.ofPayloadAction = void 0;
+exports.castByActionType = castByActionType;
+exports.isActionOfCreator = isActionOfCreator;
+exports.createSlice = createSlice;
+exports.action$OfSlice = action$OfSlice;
+exports.action$ByType = action$ByType;
+exports.sliceRefActionOp = sliceRefActionOp;
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /**
  * This file provide some hooks which leverages RxJS to mimic Redux-toolkit + Redux-observable
@@ -74,12 +80,10 @@ function castByActionType(actionCreators, action$) {
     }
     return splitActions;
 }
-exports.castByActionType = castByActionType;
 function isActionOfCreator(action, actionCreator) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return action.type === actionCreator.type;
 }
-exports.isActionOfCreator = isActionOfCreator;
 const sliceCount4Name = {};
 /**
  * Reducers and initialState are reused cross multiple component
@@ -259,7 +263,6 @@ function createSlice(opt) {
     };
     return slice;
 }
-exports.createSlice = createSlice;
 function action$OfSlice(slice, actionType) {
     return new rx.Observable(sub => {
         slice.addEpic(slice => (action$) => {
@@ -267,14 +270,12 @@ function action$OfSlice(slice, actionType) {
         });
     });
 }
-exports.action$OfSlice = action$OfSlice;
 /**
  * @deprecated use Slice['action$ByType'] instead
  */
 function action$ByType(slice) {
     return castByActionType(slice.actions, slice.action$);
 }
-exports.action$ByType = action$ByType;
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.
@@ -296,7 +297,6 @@ function sliceRefActionOp(epicFactory) {
         }));
     };
 }
-exports.sliceRefActionOp = sliceRefActionOp;
 const demoSlice = createSlice({
     name: 'demo',
     initialState: {},

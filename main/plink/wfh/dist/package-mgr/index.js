@@ -3,7 +3,19 @@
  * Unfortunately, this file is very long, you need to fold by indention for better view of source code in Editor
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createPackageInfo = exports.installInDir = exports.switchCurrentWorkspace = exports.isCwdWorkspace = exports.getProjectList = exports.getPackagesOfProjects = exports.workspaceDir = exports.workspaceKey = exports.projKeyToPath = exports.pathToProjKey = exports.getStore = exports.getState = exports.onLinkedPackageAdded = exports.updateGitIgnores = exports.actionDispatcher = exports.slice = void 0;
+exports.onLinkedPackageAdded = exports.updateGitIgnores = exports.actionDispatcher = exports.slice = void 0;
+exports.getState = getState;
+exports.getStore = getStore;
+exports.pathToProjKey = pathToProjKey;
+exports.projKeyToPath = projKeyToPath;
+exports.workspaceKey = workspaceKey;
+exports.workspaceDir = workspaceDir;
+exports.getPackagesOfProjects = getPackagesOfProjects;
+exports.getProjectList = getProjectList;
+exports.isCwdWorkspace = isCwdWorkspace;
+exports.switchCurrentWorkspace = switchCurrentWorkspace;
+exports.installInDir = installInDir;
+exports.createPackageInfo = createPackageInfo;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -473,31 +485,25 @@ store_1.stateFactory.addEpic((action$, state$) => {
 function getState() {
     return store_1.stateFactory.sliceState(exports.slice);
 }
-exports.getState = getState;
 function getStore() {
     return store_1.stateFactory.sliceStore(exports.slice);
 }
-exports.getStore = getStore;
 function pathToProjKey(path) {
     const relPath = path_1.default.relative(rootDir, path);
     return relPath.startsWith('..') ? path_1.default.resolve(path) : relPath;
 }
-exports.pathToProjKey = pathToProjKey;
 function projKeyToPath(key) {
     return path_1.default.isAbsolute(key) ? key : path_1.default.resolve(rootDir, key);
 }
-exports.projKeyToPath = projKeyToPath;
 function workspaceKey(path) {
     let rel = path_1.default.relative(rootDir, path_1.default.resolve(path));
     if (path_1.default.sep === '\\')
         rel = rel.replace(/\\/g, '/');
     return rel;
 }
-exports.workspaceKey = workspaceKey;
 function workspaceDir(key) {
     return path_1.default.resolve(rootDir, key);
 }
-exports.workspaceDir = workspaceDir;
 function* getPackagesOfProjects(projects) {
     for (const prj of projects) {
         const pkgNames = getState().project2Packages.get(pathToProjKey(prj));
@@ -510,11 +516,9 @@ function* getPackagesOfProjects(projects) {
         }
     }
 }
-exports.getPackagesOfProjects = getPackagesOfProjects;
 function getProjectList() {
     return Array.from(getState().project2Packages.keys()).map(pj => path_1.default.resolve(rootDir, pj));
 }
-exports.getProjectList = getProjectList;
 function isCwdWorkspace() {
     const wsKey = workspaceKey(misc_1.plinkEnv.workDir);
     const ws = getState().workspaces.get(wsKey);
@@ -522,7 +526,6 @@ function isCwdWorkspace() {
         return false;
     return true;
 }
-exports.isCwdWorkspace = isCwdWorkspace;
 /**
  * This method is meant to trigger editor-helper to update tsconfig files, so
  * editor-helper must be import at first
@@ -532,7 +535,6 @@ function switchCurrentWorkspace(dir) {
     exports.actionDispatcher._setCurrentWorkspace(dir);
     exports.actionDispatcher._workspaceBatchChanged([workspaceKey(dir)]);
 }
-exports.switchCurrentWorkspace = switchCurrentWorkspace;
 function updateInstalledPackageForWorkspace(wsKey) {
     const pkgEntry = scanInstalledPackage4Workspace(getState(), wsKey);
     const installed = new Map((function* () {
@@ -675,7 +677,6 @@ async function installInDir(dir, npmOpt, originPkgJsonStr, toInstallPkgJsonStr) 
         }));
     }
 }
-exports.installInDir = installInDir;
 async function copyNpmrcToWorkspace(workspaceDir) {
     const target = path_1.default.resolve(workspaceDir, '.npmrc');
     if (fs_1.default.existsSync(target))
@@ -822,7 +823,6 @@ function createPackageInfo(pkJsonFile, isInstalled = false) {
     const json = JSON.parse(fs_1.default.readFileSync(pkJsonFile, 'utf8'));
     return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
 }
-exports.createPackageInfo = createPackageInfo;
 /**
  * List those installed packages which are referenced by workspace package.json file,
  * those packages must have "dr" property in package.json

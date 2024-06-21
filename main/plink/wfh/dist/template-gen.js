@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = generateStructure;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const fs_1 = require("fs");
@@ -42,7 +43,6 @@ function generateStructure(templDir, targetDir, replacement, opt = { dryrun: fal
         fs_extra_1.default.mkdirpSync(targetDir);
     return _recurseDir(templDir, targetDir, replacement, opt).toPromise();
 }
-exports.default = generateStructure;
 function _recurseDir(templDir, targetDir, replacement, opt = { dryrun: false }, targetIsEmpty = false) {
     const dryrun = !!opt.dryrun;
     return (0, rxjs_1.from)(fs_1.promises.readdir(templDir)).pipe((0, operators_1.mergeMap)(files => (0, rxjs_1.from)(files)), (0, operators_1.mergeMap)(sub => {

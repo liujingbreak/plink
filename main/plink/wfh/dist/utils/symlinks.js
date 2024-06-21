@@ -1,6 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.recreateSymlink = exports.validateLink = exports.symlinkAsync = exports.listModuleSymlinks = exports.unlinkAsync = exports.lstatAsync = exports.isWin32 = void 0;
+exports.unlinkAsync = exports.lstatAsync = exports.isWin32 = void 0;
+exports.default = scanNodeModules;
+exports.listModuleSymlinks = listModuleSymlinks;
+exports.symlinkAsync = symlinkAsync;
+exports.validateLink = validateLink;
+exports.recreateSymlink = recreateSymlink;
 const tslib_1 = require("tslib");
 const fs = tslib_1.__importStar(require("fs"));
 // import {removeSync} from 'fs-extra';
@@ -27,7 +32,6 @@ async function scanNodeModules(dir = process.cwd(), deleteOption = 'invalid') {
     });
     return deletedList;
 }
-exports.default = scanNodeModules;
 function listModuleSymlinks(parentDir, onFound) {
     return rx.firstValueFrom(rx.from(fs.promises.readdir(parentDir)).pipe(op.concatMap(level1Dirs => level1Dirs), op.mergeMap(dirname => {
         const dir = path_1.default.resolve(parentDir, dirname);
@@ -61,7 +65,6 @@ function listModuleSymlinks(parentDir, onFound) {
         }
     }
 }
-exports.listModuleSymlinks = listModuleSymlinks;
 /**
  * Do check existing symlink, recreate a new one if existing one is invalid symlink
  * @param linkTarget
@@ -94,7 +97,6 @@ async function symlinkAsync(linkTarget, link) {
     await fs.promises.symlink(path_1.default.relative(path_1.default.dirname(link), path_1.default.resolve(linkTarget)), link, exports.isWin32 ? 'junction' : 'dir');
     return true;
 }
-exports.symlinkAsync = symlinkAsync;
 async function validateLink(link, deleteAll = false) {
     try {
         if ((await (0, exports.lstatAsync)(link)).isSymbolicLink() &&
@@ -110,7 +112,6 @@ async function validateLink(link, deleteAll = false) {
         return false;
     }
 }
-exports.validateLink = validateLink;
 /**
  * Delete symlink or file/directory if it is invalid symlink or pointing to nonexisting target
  * @param link the symlink
@@ -130,5 +131,4 @@ async function recreateSymlink(link, target) {
         return false;
     }
 }
-exports.recreateSymlink = recreateSymlink;
 //# sourceMappingURL=symlinks.js.map

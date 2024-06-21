@@ -20,7 +20,7 @@ export type StoreSetting = {
     stateChangeCount: number;
 };
 export declare const dispatcher: import("@reduxjs/toolkit").CaseReducerActions<import("@wfh/redux-toolkit-observable/dist/helper").RegularReducers<StoreSetting, {
-    changeActionOnExit(s: StoreSetting, mode: StoreSetting['actionOnExit']): void;
+    changeActionOnExit(s: StoreSetting, mode: StoreSetting["actionOnExit"]): void;
     /**
      * Dispatch this action before you explicitly run process.exit(0) to quit, because "beforeExit"
      * won't be triggered prior to process.exit(0)

@@ -1,6 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.configDefaultLog = exports.initAsChildProcess = exports.initWorkerThread = exports.initProcess = exports.initConfig = exports.exitHooks = void 0;
+exports.exitHooks = void 0;
+exports.initConfig = initConfig;
+exports.initProcess = initProcess;
+exports.initWorkerThread = initWorkerThread;
+exports.initAsChildProcess = initAsChildProcess;
+exports.configDefaultLog = configDefaultLog;
 const tslib_1 = require("tslib");
 require("../node-path");
 const node_cluster_1 = tslib_1.__importDefault(require("node:cluster"));
@@ -30,7 +35,6 @@ function initConfig(options = {}) {
     // logConfig(config());
     return config_1.default;
 }
-exports.initConfig = initConfig;
 /**
  * - Register process event handler for SIGINT and shutdown command
  * - Initialize redux-store for Plink
@@ -134,7 +138,6 @@ function initProcess(saveState = 'none') {
         })).subscribe();
     }
 }
-exports.initProcess = initProcess;
 function initWorkerThread() {
     configDefaultLog();
     const { dispatcher, stateFactory, startLogging } = require('../store');
@@ -142,7 +145,6 @@ function initWorkerThread() {
     stateFactory.configureStore();
     dispatcher.changeActionOnExit('none');
 }
-exports.initWorkerThread = initWorkerThread;
 /**
  * Initialize redux-store for Plink.
  *
@@ -159,7 +161,6 @@ exports.initWorkerThread = initWorkerThread;
 function initAsChildProcess(saveState = 'none') {
     return initProcess(saveState);
 }
-exports.initAsChildProcess = initAsChildProcess;
 function interceptFork() {
     const origFork = node_child_process_1.default.fork;
     const handler = (process.env.__plinkLogMainPid === process.pid + '' ||
@@ -253,5 +254,4 @@ function configDefaultLog() {
      - %] end a coloured block
      */
 }
-exports.configDefaultLog = configDefaultLog;
 //# sourceMappingURL=bootstrap-process.js.map

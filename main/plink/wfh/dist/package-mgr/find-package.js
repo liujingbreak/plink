@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = findPackageJson;
 const tslib_1 = require("tslib");
 const fs = tslib_1.__importStar(require("fs"));
 const Path = tslib_1.__importStar(require("path"));
@@ -17,7 +18,6 @@ function findPackageJson(_fromDirs, startFromSubDir) {
         fromDirs = _fromDirs;
     return (0, rxjs_1.merge)(...fromDirs.map(d => new FolderScanner(d).getPackageJsonFiles(startFromSubDir)));
 }
-exports.default = findPackageJson;
 class FolderScanner {
     constructor(fromDir) {
         this.fromDir = Path.resolve(fromDir);

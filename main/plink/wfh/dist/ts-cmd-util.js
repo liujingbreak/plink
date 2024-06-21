@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseConfigFileToJson = exports.mergeBaseUrlAndPaths = void 0;
+exports.mergeBaseUrlAndPaths = mergeBaseUrlAndPaths;
+exports.parseConfigFileToJson = parseConfigFileToJson;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -33,7 +34,6 @@ function mergeBaseUrlAndPaths(ts, fromTsconfigFile, mergeToTsconfigDir, mergeTo)
     }
     return mergingTsCfg;
 }
-exports.mergeBaseUrlAndPaths = mergeBaseUrlAndPaths;
 /**
  * typescript's parseConfigFileTextToJson() does not read "extends" property, I have to write my own implementation
  * @param ts
@@ -72,5 +72,4 @@ function parseConfigFileToJson(ts, file) {
     }
     return json;
 }
-exports.parseConfigFileToJson = parseConfigFileToJson;
 //# sourceMappingURL=ts-cmd-util.js.map

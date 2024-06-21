@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTsConfigFile = exports.createTsConfigForRepos = exports.getTscConfigOfPkg = exports.createPackageInfo = void 0;
+exports.createPackageInfo = createPackageInfo;
+exports.getTscConfigOfPkg = getTscConfigOfPkg;
+exports.createTsConfigForRepos = createTsConfigForRepos;
+exports.createTsConfigFile = createTsConfigFile;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
@@ -9,7 +12,6 @@ function createPackageInfo(pkJsonFile, isInstalled = false) {
     const json = JSON.parse(node_fs_1.default.readFileSync(pkJsonFile, 'utf8'));
     return createPackageInfoWithJson(pkJsonFile, json, isInstalled);
 }
-exports.createPackageInfo = createPackageInfo;
 function getTscConfigOfPkg(json) {
     // const globs: string[] | undefined = get(json, 'dr.ts.globs');
     const srcDir = lodash_1.default.get(json, 'dr.ts.src', lodash_1.default.get(json, 'plink.tsc.src', 'ts'));
@@ -22,7 +24,6 @@ function getTscConfigOfPkg(json) {
         srcDir, destDir, isomDir, include, files
     };
 }
-exports.getTscConfigOfPkg = getTscConfigOfPkg;
 const moduleNameReg = /^(?:@([^/]+)\/)?(\S+)/;
 function createPackageInfoWithJson(pkJsonFile, json, isInstalled = false) {
     const m = moduleNameReg.exec(json.name);
@@ -46,7 +47,6 @@ function* createTsConfigForRepos(plinkPkgDir, isPlinkLinked, workspaceDir, repoD
         ];
     }
 }
-exports.createTsConfigForRepos = createTsConfigForRepos;
 function createTsConfigFile(tsconfigBaseDir, extendTsConfigFile, plinkPkgDir, isPlinkLinked, workspaceDir, plinkRootDir, srcPackages, srcRootDir, typeRootPkgs, extraPathMapping, pathForInclude = []) {
     const tsjson = {
         extends: undefined,
@@ -81,7 +81,6 @@ function createTsConfigFile(tsconfigBaseDir, extendTsConfigFile, plinkPkgDir, is
     });
     return tsjson;
 }
-exports.createTsConfigFile = createTsConfigFile;
 function setTsCompilerOpts(tsconfigDir, assigneeOptions, plinkRootDir, workspaceDir, srcPackages, spaceDependedPkgs, plinkSourcePkgDir, opts = { enableTypeRoots: false }) {
     /** for paths mapping "*" */
     let pathsDirs = [];

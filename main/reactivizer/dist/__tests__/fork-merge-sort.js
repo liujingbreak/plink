@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.forkMergeSort = void 0;
+exports.forkMergeSort = forkMergeSort;
 /* eslint-disable no-console */
 const node_path_1 = __importDefault(require("node:path"));
 const fs_1 = __importDefault(require("fs"));
@@ -176,7 +176,6 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
     }
     logout.close();
 }
-exports.forkMergeSort = forkMergeSort;
 function createSharedArryForTest(from, to) {
     const size = to - from;
     const buf = new SharedArrayBuffer(4 * size);

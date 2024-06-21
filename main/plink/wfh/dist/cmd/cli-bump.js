@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = default_1;
 const tslib_1 = require("tslib");
 const package_mgr_1 = require("../package-mgr");
 const process_utils_1 = require("../process-utils");
@@ -24,7 +25,6 @@ async function default_1(options) {
     await new Promise(resolve => setImmediate(resolve));
     package_mgr_1.actionDispatcher.scanAndSyncPackages({});
 }
-exports.default = default_1;
 async function bumpPackages(pkgNames, increVersion) {
     await Promise.all(Array.from((0, utils_1.findPackagesByNames)((0, package_mgr_1.getState)(), pkgNames)).filter((pkg, idx) => {
         const rs = pkg != null;

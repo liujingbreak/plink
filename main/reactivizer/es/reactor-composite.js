@@ -74,9 +74,9 @@ export class ReactorComposite2 extends DuplexController {
         this.dispose = () => {
             output$.ft.__onDisposed().dp();
         };
-        this.error$ = output$.pt.__onError.pipe(
+        this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), output$.pt.__onError.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        rx.map(([, err]) => err), rx.share());
+        rx.map(([, err]) => [err, null])));
         this.destory$ = this.outputTable.l.__onDisposed;
         this.r('__config', input$.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
     }
@@ -132,7 +132,7 @@ export class ReactorComposite2 extends DuplexController {
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
      * errors, you should add your own "catchError" after.
      *
-     * `addReaction(lable, ...)` uses this op internally.
+     * `addReaction(label, ...)` uses this op internally.
      */
     labelError(label) {
         return (upStream) => upStream.pipe(rx.catchError((err) => {
@@ -196,8 +196,8 @@ export class ReactorComposite2 extends DuplexController {
     }
     logError(label, err) {
         var _a, _b;
-        const message = '@' + (((_a = this.opts) === null || _a === void 0 ? void 0 : _a.name) ? this.opts.name + '::' : '') + label;
-        this.errorSubject.next([err, message]);
+        const message = 'Error@' + (((_a = this.opts) === null || _a === void 0 ? void 0 : _a.name) ? this.opts.name + '::' : '') + label;
+        this.errorSubject.next([message, err]);
         if ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.log)
             this.opts.log(message, err);
         else

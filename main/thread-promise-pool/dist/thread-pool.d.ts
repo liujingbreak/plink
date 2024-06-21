@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { Worker, WorkerOptions } from 'worker_threads';
 import { Task, InitialOptions } from './worker';
 import { Task as ProcessTask } from './worker-process';

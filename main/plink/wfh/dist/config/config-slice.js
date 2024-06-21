@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStore = exports.getState = exports.dispatcher = exports.configSlice = void 0;
+exports.dispatcher = exports.configSlice = void 0;
+exports.getState = getState;
+exports.getStore = getStore;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const worker_threads_1 = require("worker_threads");
@@ -76,9 +78,7 @@ store_1.stateFactory.addEpic((action$, state$) => {
 function getState() {
     return store_1.stateFactory.sliceState(exports.configSlice);
 }
-exports.getState = getState;
 function getStore() {
     return store_1.stateFactory.sliceStore(exports.configSlice);
 }
-exports.getStore = getStore;
 //# sourceMappingURL=config-slice.js.map

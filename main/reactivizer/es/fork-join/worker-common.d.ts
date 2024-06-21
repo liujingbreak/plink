@@ -1,8 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
 import type { MessagePort } from 'worker_threads';
 import type { promises as fsPromises } from 'node:fs';
 import type { X509Certificate } from 'node:crypto';

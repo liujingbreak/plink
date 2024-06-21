@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSorter = void 0;
+exports.createSorter = createSorter;
 const rx = __importStar(require("rxjs"));
 const sortedIndex_1 = __importDefault(require("lodash/sortedIndex"));
 const node_worker_1 = require("../fork-join/node-worker");
@@ -149,5 +149,4 @@ function createSorter(comparator, opts) {
     const sorter = (0, node_worker_1.createWorkerControlOfFn)(sortActions, opts);
     return sorter;
 }
-exports.createSorter = createSorter;
 //# sourceMappingURL=sorter.js.map

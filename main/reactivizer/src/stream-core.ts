@@ -216,6 +216,10 @@ export class ControllerCore<I> {
       this.configChange.next(changedProperties);
     }
   }
+  /** Insert action "interceptor" operator function */
+  prependInterceptor(interceptor: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>) {
+    this.interceptor$.next(interceptor);
+  }
 
   /** This method is not meant to be used directly */
   dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]> {

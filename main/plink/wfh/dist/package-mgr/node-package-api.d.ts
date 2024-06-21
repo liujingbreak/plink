@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { EventEmitter } from 'events';
 import { Logger } from 'log4js';
 import Inject from 'require-injector';

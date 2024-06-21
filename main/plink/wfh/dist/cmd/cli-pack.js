@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.testable = exports.publish = exports.pack = void 0;
+exports.testable = void 0;
+exports.pack = pack;
+exports.publish = publish;
 const tslib_1 = require("tslib");
 const fs = tslib_1.__importStar(require("fs"));
 const Path = tslib_1.__importStar(require("path"));
@@ -51,7 +53,6 @@ async function pack(opts) {
         await packPackages(Array.from(linkedPackagesOfWorkspace(misc_1.plinkEnv.workDir)), tarballDir, targetJsonFile);
     }
 }
-exports.pack = pack;
 async function publish(opts) {
     init(opts);
     if (opts.project && opts.project.length > 0)
@@ -69,7 +70,6 @@ async function publish(opts) {
         await publishPackages(Array.from(linkedPackagesOfWorkspace(misc_1.plinkEnv.workDir)), opts.public ? ['--access', 'public'] : []);
     }
 }
-exports.publish = publish;
 function* linkedPackagesOfWorkspace(workspaceDir) {
     const wsKey = (0, package_mgr_1.workspaceKey)(workspaceDir);
     if (!(0, package_mgr_1.getState)().workspaces.has(wsKey)) {

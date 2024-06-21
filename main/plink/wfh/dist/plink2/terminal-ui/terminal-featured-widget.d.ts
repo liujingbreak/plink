@@ -11,5 +11,5 @@ export interface ListContainerEvents {
 }
 declare const tableForListContainer: readonly ["setDirection", "alignItems", "justifyContent", "setMarginWidth"];
 type ListContainer = SimplexReactorMergeType<TerminalWidget, SimplexReactor<ListContainerInput & ListContainerEvents, typeof tableForListContainer>>;
-export declare function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>, 'tableFor'>): void;
+export declare function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>, 'tableFor'>): SimplexReactor<import("./terminal-widget").BaseWidgetActions & import("./terminal-widget").ContainerWidgetInput & import("./terminal-widget").ContainerWidgetOutput & ListContainerInput & ListContainerEvents, ("setSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "allChildren" | "setDirection" | "alignItems" | "justifyContent" | "setMarginWidth")[]>;
 export {};

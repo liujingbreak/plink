@@ -25,7 +25,7 @@ const baseService = new SimplexReactor<TestActions & TestResponse, typeof tableF
 type BaseService = SimplexReactor<TestActions & TestResponse, typeof tableFor>;
 
 interface ExtendActions extends TestActions {
-  message5(a: number): SingleActionFactory;
+  message5(a: number | null): SingleActionFactory;
 }
 const tableFor1 = ['message5'] as const;
 interface ExtendActions2 extends ExtendActions {
@@ -36,7 +36,7 @@ describe('Typescript compiler', () => {
   it('should not report any error on assignable SimplexReactor type casting', () => {
     const extendedService = baseService as SimplexReactorMergeType<BaseService, SimplexReactor<ExtendActions>>;
 
-    function acceptDerivedTypeForBaseType(_base: BaseService) {}
+    function acceptDerivedTypeForBaseType<I extends TestActions & TestResponse, L extends typeof tableFor>(_base: SimplexReactor<I, L>) {}
     acceptDerivedTypeForBaseType(extendedService);
 
     const baseControl = new RxController2<TestActions>();

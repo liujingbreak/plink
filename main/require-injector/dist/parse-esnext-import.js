@@ -3,7 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseExport = exports.parse = exports.ParseExportInfo = exports.ParseInfo = exports.toAssignment = void 0;
+exports.ParseExportInfo = exports.ParseInfo = void 0;
+exports.toAssignment = toAssignment;
+exports.parse = parse;
+exports.parseExport = parseExport;
 const lodash_1 = __importDefault(require("lodash"));
 // var {EOL} = require('os');
 var seq = 0;
@@ -27,7 +30,6 @@ function toAssignment(parsedInfo, valueStr) {
         return valueStr + ';';
     }
 }
-exports.toAssignment = toAssignment;
 class ParseInfo {
     constructor() {
         this.vars = {}; // import {foo as bar ...}
@@ -56,7 +58,6 @@ function parse(ast) {
     res.from = ast.source.value;
     return res;
 }
-exports.parse = parse;
 function parseExport(ast) {
     var res = new ParseExportInfo();
     ast.specifiers.forEach(function (speci) {
@@ -66,7 +67,6 @@ function parseExport(ast) {
     res.from = ast.source.value;
     return res;
 }
-exports.parseExport = parseExport;
 function uid() {
     return ++seq;
 }

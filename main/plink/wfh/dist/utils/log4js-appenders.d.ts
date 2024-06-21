@@ -1,4 +1,3 @@
-/// <reference types="node" />
 /**
  * https://log4js-node.github.io/log4js-node/writing-appenders.html
  */

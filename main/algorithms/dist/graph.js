@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BFS = exports.DFS = exports.getPathTo = exports.Vertex = exports.Color = void 0;
+exports.BFS = exports.DFS = exports.Vertex = exports.Color = void 0;
+exports.getPathTo = getPathTo;
 var Color;
 (function (Color) {
     /** unvisisted */
@@ -25,7 +26,6 @@ function getPathTo(v, temp = []) {
     }
     temp.push(v);
 }
-exports.getPathTo = getPathTo;
 class BaseGraph {
     constructor() {
         this.vertexMap = new Map();

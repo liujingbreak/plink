@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.printWorkspaceHoistedDeps = exports.printWorkspaces = void 0;
+exports.default = default_1;
+exports.printWorkspaces = printWorkspaces;
+exports.printWorkspaceHoistedDeps = printWorkspaceHoistedDeps;
 const tslib_1 = require("tslib");
 /* eslint-disable no-console, max-len */
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -47,7 +49,6 @@ function default_1(opt, workspace) {
     }
     // setImmediate(() => printWorkspaces());
 }
-exports.default = default_1;
 function printWorkspaces() {
     const table = (0, misc_1.createCliTable)({
         horizontalLines: false,
@@ -90,7 +91,6 @@ function printWorkspaces() {
     }
     console.log(table.toString());
 }
-exports.printWorkspaces = printWorkspaces;
 function convertVersion(pkgJson, depName) {
     let ver = pkgJson.dependencies ? pkgJson.dependencies[depName] : null;
     if (ver == null && pkgJson.devDependencies) {
@@ -144,7 +144,6 @@ function printWorkspaceHoistedDeps(workspace) {
     }
     printColorExplaination(workspace);
 }
-exports.printWorkspaceHoistedDeps = printWorkspaceHoistedDeps;
 function createTable() {
     const table = (0, misc_1.createCliTable)({
         horizontalLines: false,

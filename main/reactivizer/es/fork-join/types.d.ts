@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import type { Worker as NodeWorker, MessagePort as NodeMessagePort } from 'worker_threads';
 import * as rx from 'rxjs';
 import { Action, InferPayload } from '../control';

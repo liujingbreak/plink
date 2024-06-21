@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = default_1;
 const tslib_1 = require("tslib");
 const cp = tslib_1.__importStar(require("child_process"));
 const rx = tslib_1.__importStar(require("rxjs"));
@@ -66,5 +67,4 @@ function default_1(dirOrFile, forkJsFiles, opts = {}) {
     })).subscribe();
     return { action$, serverState$ };
 }
-exports.default = default_1;
 //# sourceMappingURL=watch-dir-restart.js.map

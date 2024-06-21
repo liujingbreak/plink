@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LookAhead = exports.mapChunks = exports.mapChunksObs = exports.parser = exports.Token = exports.Chunk = void 0;
+exports.LookAhead = exports.Token = exports.Chunk = void 0;
+exports.parser = parser;
+exports.mapChunksObs = mapChunksObs;
+exports.mapChunks = mapChunks;
 const tslib_1 = require("tslib");
 const util_1 = tslib_1.__importDefault(require("util"));
 const rxjs_1 = require("rxjs");
@@ -45,7 +48,6 @@ function parser(name, input, parseLex, pipeOperators, parseGrammar) {
     }
     return (0, rxjs_1.lastValueFrom)(tokens.pipe((0, operators_1.map)(token => [token]), mapChunksObs(name + '-parser', _parseGrammarObs)));
 }
-exports.parser = parser;
 function mapChunksObs(name, parse) {
     return function (input) {
         return new rxjs_1.Observable(sub => {
@@ -55,7 +57,6 @@ function mapChunksObs(name, parse) {
         });
     };
 }
-exports.mapChunksObs = mapChunksObs;
 function mapChunks(name, parse) {
     return function (input) {
         return new rxjs_1.Observable(sub => {
@@ -74,7 +75,6 @@ function mapChunks(name, parse) {
         });
     };
 }
-exports.mapChunks = mapChunks;
 class LookAhead {
     constructor(name) {
         this.name = name;

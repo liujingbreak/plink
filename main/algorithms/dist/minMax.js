@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMinAndMax = void 0;
+exports.getMinAndMax = getMinAndMax;
 /**
  * According to the book << Introduction to Algorithms, Third Edition >>, this algorithm
  * costs only (3/2n) time efficiency
@@ -48,5 +48,4 @@ function getMinAndMax(items, comparator = (a, b) => a - b) {
         max = min;
     return [min, max];
 }
-exports.getMinAndMax = getMinAndMax;
 //# sourceMappingURL=minMax.js.map

@@ -4,7 +4,7 @@ import { SingleActionFactory } from './control2';
 import { DuplexController } from './duplex2';
 import { ActionTable } from './action-table';
 import { ReactorCompositeOpt } from './reactor-base';
-import { ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
+import { InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
 interface BaseEvents {
     /** Internal use, when option `debug` is `true`, this message will be dispatched when
      * ReactorComposite2 is instantiated */
@@ -23,16 +23,9 @@ type LOE<LI extends readonly any[]> = readonly (LI[number] | ExtractTupleElement
 export declare class ReactorComposite2<I = Record<never, never>, O = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = [], LO extends readonly (keyof O)[] | (keyof O)[] = []> extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
     private opts?;
     destory$: rx.Observable<unknown>;
-    protected errorSubject: rx.Subject<[
-        lable: string,
-        originError: any
-    ] | [
-        lable: string,
-        originError: any,
-        relevantActions: ActionMeta[]
-    ]>;
+    protected errorSubject: rx.Subject<[label: string, originError: any]>;
     dispose: () => void;
-    error$: rx.Observable<any>;
+    error$: rx.Observable<readonly [error: any, label: string | null]>;
     get inputTable(): ActionTable<I, LI>;
     /** alias of inputTable */
     get it(): ActionTable<I, LI>;
@@ -52,8 +45,8 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
      * keys to existing action table's structure
      */
     config<I2 = Record<string, never>, O2 = Record<string, never>, LI2 extends ReadonlyArray<keyof I2> | Array<keyof I2> = [], LO2 extends ReadonlyArray<keyof O2> | Array<keyof O2> = []>(opts: ReactorCompositeOpt<I & I2 & BaseActions<unknown>, O & O2 & BaseEvents, LI2, LO2>): ReactorComposite2<I & I2, O & O2, (LI[number] | LI2[number])[], (LO[number] | LO2[number])[]>;
-    reactivize<F extends ActionFunctions>(fObject: F): ReactorComposite2<I & ActionFactoryOfPlainType<F>, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & O, LI, LO>;
-    reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F): ReactorComposite2<{ [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & I & ActionFactoryOfPlainType<F>, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => SingleActionFactory; } & O, LI, LO>;
+    reactivize<F extends ActionFunctions>(fObject: F): ReactorComposite2<I & ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F> & O, LI, LO>;
+    reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F): ReactorComposite2<InferFuncReturnEvents<F> & I & ActionFactoryOfPlainType<F>, InferFuncReturnEvents<F> & O, LI, LO>;
     /**
      * It is just a declaration of mergeMap() operator, which merge an observable to the main stream
      * which will be or has already been observed by `startAll()`.
@@ -67,7 +60,7 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
      * errors, you should add your own "catchError" after.
      *
-     * `addReaction(lable, ...)` uses this op internally.
+     * `addReaction(label, ...)` uses this op internally.
      */
     labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T>;
     catchErrorFor<T>(...actionMetas: ActionMeta[]): (upStream: rx.Observable<T>) => rx.Observable<T>;

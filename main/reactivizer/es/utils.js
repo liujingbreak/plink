@@ -1,4 +1,12 @@
 import * as rx from 'rxjs';
+/** This function must be invoked by providing all generic type parameters, otherwise type inference won't work */
+export function defineParialSimplexReactor(tableFor) {
+    return function applyTo(targetService) {
+        if (tableFor)
+            targetService.table.addActions(...tableFor);
+        return targetService;
+    };
+}
 export function timeoutLog(millseconds, callbackOnTimeout) {
     return function (up) {
         let hasValue = false;

@@ -4,7 +4,7 @@
  * Hack Node.js common module resolve process
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.hookCommonJsRequire = void 0;
+exports.hookCommonJsRequire = hookCommonJsRequire;
 const tslib_1 = require("tslib");
 // export interface CmjHookFunction {
 //   (): 
@@ -21,5 +21,4 @@ function hookCommonJsRequire(hook) {
         return exported === undefined ? callSuperReq() : exported;
     };
 }
-exports.hookCommonJsRequire = hookCommonJsRequire;
 //# sourceMappingURL=loaderHooks.js.map

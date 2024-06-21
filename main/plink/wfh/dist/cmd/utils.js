@@ -1,6 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.arrayOptionFn = exports.hlDesc = exports.hl = exports.lookupPackageJson = exports.findPackagesByNames = exports.completePackageName = void 0;
+exports.completePackageName = completePackageName;
+exports.findPackagesByNames = findPackagesByNames;
+exports.lookupPackageJson = lookupPackageJson;
+exports.hl = hl;
+exports.hlDesc = hlDesc;
+exports.arrayOptionFn = arrayOptionFn;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
@@ -17,7 +22,6 @@ function* completePackageName(state, guessingNames) {
         }
     }
 }
-exports.completePackageName = completePackageName;
 function* findPackagesByNames(state, guessingNames) {
     if (guessingNames === undefined) {
         guessingNames = state;
@@ -55,7 +59,6 @@ function* findPackagesByNames(state, guessingNames) {
         }
     }
 }
-exports.findPackagesByNames = findPackagesByNames;
 /**
  * Look up package.json file in environment variable NODE_PATH
  * @param moduleName
@@ -69,19 +72,15 @@ function lookupPackageJson(moduleName) {
     }
     return null;
 }
-exports.lookupPackageJson = lookupPackageJson;
 function hl(text) {
     return chalk_1.default.green(text);
 }
-exports.hl = hl;
 function hlDesc(text) {
     return chalk_1.default.gray(text);
 }
-exports.hlDesc = hlDesc;
 function arrayOptionFn(curr, prev) {
     if (prev)
         prev.push(curr);
     return prev;
 }
-exports.arrayOptionFn = arrayOptionFn;
 //# sourceMappingURL=utils.js.map

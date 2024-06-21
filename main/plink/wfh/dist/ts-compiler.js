@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerExtension = exports.transpileAndCheck = exports.transpileSingleTs = exports.jsonToCompilerOptions = exports.readTsConfig = void 0;
+exports.readTsConfig = readTsConfig;
+exports.jsonToCompilerOptions = jsonToCompilerOptions;
+exports.transpileSingleTs = transpileSingleTs;
+exports.transpileAndCheck = transpileAndCheck;
+exports.registerExtension = registerExtension;
 const tslib_1 = require("tslib");
 const fs_1 = require("fs");
 const Path = tslib_1.__importStar(require("path"));
@@ -14,7 +18,6 @@ function readTsConfig(tsconfigFile, localTypescript = ts) {
     const tsconfig = localTypescript.readConfigFile(tsconfigFile, (file) => (0, fs_1.readFileSync)(file, 'utf-8')).config;
     return localTypescript.parseJsonConfigFileContent(tsconfig, localTypescript.sys, misc_1.plinkEnv.workDir.replace(/\\/g, '/'), undefined, tsconfigFile).options;
 }
-exports.readTsConfig = readTsConfig;
 /**
  * call ts.parseJsonConfigFileContent()
  * @param jsonCompilerOpt
@@ -26,7 +29,6 @@ function jsonToCompilerOptions(jsonCompilerOpt, file = 'tsconfig.json', basePath
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     return ts.parseJsonConfigFileContent({ compilerOptions: jsonCompilerOpt }, ts.sys, basePath.replace(/\\/g, '/'), undefined, file).options;
 }
-exports.jsonToCompilerOptions = jsonToCompilerOptions;
 /**
  * Refer to https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#transpiling-a-single-file
  * @param tsCode
@@ -40,7 +42,6 @@ function transpileSingleTs(tsCode, compilerOptions, localTypescript = ts) {
     }
     return res.outputText;
 }
-exports.transpileSingleTs = transpileSingleTs;
 // import * as fs from 'fs';
 // import {inspect} from 'util';
 const { red, yellow } = chalk_1.default;
@@ -140,7 +141,6 @@ function transpileAndCheck(tsCode, filename, co) {
         singletonCompiler = new TsCompiler(co);
     return singletonCompiler.compile(filename, tsCode);
 }
-exports.transpileAndCheck = transpileAndCheck;
 /**
  * Exactly like ts-node, so that we can `require()` a ts file directly without `tsc`
  * @param ext
@@ -161,5 +161,4 @@ function registerExtension(ext, compilerOpt) {
         return old(m, filename);
     };
 }
-exports.registerExtension = registerExtension;
 //# sourceMappingURL=ts-compiler.js.map

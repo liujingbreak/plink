@@ -19,5 +19,5 @@ export declare function mergeBaseUrlAndPaths(ts: typeof _ts, fromTsconfigFile: s
  */
 export declare function parseConfigFileToJson(ts: typeof _ts, file: string): {
     compilerOptions: RequiredCompilerOptions;
-    extends?: string | undefined;
+    extends?: string;
 };

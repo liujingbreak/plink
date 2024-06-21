@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.availabeCliExtension = exports.getStore = exports.getState = exports.cliActionDispatcher = exports.cliSlice = void 0;
+exports.cliActionDispatcher = exports.cliSlice = void 0;
+exports.getState = getState;
+exports.getStore = getStore;
+exports.availabeCliExtension = availabeCliExtension;
 const tslib_1 = require("tslib");
 const rxjs_1 = require("rxjs");
 // import {cliActionDispatcher, getStore, cliSlice, CliExtension} from './cli-slice';
@@ -39,11 +42,9 @@ exports.cliActionDispatcher = store_1.stateFactory.bindActionCreators(exports.cl
 function getState() {
     return store_1.stateFactory.sliceState(exports.cliSlice);
 }
-exports.getState = getState;
 function getStore() {
     return store_1.stateFactory.sliceStore(exports.cliSlice);
 }
-exports.getStore = getStore;
 const getLocale = require('os-locale');
 const drcpPkJson = require('../../../package.json');
 store_1.stateFactory.addEpic((action$, state$) => {
@@ -70,5 +71,4 @@ store_1.stateFactory.addEpic((action$, state$) => {
 });
 function availabeCliExtension() {
 }
-exports.availabeCliExtension = availabeCliExtension;
 //# sourceMappingURL=cli-slice.js.map

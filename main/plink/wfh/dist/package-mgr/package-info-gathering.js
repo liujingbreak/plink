@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.walkPackages = exports.packageOfFileFactory = exports.PackageInstance = void 0;
+exports.PackageInstance = void 0;
+exports.packageOfFileFactory = packageOfFileFactory;
+exports.walkPackages = walkPackages;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const log4js_1 = require("log4js");
@@ -34,7 +36,6 @@ function packageOfFileFactory() {
     existingFileToPkgHelper = { packageInfo, getPkgOfFile };
     return existingFileToPkgHelper;
 }
-exports.packageOfFileFactory = packageOfFileFactory;
 function walkPackages() {
     // if (packageInfo)
     //   return packageInfo;
@@ -52,7 +53,6 @@ function walkPackages() {
     createPackageDirTree(packageInfo);
     return packageInfo;
 }
-exports.walkPackages = walkPackages;
 function addPackageToInfo(moduleMap, pkg) {
     let instance = moduleMap.get(pkg.name);
     if (instance == null) {

@@ -21,7 +21,7 @@ export declare class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
     /** Add actions to be recoreded in table map,
      * by creating `ReplaySubject(1)` for each action payload stream respectively
      */
-    addActions<M extends ReadonlyArray<any> | Array<any>>(...actionNames: M): ActionTable<I, (KS[number] | M[number])[]>;
+    addActions<M extends ReadonlyArray<any> | Array<any>>(...actionNames: M): ActionTable<I, Array<KS[number] | M[number]>>;
     private onAddActions;
     getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I[K]> | undefined;
     protected debugLogLatestActionOperator<K extends keyof I, P extends InferMapParam<I[K]>>(type: K): rx.OperatorFunction<P, P>;

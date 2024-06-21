@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.configAll = exports.iterateConfigurables = exports.addConfigurable = exports.allRefs = exports.defaultConfig = void 0;
+exports.allRefs = exports.defaultConfig = void 0;
+exports.addConfigurable = addConfigurable;
+exports.iterateConfigurables = iterateConfigurables;
+exports.configAll = configAll;
 // const globalConfigChange$ = new rx.Subject<RxControlConfigEntryType>();
 // export const globalConfigChanges = globalConfigChange$.asObservable();
 exports.defaultConfig = {
@@ -17,7 +20,6 @@ function addConfigurable(item) {
     exports.allRefs.add(ref);
     finalizationRegistry.register(item, ref, item);
 }
-exports.addConfigurable = addConfigurable;
 function* iterateConfigurables() {
     for (const item of exports.allRefs) {
         const obj = item.deref();
@@ -25,7 +27,6 @@ function* iterateConfigurables() {
             yield obj;
     }
 }
-exports.iterateConfigurables = iterateConfigurables;
 // FinalizationRegistry must be strongly refered by ROOT module to avoid being GCed
 // e.g. being referred by a "export" object
 const finalizationRegistry = new FinalizationRegistry(ref => {
@@ -37,5 +38,4 @@ function configAll(opts) {
         item.config(opts);
     }
 }
-exports.configAll = configAll;
 //# sourceMappingURL=global-config.js.map

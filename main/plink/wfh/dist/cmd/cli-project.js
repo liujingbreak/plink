@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listProject = void 0;
+exports.default = default_1;
+exports.listProject = listProject;
 const tslib_1 = require("tslib");
 // import fs from 'fs-extra';
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
@@ -51,7 +52,6 @@ async function default_1(opts, action, dirs) {
             }
     }
 }
-exports.default = default_1;
 function listProject(projects, afterChange = false) {
     return (0, rxjs_1.firstValueFrom)((0, package_mgr_1.getStore)().pipe((0, rxjs_1.distinctUntilChanged)((a, b) => a.project2Packages === b.project2Packages &&
         a.srcDir2Packages === b.srcDir2Packages), (0, rxjs_1.map)(s => ({ project2Packages: [...s.project2Packages.keys()], srcDir2Packages: [...s.srcDir2Packages.keys()] })), (0, rxjs_1.distinctUntilChanged)((a, b) => {
@@ -63,7 +63,6 @@ function listProject(projects, afterChange = false) {
         printProjects(s.project2Packages, s.srcDir2Packages);
     }), (0, rxjs_1.take)(1)));
 }
-exports.listProject = listProject;
 function printProjects(projects, srcDirs) {
     let str = 'Project directories'.toUpperCase();
     str += '\n \n';

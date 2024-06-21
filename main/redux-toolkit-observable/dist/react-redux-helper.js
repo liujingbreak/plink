@@ -29,7 +29,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.useStoreOfStateFactory = exports.useRtk = exports.useReduxTookit = exports.useReduxTookitWith = exports.ReduxProvider = exports.connect = exports.ofPayloadAction = void 0;
+exports.ReduxProvider = exports.connect = exports.ofPayloadAction = void 0;
+exports.useReduxTookitWith = useReduxTookitWith;
+exports.useReduxTookit = useReduxTookit;
+exports.useRtk = useRtk;
+exports.useStoreOfStateFactory = useStoreOfStateFactory;
 const react_1 = __importDefault(require("react"));
 const react_2 = require("react");
 const rx = __importStar(require("rxjs"));
@@ -89,7 +93,6 @@ function useReduxTookitWith(stateFactory, optsFactory, ...epicFactories) {
     }, []);
     return [state, helper];
 }
-exports.useReduxTookitWith = useReduxTookitWith;
 /**
  * Use a dedicated Redux slice store for single component instance
  * @param optsFactory
@@ -98,7 +101,6 @@ exports.useReduxTookitWith = useReduxTookitWith;
 function useReduxTookit(optsFactory, ...epicFactories) {
     return useReduxTookitWith(state_factory_browser_1.stateFactory, optsFactory, ...epicFactories);
 }
-exports.useReduxTookit = useReduxTookit;
 /**
  * Use a dedicated Redux slice store for single component instance.
  * Unlike useReduxTookit, useRtk() accepts a State which extends BaseComponentState,
@@ -125,7 +127,6 @@ function useRtk(optsFactory, props, ...epicFactories) {
     const stateAndSlice = useReduxTookitWith(state_factory_browser_1.stateFactory, extendOptsFactory, ...epicFactories);
     return stateAndSlice;
 }
-exports.useRtk = useRtk;
 function withBaseReducers(origReducers) {
     const reducers = Object.assign({ _syncComponentProps(s, { payload }) {
             s.componentProps = Object.assign({}, payload);
@@ -144,7 +145,6 @@ function useStoreOfStateFactory(stateFactory) {
     }, [stateFactory.store$]);
     return reduxStore;
 }
-exports.useStoreOfStateFactory = useStoreOfStateFactory;
 const demoState = {};
 const simpleDemoReducers = {
     hellow(s, payload) { },

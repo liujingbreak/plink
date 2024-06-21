@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addOnPackageFeatures = void 0;
+exports.addOnPackageFeatures = addOnPackageFeatures;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -178,5 +178,4 @@ function addOnPackageFeatures(baseService, pkgMgr, lookupService) {
     }
     return baseService;
 }
-exports.addOnPackageFeatures = addOnPackageFeatures;
 //# sourceMappingURL=tsc-language-service4pkg.js.map

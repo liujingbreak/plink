@@ -1,6 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
 import Module from 'module';
 import EventEmitter from 'events';
 import { DirTree } from './dir-tree';

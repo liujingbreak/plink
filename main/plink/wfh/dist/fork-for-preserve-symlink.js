@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.forkFile = exports.workDirChangedByCli = exports.isWin32 = void 0;
+exports.isWin32 = void 0;
+exports.workDirChangedByCli = workDirChangedByCli;
+exports.default = run;
+exports.forkFile = forkFile;
 const tslib_1 = require("tslib");
 /**
  * TODO: Remove this file to avoid confusion,
@@ -26,7 +29,6 @@ function workDirChangedByCli(argv = process.argv.slice(2)) {
     }
     return { workdir, argv };
 }
-exports.workDirChangedByCli = workDirChangedByCli;
 /**
  * @returns promise<number> if a child process is forked to apply "--preserve-symlinks", or `undefined` no new child process is created
  */
@@ -40,7 +42,6 @@ function run(moduleName, opts) {
     const file = resolveTargetModule(moduleName, workdir || process.env.PLINK_WORK_DIR || process.cwd());
     runModule(file, opts === null || opts === void 0 ? void 0 : opts.stateExitAction);
 }
-exports.default = run;
 /** run in main process, mayby in PM2 as a cluster process,
 * Unlike `run(modulename, opts)` this function will always fork a child process, it is conditionally executed inside `run(modulename, opts)`
 */
@@ -107,7 +108,6 @@ function forkFile(moduleName, opts) {
         exited: onChildExit$.toPromise()
     };
 }
-exports.forkFile = forkFile;
 /**
  * Temporarily rename <pkg>/node_modules to another name
  * @returns

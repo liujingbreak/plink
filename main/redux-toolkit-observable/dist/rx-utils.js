@@ -4,7 +4,9 @@
  * https://redux-observable.js.org/
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nameOfAction = exports.createActionStreamByType = exports.createActionStream = void 0;
+exports.createActionStream = createActionStream;
+exports.createActionStreamByType = createActionStreamByType;
+exports.nameOfAction = nameOfAction;
 const rxjs_1 = require("rxjs");
 let SEQ = 0;
 /**
@@ -56,7 +58,6 @@ function createActionStream(actionCreator, debug) {
         nameOfAction: (action) => action.type.split('/')[1]
     };
 }
-exports.createActionStream = createActionStream;
 /**
  * Unlike `createActionStream()`, this function only needs an "Action creator" type as generic type parameter,
  * instead of an actual empty "Action creator" object to be parameter
@@ -211,7 +212,6 @@ function createActionStreamByType(opt = {}) {
         }
     };
 }
-exports.createActionStreamByType = createActionStreamByType;
 /**
  * Get the "action name" from payload's "type" field,
  * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
@@ -222,7 +222,6 @@ exports.createActionStreamByType = createActionStreamByType;
 function nameOfAction(action) {
     return action.type.split('/')[1];
 }
-exports.nameOfAction = nameOfAction;
 function createIsActionTypeFn(prefix) {
     return function isActionType(action, type) {
         return action.type === prefix + type;

@@ -3,6 +3,7 @@ import { RxController, ActionFunctions, ActionMeta } from './control';
 import { DuplexController } from './duplex';
 import { ActionTable } from './action-table';
 import { ReactorCompositeOpt } from './reactor-base';
+import { InferFuncReturnEvents } from './inferred-types';
 export { ReactorCompositeOpt } from './reactor-base';
 interface BaseEvents {
     _onErrorFor(err: any): void;
@@ -32,8 +33,8 @@ export declare class ReactorComposite<I = Record<never, never>, O = Record<never
     startAll(): void;
     /** @deprecated call dispose() instead */
     destory(): void;
-    reactivize<F extends ActionFunctions>(fObject: F): ReactorComposite<I & F, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => import("./action-factory").SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => import("./action-factory").SingleActionFactory; } & O, LI, LO>;
-    reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F): ReactorComposite<{ [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => import("./action-factory").SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => import("./action-factory").SingleActionFactory; } & I & F, { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => import("./action-factory").SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => import("./action-factory").SingleActionFactory; } & O, LI, LO>;
+    reactivize<F extends ActionFunctions>(fObject: F): ReactorComposite<I & F, InferFuncReturnEvents<F> & O, LI, LO>;
+    reativizeRecursiveFuncs<F extends ActionFunctions>(fObject: F): ReactorComposite<InferFuncReturnEvents<F> & I & F, InferFuncReturnEvents<F> & O, LI, LO>;
     /**
      * It is just a declaration of mergeMap() operator, which merge an observable to the main stream
      * which will be or has already been observed by `startAll()`.

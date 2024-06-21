@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.linkDrcp = exports.isWin32 = void 0;
+exports.isWin32 = void 0;
+exports.linkDrcp = linkDrcp;
 const tslib_1 = require("tslib");
 /**
  * To develop Plink, we need to symlink Plink repo to a workspace directory
@@ -48,7 +49,6 @@ function linkDrcp() {
     //   console.log(topModuleDir + ' is created');
     // }
 }
-exports.linkDrcp = linkDrcp;
 function getRealPath(file) {
     try {
         if (fs.lstatSync(file).isSymbolicLink()) {

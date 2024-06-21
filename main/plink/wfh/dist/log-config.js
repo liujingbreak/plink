@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = default_1;
 const tslib_1 = require("tslib");
 // eslint-disable  no-console
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -45,5 +46,4 @@ function default_1(configObj) {
         log.error(e);
     }
 }
-exports.default = default_1;
 //# sourceMappingURL=log-config.js.map

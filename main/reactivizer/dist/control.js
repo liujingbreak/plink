@@ -26,7 +26,10 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapActionToPayload = exports.deserializeAction = exports.serializeAction = exports.GroupedRxController = exports.RxController = void 0;
+exports.GroupedRxController = exports.RxController = void 0;
+exports.serializeAction = serializeAction;
+exports.deserializeAction = deserializeAction;
+exports.mapActionToPayload = mapActionToPayload;
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 const context_operators_1 = require("./context-operators");
@@ -207,7 +210,6 @@ function serializeAction(action) {
     // }
     return a;
 }
-exports.serializeAction = serializeAction;
 /**
  * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,
  * but changed "t" property which comfort to target "toRxController"
@@ -222,9 +224,7 @@ function deserializeAction(actionObj, toController) {
     toController.core.actionUpstream.next(newAction);
     return newAction;
 }
-exports.deserializeAction = deserializeAction;
 function mapActionToPayload() {
     return (up) => up.pipe(rx.map(a => [a, ...a.p]));
 }
-exports.mapActionToPayload = mapActionToPayload;
 //# sourceMappingURL=control.js.map

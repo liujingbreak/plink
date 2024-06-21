@@ -1,5 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import * as cp from 'child_process';
 import { Worker } from 'node:cluster';
 import * as rx from 'rxjs';
@@ -8,7 +6,7 @@ export type Options = {
     retryOnError?: number;
 };
 export default function (dirOrFile: string[], forkJsFiles: string[] | ChildProcessFactory[] | Worker[], opts?: Options): {
-    action$: rx.Subject<"stop" | "restart" | "start">;
-    serverState$: rx.BehaviorSubject<"stopped" | "started" | "stopping">;
+    action$: rx.Subject<"stop" | "start" | "restart">;
+    serverState$: rx.BehaviorSubject<"started" | "stopped" | "stopping">;
 };
 export {};

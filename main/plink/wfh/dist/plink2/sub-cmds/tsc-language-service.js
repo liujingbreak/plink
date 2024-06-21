@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.languageServices = exports.LogLevel = exports.createTranspileFileWithTsCheck = void 0;
+exports.LogLevel = void 0;
+exports.createTranspileFileWithTsCheck = createTranspileFileWithTsCheck;
+exports.languageServices = languageServices;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const typescript_1 = tslib_1.__importDefault(require("typescript"));
@@ -55,7 +57,6 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson,
         return [destFile, sourceMap];
     };
 }
-exports.createTranspileFileWithTsCheck = createTranspileFileWithTsCheck;
 var LogLevel;
 (function (LogLevel) {
     LogLevel[LogLevel["trace"] = 0] = "trace";
@@ -264,5 +265,4 @@ function languageServices(ts = typescript_1.default) {
     rc.o = s;
     return rc;
 }
-exports.languageServices = languageServices;
 //# sourceMappingURL=tsc-language-service.js.map

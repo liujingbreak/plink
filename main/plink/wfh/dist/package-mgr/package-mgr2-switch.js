@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSwitchSpaceService = exports.INSTALLATION_JSON_FILE = void 0;
+exports.INSTALLATION_JSON_FILE = void 0;
+exports.createSwitchSpaceService = createSwitchSpaceService;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
@@ -204,5 +205,4 @@ function createSwitchSpaceService(origService) {
     })));
     return service;
 }
-exports.createSwitchSpaceService = createSwitchSpaceService;
 //# sourceMappingURL=package-mgr2-switch.js.map

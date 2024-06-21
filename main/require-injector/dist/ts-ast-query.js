@@ -26,7 +26,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Query = exports.printFile = void 0;
+exports.Query = void 0;
+exports.printFile = printFile;
 const fs = __importStar(require("fs"));
 // import api from '__api';
 const lodash_1 = __importDefault(require("lodash"));
@@ -42,7 +43,6 @@ function printFile(fileName) {
     }
     new Selector(fs.readFileSync(fileName, 'utf8'), fileName).printAll();
 }
-exports.printFile = printFile;
 // type Callback = (ast: ts.Node, path: string[]) => boolean | void;
 class Selector {
     constructor(src, file) {

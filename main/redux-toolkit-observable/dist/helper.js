@@ -24,7 +24,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Refrigerator = exports.action$OfSlice = exports.action$Of = exports.sliceRefActionOp = exports.isActionOfCreator = exports.action$ByType = exports.castByActionType = exports.createReducers = exports.createSliceHelper = void 0;
+exports.Refrigerator = void 0;
+exports.createSliceHelper = createSliceHelper;
+exports.createReducers = createReducers;
+exports.castByActionType = castByActionType;
+exports.action$ByType = action$ByType;
+exports.isActionOfCreator = isActionOfCreator;
+exports.sliceRefActionOp = sliceRefActionOp;
+exports.action$Of = action$Of;
+exports.action$OfSlice = action$OfSlice;
 const rxjs_1 = require("rxjs");
 const op = __importStar(require("rxjs"));
 const immer_1 = require("immer");
@@ -78,7 +86,6 @@ function createSliceHelper(stateFactory, opts) {
         } });
     return helper;
 }
-exports.createSliceHelper = createSliceHelper;
 /**
  * createReducers helps to simplify how we writing definition of SliceCaseReducers,
  * e.g. A regular SliceCaseReducers takes PayloadAction as parameter, like:
@@ -110,7 +117,6 @@ function createReducers(simpleReducers) {
     }
     return rReducers;
 }
-exports.createReducers = createReducers;
 /**
  * Map action stream to multiple action streams by their action type.
  * This is an alternative way to categorize action stream, compare to "ofPayloadAction()"
@@ -143,7 +149,6 @@ function castByActionType(actionCreators, action$) {
     }
     return splitActions;
 }
-exports.castByActionType = castByActionType;
 function action$ByType(stateFactory, slice) {
     if (slice.action$) {
         return slice.action$ByType;
@@ -156,11 +161,9 @@ function action$ByType(stateFactory, slice) {
         return castByActionType(slice.actions, action$);
     }
 }
-exports.action$ByType = action$ByType;
 function isActionOfCreator(action, actionCreator) {
     return action.type === actionCreator.type;
 }
-exports.isActionOfCreator = isActionOfCreator;
 /**
  * Add an epicFactory to another component's sliceHelper
  * e.g.
@@ -182,7 +185,6 @@ function sliceRefActionOp(epicFactory) {
         }));
     };
 }
-exports.sliceRefActionOp = sliceRefActionOp;
 function action$Of(stateFactory, actionCreator) {
     return new rxjs_1.Observable(sub => {
         stateFactory.addEpic((action$) => {
@@ -190,7 +192,6 @@ function action$Of(stateFactory, actionCreator) {
         });
     });
 }
-exports.action$Of = action$Of;
 function action$OfSlice(sliceHelper, actionType) {
     return new rxjs_1.Observable(sub => {
         sliceHelper.addEpic(slice => (action$) => {
@@ -198,7 +199,6 @@ function action$OfSlice(sliceHelper, actionType) {
         });
     });
 }
-exports.action$OfSlice = action$OfSlice;
 /**
  * ImmerJS does not work with some large object (like HTMLElement), meaning you can not directly defined a
  * Redux-toolkit state to contain such a large object, this class provides a wrapper to those

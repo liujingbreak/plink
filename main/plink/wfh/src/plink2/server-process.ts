@@ -1,13 +1,14 @@
 import stream from 'node:stream';
 import * as Path from 'node:path';
 import * as cp from 'node:child_process';
+import * as util from 'node:util';
 import * as rx from 'rxjs';
 import {SingleActionFactory, SimplexReactor, ReactorComposite2, ActionMeta, Action, actionRelatedToAction,
   actionRelatedToActionRelatives, serializeAction, deserializeAction2} from '@wfh/reactivizer';
 import {workDirChangedByCli} from '../fork-for-preserve-symlink';
 import {CmdChildProcessEvents, CmdChildProcessInput} from './cmd.types';
 import {setupTTY} from './process-common';
-import {service as serverChildProcess4CurrProc} from './server-child-process-entry';
+import {createService as createChildProcessService} from './server-child-process-service';
 import {createCurrentProcessOutputReader} from './server-process-stdout';
 import {cmdModelService} from './cmd-model';
 import {lookupPlinkRoot} from './process-common';
@@ -28,39 +29,65 @@ interface ProcessEvents {
   /** ActionMeta is related to processFor */
   onChildProcessReady(plinkRootDir: string): SingleActionFactory;
   onCommandDoneAnyway(): SingleActionFactory;
+  startRecordError(): SingleActionFactory;
+  onCachedError(errors: (readonly [error: any, label: string | null])[]): SingleActionFactory;
 }
+
+const tableFor = ['onCachedError'] as const;
 
 export function createProcessManager(log: (...m: any[]) => void) {
   const mainPlinkRoot = lookupPlinkRoot(process.cwd());
   const plinkProcessByDir = new Map<string, ProcessState>();
-  if (mainPlinkRoot)  {
-    plinkProcessByDir.set(mainPlinkRoot, {process: 'main', ready: true});
-    serverChildProcess4CurrProc.s.ft.setRootDir(mainPlinkRoot, log).dp();
-  } else {
-    throw new Error('can not find @wfh/plink directory in');
-  }
 
-  const processManager = new ReactorComposite2<ProcessActions, ProcessEvents>({
+  const processManager = new ReactorComposite2<ProcessActions, ProcessEvents, never[], typeof tableFor>({
     name: 'server-process',
     debug: false,
+    outputTableFor: tableFor,
     log
   });
   /** Child process service */
-  const cpService = new SimplexReactor<CmdChildProcessInput & CmdChildProcessEvents>({
+  const cpProxy = new SimplexReactor<CmdChildProcessInput & CmdChildProcessEvents>({
     name: 'cmdChildProcessProcProxy',
     debug: false,
     log
   });
-
+  const svrChdService = createChildProcessService(log);
   const {i, o, r} = processManager;
-
+  const errors$ = rx.merge(
+    svrChdService.error$,
+    svrChdService.s.pt.onCommandError,
+    svrChdService.s.pt.onUncaughtServiceError.pipe(
+      rx.map(([, ...errInfo]) => errInfo)
+    ),
+    processManager.error$,
+    cpProxy.error$
+  );
+  r('error$, startRecordError, sendCommand -> onCachedError', errors$.pipe(
+    // rx.tap(errWithLabel => { log('got', errWithLabel); }),
+    rx.bufferToggle(o.pt.startRecordError, () => i.pt.sendCommand),
+    rx.map(errors => {
+      o.ft.onCachedError(errors).dp();
+    })
+  ));
+  r('onCachedError, sendCommand', rx.zip(o.pt.onCachedError, i.pt.sendCommand).pipe(
+    rx.map(([[, errors], [, , , , output]]) => {
+      for (const [err, label] of errors) {
+        if (label) {
+          output.write(label);
+          output.write(' - ');
+        }
+        output.write(util.inspect(err));
+        output.write('\n');
+      }
+    })
+  ));
   r('cmdModelService.enableRxMessageTrace ->', cmdModelService.inputTable.l.enableRxMessageTrace.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.map(([, enabled]) => {
       const opts = {debug: enabled};
-      serverChildProcess4CurrProc.config(opts);
+      svrChdService.config(opts);
       processManager.config(opts);
-      cpService.config(opts);
+      cpProxy.config(opts);
     })
   ));
   r('getProcessFor -> processFor', i.pt.getProcessFor.pipe(
@@ -95,7 +122,28 @@ export function createProcessManager(log: (...m: any[]) => void) {
       );
     })
   ));
-
+  r('sendCommand, (onCommandDoneAnyway) -> startRecordError', i.pt.sendCommand.pipe(
+    rx.mergeMap(([m, , , , output]) => {
+      return errors$.pipe(
+        rx.map(([err, label]) => {
+          if (label) {
+            output.write(util.inspect(label));
+            output.write('\n');
+          }
+          output.write(util.inspect(err));
+          output.write('\n');
+        }),
+        rx.takeUntil(
+          o.pt.onCommandDoneAnyway.pipe(
+            actionRelatedToAction(m)
+          )
+        ),
+        rx.finalize(() => {
+          o.ft.startRecordError().dp(m);
+        })
+      );
+    })
+  ));
   r('sendCommand (childProcess.onCommandDone, onCommandError) -> childProcess.doCommand',
     i.pt.sendCommand.pipe(
       // Join process creation information
@@ -120,19 +168,25 @@ export function createProcessManager(log: (...m: any[]) => void) {
               }
               const [stdout, stopReadStdout] = createCurrentProcessOutputReader();
               stdout.pipe(output);
-              return serverChildProcess4CurrProc.s.ft.doCommand(cols, rows, cwd, cmd)
-                .od(serverChildProcess4CurrProc.s.pt.onCommandDone).pipe(
-                  rx.take(1),
-                  rx.timeout(120000), // 2 min
-                  rx.catchError(err => {
-                    processManager.dispatchErrorFor(err, m);
-                    return rx.EMPTY;
-                  }),
-                  rx.finalize(() => {
-                    stopReadStdout();
-                    o.ft.onCommandDoneAnyway().dp(m);
+              const [done$, error$] = svrChdService.s.ft.doCommand(cols, rows, cwd, cmd)
+                .od(svrChdService.s.pt.onCommandDone, svrChdService.s.pt.onCommandError);
+              return done$.pipe(
+                rx.take(1),
+                rx.timeout(120000), // 2 min
+                rx.takeUntil(error$.pipe(
+                  rx.map(([, err]) => {
+                    return err;
                   })
-                );
+                )),
+                rx.catchError(err => {
+                  processManager.dispatchErrorFor(err, m);
+                  return rx.EMPTY;
+                }),
+                rx.finalize(() => {
+                  stopReadStdout();
+                  o.ft.onCommandDoneAnyway().dp(m);
+                })
+              );
             } else {
               p.stdout!.pipe(output);
               p.stderr!.pipe(output);
@@ -147,15 +201,15 @@ export function createProcessManager(log: (...m: any[]) => void) {
                   )
               ).pipe(
                 rx.mergeMap(() => {
-                  const msg = cpService.s.createAction('doCommand', [cols, rows, cwd, cmd]);
+                  const msg = cpProxy.s.createAction('doCommand', [cols, rows, cwd, cmd]);
                   msg.r = m.i;
                   p.send({
                     type: 'rx:message',
                     content: serializeAction(msg)
                   });
                   return rx.merge(
-                    cpService.s.pt.onCommandDone,
-                    cpService.s.pt.onCommandError
+                    cpProxy.s.pt.onCommandDone,
+                    cpProxy.s.pt.onCommandError
                   ).pipe(
                     actionRelatedToAction(msg),
                     rx.take(1)
@@ -178,7 +232,7 @@ export function createProcessManager(log: (...m: any[]) => void) {
 
   r('processFor (onReady) -> change plinkProcessByDir',
     o.pt.processFor.pipe(
-      rx.mergeMap(([m, , dir]) => cpService.s.pt.onReady.pipe(
+      rx.mergeMap(([m, , dir]) => cpProxy.s.pt.onReady.pipe(
         actionRelatedToActionRelatives(m),
         rx.map(() => {
           plinkProcessByDir.get(dir)!.ready = true;
@@ -189,8 +243,8 @@ export function createProcessManager(log: (...m: any[]) => void) {
     ));
 
   r('onShutdown -> dispose', rx.merge(
-    serverChildProcess4CurrProc.s.pt.onShutdown,
-    cpService.s.pt.onShutdown
+    svrChdService.s.pt.onShutdown,
+    cpProxy.s.pt.onShutdown
   ).pipe(
     rx.concatMap(() => rx.timer(500)),
     rx.mergeMap(() =>
@@ -206,11 +260,11 @@ export function createProcessManager(log: (...m: any[]) => void) {
             ))
         ),
         rx.filter(isChild => isChild != null),
-        rx.map(child => (child as cp.ChildProcess).kill('SIGINT')),
+        rx.map(child => child.kill('SIGINT')),
         rx.finalize(() => {
           setTimeout(() => {
             processManager.dispose();
-            cpService.dispose();
+            cpProxy.dispose();
           }, 20);
         })
       )
@@ -232,6 +286,13 @@ export function createProcessManager(log: (...m: any[]) => void) {
     //   })
     // ))
   ));
+  o.ft.startRecordError().dp();
+  if (mainPlinkRoot)  {
+    plinkProcessByDir.set(mainPlinkRoot, {process: 'main', ready: true});
+    svrChdService.s.ft.setRootDir(mainPlinkRoot).dp();
+  } else {
+    throw new Error('can not find @wfh/plink directory in');
+  }
 
   function createChildProcess(m: ActionMeta, dir: string) {
     const p = cp.fork(plinkServerModule, ['' + m.i], {
@@ -240,30 +301,22 @@ export function createProcessManager(log: (...m: any[]) => void) {
       detached: true
     });
     // eslint-disable-next-line no-console
-    console.log('server-process fork new process', p.pid);
+    log('server-process fork new process', p.pid);
 
     p.on('exit', (_code) => {
       plinkProcessByDir.delete(dir);
     });
     p.on('message', msg => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if ((msg as any).type === 'rx:message') {
+      if ((msg as {type: string}).type === 'rx:message') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-        const action = (msg as any).content as Action<CmdChildProcessEvents[keyof CmdChildProcessEvents]>;
+        const action = (msg as {content: any}).content as Action<CmdChildProcessEvents[keyof CmdChildProcessEvents]>;
         if (action.r == null)
           action.r = m.i;
-        deserializeAction2(action, cpService.s);
+        deserializeAction2(action, cpProxy.s);
+      } else if ((msg as {type: string}).type === 'plink2:log') {
+        log(...(msg as {msg: string[]}).msg);
       }
     });
-
-    // rx.merge(
-    //   processEvents.pt.onCommandDone.pipe(
-    //     rx.map(() => o.ft.onCommandDone().dp(m))
-    //   ),
-    //   processEvents.pt.onCommandError.pipe(
-    //     rx.map(([, err]) => processManager.dispatchErrorFor(err, m))
-    //   )
-    // ).subscribe();
 
     return new Promise<cp.ChildProcess>((resolve, rej) => {
       p.on('error', rej);
@@ -272,5 +325,5 @@ export function createProcessManager(log: (...m: any[]) => void) {
   }
   return processManager;
 }
-const plinkServerModule = Path.resolve(__dirname, 'server-child-process-entry.js');
+const plinkServerModule = Path.resolve(__dirname, 'server-process-child.js');
 

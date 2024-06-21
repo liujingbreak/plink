@@ -1,22 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isStaticTextLabel = exports.createWidget = void 0;
+exports.applyBase = void 0;
+exports.createWidget = createWidget;
 const tslib_1 = require("tslib");
 const rx = tslib_1.__importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
-const tableFor = ['setParent', 'allChildren', 'setTransform', 'setSize', 'preferredSize'];
+const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
+const tableForBase = ['setSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent'];
+exports.applyBase = (0, reactivizer_1.defineParialSimplexReactor)(tableForBase);
+const tableFor = ['allChildren'];
 function createWidget() {
-    const service = new reactivizer_1.SimplexReactor({
-        tableFor
+    const service0 = new reactivizer_1.SimplexReactor({
+        tableFor,
+        log: nodejs_utils_1.conciseNocolorConsoleLogger
     });
+    const service = (0, exports.applyBase)(service0);
     const { r, s } = service;
     const children = [];
     r('addChild -> child.setParent', s.pt.addChild.pipe(rx.map(([m, ...added]) => {
         children.push(...added);
         for (const child of children) {
-            if (child.s)
-                child.s.ft.setParent(service).dp(m);
+            child.s.ft.setParent(service).dp(m);
         }
     })));
     r('removeChild', s.pt.removeChild.pipe(rx.map(([, ...widgets]) => {
@@ -26,33 +30,21 @@ function createWidget() {
                 children.splice(idx, 1);
         }
     })));
-    r('render -> renderChild, rendered', s.pt.render.pipe(rx.withLatestFrom(s.pt.setTransform), rx.map(([[m, canvas, pTrans], [, trans]]) => {
-        const absTrans = gl_matrix_1.mat4.mul(gl_matrix_1.mat4.create(), pTrans, trans);
+    r('render -> renderSelf, renderChild, rendered', s.pt.render.pipe(rx.map(([m, canvas, trans]) => {
+        s.ft.renderSelf(canvas, trans).dp(m);
         for (let i = 0, l = children.length; i < l; i++) {
             const chr = children[i];
-            s.ft.renderChild(i, chr, canvas, absTrans).dp(m);
+            s.ft.renderChild(i, chr, canvas, trans).dp(m);
         }
-        s.ft.rendered().dp(m);
     })));
     r('renderChild -> child.render, canvas.addString', s.pt.renderChild.pipe(rx.map(([m, _index, chr, canvas, trans]) => {
-        if (isStaticTextLabel(chr)) {
-            const vec = gl_matrix_1.vec2.create();
-            gl_matrix_1.vec2.transformMat4(vec, vec, trans);
-            canvas.s.ft.addString(vec[0], vec[1], chr.text).dp(m);
-        }
-        else {
-            chr.s.ft.render(canvas, trans).re(m).dp();
-        }
+        chr.s.ft.render(canvas, trans).re(m).dp();
     })));
     s.ft.allChildren(children).dp();
-    s.ft.setTransform(gl_matrix_1.mat4.create()).dp();
     s.ft.setSize(0, 0).dp();
     s.ft.preferredSize(0, 0).dp();
+    s.ft.setParent(null).dp();
+    s.ft.overflow(false).dp();
     return service;
 }
-exports.createWidget = createWidget;
-function isStaticTextLabel(obj) {
-    return obj.displayLength != null && obj.text != null;
-}
-exports.isStaticTextLabel = isStaticTextLabel;
 //# sourceMappingURL=terminal-widget.js.map

@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.applySharedReactors = void 0;
+exports.applySharedReactors = applySharedReactors;
 const rx = __importStar(require("rxjs"));
 const __1 = require("..");
 function applySharedReactors(isMainWorker, comp, log) {
@@ -77,7 +77,6 @@ function applySharedReactors(isMainWorker, comp, log) {
         }
     })));
 }
-exports.applySharedReactors = applySharedReactors;
 function hasReturnTransferable(payload) {
     var _a;
     return Array.isArray((_a = payload[0]) === null || _a === void 0 ? void 0 : _a.transferList);

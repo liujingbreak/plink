@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.scanPackages = exports.allSrcDirs = exports.eachRecipeSrc = exports.setLinkPatterns = exports.setProjectList = void 0;
+exports.setProjectList = setProjectList;
+exports.setLinkPatterns = setLinkPatterns;
+exports.eachRecipeSrc = eachRecipeSrc;
+exports.allSrcDirs = allSrcDirs;
+exports.scanPackages = scanPackages;
 const tslib_1 = require("tslib");
 /* eslint-disable max-len */
 /**
@@ -17,11 +21,9 @@ let linkPatterns = [];
 function setProjectList(list) {
     projectList = list;
 }
-exports.setProjectList = setProjectList;
 function setLinkPatterns(list) {
     linkPatterns = Array.from(list);
 }
-exports.setLinkPatterns = setLinkPatterns;
 function eachRecipeSrc(projectDir, callback) {
     if (arguments.length === 1) {
         callback = arguments[0];
@@ -46,7 +48,6 @@ function eachRecipeSrc(projectDir, callback) {
         });
     }
 }
-exports.eachRecipeSrc = eachRecipeSrc;
 function* allSrcDirs() {
     for (const projDir of projectList) {
         for (const srcDir of srcDirsOfProject(projDir)) {
@@ -62,7 +63,6 @@ function* allSrcDirs() {
         yield { srcDir: pat };
     }
 }
-exports.allSrcDirs = allSrcDirs;
 function* srcDirsOfProject(projectDir) {
     const srcRecipeMapFile = Path.resolve(projectDir, 'dr.recipes.json');
     const pkJsonFile = Path.resolve(projectDir, 'package.json');
@@ -115,5 +115,4 @@ function* srcDirsOfProject(projectDir) {
 function scanPackages() {
     return (0, rxjs_1.from)(allSrcDirs()).pipe((0, rxjs_1.mergeMap)(({ srcDir, projDir }) => (0, find_package_1.default)(srcDir, false).pipe((0, rxjs_1.map)(jsonFile => [projDir, jsonFile, srcDir]))));
 }
-exports.scanPackages = scanPackages;
 //# sourceMappingURL=recipe-manager.js.map

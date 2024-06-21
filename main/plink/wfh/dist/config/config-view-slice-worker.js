@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createService = void 0;
+exports.createService = createService;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const rx = tslib_1.__importStar(require("rxjs"));
@@ -24,7 +24,6 @@ function createService(debug = false) {
     })));
     return service;
 }
-exports.createService = createService;
 async function doParse(dtsFileBase, typeExport) {
     const dtsFile = fs_1.default.existsSync(dtsFileBase + 'ts') ? dtsFileBase + '.ts' : dtsFileBase + '.d.ts';
     const content = await fs_1.default.promises.readFile(dtsFile, 'utf-8');

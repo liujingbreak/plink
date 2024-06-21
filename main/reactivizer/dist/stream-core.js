@@ -23,7 +23,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.assignActionReferParam = exports.actionMetaToStr = exports.nameOfAction = exports.ControllerCore = exports.has = void 0;
+exports.ControllerCore = exports.has = void 0;
+exports.nameOfAction = nameOfAction;
+exports.actionMetaToStr = actionMetaToStr;
+exports.assignActionReferParam = assignActionReferParam;
 const rx = __importStar(require("rxjs"));
 const global_config_1 = require("./global-config");
 let SEQ = 0;
@@ -154,6 +157,10 @@ class ControllerCore {
             this.configChange.next(changedProperties);
         }
     }
+    /** Insert action "interceptor" operator function */
+    prependInterceptor(interceptor) {
+        this.interceptor$.next(interceptor);
+    }
     /** This method is not meant to be used directly */
     dispatchFactory(type) {
         if (exports.has.call(this.dispatcher, type)) {
@@ -215,17 +222,14 @@ function nameOfAction(action) {
     // return (match ? match[1] : action.t) as keyof I;
     return action.t;
 }
-exports.nameOfAction = nameOfAction;
 function actionMetaToStr(action) {
     const { r, i } = action;
     return `(i: ${i}${r != null ? `, r: ${Array.isArray(r) ? [...r.values()].toString() : r}` : ''})`;
 }
-exports.actionMetaToStr = actionMetaToStr;
 function assignActionReferParam(action, metas) {
     action.r = Array.isArray(metas) ?
         metas.flatMap(m => Array.isArray(m) ? m : m != null ? [m] : []).map(m => typeof m === 'number' ? m : m.i) :
         typeof metas === 'number' ? metas : metas.i;
     return action;
 }
-exports.assignActionReferParam = assignActionReferParam;
 //# sourceMappingURL=stream-core.js.map

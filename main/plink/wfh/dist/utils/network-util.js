@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTunnelProxy = exports.getLanIPv4 = void 0;
+exports.getLanIPv4 = getLanIPv4;
+exports.createTunnelProxy = createTunnelProxy;
 const tslib_1 = require("tslib");
 const os_1 = tslib_1.__importDefault(require("os"));
 const http_1 = tslib_1.__importDefault(require("http"));
@@ -23,7 +24,6 @@ function getLanIPv4() {
     }
     return '127.0.0.1';
 }
-exports.getLanIPv4 = getLanIPv4;
 function createTunnelProxy(serverPort = 1337) {
     return new Promise((resolve, reject) => {
         // Create an HTTP tunneling proxy
@@ -80,5 +80,4 @@ function createTunnelProxy(serverPort = 1337) {
         });
     });
 }
-exports.createTunnelProxy = createTunnelProxy;
 //# sourceMappingURL=network-util.js.map

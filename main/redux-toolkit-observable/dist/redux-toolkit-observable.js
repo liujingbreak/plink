@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fromPaylodReducer = exports.StateFactory = exports.ofPayloadAction = void 0;
+exports.StateFactory = void 0;
+exports.ofPayloadAction = ofPayloadAction;
+exports.fromPaylodReducer = fromPaylodReducer;
 /// <reference lib="es2017" />
 /// <reference path="./hmr-module.d.ts" />
 // eslint-disable  max-line-length member-ordering
@@ -15,7 +17,6 @@ function ofPayloadAction(...actionCreators) {
     const types = actionCreators.map(c => c.type);
     return (0, redux_observable_1.ofType)(...types);
 }
-exports.ofPayloadAction = ofPayloadAction;
 const defaultSliceReducers = {
     _change: (state, action) => {
         action.payload(state);
@@ -291,7 +292,6 @@ function fromPaylodReducer(payloadReducers) {
     }
     return reducers;
 }
-exports.fromPaylodReducer = fromPaylodReducer;
 const errorSliceOpt = {
     initialState: {},
     name: 'error',

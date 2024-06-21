@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.doTsconfig = void 0;
+exports.doTsconfig = doTsconfig;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const op = tslib_1.__importStar(require("rxjs/operators"));
@@ -38,5 +38,4 @@ function doTsconfig(opts) {
         }
     })).subscribe();
 }
-exports.doTsconfig = doTsconfig;
 //# sourceMappingURL=cli-tsconfig-hook.js.map

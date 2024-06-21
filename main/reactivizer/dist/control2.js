@@ -23,7 +23,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deserializeAction2 = exports.GroupedRxController2 = exports.RxController2 = void 0;
+exports.GroupedRxController2 = exports.RxController2 = void 0;
+exports.deserializeAction2 = deserializeAction2;
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
@@ -227,5 +228,4 @@ function deserializeAction2(actionObj, toController) {
     const act = toController.copyActionFrom(actionObj);
     toController.actionUpstream.next(act);
 }
-exports.deserializeAction2 = deserializeAction2;
 //# sourceMappingURL=control2.js.map

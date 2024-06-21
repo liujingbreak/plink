@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TransitiveDepScanner = exports.listCompDependency = void 0;
+exports.TransitiveDepScanner = void 0;
+exports.listCompDependency = listCompDependency;
 const tslib_1 = require("tslib");
 /* eslint-disable  max-len */
 // import {mkdirpSync} from 'fs-extra';
@@ -38,7 +39,6 @@ function listCompDependency(pkJsonFiles, workspace, workspaceDeps, workspaceDevD
         hoistedDevPeers
     };
 }
-exports.listCompDependency = listCompDependency;
 const versionReg = /^(\D*)(\d.*?)(?:\.tgz)?$/;
 class TransitiveDepScanner {
     /**

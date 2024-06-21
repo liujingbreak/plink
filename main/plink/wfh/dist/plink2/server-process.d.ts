@@ -1,5 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import stream from 'node:stream';
 import * as cp from 'node:child_process';
 import { SingleActionFactory, ReactorComposite2 } from '@wfh/reactivizer';
@@ -13,6 +11,8 @@ interface ProcessEvents {
     /** ActionMeta is related to processFor */
     onChildProcessReady(plinkRootDir: string): SingleActionFactory;
     onCommandDoneAnyway(): SingleActionFactory;
+    startRecordError(): SingleActionFactory;
+    onCachedError(errors: (readonly [error: any, label: string | null])[]): SingleActionFactory;
 }
-export declare function createProcessManager(log: (...m: any[]) => void): ReactorComposite2<ProcessActions, ProcessEvents, [], []>;
+export declare function createProcessManager(log: (...m: any[]) => void): ReactorComposite2<ProcessActions, ProcessEvents, never[], readonly ["onCachedError"]>;
 export {};

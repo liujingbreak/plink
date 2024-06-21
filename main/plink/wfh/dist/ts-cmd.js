@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setupCompilerOptionsWithPackages = exports.tsc = void 0;
+exports.tsc = tsc;
+exports.setupCompilerOptionsWithPackages = setupCompilerOptionsWithPackages;
 const tslib_1 = require("tslib");
 /* eslint-disable max-len */
 const path_1 = tslib_1.__importStar(require("path"));
@@ -205,7 +206,6 @@ async function tsc(argv, ts = typescript_1.default) {
         return emitted;
     }
 }
-exports.tsc = tsc;
 const COMPILER_OPTIONS_MERGE_EXCLUDE = new Set(['baseUrl', 'typeRoots', 'paths', 'rootDir']);
 function setupCompilerOptionsWithPackages(compilerOptions, basePath, opts, ts = typescript_1.default) {
     var _a;
@@ -261,7 +261,6 @@ function setupCompilerOptionsWithPackages(compilerOptions, basePath, opts, ts = 
         }
     }
 }
-exports.setupCompilerOptionsWithPackages = setupCompilerOptionsWithPackages;
 /**
  * Return real path of targeting file, return null if targeting file is not in our compiliation scope
  * @param fileName

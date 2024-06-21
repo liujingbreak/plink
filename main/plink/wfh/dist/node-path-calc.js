@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calcNodePaths = void 0;
+exports.calcNodePaths = calcNodePaths;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const lodash_1 = tslib_1.__importDefault(require("lodash"));
@@ -25,5 +25,4 @@ function calcNodePaths(rootDir, symlinksDir, cwd, plinkDir) {
     }
     return lodash_1.default.uniq(nodePaths);
 }
-exports.calcNodePaths = calcNodePaths;
 //# sourceMappingURL=node-path-calc.js.map

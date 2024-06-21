@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.withGlobalOptions = exports.withCwdOption = exports.CommandOverrider = exports.PlinkCommand = exports.PlinkCommandHelp = exports.commander = void 0;
+exports.CommandOverrider = exports.PlinkCommand = exports.PlinkCommandHelp = exports.commander = void 0;
+exports.withCwdOption = withCwdOption;
+exports.withGlobalOptions = withGlobalOptions;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,  @typescript-eslint/no-unsafe-return */
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -289,7 +291,6 @@ function withCwdOption(cmd) {
         cmd.optionStyler = undefined;
     return cmdObj;
 }
-exports.withCwdOption = withCwdOption;
 function withGlobalOptions(cmd) {
     if ((0, package_mgr_1.getState)().workspaces == null)
         // eslint-disable-next-line no-console
@@ -315,5 +316,4 @@ function withGlobalOptions(cmd) {
         cmd.optionStyler = undefined;
     return cmd;
 }
-exports.withGlobalOptions = withGlobalOptions;
 //# sourceMappingURL=override-commander.js.map

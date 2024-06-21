@@ -1,47 +1,54 @@
 import * as rx from 'rxjs';
-import {mat4, vec2} from 'gl-matrix';
-import {SingleActionFactory, SimplexReactor} from '@wfh/reactivizer';
+import {mat4} from 'gl-matrix';
+import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, defineParialSimplexReactor, TableOf, ActionsOf} from '@wfh/reactivizer';
+import {conciseNocolorConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {TerminalCanvas} from './terminal-canvas';
 
-/** A pristine single line text rendable unit */
-export type StaticTextLabel = {
-  text: string;
-  displayLength: number;
-  width?: number;
-};
-interface TwInput {
-  setTransform(mat: mat4): SingleActionFactory;
-  addChild(...children: (TerminalWidget | StaticTextLabel)[]): SingleActionFactory;
-  removeChild(...children: (TerminalWidget | string)[]): SingleActionFactory;
-  setParent(p: TerminalWidget): SingleActionFactory;
-  render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
+export interface BaseWidgetActions {
   setSize(width: number, height: number): SingleActionFactory;
-}
-
-interface TwOutput {
-  rendered(): SingleActionFactory;
-  renderChild(index: number, child: StaticTextLabel | TerminalWidget, canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
-  allChildren(children: Array<TerminalWidget | StaticTextLabel>): SingleActionFactory;
+  querySizeOf(width: number | null, height: number | null): SingleActionFactory;
   preferredSize(width: number, height: number): SingleActionFactory;
-  resized(width: number, height: number): SingleActionFactory;
+  /** As response to "querySizeOf" */
+  prefWidthFor(width: number, constrainHeight: number): SingleActionFactory;
+  /** As response to "querySizeOf" */
+  prefHeightFor(constrainWidth: number, height: number): SingleActionFactory;
+  overflow(yes: boolean): SingleActionFactory;
+
+  setParent(p: TerminalWidget | null): SingleActionFactory;
+  render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
+}
+const tableForBase = ['setSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent'] as const;
+export type BaseWidget = SimplexReactor<BaseWidgetActions, typeof tableForBase>;
+export const applyBase = defineParialSimplexReactor<BaseWidgetActions, typeof tableForBase>(tableForBase);
+
+export interface ContainerWidgetInput {
+  addChild<I extends BaseWidgetActions, L extends typeof tableForBase>(...children: SimplexReactor<I, L>[]): SingleActionFactory;
+  removeChild<I extends ActionsOf<BaseWidget>, L extends TableOf<BaseWidget>>(...children: SimplexReactor<I, L>[]): SingleActionFactory;
 }
 
-const tableFor = ['setParent', 'allChildren', 'setTransform', 'setSize', 'preferredSize'] as const;
-export type TerminalWidget = SimplexReactor<TwInput & TwOutput, typeof tableFor>;
+export interface ContainerWidgetOutput {
+  renderSelf(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
+  renderChild(index: number, child: BaseWidget, canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
+  allChildren(children: Array<BaseWidget>): SingleActionFactory;
+}
+
+const tableFor = ['allChildren'] as const;
+export type TerminalWidget = SimplexReactorMergeType<SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>, BaseWidget>;
 
 export function createWidget() {
-  const service = new SimplexReactor<TwInput & TwOutput, typeof tableFor>({
-    tableFor
+  const service0 = new SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>({
+    tableFor,
+    log: conciseNocolorConsoleLogger
   });
+  const service = applyBase(service0);
   const {r, s} = service;
-  const children = [] as (StaticTextLabel | TerminalWidget)[];
+  const children = [] as BaseWidget[];
 
   r('addChild -> child.setParent', s.pt.addChild.pipe(
     rx.map(([m, ...added]) => {
       children.push(...added);
       for (const child of children) {
-        if ((child as TerminalWidget).s)
-          (child as TerminalWidget).s.ft.setParent(service).dp(m);
+        child.s.ft.setParent(service).dp(m);
       }
     })
   ));
@@ -55,36 +62,25 @@ export function createWidget() {
     })
   ));
 
-  r('render -> renderChild, rendered', s.pt.render.pipe(
-    rx.withLatestFrom(s.pt.setTransform),
-    rx.map(([[m, canvas, pTrans], [, trans]]) => {
-      const absTrans = mat4.mul(mat4.create(), pTrans, trans);
+  r('render -> renderSelf, renderChild, rendered', s.pt.render.pipe(
+    rx.map(([m, canvas, trans]) => {
+      s.ft.renderSelf(canvas, trans).dp(m);
       for (let i = 0, l = children.length; i < l; i++) {
         const chr = children[i];
-        s.ft.renderChild(i, chr, canvas, absTrans).dp(m);
+        s.ft.renderChild(i, chr, canvas, trans).dp(m);
       }
-      s.ft.rendered().dp(m);
     })
   ));
   r('renderChild -> child.render, canvas.addString', s.pt.renderChild.pipe(
     rx.map(([m, _index, chr, canvas, trans]) => {
-      if (isStaticTextLabel(chr)) {
-        const vec = vec2.create();
-        vec2.transformMat4(vec, vec, trans);
-        canvas.s.ft.addString(vec[0], vec[1], chr.text).dp(m);
-      } else {
-        chr.s.ft.render(canvas, trans).re(m).dp();
-      }
+      chr.s.ft.render(canvas, trans).re(m).dp();
     })
   ));
   s.ft.allChildren(children).dp();
-  s.ft.setTransform(mat4.create()).dp();
   s.ft.setSize(0, 0).dp();
   s.ft.preferredSize(0, 0).dp();
+  s.ft.setParent(null).dp();
+  s.ft.overflow(false).dp();
   return service;
-}
-
-export function isStaticTextLabel(obj: any): obj is StaticTextLabel {
-  return (obj as StaticTextLabel).displayLength != null && (obj as StaticTextLabel).text != null;
 }
 

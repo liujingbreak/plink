@@ -29,7 +29,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.useTinyReduxTookit = exports.useTinyRtk = void 0;
+exports.useTinyRtk = useTinyRtk;
+exports.useTinyReduxTookit = useTinyReduxTookit;
 const react_1 = __importDefault(require("react"));
 const op = __importStar(require("rxjs/operators"));
 const rx = __importStar(require("rxjs"));
@@ -68,7 +69,6 @@ function useTinyRtk(optsFactory, props, ...epicFactories) {
     }, Object.values(props));
     return stateAndSlice;
 }
-exports.useTinyRtk = useTinyRtk;
 /**
  * For performance reason, better define opts.reducers outside of component rendering function
  * @param opts
@@ -127,5 +127,4 @@ function useTinyReduxTookit(optsFactory, ...epicFactories) {
     }, []);
     return [state, slice];
 }
-exports.useTinyReduxTookit = useTinyReduxTookit;
 //# sourceMappingURL=tiny-redux-toolkit-hook.js.map

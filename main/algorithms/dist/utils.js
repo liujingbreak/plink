@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.printRbTree = void 0;
+exports.printRbTree = printRbTree;
 const chalk_1 = __importDefault(require("chalk"));
 function printRbTree(tree) {
     const lines = [];
@@ -22,5 +22,4 @@ function printRbTree(tree) {
     // eslint-disable-next-line no-console
     console.log(':\n' + lines.join('\n'));
 }
-exports.printRbTree = printRbTree;
 //# sourceMappingURL=utils.js.map

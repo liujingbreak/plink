@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = ensureNodeVersion;
 const process_utils_1 = require("../process-utils");
 async function ensureNodeVersion() {
     const output = await (0, process_utils_1.promisifySpawn)('node', '-v', { silent: true });
@@ -22,5 +23,4 @@ async function ensureNodeVersion() {
         throw new Error('Can not recognize "node -v" output:' + output);
     }
 }
-exports.default = ensureNodeVersion;
 //# sourceMappingURL=node-version-check.js.map

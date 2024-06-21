@@ -20,7 +20,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
      * */
     doOperator$: rx.BehaviorSubject<(<A>(dispatchingAction: {
-        i: ActionMeta['i'];
+        i: ActionMeta["i"];
     }) => (response$: rx.Observable<A>) => rx.Observable<A>)>;
     constructor(opts?: CoreOptions<I> & {
         debugTableAction?: boolean;

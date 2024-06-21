@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createProjectSymlink = exports.removeProjectSymlink = void 0;
+exports.removeProjectSymlink = removeProjectSymlink;
+exports.createProjectSymlink = createProjectSymlink;
 const tslib_1 = require("tslib");
 /**
  * @Deprecated
@@ -41,7 +42,6 @@ function removeProjectSymlink(isDrcpDevMode) {
         catch (e) { }
     }
 }
-exports.removeProjectSymlink = removeProjectSymlink;
 /* eslint-disable no-console */
 function createProjectSymlink() {
     const isWin32 = require('os').platform().indexOf('win32') >= 0;
@@ -84,5 +84,4 @@ function createProjectSymlink() {
         }
     }
 }
-exports.createProjectSymlink = createProjectSymlink;
 //# sourceMappingURL=project-dir.js.map

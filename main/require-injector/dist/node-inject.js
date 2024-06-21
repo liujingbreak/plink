@@ -26,7 +26,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseSymlink = exports.NodeInjector = exports.default = exports.FactoryMapCollection = exports.FactoryMap = void 0;
+exports.NodeInjector = exports.default = exports.FactoryMapCollection = exports.FactoryMap = void 0;
+exports.parseSymlink = parseSymlink;
 const module_1 = __importDefault(require("module"));
 const events_1 = __importDefault(require("events"));
 const path_1 = __importDefault(require("path"));
@@ -255,7 +256,6 @@ function parseSymlink(path) {
     });
     return dir;
 }
-exports.parseSymlink = parseSymlink;
 function emptryChainableFunction(name, RegExp) {
     return emptyFactoryMap;
 }

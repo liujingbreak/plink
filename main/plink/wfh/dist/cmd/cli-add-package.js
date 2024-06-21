@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addDependencyTo = void 0;
+exports.addDependencyTo = addDependencyTo;
 const tslib_1 = require("tslib");
 const fs_1 = tslib_1.__importDefault(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -64,7 +64,6 @@ async function addDependencyTo(packages, to, dev = false) {
         }
     });
 }
-exports.addDependencyTo = addDependencyTo;
 async function add(packages, toDir, dev = false) {
     const targetJsonFile = path_1.default.resolve(toDir, 'package.json');
     const pkgJsonStr = fs_1.default.readFileSync(targetJsonFile, 'utf-8');

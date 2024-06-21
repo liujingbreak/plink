@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cliWatch = void 0;
+exports.cliWatch = cliWatch;
 const tslib_1 = require("tslib");
 const Path = tslib_1.__importStar(require("path"));
 const fs_1 = tslib_1.__importDefault(require("fs"));
@@ -127,5 +127,4 @@ function cliWatch(packages, opt) {
         }
     }
 }
-exports.cliWatch = cliWatch;
 //# sourceMappingURL=cli-watch.js.map

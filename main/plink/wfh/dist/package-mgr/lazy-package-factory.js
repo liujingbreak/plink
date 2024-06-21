@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseName = void 0;
+exports.parseName = parseName;
 const tslib_1 = require("tslib");
 // import * as Path from 'path';
 const path_1 = require("path");
@@ -40,7 +40,6 @@ function parseName(longName) {
     }
     return { name: longName };
 }
-exports.parseName = parseName;
 function createPackage(info) {
     const instance = new packageNodeInstance_1.default({
         longName: info.name,

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.orderPackages = void 0;
+exports.orderPackages = orderPackages;
 const tslib_1 = require("tslib");
 const _ = tslib_1.__importStar(require("lodash"));
 const log = require('log4js').getLogger('plink.package-priority-helper');
@@ -79,5 +79,4 @@ function orderPackages(packages, run) {
     }
     return runPackagesSync(numberTypePrio);
 }
-exports.orderPackages = orderPackages;
 //# sourceMappingURL=package-priority-helper.js.map

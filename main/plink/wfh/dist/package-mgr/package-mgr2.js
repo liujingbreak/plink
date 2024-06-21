@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createPackageMgrService = void 0;
+exports.createPackageMgrService = createPackageMgrService;
 const tslib_1 = require("tslib");
 const node_path_1 = tslib_1.__importDefault(require("node:path"));
 const node_fs_1 = tslib_1.__importDefault(require("node:fs"));
@@ -244,5 +244,4 @@ function createPackageMgrService() {
     o.ft.didSwitchSpace(null, [], [], 0, 0).dp();
     return service;
 }
-exports.createPackageMgrService = createPackageMgrService;
 //# sourceMappingURL=package-mgr2.js.map

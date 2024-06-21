@@ -1,4 +1,3 @@
-import * as rx from 'rxjs';
 import { ActionFunctions } from '../control';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType } from '../inferred-types';
 import { SimplexReactorCfgOpts } from '../reactor-base';
@@ -10,4 +9,4 @@ export type WebForkTransferablePayload<T = unknown> = {
     content: T;
     transferList: (ArrayBuffer | MessagePort)[];
 };
-export declare function createWorkerControlOfFn<F extends ActionFunctions, LI extends (keyof ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>)[]>(recursiveFuncs: F, isInWorker: boolean, opts?: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>): WorkerControl<ActionFactoryOfPlainType<F> & { [K in keyof F as `${K & string}Resolved`]: (p: F[K] extends (...args: any) => PromiseLike<infer P> ? P : F[K] extends (...args: any) => rx.Observable<infer OB> ? OB : F[K] extends infer R ? R : unknown) => import("..").SingleActionFactory; } & { [K_1 in keyof F as `${K_1 & string}Completed`]: () => import("..").SingleActionFactory; }>;
+export declare function createWorkerControlOfFn<F extends ActionFunctions, LI extends (keyof ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>)[]>(recursiveFuncs: F, isInWorker: boolean, opts?: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>): WorkerControl<ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>>;

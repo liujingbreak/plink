@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = default_1;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const os_1 = tslib_1.__importDefault(require("os"));
@@ -20,5 +21,4 @@ function default_1() {
     });
     return mainWorker;
 }
-exports.default = default_1;
 //# sourceMappingURL=cli-analyse-main.js.map

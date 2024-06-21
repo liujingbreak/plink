@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runModule = void 0;
+exports.runModule = runModule;
 const bootstrap_process_1 = require("./utils/bootstrap-process");
 if (process.send)
     process.on('message', init);
@@ -19,5 +19,4 @@ function runModule(moduleFile, stateExitAction) {
     (0, bootstrap_process_1.initProcess)(stateExitAction || 'none');
     require(moduleFile);
 }
-exports.runModule = runModule;
 //# sourceMappingURL=fork-module-wrapper.js.map

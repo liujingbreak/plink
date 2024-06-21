@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.serverUrl = exports.publicUrl = exports.assetsUrl = exports.entryPageUrl = exports.patchToApi = void 0;
+exports.patchToApi = patchToApi;
+exports.entryPageUrl = entryPageUrl;
+exports.assetsUrl = assetsUrl;
+exports.publicUrl = publicUrl;
+exports.serverUrl = serverUrl;
 const tslib_1 = require("tslib");
 const Url = tslib_1.__importStar(require("url"));
 function patchToApi(apiPrototype) {
@@ -8,7 +12,6 @@ function patchToApi(apiPrototype) {
     apiPrototype.entryPageUrl = entryPageUrl;
     apiPrototype.serverUrl = serverUrl;
 }
-exports.patchToApi = patchToApi;
 function entryPageUrl(packageName, path, locale) {
     if (arguments.length === 1) {
         path = arguments[0];
@@ -17,7 +20,6 @@ function entryPageUrl(packageName, path, locale) {
     path = path.replace(/([^./\\]+\.)[^?./\\]+(\?.*)?$/, '$1html$2');
     return publicUrl(this.config().staticAssetsURL, this.config().outputPathMap, locale ? locale : (this.isDefaultLocale() ? null : this.getBuildLocale()), packageName, path);
 }
-exports.entryPageUrl = entryPageUrl;
 // export function assetsUrl(this: PackageApi, path: string): string;
 function assetsUrl(packageName, path) {
     if (path === undefined) {
@@ -26,7 +28,6 @@ function assetsUrl(packageName, path) {
     }
     return publicUrl(this.config().staticAssetsURL, this.config().outputPathMap, null, packageName, path);
 }
-exports.assetsUrl = assetsUrl;
 /**
  * Helper for dealing with url like "npm://<package>/<path>", "assets://<package>/<path>"
  * @param {string} staticAssetsURL, like Webpack's output.publicPath
@@ -69,7 +70,6 @@ function publicUrl(staticAssetsURL, outputPathMap, useLocale, packageName, path)
         finalUrl = '/' + finalUrl;
     return finalUrl;
 }
-exports.publicUrl = publicUrl;
 function joinUrl(...pathEls) {
     pathEls = pathEls.map(el => {
         // Trim last '/'
@@ -99,5 +99,4 @@ function serverUrl(packageNameOrPath, path) {
     }
     return Url.resolve('/', this._contextPath(packageNameOrPath) + '/' + path);
 }
-exports.serverUrl = serverUrl;
 //# sourceMappingURL=assets-url.js.map

@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.startLogging = exports.storeSavedAction$ = exports.processExitAction$ = exports.dispatcher = exports.stateFactory = exports.lastSavedState = exports.BEFORE_SAVE_STATE = exports.isStateSyncMsg = exports.castByActionType = exports.action$Of = exports.createReducers = exports.ofPayloadAction = void 0;
+exports.storeSavedAction$ = exports.processExitAction$ = exports.dispatcher = exports.stateFactory = exports.lastSavedState = exports.BEFORE_SAVE_STATE = exports.castByActionType = exports.action$Of = exports.createReducers = exports.ofPayloadAction = void 0;
+exports.isStateSyncMsg = isStateSyncMsg;
+exports.startLogging = startLogging;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -25,7 +27,6 @@ const PROCESS_MSG_TYPE = 'rtk-observable:state';
 function isStateSyncMsg(msg) {
     return msg.type === PROCESS_MSG_TYPE;
 }
-exports.isStateSyncMsg = isStateSyncMsg;
 exports.BEFORE_SAVE_STATE = 'BEFORE_SAVE_STATE';
 const IGNORE_SLICE = ['config', 'configView', 'cli', 'analyze', 'storeSetting'];
 const IGNORE_ACTION = new Set(['packages/setInChina', 'packages/updatePlinkPackageInfo']);
@@ -135,5 +136,4 @@ function startLogging() {
             defaultLog.debug(...params);
     })).subscribe();
 }
-exports.startLogging = startLogging;
 //# sourceMappingURL=store.js.map

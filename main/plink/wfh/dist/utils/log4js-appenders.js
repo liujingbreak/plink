@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.emitThreadLogMsg = exports.emitChildProcessLogMsg = exports.workerThreadAppender = exports.log4jsThreadBroadcast = exports.childProcessAppender = exports.doNothingAppender = void 0;
+exports.workerThreadAppender = exports.log4jsThreadBroadcast = exports.childProcessAppender = exports.doNothingAppender = void 0;
+exports.emitChildProcessLogMsg = emitChildProcessLogMsg;
+exports.emitThreadLogMsg = emitThreadLogMsg;
 /**
  * https://log4js-node.github.io/log4js-node/writing-appenders.html
  */
@@ -76,7 +78,6 @@ function emitChildProcessLogMsg(msg, toParent = false) {
     }
     return false;
 }
-exports.emitChildProcessLogMsg = emitChildProcessLogMsg;
 function emitThreadLogMsg(msg) {
     if (msg.data.topic === 'log4js:message') {
         const logEvent = msg.data;
@@ -85,5 +86,4 @@ function emitThreadLogMsg(msg) {
     }
     return false;
 }
-exports.emitThreadLogMsg = emitThreadLogMsg;
 //# sourceMappingURL=log4js-appenders.js.map

@@ -44,7 +44,7 @@ export const tscSlice = stateFactory.newSlice({
 
 export const tscActionDispatcher = stateFactory.bindActionCreators(tscSlice);
 
-const releaseEpic = stateFactory.addEpic((action$) => {
+stateFactory.addEpic((action$) => {
   return merge(
     getPkgStore().pipe(
       map(s => s.srcPackages),
@@ -116,9 +116,9 @@ function normalizePackageJsonTscProperty$(pkg: PackageInfo) {
   );
 }
 
-if (module.hot) {
-  module.hot.dispose(data => {
-    stateFactory.removeSlice(tscSlice);
-    releaseEpic();
-  });
-}
+// if (module.hot) {
+//   module.hot.dispose(data => {
+//     stateFactory.removeSlice(tscSlice);
+//     releaseEpic();
+//   });
+// }

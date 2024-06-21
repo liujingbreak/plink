@@ -39,12 +39,9 @@ export class ReactorComposite2<
 > extends DuplexController<I & BaseActions<I, O, LI, LO>, O & BaseEvents> {
 
   destory$: rx.Observable<unknown>;
-  protected errorSubject: rx.Subject<
-  [lable: string, originError: any] |
-  [lable: string, originError: any, relevantActions: ActionMeta[]
-  ]> = new rx.ReplaySubject(20);
+  protected errorSubject: rx.Subject<[label: string, originError: any]> = new rx.ReplaySubject(20);
   dispose: () => void;
-  error$: rx.Observable<any>;
+  error$: rx.Observable<readonly [error: any, label: string | null]>;
 
   get inputTable(): ActionTable<I, LI> {
     return this.it;
@@ -125,10 +122,14 @@ export class ReactorComposite2<
     this.dispose = () => {
       output$.ft.__onDisposed().dp();
     };
-    this.error$ = output$.pt.__onError.pipe(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      rx.map(([, err]) => err),
-      rx.share()
+    this.error$ = rx.merge(
+      this.errorSubject.pipe(
+        rx.map(([label, err]) => [err, label] as const)
+      ),
+      output$.pt.__onError.pipe(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        rx.map(([, err]) => [err, null] as const)
+      )
     );
     this.destory$ = this.outputTable.l.__onDisposed;
 
@@ -205,7 +206,7 @@ export class ReactorComposite2<
    * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
    * errors, you should add your own "catchError" after.
    *
-   * `addReaction(lable, ...)` uses this op internally.
+   * `addReaction(label, ...)` uses this op internally.
    */
   labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T> {
     return (upStream: rx.Observable<T>): rx.Observable<T> => upStream.pipe(
@@ -290,8 +291,8 @@ export class ReactorComposite2<
   }
 
   protected logError(label: string, err: any) {
-    const message = '@' + (this.opts?.name ? this.opts.name + '::' : '') + label;
-    this.errorSubject.next([err, message]);
+    const message = 'Error@' + (this.opts?.name ? this.opts.name + '::' : '') + label;
+    this.errorSubject.next([message, err]);
     if (this.opts?.log)
       this.opts.log(message, err);
     else

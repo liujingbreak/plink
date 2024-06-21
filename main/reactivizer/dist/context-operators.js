@@ -23,7 +23,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.payloadRelatedToAction = exports.throwErrorOnRelated = exports.pairActionToActionStream = exports.actionOfContext = exports.actionRelatedToActionRelatives = exports.actionRelatedToAction = void 0;
+exports.payloadRelatedToAction = void 0;
+exports.actionRelatedToAction = actionRelatedToAction;
+exports.actionRelatedToActionRelatives = actionRelatedToActionRelatives;
+exports.actionOfContext = actionOfContext;
+exports.pairActionToActionStream = pairActionToActionStream;
+exports.throwErrorOnRelated = throwErrorOnRelated;
 const rx = __importStar(require("rxjs"));
 /** Rx operator function, filter action or payload stream by:
  *  action ID (Action['i'])
@@ -39,7 +44,6 @@ function actionRelatedToAction(actionOrMeta) {
         }));
     };
 }
-exports.actionRelatedToAction = actionRelatedToAction;
 /** Rx operator function, filter action or payload stream by:
  *  action's reference IDs (Action['r'])
  **/
@@ -74,7 +78,6 @@ function actionRelatedToActionRelatives(actionOrMeta) {
         }));
     };
 }
-exports.actionRelatedToActionRelatives = actionRelatedToActionRelatives;
 /**
  * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
  */
@@ -83,7 +86,6 @@ function actionOfContext(actionOrMeta) {
         return rx.merge(actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta)) : rx.EMPTY, up.pipe(actionRelatedToActionRelatives(actionOrMeta)));
     };
 }
-exports.actionOfContext = actionOfContext;
 function pairActionToActionStream(responding$, syncCacheSize, mapFn) {
     return function (up) {
         // Use replaySubject to remedy case that context action message and corresponding responding message is sent in a synchronous invocation,
@@ -110,7 +112,6 @@ function pairActionToActionStream(responding$, syncCacheSize, mapFn) {
         })));
     };
 }
-exports.pairActionToActionStream = pairActionToActionStream;
 function throwErrorOnRelated(actionOrMeta) {
     return function (up) {
         return up.pipe(rx.map(actionOrPayload => {
@@ -124,7 +125,6 @@ function throwErrorOnRelated(actionOrMeta) {
         }));
     };
 }
-exports.throwErrorOnRelated = throwErrorOnRelated;
 /** @deprecated use actionRelatedToAction instead */
 exports.payloadRelatedToAction = actionRelatedToAction;
 //# sourceMappingURL=context-operators.js.map

@@ -27,10 +27,10 @@ export class SimplexReactor<
   I = Record<never, never>,
   LI extends readonly (keyof I)[] | (keyof I)[] = []
 > {
-  protected errorSubject: rx.Subject<[lable: string, originError: any] | [lable: string, originError: any, relevantActions: ActionMeta[] ]> =
+  protected errorSubject: rx.Subject<[label: string, originError: any]> =
     new rx.ReplaySubject(20);
   /** All catched error goes here, including those from "dispatchErrorFor" */
-  error$: rx.Observable<any>;
+  error$: rx.Observable<readonly [error: any, label: string | null]>;
   destory$: rx.Observable<unknown>;
   dispose: () => void;
   /** default stream controller used also as Reactor's internal message stream */
@@ -96,9 +96,16 @@ export class SimplexReactor<
 
     this.table = new ActionTable(this.s, [...opts?.tableFor ?? [], ...baseTableFor] as LE<LI>);
     const internalTable = this.table as unknown as ActionTable<BaseActions, typeof baseTableFor>;
-    this.error$ = internalTable.l.__onError.pipe(
+    this.error$ = rx.merge(
+      this.errorSubject.pipe(
+        rx.map(([label, err]) => [err, label] as const)
+      ),
+      internalTable.l.__onError.pipe(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      rx.map(([, err]) => err)
+        rx.map(([, err]) => [err, null] as const)
+      )
+    ).pipe(
+      rx.share()
     );
     this.destory$ = internalTable.l.__onDisposed;
     this.dispose = () => {
@@ -113,19 +120,24 @@ export class SimplexReactor<
    * This method can be used to change "options" after SimplexReactor instanciation, e.g. `.change({debug: true})` to enable action tracing log for debug.
    * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
    * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
-   **/
+   */
   config<I2 = Record<string, never>, LI2 extends ReadonlyArray<keyof I2> = []>(opts: SimplexReactorCfgOpts<I & BaseActions<any>, I2, LI2>) {
     if (this.opts) {
       Object.assign(this.opts, opts);
-      if (opts.tableFor) {
-        this.table.addActions(...opts.tableFor);
-      }
-    } else
+    } else {
       this.opts = opts as unknown as typeof this.opts;
+    }
+    if (opts.tableFor) {
+      this.table.addActions(...opts.tableFor);
+    }
     this.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
       if (p !== 'tableFor') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        obj[p as keyof RxControlConfigType<I>] = v;
+        if (p === 'name')
+          obj.name = opts.name + '#' + this.id;
+        else {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          obj[p as keyof RxControlConfigType<I>] = v;
+        }
       }
       return obj;
     }, {} as RxControlConfigType<I>));
@@ -136,7 +148,7 @@ export class SimplexReactor<
    * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
    * errors, you should add your own "catchError" after.
    *
-   * `addReaction(lable, ...)` uses this op internally.
+   * `addReaction(label, ...)` uses this op internally.
    */
   labelError<T>(label: string): (upStream: rx.Observable<T>) => rx.Observable<T> {
     return (upStream: rx.Observable<T>): rx.Observable<T> => upStream.pipe(
@@ -156,9 +168,9 @@ export class SimplexReactor<
     );
   }
   /** Rx operator function, filter action or payload stream by:
- *  action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
- *  invokes "catchErrorFor()" or "dispatchErrorFor()"
- **/
+  * action ID (Action['i']), this method also react to __onError messages, the returned observable emits Error message when the initial action producer
+  * invokes "catchErrorFor()" or "dispatchErrorFor()"
+  */
   actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i: ActionMeta['i']}): (up: rx.Observable<T>) => rx.Observable<T> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const s = this.s;
@@ -236,8 +248,8 @@ export class SimplexReactor<
     this.dispose();
   }
   protected logError(label: string, err: any) {
-    const message = '@' + (this.opts?.name ? this.opts.name + '::' : '') + label;
-    this.errorSubject.next([err, message]);
+    const message = 'Error@' + (this.opts?.name ? this.opts.name + '::' : '') + label;
+    this.errorSubject.next([message, err]);
     if (this.opts?.log)
       this.opts.log(message, err);
     else

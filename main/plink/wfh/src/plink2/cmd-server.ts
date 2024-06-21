@@ -7,6 +7,7 @@ import fs from 'fs';
 import * as rx from 'rxjs';
 import chalk from 'chalk';
 import {SingleActionFactory, ReactorComposite2} from '@wfh/reactivizer';
+import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
 // import {initProcess} from '../utils/bootstrap-process';
 import {createProcessManager} from './server-process';
 import * as sps0 from './server-process-stdout';
@@ -66,10 +67,8 @@ const outputTableFor = ['isStarted'] as const;
 
 function reactorLog(...args: any[]) {
   fout.write(new Date().toLocaleTimeString());
-  for (const arg of args) {
-    fout.write(' ');
-    fout.write(util.inspect(arg, false, 0));
-  }
+  fout.write(' ');
+  fout.write(formatToConciseNoColor(...args));
   fout.write('\n');
 }
 
@@ -133,7 +132,7 @@ r('start', i.pt.start.pipe(
   })
 ));
 
-r('processManager.onChildProcessExit', processManager.destory$.pipe(
+r('processManager.destory$', processManager.destory$.pipe(
   rx.exhaustMap(() => service.outputTable.l.isStarted.pipe(
     rx.filter(([, yes]) => yes),
     rx.take(1),

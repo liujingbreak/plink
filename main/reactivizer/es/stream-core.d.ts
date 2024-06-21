@@ -70,6 +70,8 @@ export declare class ControllerCore<I> {
     /** This method is used to change `this.opts` which is initially provided in constructor.
      * Only changed properties are merged to current options */
     config(opts: RxControlConfigType<I>): void;
+    /** Insert action "interceptor" operator function */
+    prependInterceptor(interceptor: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>): void;
     /** This method is not meant to be used directly */
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]>;
     /** This method is not meant to be used directly */

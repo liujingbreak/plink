@@ -26,7 +26,8 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setupForMainWorker = exports.createBroker = void 0;
+exports.createBroker = createBroker;
+exports.setupForMainWorker = setupForMainWorker;
 const rx = __importStar(require("rxjs"));
 const simplex_reactor_1 = require("../simplex-reactor");
 const control2_1 = require("../control2");
@@ -146,11 +147,9 @@ function createBroker(workerController, opts) {
     s.ft.allReadyWorkers(allReadyWorkers).dp();
     return broker;
 }
-exports.createBroker = createBroker;
 function setupForMainWorker(workerController, brokerCreationOptions) {
     const broker = createBroker(workerController, brokerCreationOptions);
     (0, worker_scheduler_1.applyScheduler)(broker, brokerCreationOptions);
     return broker;
 }
-exports.setupForMainWorker = setupForMainWorker;
 //# sourceMappingURL=web-worker-broker.js.map

@@ -14,7 +14,7 @@
 Some of the top important projects it involves are:
 
 - @wfh/reactivizer - [an Reactive programming library based on top of RxJS](./main/reactivizer/README.md)
-- @wfh/algorithms - [Extensible algorithms and data structure that Plink's project depends on](./main/packages/algorithms/README.md)
+- @wfh/algorithms - [Extensible algorithms and data structure that Plink's project depends on](./main/algorithms/README.md)
 
 If heard about **Lerna**, **Yarn**'s workspace concept and [Nx](https://nx.dev), yes this tool is a little bit in the same category.
 

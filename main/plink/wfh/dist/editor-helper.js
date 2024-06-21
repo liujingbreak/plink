@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStore = exports.getState = exports.getAction$ = exports.dispatcher = void 0;
+exports.dispatcher = void 0;
+exports.getAction$ = getAction$;
+exports.getState = getState;
+exports.getStore = getStore;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable max-len */
@@ -148,15 +151,12 @@ store_1.stateFactory.addEpic((action$, _state$) => {
 function getAction$(type) {
     return (0, store_1.action$Of)(store_1.stateFactory, slice.actions[type]);
 }
-exports.getAction$ = getAction$;
 function getState() {
     return store_1.stateFactory.sliceState(slice);
 }
-exports.getState = getState;
 function getStore() {
     return store_1.stateFactory.sliceStore(slice);
 }
-exports.getStore = getStore;
 function relativePath(file) {
     return path_1.default.relative(rootPath, file).replace(/\\/g, '/');
 }

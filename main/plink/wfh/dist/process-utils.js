@@ -1,6 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createStringWriter = exports.exe = exports.promisifyExe = exports.fork = exports.spawn = exports.promisifySpawn = exports.isWindows = void 0;
+exports.isWindows = void 0;
+exports.promisifySpawn = promisifySpawn;
+exports.spawn = spawn;
+exports.fork = fork;
+exports.promisifyExe = promisifyExe;
+exports.exe = exe;
+exports.createStringWriter = createStringWriter;
 /* eslint-disable no-console, indent, @typescript-eslint/indent */
 const child_process_1 = require("child_process");
 const stream_1 = require("stream");
@@ -20,7 +26,6 @@ exports.isWindows = process.platform === 'win32';
 function promisifySpawn(command, ...args) {
     return spawn(command, ...args).promise;
 }
-exports.promisifySpawn = promisifySpawn;
 function spawn(command, ...args) {
     let opts = args[args.length - 1];
     if (typeof opts === 'string') {
@@ -51,7 +56,6 @@ function spawn(command, ...args) {
         done
     };
 }
-exports.spawn = spawn;
 function fork(jsFile, ...args) {
     let opts = args[args.length - 1];
     if (typeof opts === 'string') {
@@ -78,7 +82,6 @@ function fork(jsFile, ...args) {
         promise: done.then(out => out.stdout + '\n' + out.errout)
     };
 }
-exports.fork = fork;
 async function promisifyChildProcess(res, opts, desc) {
     let output;
     let errOutput;
@@ -147,7 +150,6 @@ function checkTimeout(origPromise, timeBox = 600000) {
 function promisifyExe(command, ...argsAndOption) {
     return exe(command, ...argsAndOption).promise;
 }
-exports.promisifyExe = promisifyExe;
 /**
  * @param {*} command
  * @param {*} argsAndOption
@@ -157,7 +159,6 @@ function exe(command, ...argsAndOption) {
     // var args = [].slice.call(arguments);
     return spawn(command, ...argsAndOption);
 }
-exports.exe = exe;
 function createStringWriter() {
     const strs = [];
     let resolve;
@@ -184,5 +185,4 @@ function createStringWriter() {
         done
     };
 }
-exports.createStringWriter = createStringWriter;
 //# sourceMappingURL=process-utils.js.map

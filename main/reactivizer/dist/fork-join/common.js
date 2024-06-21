@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setIdleDuring = void 0;
+exports.setIdleDuring = setIdleDuring;
 const rx = __importStar(require("rxjs"));
 /**
  * Informs broker that current step is waiting on forked function returns or any other outside asynchronous operation,
@@ -41,7 +41,6 @@ function setIdleDuring(workerCtl, waitingTask$) {
         }
     }));
 }
-exports.setIdleDuring = setIdleDuring;
 /**
  * Informs broker that current step is waiting on forked function returns or any other outside asynchronous operation,
  * so that broker can rank current thread worker as "less busy" and schedule more forked

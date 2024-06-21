@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.reinstallWithLinkedPlink = void 0;
+exports.reinstallWithLinkedPlink = reinstallWithLinkedPlink;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -42,5 +42,4 @@ async function reinstallWithLinkedPlink(opt) {
     await (0, package_mgr_1.installInDir)(rootDir, { isForce: false, cache: opt.cache,
         useYarn: opt.useYarn, useNpmCi: opt.useCi, offline: opt.offline }, origPkJsonStr, str);
 }
-exports.reinstallWithLinkedPlink = reinstallWithLinkedPlink;
 //# sourceMappingURL=cli-link-plink.js.map

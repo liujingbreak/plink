@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseCommand = exports.defineCommander = exports.createCommands = exports.cliPackageArgDesc = void 0;
+exports.cliPackageArgDesc = void 0;
+exports.createCommands = createCommands;
+exports.defineCommander = defineCommander;
+exports.parseCommand = parseCommand;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /// <reference path="./cfont.d.ts" />
@@ -31,7 +34,6 @@ async function createCommands(argv, manualExitProcess) {
     const program = await defineCommander(manualExitProcess);
     await parseCommand(program, argv);
 }
-exports.createCommands = createCommands;
 async function defineCommander(manualExitProcess) {
     process.title = 'Plink';
     // const {stateFactory}: typeof store = require('../store');
@@ -103,7 +105,6 @@ async function defineCommander(manualExitProcess) {
     overrider.appendGlobalOptions(false);
     return program;
 }
-exports.defineCommander = defineCommander;
 async function parseCommand(program, argv) {
     try {
         await program.parseAsync(argv, { from: 'user' });
@@ -116,7 +117,6 @@ async function parseCommand(program, argv) {
         throw e;
     }
 }
-exports.parseCommand = parseCommand;
 let skipVersionCheck = false;
 function subComands(program, manualExitProcess) {
     process.on('beforeExit', () => {
