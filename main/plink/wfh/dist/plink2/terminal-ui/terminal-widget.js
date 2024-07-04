@@ -40,6 +40,11 @@ function createWidget() {
     r('renderChild -> child.render, canvas.addString', s.pt.renderChild.pipe(rx.map(([m, _index, chr, canvas, trans]) => {
         chr.s.ft.render(canvas, trans).re(m).dp();
     })));
+    r('setParent, onChildError -> parent.onChildError', s.pt.setParent.pipe(rx.switchMap(([, parent]) => {
+        return parent ?
+            rx.merge(service.error$.pipe(rx.tap(errInfo => parent.s.ft.onChildError(service.s.logPrefix, errInfo))), s.pt.onChildError.pipe(rx.tap(([, childId, errInfo]) => parent.s.ft.onChildError(childId, errInfo)))) :
+            rx.EMPTY;
+    })));
     s.ft.allChildren(children).dp();
     s.ft.setSize(0, 0).dp();
     s.ft.preferredSize(0, 0).dp();

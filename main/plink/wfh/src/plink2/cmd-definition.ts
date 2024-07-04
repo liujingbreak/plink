@@ -27,13 +27,17 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
   const canvas = createTerminalCanvas();
   const rootWidget = createListContainer({debug: true, log: logger});
   const textWidget = createTextWidget();
+  const versionTextWidget = createTextWidget();
   canvas.config({log: logger, debug: true});
 
   const error$ = rx.merge(
     canvas.error$,
     packageMgrService.error$,
     langExt.error$,
-    rootWidget.error$, textWidget.error$
+    rootWidget.error$,
+    rootWidget.s.pt.onChildError.pipe(
+      rx.map(([, id, [err, label]]) => [err, `source: ${id}, ${label ?? ''}`] as const)
+    )
   ).pipe(
     rx.map(err => util.inspect(err)),
     rx.share()
@@ -60,8 +64,9 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
       cmdModelService.i.ft.setRootDir(rootDir).dp();
       // canvas.config({debug: true});
 
-      rootWidget.s.ft.addChild(textWidget).dp();
+      rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
       textWidget.config({log: logger, debug: true});
+      versionTextWidget.config({log: logger, debug: true});
       // rootWidget.config({debug: true});
       canvas.s.ft.setRootWidget(rootWidget.s.ft).dp();
       canvas.s.ft.setAlwaysRerenderAll(true).dp();
@@ -119,9 +124,6 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
             .option('-w, --watch', 'Typescript compiler watch mode', false)
             .option('--poll', 'Use poll mode watch', false)
             .option('--stop', 'stop watching', false)
-          // .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
-          //   prev.push(...v.split(',')); return prev;
-          // }, [] as string[])
             .action(async (packages: string[]) => {
               console.log('Run tsc on', ...packages);
               const {s} = langExt;
@@ -189,10 +191,8 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
               console.log('hello world');
               await new Promise<void>(resolve => setTimeout(() => {
                 textWidget.s.ft.setContent('hello plink').dp();
+                versionTextWidget.s.ft.setContent('2').dp();
                 canvas.s.ft.render().dp();
-                // rl.moveCursor(process.stdout, 0, -1);
-                // rl.clearLine(process.stdout, 0);
-                // console.log('hellow boss');
                 resolve();
               }, 1000));
             });

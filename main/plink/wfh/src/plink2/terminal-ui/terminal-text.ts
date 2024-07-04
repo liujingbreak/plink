@@ -3,12 +3,13 @@ import {vec2} from 'gl-matrix';
 import {SimplexReactorMergeType, SingleActionFactory, SimplexReactor, actionRelatedToAction} from '@wfh/reactivizer';
 import {conciseNocolorConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {isCodePointFullWidth} from '../process-common';
-import {getTextDisplayUnits} from './terminal-canvas';
-import {applyBase, BaseWidget} from './terminal-widget';
+import {getTextDisplayUnits, TextStyle} from './terminal-canvas';
+import {createBase, BaseWidget} from './terminal-widget';
 import {createWordSplitter} from './text-split';
 
 export interface MultiLineTextActions {
   setContent(text: string): SingleActionFactory;
+  setStyle(style: TextStyle): SingleActionFactory;
   // events
 
   onDisplayLines(lines: number[][]): SingleActionFactory;
@@ -17,26 +18,25 @@ export interface MultiLineTextActions {
   onDisplayLinesForPrefSize(lines: number[][]): SingleActionFactory;
   // line number is most likely over 5000
 }
-const tableForMultiLineText = ['setContent', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'] as const;
+const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'] as const;
 export type MultiLineTextWidget = SimplexReactorMergeType<
 SimplexReactor<MultiLineTextActions, typeof tableForMultiLineText>,
 BaseWidget>;
 
 export function createTextWidget() {
-  const service0 = new SimplexReactor<MultiLineTextActions, typeof tableForMultiLineText>({
+  const service = createBase().config<MultiLineTextActions, typeof tableForMultiLineText>({
     name: 'text', tableFor: tableForMultiLineText,
     log: conciseNocolorConsoleLogger
   });
-  const service = applyBase(service0);
   const {r, s, table} = service;
   const spliter = createWordSplitter();
   r('render', s.pt.render.pipe(
-    rx.withLatestFrom(table.l.onDisplayLines),
-    rx.map(([[m, canvas, trans], [, lines]]) => {
+    rx.withLatestFrom(table.l.onDisplayLines, table.l.setStyle),
+    rx.map(([[m, canvas, trans], [, lines], [, style]]) => {
       const leftop = [0, 0] as vec2;
       const [x, y0] = vec2.transformMat4(leftop, leftop, trans);
       for (let i = 0, l = lines.length; i < l; i++) {
-        canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i]).dp(m);
+        canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
       }
     })
   ));
@@ -121,6 +121,7 @@ export function createTextWidget() {
   s.ft.setSize(0, 0).dp();
   s.ft.setParent(null).dp();
   s.ft.overflow(false).dp();
+  s.ft.setStyle([]).dp();
 
   function preferLayoutText(content: string) {
     const lines = content.split(/\r?\n/, 5000);

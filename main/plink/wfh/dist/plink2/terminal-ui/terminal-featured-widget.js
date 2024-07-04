@@ -7,7 +7,7 @@ const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
 // import {TerminalCanvas} from './terminal-canvas';
 const terminal_widget_1 = require("./terminal-widget");
-const tableForListContainer = ['setDirection', 'alignItems', 'justifyContent', 'setMarginWidth'];
+const tableForListContainer = ['setDirection', 'alignItems', 'justifyContent', 'setMarginWidth', 'setLayoutValid', 'onChildPreferredSizeChange'];
 function createListContainer(opts) {
     const base = (0, terminal_widget_1.createWidget)();
     const listContainer = base.config(Object.assign(Object.assign({ name: 'listContainer' }, opts), { tableFor: tableForListContainer }));
@@ -18,14 +18,15 @@ function createListContainer(opts) {
     });
     const s = listContainer.s.prependController();
     const { r, table } = listContainer;
-    r('addChild, removeChild, children.preferredSize -> onChildPreferredSizeChange', rx.merge(listContainer.s.pt.addChild, listContainer.s.pt.removeChild).pipe(rx.switchMap(() => table.l.allChildren.pipe(rx.switchMap(([, children]) => {
+    r('addChild, removeChild, children.preferredSize -> onChildPreferredSizeChange', rx.merge(listContainer.s.pt.addChild, // it is important that we use "listContainer.s" instead of prepeneded controller, cuz' we need to handle actions after the original reactors finishes
+    listContainer.s.pt.removeChild).pipe(rx.switchMap(() => table.l.allChildren.pipe(rx.switchMap(([, children]) => {
         return rx.combineLatest([...children].map(widget => {
             return widget.table.l.preferredSize;
         }));
     }), rx.map(preferredSizeOfChildren => {
         s.ft.onChildPreferredSizeChange(preferredSizeOfChildren.map(([, w, h]) => [w, h])).dp();
     })))));
-    r('querySizeOf -> prefHeightFor, preferredSize', s.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.allChildren, s.pt.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setMarginWidth), rx.switchMap(([[m, w, h], [, children], [, chrPreferredSizes], [, _justifyContent], [, _alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
+    r('querySizeOf -> prefHeightFor, preferredSize', s.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.allChildren, table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setMarginWidth), rx.switchMap(([[m, w, h], [, children], [, chrPreferredSizes], [, _justifyContent], [, _alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
         let mainAxis = w;
         let crossAxis = h;
         let pMainAxis = pWidth;
@@ -89,10 +90,13 @@ function createListContainer(opts) {
         }
         return rx.EMPTY;
     })));
-    r('setSize, onChildPreferredSizeChange -> "childrenPosition", child.setSize', s.pt.setSize.pipe(rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh), rx.mergeMap(a => rx.combineLatest([
-        table.l.allChildren, s.pt.onChildPreferredSizeChange, table.l.justifyContent,
+    r('setSize -> reflow', table.l.setSize.pipe(rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh), rx.map(([m]) => s.ft.reflow().dp(m))));
+    r('reflow, onChildPreferredSizeChange -> setLayoutValid, child.setSize', s.pt.reflow.pipe(rx.mergeMap(a => rx.combineLatest([
+        table.l.setSize,
+        table.l.allChildren, table.l.onChildPreferredSizeChange, table.l.justifyContent,
         table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setMarginWidth
-    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.switchMap(([[m, w, h], [, children], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
+    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.switchMap(([[m], [, w, h], [, children], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
+        s.ft.setLayoutValid(true).dp(m);
         childrenPosition = [];
         let mainAxis = w;
         let crossAxis = h;
@@ -189,7 +193,11 @@ function createListContainer(opts) {
             }
         })));
     })));
-    r('onChildPreferredSizeChange -> preferredSize', s.pt.onChildPreferredSizeChange.pipe(rx.withLatestFrom(table.l.setDirection, table.l.setMarginWidth), rx.map(([[m, sizes], [, direction], [, marginWidth]]) => {
+    r('...-> setLayoutValid', rx.merge(s.pt.onChildPreferredSizeChange, s.pt.setDirection, s.pt.setMarginWidth, s.pt.alignItems, s.pt.justifyContent).pipe(rx.map(([m]) => s.ft.setLayoutValid(false).dp(m))));
+    r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
+        s.pt.onChildPreferredSizeChange,
+        table.l.setDirection, table.l.setMarginWidth
+    ]).pipe(rx.map(([[m, sizes], [, direction], [, marginWidth]]) => {
         if (direction === 'row') {
             const finalPreferredSize = sizes.reduce((preferred, [w, h]) => {
                 preferred[0] += w;
@@ -210,6 +218,10 @@ function createListContainer(opts) {
             s.ft.preferredSize(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
         }
     })));
+    r('renderSelf -> reflow', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.map(([[m], [, valid]]) => {
+        if (!valid)
+            s.ft.reflow().dp(m);
+    })));
     r('renderChild, "childrenPosition" -> child.render', s.pt.renderChild.pipe(rx.map(([m, index, chr, canvas, trans]) => {
         const pos = childrenPosition[index];
         const tranOfChild = gl_matrix_1.mat4.fromTranslation(gl_matrix_1.mat4.create(), [pos[0], pos[1], 0]);
@@ -220,6 +232,7 @@ function createListContainer(opts) {
     s.ft.alignItems('center').dp();
     s.ft.justifyContent('start').dp();
     s.ft.setMarginWidth(1).dp();
+    s.ft.setLayoutValid(false).dp();
     return listContainer;
 }
 function calculateSizeOfEach(individualPrefSizes, totalSize) {

@@ -28,8 +28,9 @@ function define(scp, logger) {
     const canvas = (0, terminal_canvas_1.createTerminalCanvas)();
     const rootWidget = (0, terminal_featured_widget_1.createListContainer)({ debug: true, log: logger });
     const textWidget = (0, terminal_text_1.createTextWidget)();
+    const versionTextWidget = (0, terminal_text_1.createTextWidget)();
     canvas.config({ log: logger, debug: true });
-    const error$ = rx.merge(canvas.error$, packageMgrService.error$, langExt.error$, rootWidget.error$, textWidget.error$).pipe(rx.map(err => node_util_1.default.inspect(err)), rx.share());
+    const error$ = rx.merge(canvas.error$, packageMgrService.error$, langExt.error$, rootWidget.error$, rootWidget.s.pt.onChildError.pipe(rx.map(([, id, [err, label]]) => [err, `source: ${id}, ${label !== null && label !== void 0 ? label : ''}`]))).pipe(rx.map(err => node_util_1.default.inspect(err)), rx.share());
     const { r, s } = scp;
     let latestCommandActionMeta;
     r('-> onCommandError', error$.pipe(rx.map(err => {
@@ -45,8 +46,9 @@ function define(scp, logger) {
     r('setRootDir', s.pt.setRootDir.pipe(rx.switchMap(([m, rootDir]) => {
         cmd_model_1.cmdModelService.i.ft.setRootDir(rootDir).dp();
         // canvas.config({debug: true});
-        rootWidget.s.ft.addChild(textWidget).dp();
+        rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
         textWidget.config({ log: logger, debug: true });
+        versionTextWidget.config({ log: logger, debug: true });
         // rootWidget.config({debug: true});
         canvas.s.ft.setRootWidget(rootWidget.s.ft).dp();
         canvas.s.ft.setAlwaysRerenderAll(true).dp();
@@ -149,6 +151,7 @@ function define(scp, logger) {
                 console.log('hello world');
                 await new Promise(resolve => setTimeout(() => {
                     textWidget.s.ft.setContent('hello plink').dp();
+                    versionTextWidget.s.ft.setContent('2').dp();
                     canvas.s.ft.render().dp();
                     // rl.moveCursor(process.stdout, 0, -1);
                     // rl.clearLine(process.stdout, 0);

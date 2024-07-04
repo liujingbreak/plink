@@ -15,7 +15,7 @@ export interface ListContainerEvents {
   onChildPreferredSizeChange(sizes: [w: number, h: number][]): SingleActionFactory;
 }
 
-const tableForListContainer = ['setDirection', 'alignItems', 'justifyContent', 'setMarginWidth'] as const;
+const tableForListContainer = ['setDirection', 'alignItems', 'justifyContent', 'setMarginWidth', 'onChildPreferredSizeChange'] as const;
 
 type ListContainer = SimplexReactorMergeType<TerminalWidget, SimplexReactor<ListContainerInput & ListContainerEvents, typeof tableForListContainer>>;
 export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>, 'tableFor'>) {
@@ -36,7 +36,7 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
   const s = listContainer.s.prependController();
   const {r, table} = listContainer;
   r('addChild, removeChild, children.preferredSize -> onChildPreferredSizeChange', rx.merge(
-    listContainer.s.pt.addChild,
+    listContainer.s.pt.addChild, // it is important that we use "listContainer.s" instead of prepeneded controller, cuz' we need to handle actions after the original reactors finishes
     listContainer.s.pt.removeChild
   ).pipe(
     rx.switchMap(() => table.l.allChildren.pipe(
@@ -52,7 +52,7 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
   ));
   r('querySizeOf -> prefHeightFor, preferredSize', s.pt.querySizeOf.pipe(
     rx.withLatestFrom(
-      table.l.allChildren, s.pt.onChildPreferredSizeChange, table.l.justifyContent,
+      table.l.allChildren, table.l.onChildPreferredSizeChange, table.l.justifyContent,
       table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setMarginWidth
     ),
     rx.switchMap(([[m, w, h], [, children], [, chrPreferredSizes], [, _justifyContent], [, _alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
@@ -135,16 +135,21 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
       return rx.EMPTY;
     })
   ));
-  r('setSize, onChildPreferredSizeChange -> "childrenPosition", child.setSize', s.pt.setSize.pipe(
+  r('setSize -> reflow', table.l.setSize.pipe(
     rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh),
+    rx.map(([m]) => s.ft.reflow().dp(m))
+  ));
+  r('reflow, ... -> setLayoutValid, child.setSize', s.pt.reflow.pipe(
     rx.mergeMap(a => rx.combineLatest([
-      table.l.allChildren, s.pt.onChildPreferredSizeChange, table.l.justifyContent,
+      table.l.setSize,
+      table.l.allChildren, table.l.onChildPreferredSizeChange, table.l.justifyContent,
       table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setMarginWidth
     ]).pipe(
       rx.take(1),
       rx.map(b => [a, ...b] as const)
     )),
-    rx.switchMap(([[m, w, h], [, children], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
+    rx.switchMap(([[m], [, w, h], [, children], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
+      s.ft.setLayoutValid(true).dp(m);
       childrenPosition = [];
       let mainAxis = w;
       let crossAxis = h;
@@ -247,9 +252,17 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
       );
     })
   ));
+  r('...-> setLayoutValid', rx.merge(
+    s.pt.onChildPreferredSizeChange, s.pt.setDirection, s.pt.setMarginWidth,
+    s.pt.alignItems, s.pt.justifyContent
+  ).pipe(
+    rx.map(([m]) => s.ft.setLayoutValid(false).dp(m))
+  ));
 
-  r('onChildPreferredSizeChange -> preferredSize', s.pt.onChildPreferredSizeChange.pipe(
-    rx.withLatestFrom(table.l.setDirection, table.l.setMarginWidth),
+  r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
+    s.pt.onChildPreferredSizeChange,
+    table.l.setDirection, table.l.setMarginWidth
+  ]).pipe(
     rx.map(([[m, sizes], [, direction], [, marginWidth]]) => {
       if (direction === 'row') {
         const finalPreferredSize = sizes.reduce((preferred, [w, h]) => {
@@ -284,6 +297,12 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
   s.ft.alignItems('center').dp();
   s.ft.justifyContent('start').dp();
   s.ft.setMarginWidth(1).dp();
+  for (const a$ of [
+    s.pt.onChildPreferredSizeChange, s.pt.setDirection, s.pt.setMarginWidth,
+    s.pt.alignItems, s.pt.justifyContent
+  ]) {
+    s.ft.addReflowAction(a$).dp();
+  }
   return listContainer;
 }
 

@@ -24,6 +24,7 @@ export interface ContainerWidgetOutput {
     renderSelf(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
     renderChild(index: number, child: BaseWidget, canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
     allChildren(children: Array<BaseWidget>): SingleActionFactory;
+    onChildError(childId: string, errInfo: readonly [err: any, label: string | null]): SingleActionFactory;
 }
 declare const tableFor: readonly ["allChildren"];
 export type TerminalWidget = SimplexReactorMergeType<SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>, BaseWidget>;
