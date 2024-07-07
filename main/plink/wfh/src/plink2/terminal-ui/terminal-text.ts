@@ -117,6 +117,8 @@ export function createTextWidget() {
       }
     })
   ));
+  s.ft.addRerenderAction(s.pt.setContent).dp();
+  s.ft.addRerenderAction(s.pt.setStyle).dp();
   s.ft.preferredSize(0, 0).dp();
   s.ft.setSize(0, 0).dp();
   s.ft.setParent(null).dp();

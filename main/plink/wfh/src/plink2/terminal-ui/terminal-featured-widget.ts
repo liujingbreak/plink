@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import {vec2, mat4} from 'gl-matrix';
 import {SimplexReactorMergeType, OptionsOfSmplxRctr, SingleActionFactory, ActionDispenser, SimplexReactor} from '@wfh/reactivizer';
 // import {TerminalCanvas} from './terminal-canvas';
-import {TerminalWidget, createWidget} from './terminal-widget';
+import {TerminalWidget, createContainerBase} from './terminal-widget';
 
 export interface ListContainerInput {
   setDirection(dir: 'col' | 'row'): SingleActionFactory;
@@ -18,8 +18,8 @@ export interface ListContainerEvents {
 const tableForListContainer = ['setDirection', 'alignItems', 'justifyContent', 'setMarginWidth', 'onChildPreferredSizeChange'] as const;
 
 type ListContainer = SimplexReactorMergeType<TerminalWidget, SimplexReactor<ListContainerInput & ListContainerEvents, typeof tableForListContainer>>;
-export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>, 'tableFor'>) {
-  const base = createWidget();
+export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>, 'tableFor'> = {}) {
+  const base = createContainerBase();
   const listContainer = base.config<ListContainerInput & ListContainerEvents, typeof tableForListContainer>({name: 'listContainer', ...opts, tableFor: tableForListContainer});
   let childrenPosition: vec2[];
 
@@ -135,10 +135,10 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
       return rx.EMPTY;
     })
   ));
-  r('setSize -> reflow', table.l.setSize.pipe(
-    rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh),
-    rx.map(([m]) => s.ft.reflow().dp(m))
-  ));
+  // r('setSize -> reflow', table.l.setSize.pipe(
+  //   rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh),
+  //   rx.map(([m]) => s.ft.reflow().dp(m))
+  // ));
   r('reflow, ... -> setLayoutValid, child.setSize', s.pt.reflow.pipe(
     rx.mergeMap(a => rx.combineLatest([
       table.l.setSize,
@@ -160,7 +160,7 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
         crossAxis = w;
         pMainAxis = pHeight;
       }
-      const chrMainAxisSizes = [] as number[];
+      let chrMainAxisSizes = [] as number[];
       const chrMainAxisPrefSizes = dir === 'row' ?
         chrPrefSizes.map(([w]) => w) :
         chrPrefSizes.map(([, h]) => h);
@@ -197,16 +197,11 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
               chr.s.ft.querySizeOf(crossAxis, null).re(m).od(chr.s.pt.prefHeightFor).pipe(rx.take(1), rx.map(([, , h]) => h));
         })).pipe(
           rx.take(1),
-          rx.map(chrMainAxisSizes => {
-            chrMainAxisSizes = calculateSizeOfEach(chrMainAxisSizes, mainAxis - totalMargin);
+          rx.map(chrPrefMainAxisSizes => {
+            chrMainAxisSizes = calculateSizeOfEach(chrPrefMainAxisSizes, mainAxis - totalMargin);
             let pos = 0;
             for (let i = 0, l = chrMainAxisSizes.length; i < l; i++) {
-              if (dir === 'row')
-                childrenPosition.push([pos, 0]);
-              else
-                childrenPosition.push([0, pos]);
               const childSize = chrMainAxisSizes[i];
-              chrMainAxisSizes.push(childSize);
               if (dir === 'row')
                 childrenPosition.push([pos, 0]);
               else
@@ -214,17 +209,19 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
               pos += childSize;
               pos += margin;
             }
+            listContainer.opts?.log!('done -- childrenPosition', childrenPosition, 'chrMainAxisSizes', chrMainAxisSizes);
+            return childrenPosition;
           })
         );
       }
       return rx.concat(
         calcChildrenPositionOfMainAxis$,
-        // Let's calculate position and size of each child on cross-axis
-        rx.forkJoin(children.map((chr, i) => {
+        rx.defer(() => rx.forkJoin(children.map((chr, i) => {
           return dir === 'row' ?
             chr.s.ft.querySizeOf(chrMainAxisSizes[i], null).re(m).od(chr.s.pt.prefHeightFor).pipe(rx.take(1), rx.map(([, , h]) => h)) :
             chr.s.ft.querySizeOf(null, chrMainAxisSizes[i]).re(m).od(chr.s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, w]) => w));
         })).pipe(
+          // Let's calculate position and size of each child on cross-axis
           rx.map(contrainedChrCrossAxisPrefSizes => {
             for (let i = 0, l = childrenPosition.length; i < l; i++) {
               let chrCrossAxisSize = 0;
@@ -248,15 +245,9 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
                 childWidget.s.ft.setSize(chrCrossAxisSize, chrMainAxisSizes[i]).dp(m);
             }
           })
-        )
+        ))
       );
     })
-  ));
-  r('...-> setLayoutValid', rx.merge(
-    s.pt.onChildPreferredSizeChange, s.pt.setDirection, s.pt.setMarginWidth,
-    s.pt.alignItems, s.pt.justifyContent
-  ).pipe(
-    rx.map(([m]) => s.ft.setLayoutValid(false).dp(m))
   ));
 
   r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
@@ -298,7 +289,7 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
   s.ft.justifyContent('start').dp();
   s.ft.setMarginWidth(1).dp();
   for (const a$ of [
-    s.pt.onChildPreferredSizeChange, s.pt.setDirection, s.pt.setMarginWidth,
+    table.l.onChildPreferredSizeChange, s.pt.setDirection, s.pt.setMarginWidth,
     s.pt.alignItems, s.pt.justifyContent
   ]) {
     s.ft.addReflowAction(a$).dp();
@@ -309,6 +300,18 @@ export function createListContainer(opts: Omit<OptionsOfSmplxRctr<ListContainer>
 function calculateSizeOfEach(individualPrefSizes: number[], totalSize: number) {
   const prefSizeTotal = individualPrefSizes.reduce((prev, curr) => prev + curr);
   const ratio = totalSize / prefSizeTotal;
-  return individualPrefSizes.map(prefOfIndividual => prefOfIndividual * ratio);
+  const chrSizes = [] as number[];
+  let floatGap = 0;
+  for (const preSize of individualPrefSizes) {
+    const fSize = preSize * ratio;
+    let size = Math.floor(fSize);
+    floatGap += fSize - size;
+    if (floatGap > 1) {
+      size++;
+      floatGap -= 1;
+    }
+    chrSizes.push(size);
+  }
+  return chrSizes;
 }
 

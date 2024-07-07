@@ -45,13 +45,12 @@ function define(scp, logger) {
     })));
     r('setRootDir', s.pt.setRootDir.pipe(rx.switchMap(([m, rootDir]) => {
         cmd_model_1.cmdModelService.i.ft.setRootDir(rootDir).dp();
-        // canvas.config({debug: true});
         rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
         textWidget.config({ log: logger, debug: true });
         versionTextWidget.config({ log: logger, debug: true });
         // rootWidget.config({debug: true});
-        canvas.s.ft.setRootWidget(rootWidget.s.ft).dp();
-        canvas.s.ft.setAlwaysRerenderAll(true).dp();
+        canvas.s.ft.setRootWidget(rootWidget).dp();
+        // canvas.s.ft.setAlwaysRerenderAll(true).dp();
         return cmd_model_1.cmdModelService.outputTable.l.load.pipe(rx.map(([, done]) => done), rx.filter(done => done), rx.take(1), rx.mergeMap(() => packageMgrService.i.ft.scan(rootDir)
             .do(packageMgrService.o.pt.onScanCompleted)), rx.mergeMap(() => rx.combineLatest([
             cmd_model_1.cmdModelService.it.l.enableRxMessageTrace,
@@ -95,9 +94,6 @@ function define(scp, logger) {
                 .option('-w, --watch', 'Typescript compiler watch mode', false)
                 .option('--poll', 'Use poll mode watch', false)
                 .option('--stop', 'stop watching', false)
-                // .option('--pj, --project <project-dir,...>', 'Compile only specific project directory', (v, prev) => {
-                //   prev.push(...v.split(',')); return prev;
-                // }, [] as string[])
                 .action(async (packages) => {
                 console.log('Run tsc on', ...packages);
                 const { s } = langExt;
@@ -153,9 +149,6 @@ function define(scp, logger) {
                     textWidget.s.ft.setContent('hello plink').dp();
                     versionTextWidget.s.ft.setContent('2').dp();
                     canvas.s.ft.render().dp();
-                    // rl.moveCursor(process.stdout, 0, -1);
-                    // rl.clearLine(process.stdout, 0);
-                    // console.log('hellow boss');
                     resolve();
                 }, 1000));
             });

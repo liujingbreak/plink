@@ -6,6 +6,7 @@ const rb_tree_1 = require("./rb-tree");
 /**
  * Maintaining:
  *  node.max = max(node.int[1], node.left.max, node.right.max)
+ *  Be aware that "high endpoint" is considered as an included value
  */
 class IntervalTree extends rb_tree_1.RedBlackTree {
     /** Return tree node which could be either NonDuplicateNode or a node of DuplicateNode['highValuesTree'],

@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {mat4} from 'gl-matrix';
+import {mat4, vec2} from 'gl-matrix';
 import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, TableOf, ActionMeta, ActionsOf, Action, InferMapParam,
   ActionDispenser} from '@wfh/reactivizer';
 import {conciseNocolorConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
@@ -7,6 +7,7 @@ import {TerminalCanvas} from './terminal-canvas';
 
 export interface BaseWidgetActions {
   setSize(width: number, height: number): SingleActionFactory;
+  /** Implementation needs to handle this action */
   querySizeOf(width: number | null, height: number | null): SingleActionFactory;
   preferredSize(width: number, height: number): SingleActionFactory;
   /** As response to "querySizeOf" */
@@ -18,17 +19,19 @@ export interface BaseWidgetActions {
   setParent(p: TerminalWidget | null): SingleActionFactory;
   /** this message will be interceptor intercepts and skips if there is no "Rerender" action dispatched after last "render" message is handled */
   render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
+  /** set to `true` will result in clearRect() is dispatched on canvas for each rendering all */
+  clearBackground(yes: boolean): SingleActionFactory;
   needRerender(need: boolean): SingleActionFactory;
   /** If following action is dispatched, the next render message must not be skipped on current widget */
   addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
 }
-const tableForBase = ['setSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender'] as const;
+const tableForBase = ['setSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender', 'clearBackground'] as const;
 export type BaseWidget = SimplexReactor<BaseWidgetActions, typeof tableForBase>;
 
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 export function createBase() {
   const service = new SimplexReactor<BaseWidgetActions, typeof tableForBase>({tableFor: tableForBase});
-  const {s, r} = service;
+  const {s, r, table} = service;
 
   service.s.interceptor$.next(a$ => {
     const ad = new ActionDispenser<BaseWidgetActions>(a$);
@@ -39,7 +42,9 @@ export function createBase() {
       ad.ofOtherTypes());
   });
   r('addRerenderAction', rx.merge(
-    s.pt.setSize,
+    s.pt.setSize.pipe(
+      rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
+    ),
     s.pt.addRerenderAction.pipe(
       rx.mergeMap(([, action$]) => action$)
     ).pipe(
@@ -50,9 +55,21 @@ export function createBase() {
     )
   ));
   r('render', s.pt.render.pipe(
-    rx.map(() => s.ft.needRerender(false).dp())
+    rx.tap(([m]) => s.ft.needRerender(false).dp(m)),
+    rx.switchMap(r => rx.combineLatest([table.l.setSize, table.l.clearBackground]).pipe(
+      rx.take(1),
+      rx.map(b => [r, ...b] as const)
+    )),
+    rx.map(([[m, canvas, trans], [, width, height], [, clearBg]]) => {
+      if (clearBg) {
+        const pos = [0, 0] as vec2;
+        vec2.transformMat4(pos, pos, trans);
+        canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
+      }
+    })
   ));
   s.ft.needRerender(true).dp();
+  s.ft.clearBackground(false).dp();
   return service;
 }
 
@@ -75,7 +92,7 @@ export interface ContainerWidgetOutput {
 const tableFor = ['allChildren', 'setLayoutValid'] as const;
 export type TerminalWidget = SimplexReactorMergeType<SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>, BaseWidget>;
 
-export function createWidget() {
+export function createContainerBase() {
   const service = createBase().config<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>({
     tableFor,
     log: conciseNocolorConsoleLogger
@@ -103,7 +120,7 @@ export function createWidget() {
   ));
 
   r('addReflowAction', s.pt.addReflowAction.pipe(
-    rx.mergeMap(action$ => action$),
+    rx.mergeMap(([, action$]) => action$),
     rx.map(actionOrPayload => {
       const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;
       s.ft.needRerender(true).dp(m);
@@ -116,6 +133,14 @@ export function createWidget() {
     rx.map(([[m], [, valid]]) => {
       if (!valid)
         s.ft.reflow().dp(m);
+    })
+  ));
+
+  r('reflow -> child.needRerender(true)', s.pt.reflow.pipe(
+    rx.withLatestFrom(table.l.allChildren),
+    rx.map(([[m], [, allChildren]]) => {
+      for (const child of allChildren)
+        child.s.ft.needRerender(true).dp(m);
     })
   ));
 
@@ -147,12 +172,14 @@ export function createWidget() {
         rx.EMPTY;
     })
   ));
+  s.ft.addReflowAction(s.pt.setSize).dp();
   s.ft.allChildren(children).dp();
   s.ft.setSize(0, 0).dp();
   s.ft.preferredSize(0, 0).dp();
   s.ft.setParent(null).dp();
   s.ft.overflow(false).dp();
   s.ft.setLayoutValid(false).dp();
+  s.ft.clearBackground(true).dp();
   return service;
 }
 

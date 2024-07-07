@@ -10,20 +10,19 @@ const process_common_1 = require("../process-common");
 const terminal_canvas_1 = require("./terminal-canvas");
 const terminal_widget_1 = require("./terminal-widget");
 const text_split_1 = require("./text-split");
-const tableForMultiLineText = ['setContent', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'];
+const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'];
 function createTextWidget() {
-    const service0 = new reactivizer_1.SimplexReactor({
+    const service = (0, terminal_widget_1.createBase)().config({
         name: 'text', tableFor: tableForMultiLineText,
         log: nodejs_utils_1.conciseNocolorConsoleLogger
     });
-    const service = (0, terminal_widget_1.applyBase)(service0);
     const { r, s, table } = service;
     const spliter = (0, text_split_1.createWordSplitter)();
-    r('render', s.pt.render.pipe(rx.withLatestFrom(table.l.onDisplayLines), rx.map(([[m, canvas, trans], [, lines]]) => {
+    r('render', s.pt.render.pipe(rx.withLatestFrom(table.l.onDisplayLines, table.l.setStyle), rx.map(([[m, canvas, trans], [, lines], [, style]]) => {
         const leftop = [0, 0];
         const [x, y0] = gl_matrix_1.vec2.transformMat4(leftop, leftop, trans);
         for (let i = 0, l = lines.length; i < l; i++) {
-            canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i]).dp(m);
+            canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
         }
     })));
     r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', s.pt.querySizeOf.pipe(rx.withLatestFrom(s.pt.preferredSize, table.l.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
@@ -89,10 +88,13 @@ function createTextWidget() {
             }));
         }
     })));
+    s.ft.addRerenderAction(s.pt.setContent).dp();
+    s.ft.addRerenderAction(s.pt.setStyle).dp();
     s.ft.preferredSize(0, 0).dp();
     s.ft.setSize(0, 0).dp();
     s.ft.setParent(null).dp();
     s.ft.overflow(false).dp();
+    s.ft.setStyle([]).dp();
     function preferLayoutText(content) {
         const lines = content.split(/\r?\n/, 5000);
         let maxWidth = 0;

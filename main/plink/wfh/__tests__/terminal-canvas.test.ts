@@ -1,6 +1,7 @@
 import {describe, it, expect, jest}  from '@jest/globals';
 // import {formatToConcise} from '@wfh/reactivizer/dist/nodejs-utils';
 import * as rx from 'rxjs';
+import chalk from 'chalk';
 // import {actionRelatedToAction} from '@wfh/reactivizer';
 import {createTerminalCanvas} from '../src/plink2/terminal-ui/terminal-canvas';
 import {createTextWidget} from '../src/plink2/terminal-ui/terminal-text';
@@ -19,7 +20,7 @@ describe('TerminalCanvas', () => {
     const mockFn = jest.fn();
     s.ft.setTop(0).dp();
     const root = createTextWidget();
-    s.ft.setRootWidget(root.s.ft).dp();
+    s.ft.setRootWidget(root).dp();
     s.ft.addString(10, 0, 'abc').dp();
     s.ft.addString(15, 0, 'edf').dp();
     s.ft.addString(20, 0, 'hij').dp();
@@ -69,7 +70,7 @@ describe('TerminalCanvas', () => {
     s.ft.setAlwaysRerenderAll(true).dp();
     s.ft.setTop(0).dp();
     const root = createTextWidget();
-    s.ft.setRootWidget(root.s.ft).dp();
+    s.ft.setRootWidget(root).dp();
     // Chinese characters overrides ASCII text
     const mockFn = jest.fn();
     s.ft.addString(10, 0, 'abc').dp();
@@ -107,7 +108,7 @@ describe('TerminalCanvas', () => {
     const {s} = service;
     s.ft.setTop(0).dp();
     const root = createTextWidget();
-    s.ft.setRootWidget(root.s.ft).dp();
+    s.ft.setRootWidget(root).dp();
 
     s.ft.addString(0, 0, '上c', ['red', 'strikethrough']).dp();
     s.ft.addString(6, 0, '中g', ['cyan', 'inverse']).dp();
@@ -123,6 +124,36 @@ describe('TerminalCanvas', () => {
     mockFn.mock.calls.forEach(([, text]) => console.log(text));
     expect(mockFn.mock.calls.length).toEqual(3);
     expect(mockFn.mock.calls[2][0]).toEqual(8);
+    service.dispose();
+  });
+
+  it('clearRect() from text lines', () => {
+    const service = createTerminalCanvas();
+    service.config({debug: true});
+    const {s} = service;
+    s.ft.setTop(0).dp();
+    const root = createTextWidget();
+    s.ft.setRootWidget(root).dp();
+    s.ft.addString(0, 0, 'ab上', ['red', 'strikethrough']).dp();
+    s.ft.addString(6, 0, '中gh', ['cyan', 'inverse']).dp();
+    s.ft.addString(3, 1, '3456').dp();
+    s.ft.addString(2, 2, '23456').dp();
+    // ab上  中gh
+    //    3456
+    //   23456
+    // 0123456789
+    s.ft.clearRect(3, 0, 4, 5).dp();
+
+    const mockFn = jest.fn();
+    s.ft.render().od(s.pt.onPrintText).pipe(
+      rx.map(([, x, , text]) => mockFn(x, text))
+    ).subscribe();
+    // eslint-disable-next-line no-console
+    mockFn.mock.calls.forEach(([, text]) => console.log(text));
+    expect(mockFn.mock.calls.length).toEqual(3);
+    expect(mockFn.mock.calls[0][1]).toEqual(chalk.red.strikethrough('ab'));
+    expect(mockFn.mock.calls[1][1]).toEqual(chalk.cyan.inverse('gh'));
+    expect(mockFn.mock.calls[2][1]).toEqual('2');
     service.dispose();
   });
 });

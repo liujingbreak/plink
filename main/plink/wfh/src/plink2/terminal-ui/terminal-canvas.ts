@@ -20,27 +20,27 @@ export interface TerminalCanvasInput {
   setAlwaysRerenderAll(alwaysRerender: boolean): SingleActionFactory;
   /** render will not work until this message is dispatched */
   setClientWindowSize(w: number, h: number): SingleActionFactory;
-  setTop(y: number): SingleActionFactory;
   setHeight(h: number | 'full'): SingleActionFactory;
-  setRootWidget(rootActions: TerminalRootActions): SingleActionFactory;
+  setRootWidget<I extends TerminalRootActions>(rootWidget: SimplexReactor<I, any>): SingleActionFactory;
   addString(x: number, y: number, text: string, style?: TextStyle): SingleActionFactory;
   addDisplayUnits(x: number, y: number, units: number[], style?: TextStyle): SingleActionFactory;
   clearRect(x: number, y: number, width: number, height: number): SingleActionFactory;
-  clearLines(yBegin: number, yEndInclude: number): SingleActionFactory;
+  // deleteLines(yBegin: number, yEndInclude: number): SingleActionFactory;
   render(): SingleActionFactory;
 }
 
 export interface TerminalCanvasOutput {
   onSize(x: number, y: number): SingleActionFactory;
+  setTop(y: number): SingleActionFactory;
   /** In context of "render", x, y are both absolute 0 based coordinates value */
   onPrintText(x: number, y: number, text: string): SingleActionFactory;
-  onClearLine(y: number): SingleActionFactory;
+  onClearLine(y: number, x?: number, dir?: 0 | 1 | -1): SingleActionFactory;
 }
 
 const tableFor = ['setAlwaysRerenderAll', 'onSize', 'setHeight', 'setTop', 'setRootWidget'] as const;
 
 export function createTerminalCanvas() {
-  const reactor = new SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, typeof tableFor>({
+  const canvas = new SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, typeof tableFor>({
     name: 'TerminalCanvas',
     log(...args) {
       // eslint-disable-next-line no-console
@@ -48,12 +48,12 @@ export function createTerminalCanvas() {
     },
     tableFor
   });
-  const {r, s, table} = reactor;
-  const dirtyLines = new Set<number>();
+  const {r, s, table} = canvas;
+  const dirtyLines = new Map<number, [lowColumn: number, highColumn: number]>();
   // "lines" is an array of IntervalTree, each element of which represents a single line of display text of screen.
   // The intervalTree is a tree containing single or multiple discrete intervals which represents display text
   const lines = [] as (IntervalTree<[units: number[], style: string]> | undefined)[];
-  r('setHeight -> setTop"', s.pt.setHeight.pipe(
+  r('setHeight, setClientWindowSize -> setTop"', s.pt.setHeight.pipe(
     rx.mergeMap(a => s.pt.setClientWindowSize.pipe(
       rx.take(1), rx.map(b => [a, b] as const)
     )),
@@ -71,13 +71,11 @@ export function createTerminalCanvas() {
     })
   ));
   r('onSize -> rootWidget.setSize', s.pt.onSize.pipe(
-    rx.switchMap(sizePayload => table.l.setRootWidget.pipe(
-      rx.take(1),
-      rx.map(rootWidget => [sizePayload, rootWidget] as const)
-    )),
-    rx.map(([[m, w, h], [, rootWidget]]) => {
-      rootWidget.setSize(w, h).dp(m);
-    })
+    rx.switchMap(([m, w, h]) => table.l.setRootWidget.pipe(
+      rx.map(([, rootWidget]) => {
+        rootWidget.s.ft.setSize(w, h).dp(m);
+      })
+    ))
   ));
   r('addDisplayUnits', s.pt.addDisplayUnits.pipe(
     rx.map(([, x, y, units, style]) => {
@@ -90,15 +88,30 @@ export function createTerminalCanvas() {
       addCodePointsToCanvas(x, y, units, style ? style.sort() : []);
     })
   ));
-  r('clearLines', s.pt.clearLines.pipe(
-    rx.map(([, y1, y2]) => {
-      for (let i = y1; i <= y2; i++) {
-        lines[i] = undefined;
-        dirtyLines.delete(i);
+  // r('deleteLines', s.pt.deleteLines.pipe(
+  //   rx.map(([, y1, y2]) => {
+  //     for (let i = y1; i <= y2; i++) {
+  //       lines[i] = undefined;
+  //       dirtyLines.delete(i);
+  //     }
+  //   })
+  // ));
+  r('clearRect', s.pt.clearRect.pipe(
+    rx.map(([, x, y, w, h]) => {
+      for (let i = y, l = y + h; i < l; i++) {
+        const dirtyRange = clearCodePointFromLine(x, i, w);
+        if (dirtyRange) {
+          const lastChange = dirtyLines.get(y);
+          if (lastChange) {
+            lastChange[0] = Math.min(lastChange[0], dirtyRange[0]);
+            lastChange[1] = Math.max(lastChange[1], dirtyRange[1]);
+          } else {
+            dirtyLines.set(i, [dirtyRange[0], dirtyRange[1]]);
+          }
+        }
       }
     })
   ));
-  r('clearRect', s.pt.clearRect.pipe());
   r('onPrintText', s.pt.onPrintText.pipe(
     rx.map(([, x, y, text]) => {
       rl.cursorTo(process.stdout, x, y);
@@ -106,16 +119,21 @@ export function createTerminalCanvas() {
     })
   ));
   r('onClearLine', s.pt.onClearLine.pipe(
-    rx.map(([, y]) => {
-      rl.cursorTo(process.stdout, 0, y);
-      rl.clearLine(process.stdout, 0);
+    rx.map(([, y, x, dir]) => {
+      if (x != null) {
+        rl.cursorTo(process.stdout, x, y);
+        rl.clearLine(process.stdout, dir ?? 1);
+      } else {
+        rl.cursorTo(process.stdout, 0, y);
+        rl.clearLine(process.stdout, 0);
+      }
     })
   ));
 
   r('render -> onPrintText', s.pt.render.pipe(
-    rx.withLatestFrom(s.pt.setTop, table.l.setRootWidget, table.l.setAlwaysRerenderAll),
-    rx.map(([[m], [, top], [, root], [, rerender]]) => {
-      root.render(reactor, mat4.create()).dp(m);
+    rx.withLatestFrom(table.l.setTop, table.l.setRootWidget, table.l.setAlwaysRerenderAll, table.l.onSize),
+    rx.map(([[m], [, top], [, root], [, rerender], [, screenWidth]]) => {
+      root.s.ft.render(canvas, mat4.create()).dp(m);
       if (rerender) {
         rl.cursorTo(process.stdout, 0, top);
         rl.clearScreenDown(process.stdout);
@@ -137,14 +155,59 @@ export function createTerminalCanvas() {
           }
         }
       } else {
-        for (const lineIdx of dirtyLines) {
-          const tree = lines[lineIdx]!;
+        for (const [lineIdx, [low, high]] of dirtyLines) {
           const y = lineIdx + top;
-          s.ft.onClearLine(y).dp(m);
-          tree.inorderWalk((node) => {
-            const text = treeNodeToStyleText(node.value);
-            s.ft.onPrintText(node.int![0], y, text).dp(m);
-          });
+          if ((screenWidth - low) < high) {
+            // consider direction of clearLine: low -> right edge of screen
+            s.ft.onClearLine(y, low, 1).dp(m);
+            const overlap = lines[y]!.searchSingleOverlap(low, low);
+            if (overlap?.int) {
+              const [start] = overlap.int;
+              const [units, style] = overlap.value;
+              // Only print part of the overlapped node
+              const text = treeNodeToStyleText([units.slice(low - start), style]);
+              s.ft.onPrintText(low, y, text).dp(m);
+              for (const node of lines[y]!.keysGreaterThan(low)) {
+                const text = treeNodeToStyleText(node.value);
+                s.ft.onPrintText(node.int![0], y, text).dp(m);
+              }
+            } else {
+              const err = new Error('screen cache tree should not contain overlapped content:\n' + overlap);
+              canvas.dispatchErrorFor(err, m);
+              throw err;
+            }
+          } else {
+            // consider direction of clearLine: left edge of screen -> high
+            s.ft.onClearLine(y, high, -1).dp(m);
+            const overlap = lines[y]!.searchSingleOverlap(high - 1, high - 1);
+            if (overlap?.int) {
+              const [start] = overlap.int;
+              const [units, style] = overlap.value;
+              // Only print part of the overlapped node
+              const text = treeNodeToStyleText([units.slice(0, high - start), style]);
+              s.ft.onPrintText(start, y, text).dp(m);
+              for (const node of lines[y]!.keysSmallererThan(start)) {
+                const text = treeNodeToStyleText(node.value);
+                s.ft.onPrintText(node.int![0], y, text).dp(m);
+              }
+            } else {
+              canvas.opts?.log!('low', low, 'high', high, 'y', y);
+              lines[y]!.inorderWalk(node => {
+                canvas.opts?.log!('line: ', y, 'node.int:', node.int);
+              });
+              const err = new Error('screen cache tree should not contain overlapped content:\n' + overlap);
+              canvas.dispatchErrorFor(err, m);
+              throw err;
+            }
+          }
+          // s.ft.onClearLine(y).dp(m);
+          const tree = lines[lineIdx];
+          if (tree) {
+            tree.inorderWalk(node => {
+              const text = treeNodeToStyleText(node.value);
+              s.ft.onPrintText(node.int![0], y, text).dp(m);
+            });
+          }
         }
         dirtyLines.clear();
       }
@@ -183,8 +246,8 @@ export function createTerminalCanvas() {
       lines[y] = line;
     }
     const endPos = units.length + x;
-    const overlaps = [...line.searchMultipleOverlaps(x, endPos)];
-    const newDisplayNodes = uniteDisplayUnits([x, endPos, units, style.join(';')], overlaps.map(([l, h, [units, style]]) => [l, h, units, style]));
+    const overlaps = [...line.searchMultipleOverlaps(x, endPos - 1)];
+    const newDisplayNodes = uniteDisplayUnits([x, endPos - 1, units, style.join(';')], overlaps.map(([l, h, [units, style]]) => [l, h, units, style]));
     for (const [low, high] of overlaps) {
       line.deleteInterval(low, high);
     }
@@ -192,9 +255,57 @@ export function createTerminalCanvas() {
       const node = line.insertInterval(low, high);
       node.value = [units, style];
     }
-    dirtyLines.add(y);
+    const lastChange = dirtyLines.get(y);
+    if (lastChange) {
+      lastChange[0] = Math.min(lastChange[0], x);
+      lastChange[1] = Math.max(lastChange[1], endPos);
+    } else {
+      dirtyLines.set(y, [x, endPos]);
+    }
   }
-  return reactor;
+
+  function clearCodePointFromLine(x: number, y: number, width: number) {
+    const line = lines[y];
+    if (line == null)
+      return null;
+    const endPos = x + width;
+    const overlaps = [...line.searchMultipleOverlaps(x, endPos - 1)];
+    if (overlaps.length === 0)
+      return null;
+    for (const [low, high] of overlaps) {
+      line.deleteInterval(low, high);
+    }
+    const dirtyRange = [endPos, x] as [number, number];
+    for (const overlap of overlaps) {
+      const [low, high, [units, style]] = overlap;
+      if (low < dirtyRange[0])
+        dirtyRange[0] = low;
+      if (low < x) {
+        dirtyRange[0] = x;
+        let chopEnd = x;
+        if (isCodePointFullWidth(units[x - low - 1])) {
+          chopEnd = x - 1;
+        }
+        const choppedUnits = units.slice(0, chopEnd - low);
+        const newNode = line.insertInterval(low, chopEnd - 1);
+        newNode.value = [choppedUnits, style];
+      }
+      if (high >= dirtyRange[1])
+        dirtyRange[1] = high + 1;
+      if (high >= endPos) {
+        dirtyRange[1] = endPos;
+        let chopStart = endPos;
+        if (units[0] === -1) {
+          chopStart = endPos + 1;
+        }
+        const choppedUnits = units.slice(chopStart - low);
+        const newNode = line.insertInterval(chopStart, high);
+        newNode.value = [choppedUnits, style];
+      }
+    }
+    return dirtyRange;
+  }
+  return canvas;
 }
 
 export type TerminalCanvas = SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, typeof tableFor>;
@@ -214,6 +325,7 @@ export function* getTextDisplayUnits(text: string) {
 
 const SPACE_CODE_POINT = ' '.codePointAt(0)!;
 
+/** Inputed and returned "high" value is considered as an "included" value of range interval */
 function uniteDisplayUnits<T extends [low: number, high: number, units: number[], style: string]>(overlap: T, existings: T[]) {
   const [l, h, oUnits, style] = overlap;
   let finalLow = l, finalHigh = h;
@@ -245,7 +357,7 @@ function uniteDisplayUnits<T extends [low: number, high: number, units: number[]
       if (style === eStyle) {
         // case of same style, merge two unit
         finalHigh = eh;
-        const appendUnits = eUnits.slice(h - el, eUnits.length);
+        const appendUnits = eUnits.slice(h - el + 1, eUnits.length);
         if (appendUnits[0] === -1) {
           // A full width character is being chopped in the middle by overlapped new text, replace that character with a space
           oUnits.push(SPACE_CODE_POINT, ...appendUnits.slice(1));
@@ -253,14 +365,14 @@ function uniteDisplayUnits<T extends [low: number, high: number, units: number[]
           oUnits.push(...appendUnits);
         }
       } else {
-        const choppedUnits = eUnits.slice(h - el, eUnits.length);
+        const choppedUnits = eUnits.slice(h - el + 1, eUnits.length);
         if (choppedUnits[0] === -1) {
           choppedUnits.shift();
           // create a separate node
-          choppedExistings.push([h + 1, eh, choppedUnits, eStyle]);
+          choppedExistings.push([h + 2, eh, choppedUnits, eStyle]);
         } else {
           // create a separate node
-          choppedExistings.push([h, eh, choppedUnits, eStyle]);
+          choppedExistings.push([h + 1, eh, choppedUnits, eStyle]);
         }
       }
     }

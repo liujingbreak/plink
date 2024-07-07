@@ -7,9 +7,9 @@ const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
 // import {TerminalCanvas} from './terminal-canvas';
 const terminal_widget_1 = require("./terminal-widget");
-const tableForListContainer = ['setDirection', 'alignItems', 'justifyContent', 'setMarginWidth', 'setLayoutValid', 'onChildPreferredSizeChange'];
-function createListContainer(opts) {
-    const base = (0, terminal_widget_1.createWidget)();
+const tableForListContainer = ['setDirection', 'alignItems', 'justifyContent', 'setMarginWidth', 'onChildPreferredSizeChange'];
+function createListContainer(opts = {}) {
+    const base = (0, terminal_widget_1.createContainerBase)();
     const listContainer = base.config(Object.assign(Object.assign({ name: 'listContainer' }, opts), { tableFor: tableForListContainer }));
     let childrenPosition;
     base.s.interceptor$.next(action$ => {
@@ -90,8 +90,11 @@ function createListContainer(opts) {
         }
         return rx.EMPTY;
     })));
-    r('setSize -> reflow', table.l.setSize.pipe(rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh), rx.map(([m]) => s.ft.reflow().dp(m))));
-    r('reflow, onChildPreferredSizeChange -> setLayoutValid, child.setSize', s.pt.reflow.pipe(rx.mergeMap(a => rx.combineLatest([
+    // r('setSize -> reflow', table.l.setSize.pipe(
+    //   rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh),
+    //   rx.map(([m]) => s.ft.reflow().dp(m))
+    // ));
+    r('reflow, ... -> setLayoutValid, child.setSize', s.pt.reflow.pipe(rx.mergeMap(a => rx.combineLatest([
         table.l.setSize,
         table.l.allChildren, table.l.onChildPreferredSizeChange, table.l.justifyContent,
         table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setMarginWidth
@@ -107,7 +110,7 @@ function createListContainer(opts) {
             crossAxis = w;
             pMainAxis = pHeight;
         }
-        const chrMainAxisSizes = [];
+        let chrMainAxisSizes = [];
         const chrMainAxisPrefSizes = dir === 'row' ?
             chrPrefSizes.map(([w]) => w) :
             chrPrefSizes.map(([, h]) => h);
@@ -143,16 +146,12 @@ function createListContainer(opts) {
                     dir === 'row' ?
                         chr.s.ft.querySizeOf(null, crossAxis).re(m).od(chr.s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, w]) => w)) :
                         chr.s.ft.querySizeOf(crossAxis, null).re(m).od(chr.s.pt.prefHeightFor).pipe(rx.take(1), rx.map(([, , h]) => h));
-            })).pipe(rx.take(1), rx.map(chrMainAxisSizes => {
-                chrMainAxisSizes = calculateSizeOfEach(chrMainAxisSizes, mainAxis - totalMargin);
+            })).pipe(rx.take(1), rx.map(chrPrefMainAxisSizes => {
+                var _a;
+                chrMainAxisSizes = calculateSizeOfEach(chrPrefMainAxisSizes, mainAxis - totalMargin);
                 let pos = 0;
                 for (let i = 0, l = chrMainAxisSizes.length; i < l; i++) {
-                    if (dir === 'row')
-                        childrenPosition.push([pos, 0]);
-                    else
-                        childrenPosition.push([0, pos]);
                     const childSize = chrMainAxisSizes[i];
-                    chrMainAxisSizes.push(childSize);
                     if (dir === 'row')
                         childrenPosition.push([pos, 0]);
                     else
@@ -160,15 +159,17 @@ function createListContainer(opts) {
                     pos += childSize;
                     pos += margin;
                 }
+                (_a = listContainer.opts) === null || _a === void 0 ? void 0 : _a.log('done -- childrenPosition', childrenPosition, 'chrMainAxisSizes', chrMainAxisSizes);
+                return childrenPosition;
             }));
         }
-        return rx.concat(calcChildrenPositionOfMainAxis$, 
-        // Let's calculate position and size of each child on cross-axis
-        rx.forkJoin(children.map((chr, i) => {
+        return rx.concat(calcChildrenPositionOfMainAxis$, rx.defer(() => rx.forkJoin(children.map((chr, i) => {
             return dir === 'row' ?
                 chr.s.ft.querySizeOf(chrMainAxisSizes[i], null).re(m).od(chr.s.pt.prefHeightFor).pipe(rx.take(1), rx.map(([, , h]) => h)) :
                 chr.s.ft.querySizeOf(null, chrMainAxisSizes[i]).re(m).od(chr.s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, w]) => w));
-        })).pipe(rx.map(contrainedChrCrossAxisPrefSizes => {
+        })).pipe(
+        // Let's calculate position and size of each child on cross-axis
+        rx.map(contrainedChrCrossAxisPrefSizes => {
             for (let i = 0, l = childrenPosition.length; i < l; i++) {
                 let chrCrossAxisSize = 0;
                 const chrCrossExisPrefSize = contrainedChrCrossAxisPrefSizes[i];
@@ -191,9 +192,8 @@ function createListContainer(opts) {
                 else
                     childWidget.s.ft.setSize(chrCrossAxisSize, chrMainAxisSizes[i]).dp(m);
             }
-        })));
+        }))));
     })));
-    r('...-> setLayoutValid', rx.merge(s.pt.onChildPreferredSizeChange, s.pt.setDirection, s.pt.setMarginWidth, s.pt.alignItems, s.pt.justifyContent).pipe(rx.map(([m]) => s.ft.setLayoutValid(false).dp(m))));
     r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
         s.pt.onChildPreferredSizeChange,
         table.l.setDirection, table.l.setMarginWidth
@@ -218,10 +218,6 @@ function createListContainer(opts) {
             s.ft.preferredSize(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
         }
     })));
-    r('renderSelf -> reflow', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.map(([[m], [, valid]]) => {
-        if (!valid)
-            s.ft.reflow().dp(m);
-    })));
     r('renderChild, "childrenPosition" -> child.render', s.pt.renderChild.pipe(rx.map(([m, index, chr, canvas, trans]) => {
         const pos = childrenPosition[index];
         const tranOfChild = gl_matrix_1.mat4.fromTranslation(gl_matrix_1.mat4.create(), [pos[0], pos[1], 0]);
@@ -232,12 +228,29 @@ function createListContainer(opts) {
     s.ft.alignItems('center').dp();
     s.ft.justifyContent('start').dp();
     s.ft.setMarginWidth(1).dp();
-    s.ft.setLayoutValid(false).dp();
+    for (const a$ of [
+        table.l.onChildPreferredSizeChange, s.pt.setDirection, s.pt.setMarginWidth,
+        s.pt.alignItems, s.pt.justifyContent
+    ]) {
+        s.ft.addReflowAction(a$).dp();
+    }
     return listContainer;
 }
 function calculateSizeOfEach(individualPrefSizes, totalSize) {
     const prefSizeTotal = individualPrefSizes.reduce((prev, curr) => prev + curr);
     const ratio = totalSize / prefSizeTotal;
-    return individualPrefSizes.map(prefOfIndividual => prefOfIndividual * ratio);
+    const chrSizes = [];
+    let floatGap = 0;
+    for (const preSize of individualPrefSizes) {
+        const fSize = preSize * ratio;
+        let size = Math.floor(fSize);
+        floatGap += fSize - size;
+        if (floatGap > 1) {
+            size++;
+            floatGap -= 1;
+        }
+        chrSizes.push(size);
+    }
+    return chrSizes;
 }
 //# sourceMappingURL=terminal-featured-widget.js.map

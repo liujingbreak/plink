@@ -62,14 +62,13 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
   r('setRootDir', s.pt.setRootDir.pipe(
     rx.switchMap(([m, rootDir]) => {
       cmdModelService.i.ft.setRootDir(rootDir).dp();
-      // canvas.config({debug: true});
 
       rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
       textWidget.config({log: logger, debug: true});
       versionTextWidget.config({log: logger, debug: true});
       // rootWidget.config({debug: true});
-      canvas.s.ft.setRootWidget(rootWidget.s.ft).dp();
-      canvas.s.ft.setAlwaysRerenderAll(true).dp();
+      canvas.s.ft.setRootWidget(rootWidget).dp();
+      // canvas.s.ft.setAlwaysRerenderAll(true).dp();
       return cmdModelService.outputTable.l.load.pipe(
         rx.map(([, done]) => done),
         rx.filter(done => done),

@@ -5,23 +5,19 @@ import {RbTreeNode, RedBlackTree} from './rb-tree';
  * "key" is interval's low value
  */
 interface IntervalTreeBaseNode<V = unknown> extends RbTreeNode<number, V, NonDuplicateNode<V> | DuplicateNode<V>> {
-  // /** For no duplicate single interval*/
-  // int?: [low: number, high: number];
-  // /** For multiple intervals, a tree to store different "high" value */
-  // highValuesTree?: RedBlackTree<number, V>;
   /** Maximum "high" of children */
   max: number;
 }
 
 export interface NonDuplicateNode<V = unknown> extends IntervalTreeBaseNode<V> {
-  /** For no duplicate single interval*/
-  int?: [low: number, high: number];
+  /** For no duplicate single interval, be aware that "high endpoint" is considered as an included value */
+  int: [low: number, high: number];
   highValuesTree?: undefined;
   maxHighOfMulti?: undefined;
 }
 
 export interface DuplicateNode<V = unknown> extends IntervalTreeBaseNode<V> {
-  int?: undefined;
+  int: undefined;
   /** For multiple intervals, a tree to store different "high" value */
   highValuesTree: RedBlackTree<number, V>;
   /** Maximum "high" value of multi intervals that this node contains */
@@ -33,6 +29,7 @@ export type IntervalTreeNode<V = unknown> = NonDuplicateNode<V> | DuplicateNode<
 /**
  * Maintaining:
  *  node.max = max(node.int[1], node.left.max, node.right.max)
+ *  Be aware that "high endpoint" is considered as an included value
  */
 export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalTreeNode<V>> {
   /** Return tree node which could be either NonDuplicateNode or a node of DuplicateNode['highValuesTree'],
