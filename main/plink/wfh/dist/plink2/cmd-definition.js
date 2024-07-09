@@ -41,7 +41,7 @@ function define(scp, logger) {
     })));
     r('doCommand -> canvs.setClientWindowSize', s.pt.doCommand.pipe(rx.map(([m, cols, rows]) => {
         latestCommandActionMeta = m;
-        canvas.s.ft.setClientWindowSize(cols, rows).dp(m);
+        canvas.s.ft.setBounding(0, 0, cols, rows).dp(m);
     })));
     r('setRootDir', s.pt.setRootDir.pipe(rx.switchMap(([m, rootDir]) => {
         cmd_model_1.cmdModelService.i.ft.setRootDir(rootDir).dp();

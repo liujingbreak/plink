@@ -35,7 +35,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * 2. This dispatches --message--> this.actionUpstream (intercepted) --> current.action$, this.action$
      *
      * The "prepend" controller will always recieve a copy of each action message from current controller, and awlays recieves earlier than this controller's subscribers,
-     * Any action dispatched by current controller will always be piped to this controller's actionUpstream instead of its owns, so that again, both
+     * Any action dispatched by current controller will always be piped to prepended controller's actionUpstream instead of its owns, so that again, both
      * current and prepend controller will recieves them.
      *
      * Notice the order of prependController and interceptors set by `interceptor$.next()`, it behaves differetly as below:
@@ -44,7 +44,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * - prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor
      *   when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)
      */
-    prependController(): RxController2<I>;
+    prependController(name?: string): RxController2<I>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**

@@ -11,5 +11,5 @@ export interface MultiLineTextActions {
 }
 declare const tableForMultiLineText: readonly ["setContent", "setStyle", "onDisplayLines", "onDisplayLinesForWidth", "onDisplayLinesForPrefSize"];
 export type MultiLineTextWidget = SimplexReactorMergeType<SimplexReactor<MultiLineTextActions, typeof tableForMultiLineText>, BaseWidget>;
-export declare function createTextWidget(): SimplexReactor<import("./terminal-widget").BaseWidgetActions & MultiLineTextActions, ("setSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "clearBackground" | "setContent" | "setStyle" | "onDisplayLines" | "onDisplayLinesForWidth" | "onDisplayLinesForPrefSize")[]>;
+export declare function createTextWidget(initialText?: string): SimplexReactor<import("./terminal-widget").BaseWidgetActions & MultiLineTextActions, ("setSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setContent" | "setStyle" | "onDisplayLines" | "onDisplayLinesForWidth" | "onDisplayLinesForPrefSize")[]>;
 export {};

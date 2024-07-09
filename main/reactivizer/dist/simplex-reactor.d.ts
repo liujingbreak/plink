@@ -58,6 +58,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
      */
     dispatchErrorFor(err: any, actionMeta: ActionMeta, ...moreActionMetas: ActionMeta[]): void;
     reactivize<F extends ActionFunctions>(fObject: F): SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>;
+    log(...msg: any[]): void;
     reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll(): void;

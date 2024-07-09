@@ -5,12 +5,12 @@
  *
  * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
-export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbTreeNode<T, V, any>> = {
+export type RbTreeNode<T, V = unknown> = {
     key: T;
     value: V;
-    p: C | null;
-    left: C | null;
-    right: C | null;
+    p: RbTreeNode<T, V>;
+    left: RbTreeNode<T, V>;
+    right: RbTreeNode<T, V>;
     isRed: boolean;
     /** total weight of currentt node and children's.
     * size = left child's size + right child size + weight
@@ -19,27 +19,29 @@ export type RbTreeNode<T, V = unknown, C extends RbTreeNode<any, any, any> = RbT
     /** weight of current node, not includingg childlren'ss */
     weight: number;
 };
-export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND> = RbTreeNode<T, V>> {
+export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNode<T, V>> {
     protected comparator?: ((a: T, b: T) => number) | undefined;
-    root: ND | null | undefined;
+    nil: RbTreeNode<T, V>;
+    root: RbTreeNode<T, V> | ND;
     constructor(comparator?: ((a: T, b: T) => number) | undefined);
+    isNil(node: RbTreeNode<T, V>): boolean;
     /**
      * Should override this function to create new typeof tree node
      * @param key
      * @returns existing tree node if key duplicates or a new empty node
      */
-    insert(key: T): Omit<ND, 'value'> & {
+    insert(key: T): Omit<RbTreeNode<T, V>, 'value'> & {
         value?: V;
     };
     /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0
     * and it is baesed on "size" which is accumulated  from "weight" of node ands children's
     */
-    atIndex(idx: number, beginNode?: ND | null | undefined): ND | null | undefined;
+    atIndex(idx: number, beginNode?: RbTreeNode<T, V>): RbTreeNode<T, V> | null | undefined;
     indexOf(key: T): number;
     search(key: T): ND | null;
     delete(key: T): boolean;
-    successorNode(node: ND): ND | null;
-    predecessorNode(node: ND): ND | null;
+    successorNode(node: RbTreeNode<T, V>): RbTreeNode<T, V> | null;
+    predecessorNode(node: RbTreeNode<T, V>): RbTreeNode<T, V> | null;
     /**
      * @param key the value of key to be compared which could be related to none nodes in current tree
      * @return interator of existing nodes whose key are greater than specific key
@@ -50,25 +52,25 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V, ND
      * @return interator of existing nodes whose key are greater than specific key
      */
     keysSmallererThan(key: T): Generator<ND, void, unknown>;
-    inorderWalk(callback: (node: ND, level: number) => void, node?: ND | null | undefined, level?: number): void;
-    minimum(node?: ND | null | undefined): ND | null;
-    maximum(node?: ND | null | undefined): ND | null;
+    inorderWalk(callback: (node: ND, level: number) => void, node?: ND | RbTreeNode<T, V>, level?: number): void;
+    minimum(node?: ND | RbTreeNode<T, V>): ND | null;
+    maximum(node?: ND | RbTreeNode<T, V>): ND | null;
     size(): number;
-    isRed(node: ND | null | undefined): boolean;
-    isBlack(node: ND | null | undefined): boolean;
-    deleteNode(z: ND): boolean;
+    isRed(node: RbTreeNode<T, V> | null | undefined): boolean;
+    isBlack(node: RbTreeNode<T, V> | null | undefined): boolean;
+    deleteNode(z: RbTreeNode<T, V>): boolean;
     /**
      * To be extend and overridden
      */
-    protected onLeftChildChange(_parent: ND, _child: ND | null | undefined): void;
+    protected onLeftChildChange(_parent: RbTreeNode<T, V>, _child: RbTreeNode<T, V> | null | undefined): void;
     /**
      * To be extend and overridden
      */
-    protected onRightChildChange(_parent: ND, _child: ND | null | undefined): void;
-    protected updateNodeSize(node: ND): void;
+    protected onRightChildChange(_parent: RbTreeNode<T, V>, _child: RbTreeNode<T, V> | null | undefined): void;
+    protected updateNodeSize(node: RbTreeNode<T, V>): void;
     private deleteFixup;
     private transplant;
-    protected redBlackInsertFixUp(z: ND): void;
+    protected redBlackInsertFixUp(z: RbTreeNode<T, V>): void;
     private leftRotate;
     private rightRotate;
 }

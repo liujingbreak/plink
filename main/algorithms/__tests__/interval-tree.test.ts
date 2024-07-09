@@ -1,14 +1,19 @@
 // import inspector from 'inspector';
-import chalk from 'chalk';
 import {describe, it, expect}  from '@jest/globals';
 import {IntervalTree, IntervalTreeNode} from '../src/interval-tree';
+import {printRbTree as printTree} from '../src/utils';
 // inspector.open(9222, 'localhost', true);
 
 describe('Interval tree', () => {
+  it.skip('create interval tree', () => {
+    const tree = createTree();
+    expect(tree.minimum()?.key).toBe(0);
+  });
+
   it('Find overlaps', () => {
     const tree = createTree();
     expect(tree.minimum()?.key).toBe(0);
-    expect(tree.root?.max).toBe(30);
+    expect((tree.root as IntervalTreeNode).max).toBe(30);
     const found = tree.searchSingleOverlap(5, 15);
     expect(found).not.toBeNull();
     // eslint-disable-next-line no-console
@@ -23,7 +28,7 @@ describe('Interval tree', () => {
     tree.insertInterval(6, 13);
     tree.insertInterval(6, 14);
     expect(tree.minimum()?.key).toBe(0);
-    expect(tree.root?.max).toBe(30);
+    expect((tree.root as IntervalTreeNode).max).toBe(30);
     const found = tree.searchSingleOverlap(5, 15);
     printTree(tree);
     expect(found).not.toBeNull();
@@ -57,9 +62,9 @@ describe('Interval tree', () => {
     console.log(ints.map(([l, h]) => `${l} - ${h}`));
     expect([...tree.searchMultipleOverlaps(8, 9)].length + 1).toEqual(ints.length);
 
-    expect(tree.root?.max).toEqual(30);
+    expect((tree.root as IntervalTreeNode).max).toEqual(30);
     tree.deleteInterval(25, 30);
-    expect(tree.root?.max).toEqual(26);
+    expect((tree.root as IntervalTreeNode).max).toEqual(26);
     printTree(tree);
   });
 
@@ -70,14 +75,14 @@ describe('Interval tree', () => {
     const node = tree.search(25)!;
 
     expect(node.int == null).toBeTruthy();
-    expect(tree.root?.max).toEqual(31);
+    expect((tree.root as IntervalTreeNode).max).toEqual(31);
 
     let maxHighOfMulti = node.maxHighOfMulti;
     expect(tree.deleteInterval(25, 31)).toBe(true);
     expect(node.highValuesTree!.size()).toBe(2);
     expect(maxHighOfMulti !== node.maxHighOfMulti).toBeTruthy();
     printTree(tree);
-    expect(tree.root?.max).toEqual(30);
+    expect((tree.root as IntervalTreeNode).max).toEqual(30);
 
     maxHighOfMulti = node.maxHighOfMulti;
     expect(tree.deleteInterval(25, 35)).toBeFalsy();
@@ -99,17 +104,17 @@ describe('Interval tree', () => {
     expect(tree.size()).toBe(14);
     printTree(tree);
 
-    expect(tree.root?.max).toBe(38);
+    expect((tree.root as IntervalTreeNode).max).toBe(38);
     const node = tree.search(25);
     expect(node?.int == null).toBeTruthy();
     expect(tree.deleteInterval(25, 32)).toBeTruthy();
     expect(tree.deleteInterval(25, 38)).toBeTruthy();
-    expect(tree.root?.max).toBe(37);
+    expect((tree.root as IntervalTreeNode).max).toBe(37);
     expect(tree.deleteInterval(25, 37)).toBeTruthy();
-    expect(tree.root?.max).toBe(34);
+    expect((tree.root as IntervalTreeNode).max).toBe(34);
     expect(tree.deleteInterval(25, 34)).toBeTruthy();
     printTree(tree);
-    expect(tree.root?.max).toBe(30);
+    expect((tree.root as IntervalTreeNode).max).toBe(30);
     expect(tree.size()).toBe(10);
     expect(node?.int != null).toBeTruthy();
   });
@@ -131,7 +136,30 @@ describe('Interval tree', () => {
       printTree(tree);
       throw e;
     }
-    expect(tree.root?.max).toEqual(720);
+    expect((tree.root as IntervalTreeNode).max).toEqual(720);
+  });
+
+  it('search multi overlaps from single node tree', () => {
+    const tree = new IntervalTree();
+    tree.insertInterval(0, 0);
+    const found = [...tree.searchMultipleOverlaps(39, 39)];
+    printTree(tree);
+    expect(found.length).toEqual(0);
+  });
+  it('search multi overlaps from multiple node tree', () => {
+    const tree = new IntervalTree();
+    tree.insertInterval(12, 12);
+    tree.insertInterval(67, 67);
+
+    const found = [...tree.searchMultipleOverlaps(14, 65)];
+    printTree(tree);
+    console.log(found);
+    expect(found.length).toEqual(0);
+
+    tree.insertInterval(15, 18);
+    tree.insertInterval(15, 10);
+    const found2 = [...tree.searchMultipleOverlaps(14, 65)];
+    expect(found2.length).toBe(2);
   });
 });
 
@@ -148,19 +176,3 @@ function createTree() {
   return intTree;
 }
 
-function printTree(tree: IntervalTree) {
-  const lines = [] as string[];
-  tree.inorderWalk((node, level) => {
-    let p = node as IntervalTreeNode<any> | null;
-    let leadingSpaceChars = '';
-    while (p) {
-      leadingSpaceChars = (p.p?.p && ((p === p.p.left && p.p.p.right === p.p) || (p === p.p.right && p.p.p.left === p.p)) ? '|  ' : '   ') + leadingSpaceChars;
-      p = p.p;
-    }
-    const str = `${leadingSpaceChars}+- ${node.p ? node.p?.left === node ? 'L' : 'R' : 'root'} ${node.key + ''} - ${node.maxHighOfMulti + ''}` +
-      `(max ${node.max} ${node.highValuesTree ? '[tree]' : ''}): size: ${node.size}`;
-    lines.push(node.isRed ? chalk.red(str) : str);
-  });
-  // eslint-disable-next-line no-console
-  console.log(':\n' + lines.join('\n'));
-}

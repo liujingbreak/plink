@@ -11,26 +11,31 @@ const terminal_canvas_1 = require("./terminal-canvas");
 const terminal_widget_1 = require("./terminal-widget");
 const text_split_1 = require("./text-split");
 const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'];
-function createTextWidget() {
+function createTextWidget(initialText = '') {
     const service = (0, terminal_widget_1.createBase)().config({
         name: 'text', tableFor: tableForMultiLineText,
         log: nodejs_utils_1.conciseNocolorConsoleLogger
     });
     const { r, s, table } = service;
     const spliter = (0, text_split_1.createWordSplitter)();
-    r('render', s.pt.render.pipe(rx.withLatestFrom(table.l.onDisplayLines, table.l.setStyle), rx.map(([[m, canvas, trans], [, lines], [, style]]) => {
+    r('onRender', s.pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(table.l.onDisplayLines, table.l.setStyle, table.l.setSize), rx.map(([[m, canvas, trans], [, lines], [, style], [, , height]]) => {
         const leftop = [0, 0];
         const [x, y0] = gl_matrix_1.vec2.transformMat4(leftop, leftop, trans);
-        for (let i = 0, l = lines.length; i < l; i++) {
+        for (let i = 0, l = Math.min(height, lines.length); i < l; i++) {
             canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
         }
     })));
     r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', s.pt.querySizeOf.pipe(rx.withLatestFrom(s.pt.preferredSize, table.l.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
         if (height != null) {
+            if (height < 0)
+                throw new Error('querySizeOf can not accept negative parameter');
             s.ft.prefWidthFor(prefWidth, height).dp(m);
             return rx.EMPTY;
         }
         else if (width != null) {
+            if (width < 0) {
+                throw new Error('querySizeOf can not accept negative parameter');
+            }
             const [prevWidth, prevLines] = table.getData().onDisplayLinesForWidth;
             if (prevWidth === width && prevLines) {
                 s.ft.prefHeightFor(width, prevLines.length).dp(m);
@@ -82,7 +87,7 @@ function createTextWidget() {
             return rx.EMPTY;
         }
         else {
-            return s.ft.querySizeOf(width, null).od(s.pt.onDisplayLinesForWidth).pipe(rx.map(([, , lines]) => {
+            return s.ft.querySizeOf(width, null).re(m).od(s.pt.onDisplayLinesForWidth).pipe(rx.map(([, , lines]) => {
                 s.ft.overflow(lines.length > height).dp(m);
                 s.ft.onDisplayLines(lines).dp(m);
             }));
@@ -95,6 +100,7 @@ function createTextWidget() {
     s.ft.setParent(null).dp();
     s.ft.overflow(false).dp();
     s.ft.setStyle([]).dp();
+    s.ft.setContent(initialText).dp();
     function preferLayoutText(content) {
         const lines = content.split(/\r?\n/, 5000);
         let maxWidth = 0;

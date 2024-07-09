@@ -1,8 +1,11 @@
+/* eslint-disable no-debugger */
+/* eslint-disable no-console */
 import {describe, it, expect}  from '@jest/globals';
 import _ from 'lodash';
-import {RedBlackTree, RbTreeNode} from '../src/rb-tree';
-import {DFS} from '../src/graph';
-import {printRbTree as printTree} from '../src/utils';
+import {RedBlackTree} from '../src/rb-tree';
+import {printRbTree, printRbTree as printTree} from '../src/utils';
+// import inspector from 'inspector';
+// inspector.open(9222, '0.0.0.0', true);
 
 describe('RB tree', () => {
   it('smoke', () => {
@@ -15,12 +18,7 @@ describe('RB tree', () => {
     }
 
     const lines = [] as string[];
-    let dfs = new DFS<RbTreeNode<number>>((node, _vertex, level) => {
-      lines.push(`${_.repeat('| ', level)}- ${node.p ? node.p?.left === node ? 'left' : 'right' : 'root'} ${node.key + ''}: ${node.isRed ? 'red' : 'black'} size: ${node.size}`);
-      return [node.left, node.right].filter((node) : node is RbTreeNode<number> => node != null);
-    });
 
-    dfs.visit([tree.root!]);
     // eslint-disable-next-line no-console
     console.log('After insertion:\n', lines.join('\n'));
     expect(tree.root?.size).toEqual(len);
@@ -34,13 +32,7 @@ describe('RB tree', () => {
 
     // eslint-disable-next-line no-console
     console.log('------------------ deletion');
-    // [5, 8 , 1, 6].forEach(key => {
-    //   console.log('delete', key);
-    //   tree.delete(key);
-    //   dfs = new DFS<RbTreeNode<number>>(adjacencyOf);
-    //   console.log(`----- after deletion ${key} ------`);
-    //   dfs.visit([tree.root!]);
-    // });
+    printTree(tree);
     const keys = _.range(0, len);
     for (let i = 0, l = len / 2; i < l; i++) {
       const randomKeyIdx = Math.floor(Math.random() * keys.length);
@@ -51,14 +43,7 @@ describe('RB tree', () => {
       tree.delete(key);
     }
 
-
-    dfs = new DFS<RbTreeNode<number>>((node, _vertex, level) => {
-      lines.push(`${_.repeat('| ', level)}- ${node.p ? node.p?.left === node ? 'left' : 'right' : 'root'} ${node.key + ''}: ${node.isRed ? 'red' : 'black'} size: ${node.size}`);
-      return [node.left, node.right].filter((node) : node is RbTreeNode<number> => node != null);
-    });
-    dfs.visit([tree.root!]);
     // eslint-disable-next-line no-console
-    console.log('After deletion\n', lines.join('\n'));
     expect(tree.root?.size).toEqual(Math.floor(len / 2));
   });
 
@@ -67,6 +52,7 @@ describe('RB tree', () => {
     '7845390126'.split('').map(it => tree.insert(Number(it)));
     printTree(tree);
 
+    debugger;
     // eslint-disable-next-line no-console
     console.log('Keys smaller than 5.5 are', [...tree.keysSmallererThan(5.5)].map(it => it.key));
     expect([...tree.keysSmallererThan(5.5)].length).toEqual(6);
@@ -94,6 +80,58 @@ describe('RB tree', () => {
     node!.weight = 3; // default is 1
     expect(tree.size()).toBe(22); // expect total size increased by 2
     printTree(tree);
+  });
+
+  it('delete', () => {
+    const operations = `delete 196
+      insert 121
+      delete 121
+      insert 143
+      insert 121
+      delete 143
+      insert 143
+      insert 160
+      insert 145
+      delete 160
+      insert 160
+      insert 177
+      insert 162
+      delete 177
+      insert 177
+      insert 194
+      insert 179
+      delete 194
+      insert 194
+      insert 196
+      debugger 0
+      delete 121
+      insert 121`;
+      // delete 121
+      // insert 121
+      // delete 121
+      // insert 121
+      // delete 121
+      // insert 121`;
+    const operationArr = operations.split(/\n/).map(op => op.trim().split(/\s+/));
+    const tree = new RedBlackTree<number>();
+    for (const [optName, optValue] of operationArr) {
+      const value = Number(optValue);
+      console.log(optName, optValue);
+      if (optName === 'insert')
+        tree.insert(value);
+      else if (optName === 'debugger')
+        debugger;
+      else
+        tree.delete(value);
+      printRbTree(tree);
+    }
+    // printRbTree(tree);
+    console.log('----------------');
+    // for (const value of [160, 143, 121, 145, 177]) {
+    //   console.log('delete ', value);
+    //   tree.delete(value);
+    //   printRbTree(tree);
+    // }
   });
 });
 

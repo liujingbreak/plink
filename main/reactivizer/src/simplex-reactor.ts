@@ -201,6 +201,14 @@ export class SimplexReactor<
     }
     return this as SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>;
   }
+  log(...msg: any[]) {
+    if (this.opts?.log)
+      this.opts.log((this.opts?.name ?? ''), ...msg);
+    else {
+      // eslint-disable-next-line no-console
+      console.log((this.opts?.name ?? ''), ...msg);
+    }
+  }
 
   reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any) {
     const resolveFuncKey = key + 'Resolved';

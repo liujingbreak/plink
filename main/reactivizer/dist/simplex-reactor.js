@@ -158,6 +158,15 @@ class SimplexReactor {
         }
         return this;
     }
+    log(...msg) {
+        var _a, _b, _c, _d, _e;
+        if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
+            this.opts.log(((_c = (_b = this.opts) === null || _b === void 0 ? void 0 : _b.name) !== null && _c !== void 0 ? _c : ''), ...msg);
+        else {
+            // eslint-disable-next-line no-console
+            console.log(((_e = (_d = this.opts) === null || _d === void 0 ? void 0 : _d.name) !== null && _e !== void 0 ? _e : ''), ...msg);
+        }
+    }
     reactivizeFunction(key, func, funcThisRef) {
         const resolveFuncKey = key + 'Resolved';
         const finishFuncKey = key + 'Completed';
