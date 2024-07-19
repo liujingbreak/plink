@@ -24,7 +24,7 @@ function log(...args: any[]) {
 
 const canvas = createTerminalCanvas();
 canvas.config({debug: true, log});
-
+canvas.s.ft.setCursorVisible(true).dp();
 const root = createListContainer({name: 'root', debug: true, log});
 canvas.s.ft.setRootWidget(root).dp();
 canvas.error$.subscribe(([err, label]) => {
@@ -85,6 +85,7 @@ r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(
       )
     ),
     rx.finalize(() => {
+      canvas.s.ft.setCursorVisible(false).dp();
       canvas.dispose();
       root.dispose();
     })
@@ -120,7 +121,7 @@ r('changeStaticLabelToClock -> doneChangeStaticLabelToClock', s.pt.changeStaticL
     rx.timer(1000).pipe(
       rx.map(() => {
         label.s.ft.setContent(`This is label ${i + 1}`).dp(m);
-        canvas.s.ft.render().dp(m);
+        // canvas.s.ft.render().dp(m);
         s.ft.doneChangeStaticLabelToClock().dp(m);
       })
     )

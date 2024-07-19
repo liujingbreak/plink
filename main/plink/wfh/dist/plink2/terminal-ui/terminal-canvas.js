@@ -34,6 +34,9 @@ function createTerminalCanvas() {
     // "lines" is an array of IntervalTree, each element of which represents a single line of display text of screen.
     // The intervalTree is a tree containing single or multiple discrete intervals which represents display text
     const lines = [];
+    r('setCursorVisible', s.pt.setCursorVisible.pipe(rx.map(([, vis]) => {
+        process.stdout.write(vis ? '\x1B[?25l' : '\x1B[?25h');
+    })));
     r('setBounding -> rootWidget.setSize', s.pt.setBounding.pipe(rx.switchMap(([m, , , w, h]) => {
         return table.l.setRootWidget.pipe(rx.map(([, root]) => {
             if (root)

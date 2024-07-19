@@ -18,12 +18,15 @@ function createTextWidget(initialText = '') {
     });
     const { r, s, table } = service;
     const spliter = (0, text_split_1.createWordSplitter)();
-    r('onRender', s.pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(table.l.onDisplayLines, table.l.setStyle, table.l.setSize), rx.map(([[m, canvas, trans], [, lines], [, style], [, , height]]) => {
+    r('onRender', s.pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(table.l.onDisplayLines, table.l.setStyle, table.l.setSize, table.l.overflow), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow]]) => {
         const leftop = [0, 0];
         const [x, y0] = gl_matrix_1.vec2.transformMat4(leftop, leftop, trans);
-        for (let i = 0, l = Math.min(height, lines.length); i < l; i++) {
+        const lineCnt = Math.min(height, lines.length);
+        for (let i = 0, l = lineCnt; i < l; i++) {
             canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
         }
+        if (overflow)
+            canvas.s.ft.addString(x + width - 3, lineCnt - 1, '...').dp(m);
     })));
     r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', s.pt.querySizeOf.pipe(rx.withLatestFrom(s.pt.preferredSize, table.l.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
         if (height != null) {

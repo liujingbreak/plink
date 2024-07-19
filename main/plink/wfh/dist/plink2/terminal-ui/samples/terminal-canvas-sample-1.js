@@ -24,6 +24,7 @@ function log(...args) {
 }
 const canvas = (0, terminal_canvas_1.createTerminalCanvas)();
 canvas.config({ debug: true, log });
+canvas.s.ft.setCursorVisible(true).dp();
 const root = (0, terminal_featured_widget_1.createListContainer)({ name: 'root', debug: true, log });
 canvas.s.ft.setRootWidget(root).dp();
 canvas.error$.subscribe(([err, label]) => {
@@ -67,6 +68,7 @@ const scene = new reactivizer_1.SimplexReactor({
 const { r, s } = scene;
 r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(rx.switchMap(() => layoutDemoContainer.table.l.allChildren.pipe(rx.take(1))), rx.mergeMap(([, labels]) => rx.from(labels).pipe(rx.concatMap((label, i) => s.ft.changeStaticLabelToClock(label, i, 5)
     .od(s.pt.doneChangeStaticLabelToClock).pipe(rx.take(1))), rx.finalize(() => {
+    canvas.s.ft.setCursorVisible(false).dp();
     canvas.dispose();
     root.dispose();
 })))));
@@ -87,7 +89,7 @@ r('changeStaticLabelToClock -> doneChangeStaticLabelToClock', s.pt.changeStaticL
     canvas.s.ft.render().dp(m);
 }), rx.take(duration)), rx.timer(1000).pipe(rx.map(() => {
     label.s.ft.setContent(`This is label ${i + 1}`).dp(m);
-    canvas.s.ft.render().dp(m);
+    // canvas.s.ft.render().dp(m);
     s.ft.doneChangeStaticLabelToClock().dp(m);
 }))))));
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
