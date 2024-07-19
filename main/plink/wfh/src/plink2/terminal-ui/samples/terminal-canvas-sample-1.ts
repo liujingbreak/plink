@@ -24,7 +24,7 @@ function log(...args: any[]) {
 
 const canvas = createTerminalCanvas();
 canvas.config({debug: true, log});
-canvas.s.ft.setCursorVisible(true).dp();
+canvas.s.ft.autoHideCursor().dp();
 const root = createListContainer({name: 'root', debug: true, log});
 canvas.s.ft.setRootWidget(root).dp();
 canvas.error$.subscribe(([err, label]) => {
@@ -41,12 +41,12 @@ root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
 root.s.ft.setDirection('col').dp();
 const layout1TitleLabel = createTextWidget('Demo dynamically updating text labels in a flex layout');
-const titleBorder = createBorderContainer(layout1TitleLabel);
+const titleBorder = createBorderContainer(layout1TitleLabel.asBaseType);
 titleBorder.config({name: 'title-border', debug: true, log});
 layout1TitleLabel.config({name: 'title', debug: true, log});
 titleBorder.s.ft.setBorderStyle(['green']).dp();
 layout1TitleLabel.s.ft.setStyle(['bold']).dp();
-root.s.ft.addChild(titleBorder).dp();
+root.s.ft.addChild(titleBorder.asBaseType.asBaseType).dp();
 const layoutDemoContainer = createListContainer({
   name: 'layoutDemo',
   debug: true,
@@ -55,12 +55,12 @@ const layoutDemoContainer = createListContainer({
 
 layoutDemoContainer.s.ft.justifyContent('center').dp();
 layoutDemoContainer.s.ft.setBorderSpacing(2).dp();
-const layoutDemoBorder = createBorderContainer(layoutDemoContainer);
+const layoutDemoBorder = createBorderContainer(layoutDemoContainer.asBaseType.asBaseType);
+layoutDemoBorder.config({debug: true, name: 'layoutDemoBorder', log});
 layoutDemoBorder.s.ft.setBorder('padding').dp();
 layoutDemoBorder.s.ft.setPadding(1, 1, 1, 1).dp();
 layoutDemoBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
-layoutDemoContainer.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
-root.s.ft.addChild(layoutDemoBorder).dp();
+root.s.ft.addChild(layoutDemoBorder.asBaseType.asBaseType).dp();
 // root.s.ft.setBackground('bgHsl(270, 45, 20)').dp();
 
 interface SceneActions {
@@ -85,7 +85,6 @@ r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(
       )
     ),
     rx.finalize(() => {
-      canvas.s.ft.setCursorVisible(false).dp();
       canvas.dispose();
       root.dispose();
     })
@@ -100,7 +99,7 @@ r('showLablesLeftToRight', s.pt.showLablesLeftToRight.pipe(
         text.config({debug: true, log, name: 'text-' + i});
         text.s.ft.setContent('This is label ' + (i + 1)).dp(m);
         text.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp(m);
-        layoutDemoContainer.s.ft.addChild(text).dp(m);
+        layoutDemoContainer.s.ft.addChild(text.asBaseType).dp(m);
         canvas.s.ft.render().dp(m);
       }),
       rx.take(num),

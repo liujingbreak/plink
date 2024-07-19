@@ -25,7 +25,8 @@ let SEQ = new Date().getUTCMilliseconds();
 
 export class SimplexReactor<
   I = Record<never, never>,
-  LI extends readonly (keyof I)[] | (keyof I)[] = []
+  LI extends readonly (keyof I)[] | (keyof I)[] = [],
+  BaseType = unknown
 > {
   protected errorSubject: rx.Subject<[label: string, originError: any]> =
     new rx.ReplaySubject(20);
@@ -42,6 +43,8 @@ export class SimplexReactor<
       this.reactorSubj.next(['', ...params as [stream: rx.Observable<any>, disableCatchError?: boolean]]);
   };
   table: ActionTable<I & BaseActions<I>, LE<LI>>;
+  /** cast current SimplexReactor type to it's logical super type for Typescript type assignable check */
+  asBaseType = this as unknown as BaseType;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]> = new rx.ReplaySubject();
   private id = SEQ++;
   // use type parameter <any> to make SimplexReactor more assignable to extend type
@@ -141,7 +144,7 @@ export class SimplexReactor<
       }
       return obj;
     }, {} as RxControlConfigType<I>));
-    return this as unknown as SimplexReactor<I & I2, (LI[number] | LI2[number])[]>;
+    return this as unknown as SimplexReactor<I & I2, readonly (LI[number] | LI2[number])[], SimplexReactor<I, LI, BaseType>>;
   }
   /**
    * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
@@ -275,3 +278,4 @@ export class SimplexReactor<
     );
   }
 }
+

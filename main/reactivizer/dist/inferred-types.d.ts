@@ -59,5 +59,6 @@ export type ActionsOf<R> = InferActionsOfSmplxRctr<R>;
 export type InferTableForSmplxRctr<R> = R extends SimplexReactor<any, infer L> ? ExtractTupleElement<L> : never;
 export type TableOf<R> = R extends SimplexReactor<any, infer L> ? L : never;
 export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> = SimplexReactor<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>, readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]>;
+export type SimpleReactorExtendType<RBase extends SimplexReactor<any, any>, I, L extends (keyof I)[]> = SimplexReactor<InferActionsOfSmplxRctr<RBase> & I, readonly (InferTableForSmplxRctr<RBase> | ExtractTupleElement<L>)[]>;
 export type OptionsOfMergedSmplxRctr<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> = SimplexReactorOptions<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>, readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]>;
 export {};

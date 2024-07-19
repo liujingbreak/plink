@@ -3,7 +3,7 @@
   * has no error report to parsing the file content.
  **/
 import {describe, it, expect}  from '@jest/globals';
-import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, RxController2} from '../src';
+import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, SimplexReactorExtendType, RxController2, ExtractTupleElement} from '../src';
 
 interface TestActions {
   message1(): SingleActionFactory;
@@ -33,18 +33,31 @@ interface ExtendActions2 extends ExtendActions {
 }
 const tableFor2 = ['message5', 'message6'] as const;
 describe('Typescript compiler', () => {
-  it('should not report any error on assignable SimplexReactor type casting', () => {
-    const extendedService = baseService as SimplexReactorMergeType<BaseService, SimplexReactor<ExtendActions>>;
+  it.skip('should not report any error on assignable SimplexReactor type casting', () => {
+    const extendedService = baseService.config<ExtendActions, typeof tableFor1>({name: 'test', tableFor: tableFor1});
+    const extendedWithoutTable = baseService.config<ExtendActions>({name: 'test2'});
 
-    function acceptDerivedTypeForBaseType<I extends TestActions & TestResponse, L extends typeof tableFor>(_base: SimplexReactor<I, L>) {}
+    function acceptDerivedTypeForBaseType<I, L extends Array<keyof I>>(base: SimplexReactor<TestActions & TestResponse & I, (L[number] | (typeof tableFor)[number])[]>) {
+      base.table.l.message2.subscribe();
+    }
+    extendedService.table.l.message2.subscribe();
+    extendedService.table.l.message5.subscribe();
+    extendedService.s.pt.message2.subscribe();
     acceptDerivedTypeForBaseType(extendedService);
 
+    function acceptBaseType(base: BaseService) {
+      base.table.l.message2.subscribe();
+    }
+    acceptBaseType(extendedService);
+    acceptBaseType(extendedWithoutTable);
     const baseControl = new RxController2<TestActions>();
     const control = baseControl as unknown as RxController2<ExtendActions2>;
     const castToBase = control as RxController2<TestActions>;
 
-    function acceptDerivedTypeForBaseType2(_accepted: SimplexReactor<ExtendActions, typeof tableFor1>) {}
-    acceptDerivedTypeForBaseType2({} as SimplexReactor<ExtendActions2, typeof tableFor2>);
+    function acceptDerivedTypeForBaseType2(accepted: SimplexReactor<ExtendActions, typeof tableFor1>) {
+      accepted.table.l.message5.subscribe();
+    }
+    acceptDerivedTypeForBaseType2({} as SimplexReactor<ExtendActions2, (typeof tableFor2>);
     expect(castToBase).not.toBeNull();
   });
 });

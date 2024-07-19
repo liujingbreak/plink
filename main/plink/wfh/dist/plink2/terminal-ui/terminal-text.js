@@ -96,6 +96,16 @@ function createTextWidget(initialText = '') {
             }));
         }
     })));
+    r('setParent, parent.setBackground', table.l.setParent.pipe(rx.switchMap(([, parent]) => parent ?
+        parent.table.l.setBackground.pipe(rx.withLatestFrom(table.l.setStyle), rx.mergeMap(([[m, pBg], [, style]]) => new rx.Observable(_sub => {
+            if (pBg) {
+                s.ft.setStyle([...style, pBg]).dp(m);
+                return () => {
+                    return s.ft.setStyle(style).dp(m);
+                };
+            }
+        }))) :
+        rx.EMPTY)));
     s.ft.addRerenderAction(s.pt.setContent).dp();
     s.ft.addRerenderAction(s.pt.setStyle).dp();
     s.ft.preferredSize(0, 0).dp();

@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import {vec2, mat4} from 'gl-matrix';
 import {SimplexReactorMergeType, OptionsOfSmplxRctr, SingleActionFactory, ActionDispenser, SimplexReactor} from '@wfh/reactivizer';
 // import {TerminalCanvas} from './terminal-canvas';
-import {TerminalContainer, createContainerBase, BaseWidgetActions, tableForBase} from './terminal-widget';
+import {TerminalContainer, createContainerBase, BaseWidget} from './terminal-widget';
 import {TextStyle} from './terminal-canvas';
 
 export interface ListContainerInput {
@@ -326,16 +326,16 @@ export interface BorderContainerActions {
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'] as const;
 
 const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
-export function createBorderContainer<I extends BaseWidgetActions, L extends typeof tableForBase>(child: SimplexReactor<I, L>) {
-  const base = createContainerBase();
-  const service = base.config<BorderContainerActions, typeof tableForBorderContainer>({
+export function createBorderContainer(child: BaseWidget) {
+  const container = createContainerBase();
+  const service = container.config<BorderContainerActions, typeof tableForBorderContainer>({
     name: 'borderContainer', tableFor: tableForBorderContainer
   });
   const {r, table, s} = service;
   const childPos = [0, 0];
   // intercept "renderChild"
   s.interceptor$.next(action$ => {
-    const dispenser = ActionDispenser.ofAction$<typeof base.s>(action$);
+    const dispenser = ActionDispenser.ofAction$<typeof service.s>(action$);
     return rx.merge(
       dispenser.at.renderChild.pipe(
         rx.map(action => {

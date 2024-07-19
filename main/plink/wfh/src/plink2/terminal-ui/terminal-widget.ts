@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
-import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, TableOf, ActionMeta, ActionsOf, Action, InferMapParam} from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, ActionMeta, Action, InferMapParam} from '@wfh/reactivizer';
 import {conciseNocolorConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {TerminalCanvas, BackgroundStyle} from './terminal-canvas';
 
@@ -44,7 +44,6 @@ export function createBase() {
       })
     )
   ));
-
   r('render -> needRerender, onRender, renderBackgroundFor', s.pt.render.pipe(
     rx.withLatestFrom(table.l.needRerender, table.l.setParent),
     rx.map(([[m, canvas, trans], [, renderSelf], [, parent]]) => {
@@ -73,8 +72,8 @@ export function createBase() {
 }
 
 export interface ContainerWidgetInput {
-  addChild<I extends BaseWidgetActions, L extends typeof tableForBase>(...children: SimplexReactor<I, L>[]): SingleActionFactory;
-  removeChild<I extends ActionsOf<BaseWidget>, L extends TableOf<BaseWidget>>(...children: SimplexReactor<I, L>[]): SingleActionFactory;
+  addChild(...children: BaseWidget[]): SingleActionFactory;
+  removeChild(...children: BaseWidget[]): SingleActionFactory;
   /** If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
   addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
   setBackground(color: BackgroundStyle | null): SingleActionFactory;
@@ -89,7 +88,7 @@ export interface ContainerWidgetOutput {
   setLayoutValid(isValid: boolean): SingleActionFactory;
   /** Implementation must dispatch setLayoutValid(true) */
   reflow(): SingleActionFactory;
-  /** Child should dispatch this action */
+  /** No reaction yet , preserve for future */
   renderBackgroundFor(child: BaseWidget): SingleActionFactory;
 }
 
@@ -97,7 +96,8 @@ const tableFor = ['allChildren', 'setLayoutValid', 'setBackground', 'onChildPref
 export type TerminalContainer = SimplexReactorMergeType<SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>, BaseWidget>;
 
 export function createContainerBase() {
-  const service = createBase().config<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>({
+  const base = createBase();
+  const service = base.config<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>({
     tableFor,
     log: conciseNocolorConsoleLogger
   });
@@ -215,6 +215,21 @@ export function createContainerBase() {
         }
       }
     })
+  ));
+  r('setParent, parent.setBackground -> setBackground', table.l.setParent.pipe(
+    rx.switchMap(([, parent]) => parent ?
+      parent.table.l.setBackground.pipe(
+        rx.withLatestFrom(table.l.setBackground),
+        rx.mergeMap(([[m, pBg], [, ownBg]]) => new rx.Observable<never>(_sub => {
+          if (pBg) {
+            ft.setBackground(pBg).dp(m);
+            return () => {
+              return ft.setBackground(ownBg).dp(m);
+            };
+          }
+        }))
+      ) :
+      rx.EMPTY)
   ));
   ft.addReflowAction(s.pt.setSize).dp();
   ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();

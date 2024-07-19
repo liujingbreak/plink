@@ -24,9 +24,6 @@ export type ForkWorkerInput = {
 
 export interface ForkWorkerOutput<I = Record<string, any>>{
   inited(workerNo: string | number, logPrefix: string, mainWorkerPort: MessagePort | NodeMessagePort | null): SingleActionFactory;
-  // inited(workerNo: number): SingleActionFactory;
-  // forkAction<O, T extends keyof O>(targetActionName: T, ...params: InferPayload<O[T]>): SingleActionFactory;
-  // fork(targetAction: Action<any>): SingleActionFactory;
   fork<K extends string & keyof I>(
     actionName: K & string,
     ...params: InferPayload<I[K]>

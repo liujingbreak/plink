@@ -112,6 +112,16 @@ function createContainerBase() {
             }
         }
     })));
+    r('setParent, parent.setBackground -> setBackground', table.l.setParent.pipe(rx.switchMap(([, parent]) => parent ?
+        parent.table.l.setBackground.pipe(rx.withLatestFrom(table.l.setBackground), rx.mergeMap(([[m, pBg], [, ownBg]]) => new rx.Observable(_sub => {
+            if (pBg) {
+                ft.setBackground(pBg).dp(m);
+                return () => {
+                    return ft.setBackground(ownBg).dp(m);
+                };
+            }
+        }))) :
+        rx.EMPTY)));
     ft.addReflowAction(s.pt.setSize).dp();
     ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
     ft.allChildren(children).dp();

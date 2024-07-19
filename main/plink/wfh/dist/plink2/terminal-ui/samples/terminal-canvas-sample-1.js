@@ -24,7 +24,7 @@ function log(...args) {
 }
 const canvas = (0, terminal_canvas_1.createTerminalCanvas)();
 canvas.config({ debug: true, log });
-canvas.s.ft.setCursorVisible(true).dp();
+canvas.s.ft.autoHideCursor().dp();
 const root = (0, terminal_featured_widget_1.createListContainer)({ name: 'root', debug: true, log });
 canvas.s.ft.setRootWidget(root).dp();
 canvas.error$.subscribe(([err, label]) => {
@@ -55,10 +55,10 @@ const layoutDemoContainer = (0, terminal_featured_widget_1.createListContainer)(
 layoutDemoContainer.s.ft.justifyContent('center').dp();
 layoutDemoContainer.s.ft.setBorderSpacing(2).dp();
 const layoutDemoBorder = (0, index_1.createBorderContainer)(layoutDemoContainer);
+layoutDemoBorder.config({ debug: true, name: 'layoutDemoBorder', log });
 layoutDemoBorder.s.ft.setBorder('padding').dp();
 layoutDemoBorder.s.ft.setPadding(1, 1, 1, 1).dp();
 layoutDemoBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
-layoutDemoContainer.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
 root.s.ft.addChild(layoutDemoBorder).dp();
 const scene = new reactivizer_1.SimplexReactor({
     name: 'scene',
@@ -68,7 +68,6 @@ const scene = new reactivizer_1.SimplexReactor({
 const { r, s } = scene;
 r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(rx.switchMap(() => layoutDemoContainer.table.l.allChildren.pipe(rx.take(1))), rx.mergeMap(([, labels]) => rx.from(labels).pipe(rx.concatMap((label, i) => s.ft.changeStaticLabelToClock(label, i, 5)
     .od(s.pt.doneChangeStaticLabelToClock).pipe(rx.take(1))), rx.finalize(() => {
-    canvas.s.ft.setCursorVisible(false).dp();
     canvas.dispose();
     root.dispose();
 })))));

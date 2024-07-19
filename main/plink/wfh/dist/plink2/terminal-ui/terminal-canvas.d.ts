@@ -27,7 +27,7 @@ export interface TerminalCanvasInput {
     render(): SingleActionFactory;
     copyRect(x: number, y: number, width: number, height: number): SingleActionFactory;
     doneCopyRect(lines: (IntervalTree<readonly [units: number[], style: string]> | undefined)[]): SingleActionFactory;
-    setCursorVisible(visible: boolean): SingleActionFactory;
+    autoHideCursor(): SingleActionFactory;
 }
 export interface TerminalCanvasOutput {
     /** In context of "render", x, y are both absolute 0 based coordinates value */

@@ -40,7 +40,7 @@ export interface ContainerWidgetOutput {
     setLayoutValid(isValid: boolean): SingleActionFactory;
     /** Implementation must dispatch setLayoutValid(true) */
     reflow(): SingleActionFactory;
-    /** Child should dispatch this action */
+    /** No reaction yet , preserve for future */
     renderBackgroundFor(child: BaseWidget): SingleActionFactory;
 }
 declare const tableFor: readonly ["allChildren", "setLayoutValid", "setBackground", "onChildPreferredSizeChange"];

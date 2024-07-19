@@ -14,8 +14,8 @@ import {SimplexReactor} from './simplex-reactor';
  * defines exactly data structure of it.
  * 
  */
-export type ActionTableDataType<I, KS extends ReadonlyArray<keyof I>> = {
-  [P in KS[number]]: InferPayload<I[P]> | []
+export type ActionTableDataType<I, IK extends keyof I> = {
+  [P in IK]: InferPayload<I[P]> | []
 };
 
 export type PayloadByType<I> = {
@@ -31,7 +31,7 @@ type InferOutputEventsType<R> = R extends ReactorComposite<any, infer O, any, an
 type InferLatestInputType<R> = R extends ReactorComposite<any, any, infer LI, any> ? ExtractTupleElement<LI> : never;
 type InferLatestOutputType<R> = R extends ReactorComposite<any, any, any, infer LO> ? ExtractTupleElement<LO> : never;
 
-export type ExtractTupleElement<T> = T extends readonly (infer R)[] ? R : never;
+export type ExtractTupleElement<T> = T extends readonly (infer R)[] ? R : T extends (infer R)[] ? R : never;
 
 type InferInputType2<R> = R extends ReactorComposite2<infer I, any, any, any> ? I : Record<never, never>;
 type InferOutputType2<R> = R extends ReactorComposite2<any, infer O, any, any> ? O : Record<never, never>;
@@ -106,12 +106,15 @@ export type InferActionsOfSmplxRctr<R> =
 /** alias of InferActionsOfSmplxRctr */
 export type ActionsOf<R> = InferActionsOfSmplxRctr<R>;
 export type InferTableForSmplxRctr<R> =
-  R extends SimplexReactor<any, infer L> ? ExtractTupleElement<L> : never;
+  R extends SimplexReactor<any, infer L> ? L[number] : never;
 export type TableOf<R> = R extends SimplexReactor<any, infer L> ? L : never;
 export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
   SimplexReactor<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
   readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]
   >;
+export type SimplexReactorExtendType<RBase extends SimplexReactor<any, any>, I, L extends (keyof I)[]> =
+  SimplexReactor<InferActionsOfSmplxRctr<RBase> & I, (InferTableForSmplxRctr<RBase> | L[number])[]>;
+
 export type OptionsOfMergedSmplxRctr<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
   SimplexReactorOptions<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
   readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]>;

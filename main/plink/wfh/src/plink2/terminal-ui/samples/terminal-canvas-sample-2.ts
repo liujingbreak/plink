@@ -4,6 +4,7 @@ import fs from 'fs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas} from '../terminal-canvas';
 import {createTextWidget} from '../terminal-text';
+// import {createScrollable} from '../terminal-scrollable';
 // import {createListContainer} from '../terminal-featured-widget';
 import {createListContainer, createBorderContainer} from '../terminal-featured-widget';
 
@@ -40,10 +41,10 @@ root.s.ft.alignItems('center').dp();
 
 const label = createTextWidget('Hello border container');
 label.config({debug: true, log});
-const border = createBorderContainer(label);
+const border = createBorderContainer(label.asBaseType);
 border.config({debug: true, log});
 
-root.s.ft.addChild(border).dp();
+root.s.ft.addChild(border.asBaseType.asBaseType).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 canvas.s.ft.render().dp();
 
