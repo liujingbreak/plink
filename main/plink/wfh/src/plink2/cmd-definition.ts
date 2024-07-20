@@ -63,7 +63,7 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
     rx.switchMap(([m, rootDir]) => {
       cmdModelService.i.ft.setRootDir(rootDir).dp();
 
-      rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
+      rootWidget.s.ft.addChild(textWidget.asBaseType, versionTextWidget.asBaseType).dp();
       textWidget.config({log: logger, debug: true});
       versionTextWidget.config({log: logger, debug: true});
       // rootWidget.config({debug: true});

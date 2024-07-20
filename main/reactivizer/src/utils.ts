@@ -5,7 +5,7 @@ import {SimplexReactor} from './simplex-reactor';
 export function defineParialSimplexReactor<I, LI extends ReadonlyArray<keyof I> = never[]>(tableFor?: LI) {
   return function applyTo<I2, LI2 extends ReadonlyArray<keyof I2>>(targetService: SimplexReactor<I2, LI2>) {
     if (tableFor)
-      targetService.table.addActions(...tableFor);
+      targetService.table.addActions(...(tableFor as any));
     return targetService as SimplexReactor<I & I2, (LI[number] | LI2[number])[]>;
   };
 }

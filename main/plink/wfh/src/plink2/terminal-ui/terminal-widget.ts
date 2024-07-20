@@ -5,6 +5,7 @@ import {conciseNocolorConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {TerminalCanvas, BackgroundStyle} from './terminal-canvas';
 
 export interface BaseWidgetActions {
+  init(): SingleActionFactory;
   setSize(width: number, height: number): SingleActionFactory;
   /** Implementation needs to handle this action */
   querySizeOf(width: number | null, height: number | null): SingleActionFactory;
@@ -18,6 +19,7 @@ export interface BaseWidgetActions {
   setParent(p: TerminalContainer | null): SingleActionFactory;
   /** this message will be interceptor intercepts and skips if there is no "Rerender" action dispatched after last "render" message is handled */
   render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
+  /** Implementation needed to handle this action */
   onRender(canvas: TerminalCanvas, absTransform: mat4, renderSelf: boolean): SingleActionFactory;
   needRerender(need: boolean): SingleActionFactory;
   /** If following action is dispatched, the next render message must not be skipped on current widget */
@@ -55,7 +57,7 @@ export function createBase() {
         s.ft.needRerender(false).dp(m);
     })
   ));
-  r('setParent, onChildError, parent.destory$ -> parent.onChildError, dispose()', s.pt.setParent.pipe(
+  r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', s.pt.setParent.pipe(
     rx.switchMap(([, parent]) => parent ?
       rx.merge(
         service.error$.pipe(
@@ -67,7 +69,12 @@ export function createBase() {
       ) :
       rx.EMPTY)
   ));
-  s.ft.needRerender(true).dp();
+  r('init', s.pt.init.pipe(
+    rx.map(([m]) => {
+      s.ft.needRerender(true).dp(m);
+      s.ft.setParent(null).dp(m);
+    })
+  ));
   return service;
 }
 
@@ -106,6 +113,18 @@ export function createContainerBase() {
   const {ft} = s;
   const children = [] as BaseWidget[];
 
+  r('init', s.pt.init.pipe(
+    rx.map(([m]) => {
+      ft.addReflowAction(s.pt.setSize).dp(m);
+      ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp(m);
+      ft.allChildren(children).dp(m);
+      ft.setSize(0, 0).dp(m);
+      ft.preferredSize(0, 0).dp(m);
+      ft.overflow(false).dp(m);
+      ft.setLayoutValid(false).dp(m);
+      ft.setBackground(null).dp(m);
+    })
+  ));
   r('addChild -> child.setParent', s.pt.addChild.pipe(
     rx.map(([m, ...added]) => {
       children.push(...added);
@@ -166,7 +185,7 @@ export function createContainerBase() {
     })
   ));
 
-  r('onRender -> renderSelf, renderChild, rendered', s.pt.onRender.pipe(
+  r('onRender -> renderSelf, renderChild', s.pt.onRender.pipe(
     rx.map(([m, canvas, trans, renderSelf]) => {
       if (renderSelf)
         s.ft.renderSelf(canvas, trans).dp(m);
@@ -181,14 +200,14 @@ export function createContainerBase() {
       chr.s.ft.render(canvas, trans).re(m).dp();
     })
   ));
-  r('onChildError', s.pt.onChildError.pipe(
+  r('onChildError -> parent.onChildError', s.pt.onChildError.pipe(
     rx.withLatestFrom(s.pt.setParent),
     rx.map(([[, childId, errInfo], [, parent]]) => {
       if (parent)
         parent.s.ft.onChildError(childId, errInfo);
     })
   ));
-  r('renderSelf, setBackground, setSize -> canvas.addString', s.pt.renderSelf.pipe(
+  r('renderSelf, setBackground, setSize -> canvas.addString, canvas.clearRect', s.pt.renderSelf.pipe(
     rx.mergeMap(a => rx.combineLatest([
       table.l.setSize,
       table.l.setBackground
@@ -231,15 +250,6 @@ export function createContainerBase() {
       ) :
       rx.EMPTY)
   ));
-  ft.addReflowAction(s.pt.setSize).dp();
-  ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
-  ft.allChildren(children).dp();
-  ft.setSize(0, 0).dp();
-  ft.preferredSize(0, 0).dp();
-  ft.setParent(null).dp();
-  ft.overflow(false).dp();
-  ft.setLayoutValid(false).dp();
-  ft.setBackground(null).dp();
   return service;
 }
 

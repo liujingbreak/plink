@@ -84,7 +84,7 @@ export class ControllerCore<I> {
     const interceptorList$ = this.interceptor$.pipe(
       rx.startWith(a$ => a$),
       rx.scan((arr, it) => {
-        arr.push(it);
+        arr.unshift(it);
         return arr;
       }, [] as Interceptor<I>[])
     );
@@ -147,7 +147,7 @@ export class ControllerCore<I> {
             : this.actionUpstream;
 
           return interceptors ?
-            debuggableAction$.pipe(...(interceptors.reverse() as [Interceptor<I>])) :
+            debuggableAction$.pipe(...(interceptors as [Interceptor<I>])) :
             debuggableAction$;
         })
       ));

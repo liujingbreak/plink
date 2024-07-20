@@ -45,7 +45,7 @@ function define(scp, logger) {
     })));
     r('setRootDir', s.pt.setRootDir.pipe(rx.switchMap(([m, rootDir]) => {
         cmd_model_1.cmdModelService.i.ft.setRootDir(rootDir).dp();
-        rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
+        rootWidget.s.ft.addChild(textWidget.asBaseType, versionTextWidget.asBaseType).dp();
         textWidget.config({ log: logger, debug: true });
         versionTextWidget.config({ log: logger, debug: true });
         // rootWidget.config({debug: true});

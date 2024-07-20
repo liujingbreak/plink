@@ -3,27 +3,27 @@ import { InferPayload, InferMapParam, Action } from './stream-core';
 import { RxController } from './control';
 import { RxController2 } from './control2';
 import { ActionTableDataType, PayloadByType } from './inferred-types';
-export declare class ActionTable<I, KS extends ReadonlyArray<keyof I>> {
+export declare class ActionTable<I, IK extends keyof I> {
     #private;
     private streamCtl;
     private actionNames;
-    latestPayloads: PayloadByType<{ [K in KS[number]]: I[K]; }>;
+    latestPayloads: PayloadByType<{ [K in IK]: I[K]; }>;
     /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
     l: PayloadByType<{
-        [K in KS[number]]: I[K];
+        [K in IK]: I[K];
     }>;
-    get dataChange$(): rx.Observable<ActionTableDataType<I, KS>>;
+    get dataChange$(): rx.Observable<ActionTableDataType<I, IK>>;
     private data;
     actionSnapshot: Map<string, [import("./stream-core").ActionMeta, ...InferPayload<I[keyof I]>]>;
     private actionNamesAdded$;
-    constructor(streamCtl: RxController<any> | RxController2<any>, actionNames: KS);
-    getData(): ActionTableDataType<I, KS>;
+    constructor(streamCtl: RxController<I> | RxController2<I>, actionNames: IK[] | readonly IK[]);
+    getData(): ActionTableDataType<I, IK>;
     /** Add actions to be recoreded in table map,
      * by creating `ReplaySubject(1)` for each action payload stream respectively
      */
-    addActions<M extends ReadonlyArray<any> | Array<any>>(...actionNames: M): ActionTable<I, Array<KS[number] | M[number]>>;
+    addActions<M extends keyof I>(...actionNames: M[]): ActionTable<I, IK | M>;
     private onAddActions;
-    getLatestActionOf<K extends KS[number]>(actionName: K): InferMapParam<I[K]> | undefined;
+    getLatestActionOf<K extends IK[][number]>(actionName: K): InferMapParam<I[K]> | undefined;
     protected debugLogLatestActionOperator<K extends keyof I, P extends InferMapParam<I[K]>>(type: K): rx.OperatorFunction<P, P>;
 }
 /** Consider it as Apache Kafka's KTable */

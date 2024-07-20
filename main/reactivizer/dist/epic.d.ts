@@ -23,8 +23,8 @@ export declare class ReactorComposite<I = Record<never, never>, O = Record<never
     error$: rx.Observable<[lable: string, originError: any] | [lable: string, originError: any, relevantActions: ActionMeta[]]>;
     destory$: rx.Subject<void>;
     dispose: () => void;
-    get inputTable(): ActionTable<I, LI>;
-    get outputTable(): ActionTable<O & BaseEvents, LOE<LO>>;
+    get inputTable(): ActionTable<I, LI[number]>;
+    get outputTable(): ActionTable<O & BaseEvents, LOE<LO>[number]>;
     private iTable;
     private oTable;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;

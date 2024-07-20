@@ -25,21 +25,35 @@ function createBase() {
         if (renderSelf)
             s.ft.needRerender(false).dp(m);
     })));
-    r('setParent, onChildError, parent.destory$ -> parent.onChildError, dispose()', s.pt.setParent.pipe(rx.switchMap(([, parent]) => parent ?
+    r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', s.pt.setParent.pipe(rx.switchMap(([, parent]) => parent ?
         rx.merge(service.error$.pipe(rx.tap(errInfo => parent.s.ft.onChildError(service.s.logPrefix, errInfo))), parent.destory$.pipe(rx.map(() => service.dispose()))) :
         rx.EMPTY)));
-    s.ft.needRerender(true).dp();
+    r('init', s.pt.init.pipe(rx.map(([m]) => {
+        s.ft.needRerender(true).dp(m);
+        s.ft.setParent(null).dp(m);
+    })));
     return service;
 }
 const tableFor = ['allChildren', 'setLayoutValid', 'setBackground', 'onChildPreferredSizeChange'];
 function createContainerBase() {
-    const service = createBase().config({
+    const base = createBase();
+    const service = base.config({
         tableFor,
         log: nodejs_utils_1.conciseNocolorConsoleLogger
     });
     const { r, s, table } = service;
     const { ft } = s;
     const children = [];
+    r('init', s.pt.init.pipe(rx.map(([m]) => {
+        ft.addReflowAction(s.pt.setSize).dp(m);
+        ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp(m);
+        ft.allChildren(children).dp(m);
+        ft.setSize(0, 0).dp(m);
+        ft.preferredSize(0, 0).dp(m);
+        ft.overflow(false).dp(m);
+        ft.setLayoutValid(false).dp(m);
+        ft.setBackground(null).dp(m);
+    })));
     r('addChild -> child.setParent', s.pt.addChild.pipe(rx.map(([m, ...added]) => {
         children.push(...added);
         for (const child of children) {
@@ -73,7 +87,7 @@ function createContainerBase() {
         for (const child of allChildren)
             child.s.ft.needRerender(true).dp(m);
     })));
-    r('onRender -> renderSelf, renderChild, rendered', s.pt.onRender.pipe(rx.map(([m, canvas, trans, renderSelf]) => {
+    r('onRender -> renderSelf, renderChild', s.pt.onRender.pipe(rx.map(([m, canvas, trans, renderSelf]) => {
         if (renderSelf)
             s.ft.renderSelf(canvas, trans).dp(m);
         for (let i = 0, l = children.length; i < l; i++) {
@@ -84,11 +98,11 @@ function createContainerBase() {
     r('renderChild -> child.render, canvas.addString', s.pt.renderChild.pipe(rx.map(([m, _index, chr, canvas, trans]) => {
         chr.s.ft.render(canvas, trans).re(m).dp();
     })));
-    r('onChildError', s.pt.onChildError.pipe(rx.withLatestFrom(s.pt.setParent), rx.map(([[, childId, errInfo], [, parent]]) => {
+    r('onChildError -> parent.onChildError', s.pt.onChildError.pipe(rx.withLatestFrom(s.pt.setParent), rx.map(([[, childId, errInfo], [, parent]]) => {
         if (parent)
             parent.s.ft.onChildError(childId, errInfo);
     })));
-    r('renderSelf, setBackground, setSize -> canvas.addString', s.pt.renderSelf.pipe(rx.mergeMap(a => rx.combineLatest([
+    r('renderSelf, setBackground, setSize -> canvas.addString, canvas.clearRect', s.pt.renderSelf.pipe(rx.mergeMap(a => rx.combineLatest([
         table.l.setSize,
         table.l.setBackground
     ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.map(([[m, canvas, trans], [, width, height], [, bg]], idx) => {
@@ -122,15 +136,6 @@ function createContainerBase() {
             }
         }))) :
         rx.EMPTY)));
-    ft.addReflowAction(s.pt.setSize).dp();
-    ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
-    ft.allChildren(children).dp();
-    ft.setSize(0, 0).dp();
-    ft.preferredSize(0, 0).dp();
-    ft.setParent(null).dp();
-    ft.overflow(false).dp();
-    ft.setLayoutValid(false).dp();
-    ft.setBackground(null).dp();
     return service;
 }
 //# sourceMappingURL=terminal-widget.js.map

@@ -13,13 +13,7 @@ const algorithms_1 = require("@wfh/algorithms");
 // import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 const process_common_1 = require("../process-common");
 const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl']);
-var RenderMode;
-(function (RenderMode) {
-    RenderMode[RenderMode["dirty"] = 0] = "dirty";
-    RenderMode[RenderMode["clearLine"] = 1] = "clearLine";
-    RenderMode[RenderMode["clearScreen"] = 2] = "clearScreen";
-})(RenderMode || (RenderMode = {}));
-const tableFor = ['setRenderMode', 'setBounding', 'setRootWidget'];
+const tableFor = ['setBounding', 'setRootWidget', 'onDirtyLineChange'];
 function createTerminalCanvas() {
     const canvas = new reactivizer_1.SimplexReactor({
         name: 'TerminalCanvas',
@@ -65,9 +59,8 @@ function createTerminalCanvas() {
     r('clearRect', s.pt.clearRect.pipe(rx.map(([, x, y, w, h]) => {
         for (let i = y, l = y + h; i < l; i++) {
             const dirtyRange = clearCodePointFromLine(x, i, w);
-            // console.log('after clearCodePointFromLine', x, i, w, h, dirtyRange);
             if (dirtyRange) {
-                const lastChange = dirtyLines.get(y);
+                const lastChange = dirtyLines.get(i);
                 if (lastChange) {
                     lastChange[0] = Math.min(lastChange[0], dirtyRange[0]);
                     lastChange[1] = Math.max(lastChange[1], dirtyRange[1]);
@@ -76,6 +69,7 @@ function createTerminalCanvas() {
                     dirtyLines.set(i, [dirtyRange[0], dirtyRange[1]]);
                 }
             }
+            // canvas.log('#### clearRect line', i, dirtyLines.get(y));
         }
         // console.log('clearRect done', '#' + m.i);
     })));
@@ -93,125 +87,48 @@ function createTerminalCanvas() {
             node_readline_1.default.clearLine(process.stdout, 0);
         }
     })));
-    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootWidget, table.l.setRenderMode), rx.map(([[m], [, x, y, screenWidth], [, root], [, renderMode]]) => {
+    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootWidget), rx.map(([[m], [, x, y], [, root]]) => {
         if (root)
             root.s.ft.render(canvas, gl_matrix_1.mat4.create()).dp(m);
-        if (renderMode === RenderMode.clearScreen) {
-            node_readline_1.default.cursorTo(process.stdout, 0, y);
-            node_readline_1.default.clearScreenDown(process.stdout);
-            for (let i = 0, l = lines.length; i < l; i++) {
-                const tree = lines[i];
-                const top = i + y;
-                if (tree) {
-                    tree.inorderWalk(node => {
-                        if (node.highValuesTree) {
-                            node.highValuesTree.inorderWalk(n => {
-                                const text = treeNodeToStyleText(n.value);
-                                s.ft.onPrintText(node.int[0], top, text).dp(m);
-                            });
-                        }
-                        else {
-                            const text = treeNodeToStyleText(node.value);
-                            s.ft.onPrintText(node.int[0], top, text).dp(m);
-                        }
-                    });
-                }
-            }
-        }
-        else if (renderMode === RenderMode.dirty) {
-            for (const [lineIdx, [left, right]] of dirtyLines) {
-                const overlaps = [...lines[lineIdx].searchMultipleOverlaps(left, right - 1)];
-                let offset = left;
-                // console.log('dirty', left, right);
-                const printingText = [];
-                for (const [eLow, eHigh, data] of overlaps.sort(([a], [b]) => a - b)) {
-                    // canvas.log('offset', offset, 'eLow', eLow, 'eHigh', eHigh, 'len', data[0].length);
-                    let chopStart = 0;
-                    let chopEnd = data[0].length;
-                    if (offset < eLow) {
-                        printingText.push(' '.repeat(eLow - offset));
-                    }
-                    else {
-                        chopStart = offset - eLow;
-                    }
-                    if (eHigh < right) {
-                        offset = eHigh + 1;
-                    }
-                    else {
-                        chopEnd -= eHigh + 1 - right;
-                        offset = right;
-                    }
-                    printingText.push(treeNodeToStyleText([data[0].slice(chopStart, chopEnd), data[1]]));
-                }
-                if (offset < right) {
-                    printingText.push(' '.repeat(right - offset));
-                }
-                s.ft.onPrintText(left + x, lineIdx + y, printingText.join('')).dp(m);
-            }
-            dirtyLines.clear();
-        }
-        else {
-            for (const [lineIdx, [low, high]] of dirtyLines) {
-                const top = lineIdx + y;
-                if ((screenWidth - low) < high) {
-                    // consider direction of clearLine: low -> right edge of screen
-                    s.ft.onClearLine(top, low, 1).dp(m);
-                    const overlap = lines[lineIdx].searchSingleOverlap(low, low);
-                    if (overlap === null || overlap === void 0 ? void 0 : overlap.int) {
-                        const [start] = overlap.int;
-                        const [units, style] = overlap.value;
-                        // Only print part of the overlapped node
-                        const text = treeNodeToStyleText([units.slice(low - start), style]);
-                        s.ft.onPrintText(low, top, text).dp(m);
-                        for (const node of lines[lineIdx].keysGreaterThan(low)) {
-                            const text = treeNodeToStyleText(node.value);
-                            s.ft.onPrintText(node.int[0], y, text).dp(m);
-                        }
-                    }
-                    else {
-                        const err = new Error('screen cache tree should not contain overlapped content:\n' + overlap);
-                        canvas.dispatchErrorFor(err, m);
-                        throw err;
-                    }
+        for (const [lineIdx, [left, right]] of dirtyLines) {
+            const overlaps = [...lines[lineIdx].searchMultipleOverlaps(left, right - 1)];
+            let offset = left;
+            // canvas.log('#### dirty', left, right);
+            const printingText = [];
+            for (const [eLow, eHigh, data] of overlaps.sort(([a], [b]) => a - b)) {
+                // canvas.log('offset', offset, 'eLow', eLow, 'eHigh', eHigh, 'len', data[0].length);
+                let chopStart = 0;
+                let chopEnd = data[0].length;
+                if (offset < eLow) {
+                    printingText.push(' '.repeat(eLow - offset));
                 }
                 else {
-                    // consider direction of clearLine: left edge of screen -> high
-                    s.ft.onClearLine(top, high, -1).dp(m);
-                    const overlap = lines[lineIdx].searchSingleOverlap(high - 1, high - 1);
-                    if (overlap === null || overlap === void 0 ? void 0 : overlap.int) {
-                        const [start] = overlap.int;
-                        const [units, style] = overlap.value;
-                        // Only print part of the overlapped node
-                        const text = treeNodeToStyleText([units.slice(0, high - start), style]);
-                        s.ft.onPrintText(start, top, text).dp(m);
-                        for (const node of lines[lineIdx].keysSmallererThan(start)) {
-                            const text = treeNodeToStyleText(node.value);
-                            s.ft.onPrintText(node.int[0], top, text).dp(m);
-                        }
-                    }
-                    else {
-                        const err = new Error('screen cache tree should not contain overlapped content:\n' + overlap);
-                        canvas.dispatchErrorFor(err, m);
-                        throw err;
-                    }
+                    chopStart = offset - eLow;
                 }
-                const tree = lines[lineIdx];
-                if (tree) {
-                    tree.inorderWalk(node => {
-                        const text = treeNodeToStyleText(node.value);
-                        s.ft.onPrintText(node.int[0], top, text).dp(m);
-                    });
+                if (eHigh < right) {
+                    offset = eHigh + 1;
                 }
+                else {
+                    chopEnd -= eHigh + 1 - right;
+                    offset = right;
+                }
+                printingText.push(treeNodeToStyleText([data[0].slice(chopStart, chopEnd), data[1]]));
             }
-            dirtyLines.clear();
+            if (offset < right) {
+                printingText.push(' '.repeat(right - offset));
+            }
+            s.ft.onPrintText(left + x, lineIdx + y, printingText.join('')).dp(m);
         }
+        dirtyLines.clear();
+        // canvas.log('### render -> clear dirtyLines');
     })));
-    r('copyRect -> doneCopyRect', s.pt.copyRect.pipe(rx.map(([m, x, y, w, h]) => {
-        const copied = lines.slice(y, y + h).map((lineTree) => {
+    r('copyRect -> onCopyRect', s.pt.copyRect.pipe(rx.map(([m, x, y, w, h]) => {
+        const result = [];
+        lines.slice(y, y + h).forEach((lineTree, i) => {
             if (lineTree == null)
                 return undefined;
             const overlaps = lineTree.searchMultipleOverlaps(x, x + h - 1);
-            const newTree = new algorithms_1.IntervalTree();
+            // const newTree = new IntervalTree<readonly [units: number[], style: string]>();
             for (const [low, high, [units, style]] of overlaps) {
                 let newUnits = units;
                 let newLow = low;
@@ -219,26 +136,56 @@ function createTerminalCanvas() {
                 if (low < x) {
                     newLow = x;
                     newUnits = units.slice(x - low);
-                    if (units[x - low] === -1) {
+                    if (newUnits[0] === -1) {
                         // a full-width character it is
                         newUnits[0] = SPACE_CODE_POINT;
                     }
                 }
                 if (high >= x + w) {
                     newHigh = x + w - 1;
-                    newUnits = newUnits.slice(newUnits.length - (high + 1 - x - w));
+                    newUnits = newUnits.slice(0, newUnits.length - (high + 1 - x - w));
                     if ((0, process_common_1.isCodePointFullWidth)(newUnits[newUnits.length - 1])) {
                         newUnits[newUnits.length - 1] = SPACE_CODE_POINT;
                     }
                 }
-                newTree.insertInterval(newLow, newHigh).value = [newUnits, style];
+                result.push([newLow - x, newHigh - x, i, newUnits, style]);
+                // newTree.insertInterval(newLow, newHigh).value = [newUnits, style];
             }
-            return newTree;
         });
-        s.ft.doneCopyRect(copied).dp(m);
+        s.ft.onCopyRect(result).dp(m);
     })));
-    s.ft.setRenderMode(RenderMode.dirty).dp();
+    r('copyDirtyRectAndClear', s.pt.copyDirtyRectAndClear.pipe(rx.map(([m, x, y, w, h]) => {
+        const result = [];
+        for (const [lineIdx] of dirtyLines) {
+            const overlaps = [...lines[lineIdx].searchMultipleOverlaps(x, x + h - 1)];
+            for (const [low, high, [units, style]] of overlaps) {
+                let newUnits = units;
+                let newLow = low;
+                let newHigh = high;
+                if (low < x) {
+                    newLow = x;
+                    newUnits = units.slice(x - low);
+                    if (newUnits[0] === -1) {
+                        // a full-width character it is
+                        newUnits[0] = SPACE_CODE_POINT;
+                    }
+                }
+                if (high >= x + w) {
+                    newHigh = x + w - 1;
+                    newUnits = newUnits.slice(0, newUnits.length - (high + 1 - x - w));
+                    if ((0, process_common_1.isCodePointFullWidth)(newUnits[newUnits.length - 1])) {
+                        newUnits[newUnits.length - 1] = SPACE_CODE_POINT;
+                    }
+                }
+                result.push([newLow - x, newHigh - x, lineIdx, newUnits, style]);
+                // newTree.insertInterval(newLow, newHigh).value = [newUnits, style];
+            }
+        }
+        dirtyLines.clear();
+        s.ft.onCopyRect(result).dp(m);
+    })));
     s.ft.setRootWidget(null).dp();
+    s.ft.onDirtyLineChange(dirtyLines).dp();
     function treeNodeToStyleText([codePoints, style]) {
         const text = String.fromCodePoint(...codePoints.filter(codePoint => codePoint >= 0));
         if (style) {

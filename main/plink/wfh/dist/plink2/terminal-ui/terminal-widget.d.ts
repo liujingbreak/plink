@@ -1,8 +1,9 @@
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
-import { SingleActionFactory, SimplexReactor, SimplexReactorMergeType, TableOf, ActionsOf, Action, InferMapParam } from '@wfh/reactivizer';
+import { SingleActionFactory, SimplexReactor, SimplexReactorMergeType, Action, InferMapParam } from '@wfh/reactivizer';
 import { TerminalCanvas, BackgroundStyle } from './terminal-canvas';
 export interface BaseWidgetActions {
+    init(): SingleActionFactory;
     setSize(width: number, height: number): SingleActionFactory;
     /** Implementation needs to handle this action */
     querySizeOf(width: number | null, height: number | null): SingleActionFactory;
@@ -15,6 +16,7 @@ export interface BaseWidgetActions {
     setParent(p: TerminalContainer | null): SingleActionFactory;
     /** this message will be interceptor intercepts and skips if there is no "Rerender" action dispatched after last "render" message is handled */
     render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
+    /** Implementation needed to handle this action */
     onRender(canvas: TerminalCanvas, absTransform: mat4, renderSelf: boolean): SingleActionFactory;
     needRerender(need: boolean): SingleActionFactory;
     /** If following action is dispatched, the next render message must not be skipped on current widget */
@@ -23,10 +25,10 @@ export interface BaseWidgetActions {
 export declare const tableForBase: readonly ["setSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender"];
 export type BaseWidget = SimplexReactor<BaseWidgetActions, typeof tableForBase>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare function createBase(): SimplexReactor<BaseWidgetActions, readonly ["setSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender"]>;
+export declare function createBase(): SimplexReactor<BaseWidgetActions, readonly ["setSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender"], unknown>;
 export interface ContainerWidgetInput {
-    addChild<I extends BaseWidgetActions, L extends typeof tableForBase>(...children: SimplexReactor<I, L>[]): SingleActionFactory;
-    removeChild<I extends ActionsOf<BaseWidget>, L extends TableOf<BaseWidget>>(...children: SimplexReactor<I, L>[]): SingleActionFactory;
+    addChild(...children: BaseWidget[]): SingleActionFactory;
+    removeChild(...children: BaseWidget[]): SingleActionFactory;
     /** If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
     addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
     setBackground(color: BackgroundStyle | null): SingleActionFactory;
@@ -45,5 +47,5 @@ export interface ContainerWidgetOutput {
 }
 declare const tableFor: readonly ["allChildren", "setLayoutValid", "setBackground", "onChildPreferredSizeChange"];
 export type TerminalContainer = SimplexReactorMergeType<SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>, BaseWidget>;
-export declare function createContainerBase(): SimplexReactor<BaseWidgetActions & ContainerWidgetInput & ContainerWidgetOutput, ("setSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "allChildren" | "setLayoutValid" | "setBackground" | "onChildPreferredSizeChange")[]>;
+export declare function createContainerBase(): SimplexReactor<BaseWidgetActions & ContainerWidgetInput & ContainerWidgetOutput, readonly ("setSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "allChildren" | "setLayoutValid" | "setBackground" | "onChildPreferredSizeChange")[], SimplexReactor<BaseWidgetActions, readonly ["setSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender"], unknown>>;
 export {};

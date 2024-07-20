@@ -41,12 +41,12 @@ root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
 root.s.ft.setDirection('col').dp();
 const layout1TitleLabel = (0, terminal_text_1.createTextWidget)('Demo dynamically updating text labels in a flex layout');
-const titleBorder = (0, index_1.createBorderContainer)(layout1TitleLabel);
+const titleBorder = (0, index_1.createBorderContainer)(layout1TitleLabel.asBaseType);
 titleBorder.config({ name: 'title-border', debug: true, log });
 layout1TitleLabel.config({ name: 'title', debug: true, log });
 titleBorder.s.ft.setBorderStyle(['green']).dp();
 layout1TitleLabel.s.ft.setStyle(['bold']).dp();
-root.s.ft.addChild(titleBorder).dp();
+root.s.ft.addChild(titleBorder.asBaseType.asBaseType).dp();
 const layoutDemoContainer = (0, terminal_featured_widget_1.createListContainer)({
     name: 'layoutDemo',
     debug: true,
@@ -54,12 +54,12 @@ const layoutDemoContainer = (0, terminal_featured_widget_1.createListContainer)(
 });
 layoutDemoContainer.s.ft.justifyContent('center').dp();
 layoutDemoContainer.s.ft.setBorderSpacing(2).dp();
-const layoutDemoBorder = (0, index_1.createBorderContainer)(layoutDemoContainer);
+const layoutDemoBorder = (0, index_1.createBorderContainer)(layoutDemoContainer.asBaseType.asBaseType);
 layoutDemoBorder.config({ debug: true, name: 'layoutDemoBorder', log });
 layoutDemoBorder.s.ft.setBorder('padding').dp();
 layoutDemoBorder.s.ft.setPadding(1, 1, 1, 1).dp();
 layoutDemoBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
-root.s.ft.addChild(layoutDemoBorder).dp();
+root.s.ft.addChild(layoutDemoBorder.asBaseType.asBaseType).dp();
 const scene = new reactivizer_1.SimplexReactor({
     name: 'scene',
     debug: true,
@@ -78,7 +78,7 @@ r('showLablesLeftToRight', s.pt.showLablesLeftToRight.pipe(rx.concatMap(([m, num
         text.config({ debug: true, log, name: 'text-' + i });
         text.s.ft.setContent('This is label ' + (i + 1)).dp(m);
         text.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp(m);
-        layoutDemoContainer.s.ft.addChild(text).dp(m);
+        layoutDemoContainer.s.ft.addChild(text.asBaseType).dp(m);
         canvas.s.ft.render().dp(m);
     }), rx.take(num), rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m)));
 })));

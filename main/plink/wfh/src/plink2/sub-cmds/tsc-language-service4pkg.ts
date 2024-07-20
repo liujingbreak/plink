@@ -23,7 +23,6 @@ interface PackageFeatureOutput {
 }
 const newTableActions = ['onTscDirsConfig'] as const;
 type FullFeaturedType = SimplexReactorMergeType<LanguageServiceType, SimplexReactor<PackageFeatureInput & PackageFeatureOutput, typeof newTableActions>>;
-type OutputEvents = FullFeaturedType extends SimplexReactor<infer T, any> ? T : never;
 
 export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: PackageMgrFullServiceType, lookupService: PlinkPackageLookupService) {
   const s = (baseService as unknown as FullFeaturedType).s.prependController();
@@ -34,7 +33,7 @@ export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: P
   lookupService.input.fromPackageService(pkgMgr).dp();
   const packageToTscDirMap = new Map<string, {isom?: string; srcRoots: string[]; dest: string}>();
   s.interceptor$.next(a$ => {
-    const dispenser = new ActionDispenser<OutputEvents>(a$);
+    const dispenser = ActionDispenser.ofAction$<FullFeaturedType>(a$);
     return rx.merge(
       dispenser.ofType('emitFile').pipe(
         rx.mergeMap(a => rx.concat(

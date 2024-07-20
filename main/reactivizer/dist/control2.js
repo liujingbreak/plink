@@ -109,14 +109,14 @@ class RxController2 extends stream_core_1.ControllerCore {
         // unlike actionUpstream, thisUpStream is posterior to interceptors
         const thisUpStream = new rx.Subject();
         const targetUpstream = new rx.Subject();
-        targetCtl.interceptor$.next(a$ => {
+        targetCtl.prependInterceptor(a$ => {
             return rx.merge(targetUpstream, a$.pipe(rx.map(a => {
                 targetUpstream.next(a);
                 // emit to current controller as well but later than other subscribers
                 thisUpStream.next(a);
             }), rx.ignoreElements()));
         });
-        this.interceptor$.next(a$ => rx.merge(thisUpStream, a$.pipe(rx.map(a => {
+        this.prependInterceptor(a$ => rx.merge(thisUpStream, a$.pipe(rx.map(a => {
             // Ensure prependController recieve earlier than current controller
             targetUpstream.next(a);
             // Ensure action emitted later than prependController

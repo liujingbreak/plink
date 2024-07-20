@@ -10,5 +10,5 @@ interface WordSplitterActions {
     onWord(wordCodePoints: number[], type: CodePointStateType[2], displayLength: number): SingleActionFactory;
     onWordRecorded(replay$: rx.Observable<InferPayload<WordSplitterActions['onWord']>>): SingleActionFactory;
 }
-export declare function createWordSplitter(): SimplexReactor<WordSplitterActions, readonly ["requestToken", "onWordRecorded"]>;
+export declare function createWordSplitter(): SimplexReactor<WordSplitterActions, readonly ["requestToken", "onWordRecorded"], unknown>;
 export {};

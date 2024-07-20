@@ -100,7 +100,7 @@ export class RxController2<I> extends ControllerCore<I> {
     // unlike actionUpstream, thisUpStream is posterior to interceptors
     const thisUpStream = new rx.Subject<Action<I[keyof I]>>();
     const targetUpstream = new rx.Subject<Action<I[keyof I]>>();
-    targetCtl.interceptor$.next(a$ => {
+    targetCtl.prependInterceptor(a$ => {
       return rx.merge(
         targetUpstream,
         a$.pipe(
@@ -114,7 +114,7 @@ export class RxController2<I> extends ControllerCore<I> {
       );
     });
 
-    this.interceptor$.next(a$ => rx.merge(
+    this.prependInterceptor(a$ => rx.merge(
       thisUpStream,
       a$.pipe(
         rx.map(a => {

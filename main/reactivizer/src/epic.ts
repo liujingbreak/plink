@@ -33,22 +33,22 @@ export class ReactorComposite<
   destory$: rx.Subject<void> = new rx.ReplaySubject(1);
   dispose: () => void;
 
-  get inputTable(): ActionTable<I, LI> {
+  get inputTable(): ActionTable<I, LI[number]> {
     if (this.iTable)
       return this.iTable;
-    this.iTable = new ActionTable<I, LI>(this.i, [] as unknown as LI);
+    this.iTable = new ActionTable<I, LI[number]>(this.i, [] as unknown as LI);
     return this.iTable;
   }
 
-  get outputTable(): ActionTable<O & BaseEvents, LOE<LO>> {
+  get outputTable(): ActionTable<O & BaseEvents, LOE<LO>[number]> {
     if (this.oTable)
       return this.oTable;
-    this.oTable = new ActionTable<O & BaseEvents, LOE<LO>>(this.o, ['_onErrorFor'] as unknown as LOE<LO>);
+    this.oTable = new ActionTable<O & BaseEvents, LOE<LO>[number]>(this.o, ['_onErrorFor'] as unknown as LOE<LO>);
     return this.oTable;
   }
 
-  private iTable: ActionTable<I, LI> | undefined;
-  private oTable: ActionTable<O & BaseEvents, LOE<LO>> | undefined;
+  private iTable: ActionTable<I, LI[number]> | undefined;
+  private oTable: ActionTable<O & BaseEvents, LOE<LO>[number]> | undefined;
   // protected static logSubj: rx.Subject<[level: string, ...msg: any[]]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
 

@@ -20,7 +20,7 @@ export interface BaseActions<
   __onDisposed(): SingleActionFactory;
 }
 const baseTableFor = ['__onError', '__onDisposed'] as const;
-type LE<LI extends readonly any[]> = readonly (LI[number] | ExtractTupleElement<typeof baseTableFor>)[];
+type LE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;
 let SEQ = new Date().getUTCMilliseconds();
 
 export class SimplexReactor<
@@ -35,7 +35,7 @@ export class SimplexReactor<
   destory$: rx.Observable<unknown>;
   dispose: () => void;
   /** default stream controller used also as Reactor's internal message stream */
-  s: RxController2<I>;
+  s: RxController2<I & BaseActions>;
   r = (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => {
     if (typeof params[0] === 'string')
       this.reactorSubj.next(params as [label: string, stream: rx.Observable<any>, disableCatchError?: boolean]);
@@ -48,11 +48,11 @@ export class SimplexReactor<
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]> = new rx.ReplaySubject();
   private id = SEQ++;
   // use type parameter <any> to make SimplexReactor more assignable to extend type
-  opts?: SimplexReactorOptions<any, readonly any[]>;
+  opts?: SimplexReactorOptions<I, LI>;
 
   constructor(opts?: SimplexReactorOptions<I & BaseActions<I>, LI>) {
     this.opts = opts as typeof this.opts;
-    this.s = new RxController2<I & BaseActions<I>>({...opts, name: (opts?.name ?? '') + `#${this.id}`}) as RxController2<I>;
+    this.s = new RxController2<I & BaseActions<I>>({...opts, name: (opts?.name ?? '') + `#${this.id}`});
     const internalMsg$ = this.s as unknown as RxController2<BaseActions>;
     if (opts?.debug) {
       internalMsg$.ft.__onNew().dp();
@@ -97,8 +97,8 @@ export class SimplexReactor<
       })
     ).subscribe();
 
-    this.table = new ActionTable(this.s, [...opts?.tableFor ?? [], ...baseTableFor] as LE<LI>);
-    const internalTable = this.table as unknown as ActionTable<BaseActions, typeof baseTableFor>;
+    this.table = new ActionTable(this.s, [...opts?.tableFor ?? [], ...baseTableFor] as LE<LI>[]);
+    const internalTable = this.table as unknown as ActionTable<BaseActions, (typeof baseTableFor)[number]>;
     this.error$ = rx.merge(
       this.errorSubject.pipe(
         rx.map(([label, err]) => [err, label] as const)
@@ -110,7 +110,7 @@ export class SimplexReactor<
     ).pipe(
       rx.share()
     );
-    this.destory$ = internalTable.l.__onDisposed;
+    this.destory$ = internalMsg$.pt.__onDisposed;
     this.dispose = () => {
       internalMsg$.ft.__onDisposed().dp();
     };
@@ -124,14 +124,14 @@ export class SimplexReactor<
    * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
    * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
    */
-  config<I2 = Record<string, never>, LI2 extends ReadonlyArray<keyof I2> = []>(opts: SimplexReactorCfgOpts<I & BaseActions<any>, I2, LI2>) {
+  config<I2 = Record<string, never>, L2 extends(Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I & BaseActions<any>, I2, L2>) {
     if (this.opts) {
       Object.assign(this.opts, opts);
     } else {
       this.opts = opts as unknown as typeof this.opts;
     }
     if (opts.tableFor) {
-      this.table.addActions(...opts.tableFor);
+      this.table.addActions(...opts.tableFor as (keyof I)[]);
     }
     this.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
       if (p !== 'tableFor') {
@@ -144,7 +144,7 @@ export class SimplexReactor<
       }
       return obj;
     }, {} as RxControlConfigType<I>));
-    return this as unknown as SimplexReactor<I & I2, readonly (LI[number] | LI2[number])[], SimplexReactor<I, LI, BaseType>>;
+    return this as unknown as SimplexReactor<I & I2, readonly (LI[number] | L2[number])[], SimplexReactor<I, LI, BaseType>>;
   }
   /**
    * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.

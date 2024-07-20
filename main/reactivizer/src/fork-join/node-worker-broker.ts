@@ -57,7 +57,7 @@ export function createBroker<
       }
       const chan = new MessageChannel();
       props.port = chan.port1;
-      const wo = new RxController2<ForkWorkerInput & ForkWorkerOutput & I>({
+      const wo = new RxController2<ForkWorkerInput & ForkWorkerOutput & I & BaseActions<any>>({
         name: '#' + workerNo + ' worker output',
         debugExcludeTypes: (opts as SimplexReactorOptions<ForkWorkerOutput> | undefined)?.debugExcludeTypes
       });

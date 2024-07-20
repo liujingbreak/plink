@@ -16,7 +16,7 @@ interface BaseActions<I = Record<never, never>, O = Record<never, never>, LI ext
     __config(opts: ReactorCompositeOpt<I, O, LI, LO>): SingleActionFactory;
 }
 declare const baseTableFor: readonly ["__onError", "__onDisposed"];
-type LOE<LI extends readonly any[]> = readonly (LI[number] | ExtractTupleElement<typeof baseTableFor>)[];
+type LOE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;
 /**
  * Recommend to use SimplexReactor instead of this class, this class will be deprecated in future version
  */
@@ -26,9 +26,9 @@ export declare class ReactorComposite2<I = Record<never, never>, O = Record<neve
     protected errorSubject: rx.Subject<[label: string, originError: any]>;
     dispose: () => void;
     error$: rx.Observable<readonly [error: any, label: string | null]>;
-    get inputTable(): ActionTable<I, LI>;
+    get inputTable(): ActionTable<I, LI[number]>;
     /** alias of inputTable */
-    get it(): ActionTable<I, LI>;
+    get it(): ActionTable<I, LI[number]>;
     /** alias of outputTable */
     get ot(): ActionTable<O & BaseEvents, LOE<LO>>;
     get outputTable(): ActionTable<O & BaseEvents, LOE<LO>>;

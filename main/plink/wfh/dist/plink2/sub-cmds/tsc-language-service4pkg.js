@@ -19,7 +19,7 @@ function addOnPackageFeatures(baseService, pkgMgr, lookupService) {
     lookupService.input.fromPackageService(pkgMgr).dp();
     const packageToTscDirMap = new Map();
     s.interceptor$.next(a$ => {
-        const dispenser = new reactivizer_1.ActionDispenser(a$);
+        const dispenser = reactivizer_1.ActionDispenser.ofAction$(a$);
         return rx.merge(dispenser.ofType('emitFile').pipe(rx.mergeMap(a => rx.concat(table.l.onTscDirsConfig.pipe(rx.take(1), rx.ignoreElements()), pkgMgr.ot.l.data_allPackages).pipe(rx.map(b => [a, b]))), rx.mergeMap(([action, [, allPackages]]) => {
             const { p: [emittedFile] } = action;
             const file = emittedFile.replace(/[\\/]/g, path_1.default.sep);

@@ -9,14 +9,7 @@ export interface TerminalRootActions {
     render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
     setSize: BaseWidgetActions['setSize'];
 }
-declare enum RenderMode {
-    dirty = 0,
-    clearLine = 1,
-    clearScreen = 2
-}
 export interface TerminalCanvasInput {
-    /** Set to `true` for rerender all lines even those lines are not changed, this way it clears terminal screen for every frame, default is `false` */
-    setRenderMode(mode: RenderMode): SingleActionFactory;
     /** render will not work until this message is dispatched */
     setBounding(left: number, top: number, width: number, height: number): SingleActionFactory;
     setRootWidget<I extends TerminalRootActions>(rootWidget: SimplexReactor<I, any> | null): SingleActionFactory;
@@ -26,16 +19,19 @@ export interface TerminalCanvasInput {
     clearRect(x: number, y: number, width: number, height: number): SingleActionFactory;
     render(): SingleActionFactory;
     copyRect(x: number, y: number, width: number, height: number): SingleActionFactory;
-    doneCopyRect(lines: (IntervalTree<readonly [units: number[], style: string]> | undefined)[]): SingleActionFactory;
+    copyDirtyRectAndClear(x: number, y: number, width: number, height: number): SingleActionFactory;
     autoHideCursor(): SingleActionFactory;
 }
 export interface TerminalCanvasOutput {
     /** In context of "render", x, y are both absolute 0 based coordinates value */
     onPrintText(x: number, y: number, text: string): SingleActionFactory;
     onClearLine(y: number, x?: number, dir?: 0 | 1 | -1): SingleActionFactory;
+    onCopyRect(paintables: Array<[xLow: number, xHigh: number, y: number, units: number[], style: string]>): SingleActionFactory;
+    doneCopyRect(lines: (IntervalTree<readonly [units: number[], style: string]> | undefined)[]): SingleActionFactory;
+    onDirtyLineChange(lines: Map<number, [lowColumn: number, highColumn: number]>): SingleActionFactory;
 }
-declare const tableFor: readonly ["setRenderMode", "setBounding", "setRootWidget"];
-export declare function createTerminalCanvas(): SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, readonly ["setRenderMode", "setBounding", "setRootWidget"]>;
+declare const tableFor: readonly ["setBounding", "setRootWidget", "onDirtyLineChange"];
+export declare function createTerminalCanvas(): SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, readonly ["setBounding", "setRootWidget", "onDirtyLineChange"], unknown>;
 export type TerminalCanvas = SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, typeof tableFor>;
 export declare function getTextDisplayUnits(text: string): Generator<number, number[], unknown>;
 export {};

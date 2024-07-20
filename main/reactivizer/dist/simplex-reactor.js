@@ -40,6 +40,8 @@ class SimplexReactor {
             else
                 this.reactorSubj.next(['', ...params]);
         };
+        /** cast current SimplexReactor type to it's logical super type for Typescript type assignable check */
+        this.asBaseType = this;
         this.reactorSubj = new rx.ReplaySubject();
         this.id = SEQ++;
         this.opts = opts;
@@ -77,7 +79,7 @@ class SimplexReactor {
         this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), internalTable.l.__onError.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         rx.map(([, err]) => [err, null]))).pipe(rx.share());
-        this.destory$ = internalTable.l.__onDisposed;
+        this.destory$ = internalMsg$.pt.__onDisposed;
         this.dispose = () => {
             internalMsg$.ft.__onDisposed().dp();
         };

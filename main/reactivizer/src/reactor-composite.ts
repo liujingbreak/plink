@@ -26,7 +26,7 @@ interface BaseActions<
 }
 
 const baseTableFor = ['__onError', '__onDisposed'] as const;
-type LOE<LI extends readonly any[]> = readonly (LI[number] | ExtractTupleElement<typeof baseTableFor>)[];
+type LOE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;
 
 /**
  * Recommend to use SimplexReactor instead of this class, this class will be deprecated in future version
@@ -43,15 +43,15 @@ export class ReactorComposite2<
   dispose: () => void;
   error$: rx.Observable<readonly [error: any, label: string | null]>;
 
-  get inputTable(): ActionTable<I, LI> {
+  get inputTable(): ActionTable<I, LI[number]> {
     return this.it;
   }
 
   /** alias of inputTable */
-  get it(): ActionTable<I, LI> {
+  get it(): ActionTable<I, LI[number]> {
     if (this.iTable)
       return this.iTable;
-    this.iTable = new ActionTable<I, LI>(this.i, [] as unknown as LI);
+    this.iTable = new ActionTable<I, LI[number]>(this.i as RxController2<I>, [] as unknown as LI[number][]);
     return this.iTable;
   }
 
@@ -62,7 +62,7 @@ export class ReactorComposite2<
   get outputTable() {
     return this.ot;
   }
-  private iTable: ActionTable<I, LI> | undefined;
+  private iTable: ActionTable<I, LI[number]> | undefined;
   private oTable: ActionTable<O & BaseEvents, LOE<LO>>;
   // protected static logSubj: rx.Subject<[level: string, ...msg: any[]]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
@@ -88,9 +88,9 @@ export class ReactorComposite2<
     output$.doOperator$.next(doOperator);
 
     if (opts?.inputTableFor && opts?.inputTableFor.length > 0) {
-      this.iTable = new ActionTable(input$, opts.inputTableFor);
+      this.iTable = new ActionTable(input$ as unknown as RxController2<I>, opts.inputTableFor);
     }
-    this.oTable = new ActionTable(this.o, [...(opts?.outputTableFor ?? []), ...baseTableFor] as LOE<LO>);
+    this.oTable = new ActionTable(this.o, [...(opts?.outputTableFor ?? []), ...baseTableFor] as LOE<LO>[]);
     rx.merge(
       output$.pt.__onError.pipe(
         rx.map(([, err]) => {
@@ -154,10 +154,10 @@ export class ReactorComposite2<
     opts: ReactorCompositeOpt<I & I2 & BaseActions<unknown>, O & O2 & BaseEvents, LI2, LO2>
   ) {
     if (opts.inputTableFor) {
-      this.inputTable.addActions(...opts.inputTableFor);
+      this.inputTable.addActions(...opts.inputTableFor as unknown as (keyof I)[]);
     }
     if (opts.outputTableFor) {
-      this.outputTable.addActions(...opts.outputTableFor);
+      this.outputTable.addActions(...opts.outputTableFor as unknown as (keyof O)[]);
     }
     super.config<I2, O2>(Object.entries(opts).reduce((obj, [p, v]) => {
       if (p !== 'inputTableFor' && p !== 'outputTableFor') {

@@ -106,14 +106,16 @@ function createTextWidget(initialText = '') {
             }
         }))) :
         rx.EMPTY)));
-    s.ft.addRerenderAction(s.pt.setContent).dp();
-    s.ft.addRerenderAction(s.pt.setStyle).dp();
-    s.ft.preferredSize(0, 0).dp();
-    s.ft.setSize(0, 0).dp();
-    s.ft.setParent(null).dp();
-    s.ft.overflow(false).dp();
-    s.ft.setStyle([]).dp();
-    s.ft.setContent(initialText).dp();
+    r('init', s.pt.init.pipe(rx.map(([m]) => {
+        s.ft.addRerenderAction(s.pt.setContent).dp(m);
+        s.ft.addRerenderAction(s.pt.setStyle).dp(m);
+        s.ft.preferredSize(0, 0).dp(m);
+        s.ft.setSize(0, 0).dp(m);
+        s.ft.setParent(null).dp(m);
+        s.ft.overflow(false).dp(m);
+        s.ft.setStyle([]).dp(m);
+        s.ft.setContent(initialText).dp(m);
+    })));
     function preferLayoutText(content) {
         const lines = content.split(/\r?\n/, 5000);
         let maxWidth = 0;

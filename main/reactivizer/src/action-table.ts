@@ -54,7 +54,7 @@ export class ActionTable<I, IK extends keyof I> {
   // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
   private actionNamesAdded$ = new rx.ReplaySubject<any[]>(1);
 
-  constructor(private streamCtl: RxController<I> | RxController2<I>, actionNames: IK[]) {
+  constructor(private streamCtl: RxController<I> | RxController2<I>, actionNames: IK[] | readonly IK[]) {
     this.actionNames = new Set();
     this.l = this.latestPayloads;
     this.addActions(...actionNames);

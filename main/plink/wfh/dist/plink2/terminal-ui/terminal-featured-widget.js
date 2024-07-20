@@ -213,16 +213,18 @@ function createListContainer(opts = {}) {
         gl_matrix_1.mat4.mul(tranOfChild, trans, tranOfChild);
         chr.s.ft.render(canvas, tranOfChild).re(m).dp();
     })));
-    ft.setDirection('row').dp();
-    ft.alignItems('center').dp();
-    ft.justifyContent('start').dp();
-    ft.setBorderSpacing(1).dp();
-    for (const a$ of [
-        s.pt.setDirection, s.pt.setBorderSpacing,
-        s.pt.alignItems, s.pt.justifyContent, s.pt.setBackground
-    ]) {
-        ft.addReflowAction(a$).dp();
-    }
+    r('init', s.pt.init.pipe(rx.map(([m]) => {
+        ft.setDirection('row').dp(m);
+        ft.alignItems('center').dp(m);
+        ft.justifyContent('start').dp(m);
+        ft.setBorderSpacing(1).dp(m);
+        for (const a$ of [
+            s.pt.setDirection, s.pt.setBorderSpacing,
+            s.pt.alignItems, s.pt.justifyContent, s.pt.setBackground
+        ]) {
+            ft.addReflowAction(a$).dp(m);
+        }
+    })));
     return listContainer;
 }
 function calculateSizeOfEach(individualPrefSizes, totalSize) {
@@ -245,8 +247,8 @@ function calculateSizeOfEach(individualPrefSizes, totalSize) {
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'];
 const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
 function createBorderContainer(child) {
-    const base = (0, terminal_widget_1.createContainerBase)();
-    const service = base.config({
+    const container = (0, terminal_widget_1.createContainerBase)();
+    const service = container.config({
         name: 'borderContainer', tableFor: tableForBorderContainer
     });
     const { r, table, s } = service;
@@ -293,12 +295,16 @@ function createBorderContainer(child) {
         }
         childPos[0] += left;
         childPos[1] += top;
-        children[0].s.ft.setSize(w - left - right - borderLine, h - top - bottom - borderLine).dp(m);
+        const cWidth = w - left - right - borderLine;
+        const cHeight = h - top - bottom - borderLine;
+        if (cWidth > 0 && cHeight > 0) {
+            children[0].s.ft.setSize(cWidth, cHeight).dp(m);
+        }
         // service.log('>>>>>>>>>>>>>>>>>>>>>>>>>>> childPos', childPos);
     })));
     r('renderSelf', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setBorder, table.l.setBorderStyle, table.l.setSize), rx.map(([[m, canvas, trans], [, border], [, style], [, w, h]]) => {
         const pos = [0, 0];
-        if (border === 'line') {
+        if (border === 'line' && w > 2 && h > 2) {
             gl_matrix_1.vec2.transformMat4(pos, pos, trans);
             canvas.s.ft.addString(pos[0], pos[1], BORDER_CHARS[0][0] + BORDER_CHARS[0][1].repeat(w - 2) + BORDER_CHARS[0][2], style).dp(m);
             for (let i = 1, l = h - 2; i <= l; i++) {
@@ -309,13 +315,15 @@ function createBorderContainer(child) {
             canvas.s.ft.addString(pos[0], pos[1] + h - 1, BORDER_CHARS[1][0] + BORDER_CHARS[1][1].repeat(w - 2) + BORDER_CHARS[1][2], style).dp(m);
         }
     })));
-    s.ft.addReflowAction(s.pt.setBorder).dp();
-    s.ft.addReflowAction(s.pt.setPadding).dp();
-    s.ft.addRerenderAction(s.pt.setBorderStyle).dp();
-    s.ft.setPadding(0, 1, 0, 1).dp();
-    s.ft.setBorder('line').dp();
-    s.ft.addChild(child).dp();
-    s.ft.setBorderStyle([]).dp();
+    r('init', s.pt.init.pipe(rx.map(([m]) => {
+        s.ft.addReflowAction(s.pt.setBorder).dp(m);
+        s.ft.addReflowAction(s.pt.setPadding).dp(m);
+        s.ft.addRerenderAction(s.pt.setBorderStyle).dp(m);
+        s.ft.setPadding(0, 1, 0, 1).dp(m);
+        s.ft.setBorder('line').dp(m);
+        s.ft.addChild(child).dp(m);
+        s.ft.setBorderStyle([]).dp(m);
+    })));
     return service;
 }
 //# sourceMappingURL=terminal-featured-widget.js.map

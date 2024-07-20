@@ -14,6 +14,8 @@ export class SimplexReactor {
             else
                 this.reactorSubj.next(['', ...params]);
         };
+        /** cast current SimplexReactor type to it's logical super type for Typescript type assignable check */
+        this.asBaseType = this;
         this.reactorSubj = new rx.ReplaySubject();
         this.id = SEQ++;
         this.opts = opts;
