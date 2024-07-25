@@ -56,7 +56,7 @@ export declare class ControllerCore<I> {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.Subject<Set<"log" | "name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle">>;
+    configChange: rx.Subject<Set<"name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
     opts: CoreOptions<any>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };

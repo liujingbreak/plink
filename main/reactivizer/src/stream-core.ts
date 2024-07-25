@@ -73,11 +73,11 @@ export class ControllerCore<I> {
   actionSubscribed$: rx.Observable<void>;
   /** Event when `action$` is entirely unsubscribed by all observers */
   actionUnsubscribed$: rx.Observable<void>;
-  configChange = new rx.Subject<Set<keyof RxControlConfigType<I>>>();
+  configChange = new rx.ReplaySubject<Set<keyof RxControlConfigType<I>>>(1); // using ReplaySubject here, because this controll might be created with "autoConnect" of false, a deferred "connect" results in later describing on this observable
   opts: CoreOptions<any> = {}; // Using CoreOption<I> here will results in non-assignable issue of entire controller type, always use <any> instead
   protected dispatcher = {} as {[K in keyof I]: Dispatch<I[K]>};
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[K]>};
-  private connectableAction$: rx.Connectable<Action<I[keyof I]>> | undefined;
+  private connectableAction$: rx.Connectable<Action<I[keyof I]>>;
 
   constructor(opts: CoreOptions<I> = {}) {
     this.setName(opts?.name);
@@ -124,7 +124,7 @@ export class ControllerCore<I> {
                 rx.tap(action => {
                   const type = nameOfAction(action);
                   if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                    this.opts.log!(this.logPrefix, 'rx:', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                    this.opts.log!(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                   }
                 }) :
                 (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
@@ -132,7 +132,7 @@ export class ControllerCore<I> {
                     const type = nameOfAction(action);
                     if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                       // eslint-disable-next-line no-console
-                      console.log(`%c ${this.logPrefix} rx:`, 'color: #e0f0e0; background: #8c61ff;',
+                      console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;',
                         type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                     }
                   }) :
@@ -152,8 +152,8 @@ export class ControllerCore<I> {
         })
       ));
 
-    const actionSubDispatcher = new rx.Subject<void>();
-    const actionUnsubDispatcher = new rx.Subject<void>();
+    const actionSubDispatcher = new rx.ReplaySubject<void>();
+    const actionUnsubDispatcher = new rx.ReplaySubject<void>();
     // 2. this.connectableAction$ => this.action$, this.actionSubDispatcher, this.actionUnsubDispatcher
     this.action$ = rx.merge(
       // merge() helps to leverage a auxiliary Observable to notify when "connectableAction$" is actually being
@@ -275,14 +275,15 @@ export class ControllerCore<I> {
   }
 
   connect() {
-    rx.concat(
-      rx.of(this.connectableAction$),
-      this.configChange
-    ).pipe(
-      rx.filter(() => this.connectableAction$ != null),
-      rx.map(() => this.connectableAction$),
-      rx.take(1)
-    ).subscribe(() => this.connectableAction$!.connect());
+    this.connectableAction$.connect();
+    // rx.concat(
+    //   rx.of(this.connectableAction$),
+    //   this.configChange
+    // ).pipe(
+    //   rx.filter(() => this.connectableAction$ != null),
+    //   rx.map(() => this.connectableAction$),
+    //   rx.take(1)
+    // ).subscribe(() => this.connectableAction$!.connect());
   }
 }
 

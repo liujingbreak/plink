@@ -69,6 +69,7 @@ function createBroker(workerController, opts) {
         });
         const wi = new control2_1.RxController2({
             name: '#' + workerNo + ' worker input',
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             debugExcludeTypes: opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes
         });
         props.input = wi;

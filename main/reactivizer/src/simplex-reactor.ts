@@ -12,11 +12,10 @@ export interface BaseActions<
   I = any,
   LI extends readonly (keyof I)[] = readonly []
 > {
-  /** Internal use, when option `debug` is `true`, this message will be dispatched when
-   * ReactorComposite2 is instantiated */
-  __onNew(): SingleActionFactory;
+  /** This event is when we can dispatch actions for initializing "action table" */
+  // __onInit(): SingleActionFactory;
   __onError(err: any): SingleActionFactory;
-  __config(opts: SimplexReactorOptions<I & BaseActions<LI>, LI>): SingleActionFactory;
+  __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
   __onDisposed(): SingleActionFactory;
 }
 const baseTableFor = ['__onError', '__onDisposed'] as const;
@@ -50,13 +49,10 @@ export class SimplexReactor<
   // use type parameter <any> to make SimplexReactor more assignable to extend type
   opts?: SimplexReactorOptions<I, LI>;
 
-  constructor(opts?: SimplexReactorOptions<I & BaseActions<I>, LI>) {
-    this.opts = opts as typeof this.opts;
+  constructor(opts?: SimplexReactorOptions<I, LI>) {
+    this.opts = opts;
     this.s = new RxController2<I & BaseActions<I>>({...opts, name: (opts?.name ?? '') + `#${this.id}`});
     const internalMsg$ = this.s as unknown as RxController2<BaseActions>;
-    if (opts?.debug) {
-      internalMsg$.ft.__onNew().dp();
-    }
 
     const doOperator = <A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.merge(
       response$,
@@ -124,7 +120,7 @@ export class SimplexReactor<
    * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
    * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
    */
-  config<I2 = Record<string, never>, L2 extends(Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I & BaseActions<any>, I2, L2>) {
+  config<I2 = Record<string, never>, L2 extends(Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>) {
     if (this.opts) {
       Object.assign(this.opts, opts);
     } else {
@@ -206,10 +202,10 @@ export class SimplexReactor<
   }
   log(...msg: any[]) {
     if (this.opts?.log)
-      this.opts.log((this.opts?.name ?? ''), ...msg);
+      this.opts.log((this.s.logPrefix ?? ''), ...msg);
     else {
       // eslint-disable-next-line no-console
-      console.log((this.opts?.name ?? ''), ...msg);
+      console.log((this.s.logPrefix ?? ''), ...msg);
     }
   }
 
@@ -251,8 +247,14 @@ export class SimplexReactor<
 
     return resolveFuncKey;
   }
+  // init() {
+  //   this.s.ft.__onInit().dp();
+  //   return this;
+  // }
   /** @deprecated no longer needed, always start automatically after being contructed */
-  startAll() {}
+  startAll() {
+    return this;
+  }
 
   /** @deprecated call dispose() instead */
   destory() {

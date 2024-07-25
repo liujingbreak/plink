@@ -59,8 +59,8 @@ export class ActionTable<I, IK extends keyof I> {
     this.l = this.latestPayloads;
     this.addActions(...actionNames);
     this.actionNamesAdded$.pipe(
-      rx.map(actionNames => {
-        this.onAddActions(actionNames);
+      rx.mergeMap(actionNames => {
+        return this.onAddActions(actionNames);
       })
     ).subscribe();
     this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
@@ -82,29 +82,30 @@ export class ActionTable<I, IK extends keyof I> {
     return this as ActionTable<I, IK | M>;
   }
 
-  private onAddActions<M extends ReadonlyArray<keyof I>>(actionNames: M) {
-    for (const type of actionNames) {
-      if (this.data[type as IK] == null)
-        this.data[type as IK] = EMPTY_ARRY;
-      if (has.call(this.latestPayloads, type))
-        continue;
+  private onAddActions<MI extends keyof I>(actionNames: MI[]) {
+    return rx.from(actionNames).pipe(
+      rx.mergeMap(type => {
+        if (this.data[type as unknown as IK] == null)
+          this.data[type as unknown as IK] = EMPTY_ARRY;
+        if (has.call(this.latestPayloads, type))
+          return rx.EMPTY;
 
-      const a$ = new rx.ReplaySubject<InferMapParam<I[M[number]]>>(1);
-      (this.streamCtl as RxController2<I>).at[type].pipe(
-        rx.map(a => {
-          // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
-          const mapParam = [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I[M[number]]>;
-          this.actionSnapshot.set(type as string, mapParam);
-          return mapParam;
-        })
-      ).subscribe(a$);
+        const a$ = new rx.ReplaySubject<InferMapParam<I[MI]>>(1);
+        (this.streamCtl as RxController2<I>).at[type].pipe(
+          rx.map(a => {
+            // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
+            const mapParam = [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I[MI]>;
+            this.actionSnapshot.set(type as string, mapParam);
+            return mapParam;
+          })
+        ).subscribe(a$);
 
-      this.latestPayloads[type as IK] = (this.streamCtl.opts as any).debugTableAction ?
-        a$.pipe(
-          this.debugLogLatestActionOperator(type)
-        ) :
-        a$.asObservable();
-    }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        return this.latestPayloads[type as unknown as IK] = (this.streamCtl.opts as any)?.debugTableAction ?
+          a$.pipe(this.debugLogLatestActionOperator(type)) as any :
+          a$.asObservable() as any;
+      })
+    );
   }
 
   getLatestActionOf<K extends IK[][number]>(actionName: K): InferMapParam<I[K]> | undefined {
@@ -124,7 +125,7 @@ export class ActionTable<I, IK extends keyof I> {
         rx.map<P, P>((p, idx) => {
           if (idx === 0 && !core.debugExcludeSet.has(type)) {
             // eslint-disable-next-line no-console
-            console.log(`%c ${core.logPrefix}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type,
+            console.log(`%c ${core.logPrefix} latest `, 'color: #f0fe0fe0; background: #8c61dd;', type,
               actionMetaToStr(p[0]));
           }
           return p;
@@ -132,7 +133,7 @@ export class ActionTable<I, IK extends keyof I> {
         rx.map<P, P>((p, idx) => {
           if (idx > 0 && !core.debugExcludeSet.has(type)) {
             // eslint-disable-next-line no-console
-            console.log(core.logPrefix + 'latest:', type, actionMetaToStr(p[0]));
+            console.log(core.logPrefix + ' latest:', type, actionMetaToStr(p[0]));
           }
           return p;
         });

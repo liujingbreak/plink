@@ -112,9 +112,11 @@ export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any>, R2 exte
   SimplexReactor<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
   readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]
   >;
-export type SimplexReactorExtendType<RBase extends SimplexReactor<any, any>, I, L extends (keyof I)[]> =
-  SimplexReactor<InferActionsOfSmplxRctr<RBase> & I, (InferTableForSmplxRctr<RBase> | L[number])[]>;
+
+export type SimplexReactorExtendType<RBase extends SimplexReactor<any, any>, I, L extends readonly (keyof I)[]> =
+  SimplexReactor<InferActionsOfSmplxRctr<RBase> & I, ReadonlyArray<InferTableForSmplxRctr<RBase> | L[number]>>;
 
 export type OptionsOfMergedSmplxRctr<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
   SimplexReactorOptions<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
-  readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]>;
+  ReadonlyArray<InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>>>;
+

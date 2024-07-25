@@ -53,7 +53,7 @@ export class SimplexReactor {
         this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), internalTable.l.__onError.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         rx.map(([, err]) => [err, null]))).pipe(rx.share());
-        this.destory$ = internalTable.l.__onDisposed;
+        this.destory$ = internalMsg$.pt.__onDisposed;
         this.dispose = () => {
             internalMsg$.ft.__onDisposed().dp();
         };

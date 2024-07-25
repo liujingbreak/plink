@@ -4,7 +4,8 @@ import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
 import {ActionDispenser, SimplexReactorOptions} from '../src/index';
 import {formatToConcise} from '../src/nodejs-utils';
-import {SingleActionFactory, ReactorComposite2, actionRelatedToActionRelatives, SimplexReactor, pairActionToActionStream} from '../src';
+import {SingleActionFactory, RxController2, ReactorComposite2, actionRelatedToActionRelatives, SimplexReactor,
+  pairActionToActionStream} from '../src';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
@@ -12,6 +13,10 @@ const inputTableFor = ['message3', 'message1'] as const;
 const stdoutLogger: SimplexReactorOptions<any, any>['log'] = (...msgs) => {
   process.stdout.write(formatToConcise(...msgs));
   process.stdout.write('\n');
+};
+type TestGroupBy = {
+  foobar1(key: string, v: number): SingleActionFactory;
+  foobar2(key: string, v: string): SingleActionFactory;
 };
 
 describe('reactivizer2', () => {
@@ -126,6 +131,73 @@ describe('reactivizer2', () => {
       expect(v4).toBe(4);
       expect(v2).toBe('2');
       expect(v1).toBe('1');
+    });
+    it('groupControllerBy, core.actionSubscribed$', () => {
+      const s = new RxController2<TestGroupBy>({name: 'test.groupControllerBy', debug: true});
+
+      const jestFn1 = jest.fn();
+      const jestFn2 = jest.fn();
+      const jestGroupedFn = jest.fn();
+      const jestCoreSubFn = jest.fn();
+
+      s.groupControllerBy(act => act.p[0], key => ({name: 'grouped-' + key, debug: true})).pipe(
+        rx.mergeMap(([ctl, ctlByKeyMap]) => {
+          jestGroupedFn(ctl, ctlByKeyMap);
+          ctl.action$.subscribe(v => console.log(v));
+
+          ctl.actionSubscribed$.pipe(
+            rx.tap(jestCoreSubFn)
+          ).subscribe();
+
+          ctl.actionUnsubscribed$.pipe().subscribe(() => console.log('unsubscribe grouped controller'));
+
+          return rx.merge(
+            ctl.pt.foobar1.pipe(
+              rx.tap(([, k, v]) => jestFn1(ctl.key, k, v))
+            ),
+            ctl.pt.foobar2.pipe(
+              rx.tap(([, k, v]) => jestFn2(ctl.key, k, v))
+            )
+          );
+        })
+      ).subscribe();
+
+      s.ft.foobar1('aaa', 1).dp();
+      s.ft.foobar2('aaa', 'x').dp();
+      s.ft.foobar1('bbb', 2).dp();
+      s.ft.foobar1('aaa', 3).dp();
+      s.ft.foobar2('bbb', 'y').dp();
+      expect(jestCoreSubFn.mock.calls.length).toBe(2);
+      expect(jestGroupedFn.mock.calls.length).toBe(2);
+      expect((jestGroupedFn.mock.calls[0][0] as any).key).toBe('aaa');
+      expect((jestGroupedFn.mock.calls[1][0] as any).key).toBe('bbb');
+      expect((jestGroupedFn.mock.calls[1][1] as Map<string, any>).size).toBe(2);
+      expect((jestGroupedFn.mock.calls[1][1] as Map<string, any>).get('aaa')).toBe(jestGroupedFn.mock.calls[0][0]);
+      expect((jestGroupedFn.mock.calls[1][1] as Map<string, any>).get('bbb')).toBe(jestGroupedFn.mock.calls[1][0]);
+
+      expect(jestFn1.mock.calls.length).toBe(3);
+      expect(jestFn2.mock.calls.length).toBe(2);
+      expect(jestFn1.mock.calls[0]).toEqual(['aaa', 'aaa', 1]);
+      expect(jestFn2.mock.calls[0]).toEqual(['aaa', 'aaa', 'x']);
+      expect(jestFn1.mock.calls[1]).toEqual(['bbb', 'bbb', 2]);
+      expect(jestFn1.mock.calls[2]).toEqual(['aaa', 'aaa', 3]);
+      expect(jestFn2.mock.calls[1]).toEqual(['bbb', 'bbb', 'y']);
+    });
+    it('subForTypes', () => {
+      const control = new RxController2<TestActions>();
+      const sub = control.subForTypes(['message3', 'message4'] as const);
+      const mock = jest.fn();
+      sub.action$.subscribe(action => mock(action.t));
+
+      control.ft.message1().dp();
+      control.ft.message2('2').dp();
+      control.ft.message3('a', 'b').dp();
+      control.ft.message4('a', 3, true).dp();
+      control.ft.message1().dp();
+
+      expect(mock.mock.calls.length).toBe(2);
+      expect(mock.mock.calls[0][0]).toEqual('message3');
+      expect(mock.mock.calls[1][0]).toEqual('message4');
     });
   });
 

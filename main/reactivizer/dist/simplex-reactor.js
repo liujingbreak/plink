@@ -47,9 +47,6 @@ class SimplexReactor {
         this.opts = opts;
         this.s = new control2_1.RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `#${this.id}` }));
         const internalMsg$ = this.s;
-        if (opts === null || opts === void 0 ? void 0 : opts.debug) {
-            internalMsg$.ft.__onNew().dp();
-        }
         const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsg$.pt.__onError.pipe((0, context_operators_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
@@ -161,12 +158,12 @@ class SimplexReactor {
         return this;
     }
     log(...msg) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c;
         if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
-            this.opts.log(((_c = (_b = this.opts) === null || _b === void 0 ? void 0 : _b.name) !== null && _c !== void 0 ? _c : ''), ...msg);
+            this.opts.log(((_b = this.s.logPrefix) !== null && _b !== void 0 ? _b : ''), ...msg);
         else {
             // eslint-disable-next-line no-console
-            console.log(((_e = (_d = this.opts) === null || _d === void 0 ? void 0 : _d.name) !== null && _e !== void 0 ? _e : ''), ...msg);
+            console.log(((_c = this.s.logPrefix) !== null && _c !== void 0 ? _c : ''), ...msg);
         }
     }
     reactivizeFunction(key, func, funcThisRef) {
@@ -198,8 +195,14 @@ class SimplexReactor {
         })));
         return resolveFuncKey;
     }
+    // init() {
+    //   this.s.ft.__onInit().dp();
+    //   return this;
+    // }
     /** @deprecated no longer needed, always start automatically after being contructed */
-    startAll() { }
+    startAll() {
+        return this;
+    }
     /** @deprecated call dispose() instead */
     destory() {
         this.dispose();

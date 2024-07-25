@@ -13,7 +13,8 @@
     {"path": "../thread-promise-pool/tsconfig-thread-promise.json"},
     {"path": "../algorithms/tsconfig-node.json"},
     {"path": "../reactivizer/tsconfig-node.json"},
-    {"path": "../require-injector/tsconfig-node.json"}
+    {"path": "../require-injector/tsconfig-node.json"},
+    {"path": "../terminal-ui/tsconfig-node.json"}
   ],
   "include": [
     "wfh/src/**/*.ts"

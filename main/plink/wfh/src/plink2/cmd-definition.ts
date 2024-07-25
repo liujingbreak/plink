@@ -5,16 +5,14 @@ import * as rx from 'rxjs';
 import commander from 'commander';
 import chalk from 'chalk';
 import {ActionMeta} from '@wfh/reactivizer';
+import {createFlexContainer, createTextWidget, createTerminalCanvas} from '@wfh/terminal-ui';
 import {sexyFont} from '../utils/misc';
 import {createPackageMgrService} from '../package-mgr/package-mgr2';
 import {createPlinkPackageLookupService} from '../package-mgr/package-mgr2-lookup';
 import {languageServices} from './sub-cmds/tsc-language-service';
 import {addOnPackageFeatures} from './sub-cmds/tsc-language-service4pkg';
 import {cmdModelService} from './cmd-model';
-import {createTerminalCanvas} from './terminal-ui/terminal-canvas';
 import {ServcerChildProcessEntry} from './server-child-process-service';
-import {createTextWidget} from './terminal-ui/terminal-text';
-import {createListContainer} from './terminal-ui/terminal-featured-widget';
 
 export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) => void) {
   const lang = languageServices();
@@ -25,7 +23,7 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
   pkgLookupService.service.config({log: logger});
   const langExt = addOnPackageFeatures(lang, packageMgrService, pkgLookupService);
   const canvas = createTerminalCanvas();
-  const rootWidget = createListContainer({debug: true, log: logger});
+  const rootWidget = createFlexContainer({debug: true, log: logger});
   const textWidget = createTextWidget();
   const versionTextWidget = createTextWidget();
   canvas.config({log: logger, debug: true});

@@ -333,11 +333,6 @@ describe('reactivizer', () => {
     });
   });
 
-  it.skip('Extend ReactorComposite', () => {
-    // const c: ExtReactorComp | undefined;
-    // console.log(c);
-  });
-
   it('RxController dispatchAndObserveRes in case of error', async () => {
     const comp = new ReactorComposite<TestMessages, TestMessages>();
     comp.r('test error', comp.i.pt.msg1.pipe(

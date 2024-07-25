@@ -17,7 +17,7 @@ export class ControllerCore {
         this.dispatcherFor = {};
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
         const interceptorList$ = this.interceptor$.pipe(rx.startWith(a$ => a$), rx.scan((arr, it) => {
-            arr.push(it);
+            arr.unshift(it);
             return arr;
         }, []));
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
@@ -71,7 +71,7 @@ export class ControllerCore {
                         }))
                 : this.actionUpstream;
             return interceptors ?
-                debuggableAction$.pipe(...interceptors.reverse()) :
+                debuggableAction$.pipe(...interceptors) :
                 debuggableAction$;
         })));
         const actionSubDispatcher = new rx.Subject();

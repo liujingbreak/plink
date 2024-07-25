@@ -60,7 +60,8 @@ export function createBroker<I = Record<never, never>>(
       });
       const wi = new RxController2<ForkWorkerInput & ForkWorkerOutput & I>({
         name: '#' + workerNo + ' worker input',
-        debugExcludeTypes: (opts as SimplexReactorOptions<ForkWorkerInput> | undefined)?.debugExcludeTypes
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        debugExcludeTypes: opts?.debugExcludeTypes as any
       });
       props.input = wi;
       props.output = wo;

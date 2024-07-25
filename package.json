@@ -15,6 +15,7 @@
     "main/algorithms",
     "main/plink-cli",
     "main/plink-test",
+    "main/terminal-ui",
     "main/reactivizer",
     "main/eslint-config",
     "main/redux-toolkit-observable",

@@ -6,11 +6,9 @@ import { SimplexReactorOptions, SimplexReactorCfgOpts } from './reactor-base';
 import { ActionTable } from './action-table';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
-    /** Internal use, when option `debug` is `true`, this message will be dispatched when
-     * ReactorComposite2 is instantiated */
-    __onNew(): SingleActionFactory;
+    /** This event is when we can dispatch actions for initializing "action table" */
     __onError(err: any): SingleActionFactory;
-    __config(opts: SimplexReactorOptions<I & BaseActions<LI>, LI>): SingleActionFactory;
+    __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
     __onDisposed(): SingleActionFactory;
 }
 declare const baseTableFor: readonly ["__onError", "__onDisposed"];
@@ -30,13 +28,13 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
     private id;
     opts?: SimplexReactorOptions<I, LI>;
-    constructor(opts?: SimplexReactorOptions<I & BaseActions<I>, LI>);
+    constructor(opts?: SimplexReactorOptions<I, LI>);
     /**
      * This method can be used to change "options" after SimplexReactor instanciation, e.g. `.change({debug: true})` to enable action tracing log for debug.
      * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
      * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
      */
-    config<I2 = Record<string, never>, L2 extends (Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I & BaseActions<any>, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[], SimplexReactor<I, LI, BaseType>>;
+    config<I2 = Record<string, never>, L2 extends (Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[], SimplexReactor<I, LI, BaseType>>;
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
@@ -63,7 +61,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     log(...msg: any[]): void;
     reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     /** @deprecated no longer needed, always start automatically after being contructed */
-    startAll(): void;
+    startAll(): this;
     /** @deprecated call dispose() instead */
     destory(): void;
     protected logError(label: string, err: any): void;

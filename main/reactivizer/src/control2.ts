@@ -160,7 +160,9 @@ export class RxController2<I> extends ControllerCore<I> {
           ),
           // Then dispatch source action to grouped controller
           grouped.pipe(
-            rx.tap(action => deserializeAction2(action, groupedRxCtl))
+            rx.tap(action => {
+              deserializeAction2(action, groupedRxCtl);
+            })
           )
         ).pipe(
           rx.takeUntil(groupedRxCtl.actionUnsubscribed$)

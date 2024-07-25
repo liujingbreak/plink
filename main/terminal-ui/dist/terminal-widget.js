@@ -1,0 +1,179 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tableForBase = void 0;
+exports.createBase = createBase;
+exports.createContainerBase = createContainerBase;
+const rx = __importStar(require("rxjs"));
+const gl_matrix_1 = require("gl-matrix");
+const reactivizer_1 = require("@wfh/reactivizer");
+exports.tableForBase = [
+    'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
+    'setPreferredSize', 'setFlexGrow'
+];
+/** Do not prepend controller to returned service, otherwise interceptor won't work */
+function createBase(opts) {
+    const service = new reactivizer_1.SimplexReactor(Object.assign({ tableFor: exports.tableForBase }, opts));
+    const { s, r, table } = service;
+    // When table "setPreferredSize" contains non-null value, override corresponding "preferredSize" event, change or skip it
+    service.s.prependInterceptor(up => {
+        const disp = reactivizer_1.ActionDispenser.ofAction$(up);
+        return rx.merge(disp.at.preferredSize.pipe(rx.withLatestFrom(table.l.setPreferredSize), rx.map(([a, [, w, h]]) => {
+            if (w != null && a.p[0] !== w)
+                a.p[0] = w;
+            if (h != null && a.p[1] !== h)
+                a.p[1] = h;
+            return a;
+        }), rx.distinctUntilChanged((a, b) => a.p[0] === b.p[0] && a.p[1] === b.p[1])), disp.ofOtherTypes());
+    });
+    r('addRerenderAction', rx.merge(s.pt.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)), s.pt.addRerenderAction.pipe(rx.mergeMap(([, action$]) => action$)).pipe(rx.map(actionOrPayload => {
+        const m = Array.isArray(actionOrPayload) ? actionOrPayload[0] : actionOrPayload;
+        s.ft.needRerender(true).dp(m);
+    }))));
+    r('render -> needRerender, onRender, renderBackgroundFor', s.pt.render.pipe(rx.withLatestFrom(table.l.needRerender, table.l.setParent, table.l.onSize), rx.map(([[m, canvas, trans, rerenderRect], [, renderSelf], [, parent], [, width, height]]) => {
+        if (renderSelf && parent) {
+            parent.s.ft.renderBackgroundFor(service).dp(m);
+        }
+        s.ft.onRender(canvas, trans, renderSelf, rerenderRect !== null && rerenderRect !== void 0 ? rerenderRect : [0, 0, width, height]).dp(m);
+        if (renderSelf)
+            s.ft.needRerender(false).dp(m);
+    })));
+    r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', table.l.setParent.pipe(rx.switchMap(([, parent]) => parent ?
+        rx.merge(service.error$.pipe(rx.tap(errInfo => parent.s.ft.onChildError(service.s.logPrefix, errInfo))), parent.destory$.pipe(rx.map(() => service.dispose()))) :
+        rx.EMPTY)));
+    r('init', new rx.Observable(() => {
+        s.ft.setFlexGrow(0).dp();
+        s.ft.setPreferredSize(null, null).dp();
+        s.ft.needRerender(true).dp();
+        s.ft.setParent(null).dp();
+    }));
+    return service;
+}
+const tableFor = ['allChildren', 'setLayoutValid', 'setBackground', 'onBgChangeWithParent', 'onChildPreferredSizeChange'];
+function createContainerBase(opts) {
+    const base = createBase(opts);
+    const service = base.config({
+        tableFor
+    });
+    const { r, s, table } = service;
+    const { ft } = s;
+    const children = [];
+    r('addChild -> child.setParent', s.pt.addChild.pipe(rx.map(([m, ...added]) => {
+        children.push(...added);
+        for (const child of children) {
+            child.s.ft.setParent(service).dp(m);
+        }
+    })));
+    r('removeChild', s.pt.removeChild.pipe(rx.map(([, ...widgets]) => {
+        for (const w of widgets) {
+            const idx = children.findIndex(c => c === w);
+            if (idx >= 0)
+                children.splice(idx, 1);
+        }
+    })));
+    r('addChild, removeChild, children.preferredSize -> onChildPreferredSizeChange', rx.merge(s.pt.addChild, s.pt.removeChild).pipe(rx.switchMap(() => table.l.allChildren.pipe(rx.switchMap(([, children]) => {
+        return rx.combineLatest([...children].map(widget => {
+            return widget.table.l.preferredSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2));
+        }));
+    }), rx.map(preferredSizeOfChildren => {
+        ft.onChildPreferredSizeChange(preferredSizeOfChildren.map(([, w, h]) => [w, h])).dp();
+    })))));
+    r('addReflowAction', s.pt.addReflowAction.pipe(rx.mergeMap(([, action$]) => action$), rx.map(actionOrPayload => {
+        const m = Array.isArray(actionOrPayload) ? actionOrPayload[0] : actionOrPayload;
+        s.ft.needRerender(true).dp(m);
+        s.ft.setLayoutValid(false).dp(m);
+    })));
+    r('renderSelf -> reflow', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.map(([[m], [, valid]]) => {
+        if (!valid)
+            s.ft.reflow().dp(m);
+    })));
+    r('reflow -> child.needRerender(true)', s.pt.reflow.pipe(rx.withLatestFrom(table.l.allChildren), rx.map(([[m], [, allChildren]]) => {
+        for (const child of allChildren)
+            child.s.ft.needRerender(true).dp(m);
+    })));
+    r('onRender -> renderSelf, renderChild', s.pt.onRender.pipe(rx.map(([m, canvas, trans, renderSelf, area]) => {
+        if (renderSelf)
+            s.ft.renderSelf(canvas, trans, area).dp(m);
+        for (let i = 0, l = children.length; i < l; i++) {
+            const chr = children[i];
+            s.ft.renderChild(i, chr, canvas, trans, area).dp(m);
+        }
+    })));
+    r('renderChild -> child.render, canvas.addString', s.pt.renderChild.pipe(rx.map(([m, _index, chr, canvas, trans]) => {
+        chr.s.ft.render(canvas, trans).re(m).dp();
+    })));
+    r('onChildError -> parent.onChildError', s.pt.onChildError.pipe(rx.withLatestFrom(s.pt.setParent), rx.map(([[, childId, errInfo], [, parent]]) => {
+        if (parent)
+            parent.s.ft.onChildError(childId, errInfo);
+    })));
+    r('renderSelf, onBgChangeWithParent, onSize -> canvas.addString, canvas.clearRect', s.pt.renderSelf.pipe(rx.mergeMap(a => rx.combineLatest([
+        table.l.onSize,
+        table.l.onBgChangeWithParent
+    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.map(([[m, canvas, trans], [, width, height], [, bg]], idx) => {
+        const pos = [0, 0];
+        gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+        if (bg) {
+            const fill = ' '.repeat(width);
+            for (let i = 0; i < height; i++) {
+                canvas.s.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
+            }
+        }
+        else {
+            if (idx === 0) {
+                const fill = ' '.repeat(width);
+                for (let i = 0; i < height; i++) {
+                    canvas.s.ft.addString(pos[0], pos[1] + i, fill).dp(m);
+                }
+            }
+            else {
+                canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
+            }
+        }
+    })));
+    r('setParent, parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
+        table.l.setParent.pipe(rx.switchMap(([, parent]) => { var _a; return (_a = parent === null || parent === void 0 ? void 0 : parent.table.l.onBgChangeWithParent) !== null && _a !== void 0 ? _a : rx.of([null, null]); })),
+        table.l.setBackground
+    ]).pipe(rx.map(([[m, pBg], [m2, ownBg]]) => {
+        if (ownBg)
+            s.ft.onBgChangeWithParent(ownBg).dp(m2);
+        else if (m && pBg)
+            s.ft.onBgChangeWithParent(pBg).dp(m, m2);
+        else
+            s.ft.onBgChangeWithParent(null).dp(m2);
+    })));
+    r('init', new rx.Observable(() => {
+        ft.addReflowAction(s.pt.onSize).dp();
+        ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
+        ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
+        ft.allChildren(children).dp();
+        ft.onSize(0, 0).dp();
+        ft.preferredSize(0, 0).dp();
+        ft.overflow(false).dp();
+        ft.setLayoutValid(false).dp();
+        ft.setBackground(null).dp();
+    }));
+    return service;
+}
+//# sourceMappingURL=terminal-widget.js.map
