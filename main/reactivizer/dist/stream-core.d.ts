@@ -19,7 +19,7 @@ export type Action<F> = {
 } & ActionMeta;
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<F>;
 export type DispatchFor<F> = (origActionMeta: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>, ...params: InferPayload<F>) => Action<F>;
-export type CoreOptions<I> = {
+export type CoreOptions<I = Record<string, never>> = {
     name?: string;
     /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
     * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,

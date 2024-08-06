@@ -31,7 +31,7 @@ const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
 exports.tableForBase = [
     'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-    'setPreferredSize', 'setFlexGrow'
+    'setPreferredSize', 'setFlexGrow', 'ofCanvas'
 ];
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 function createBase(opts) {
@@ -52,6 +52,10 @@ function createBase(opts) {
         const m = Array.isArray(actionOrPayload) ? actionOrPayload[0] : actionOrPayload;
         s.ft.needRerender(true).dp(m);
     }))));
+    r('needRerender, ofCanvas', s.pt.needRerender.pipe(rx.withLatestFrom(table.l.ofCanvas), rx.map(([[m, need], [, canvas]]) => {
+        if (canvas && need)
+            canvas.s.ft.requestRender().dp(m);
+    })));
     r('render -> needRerender, onRender, renderBackgroundFor', s.pt.render.pipe(rx.withLatestFrom(table.l.needRerender, table.l.setParent, table.l.onSize), rx.map(([[m, canvas, trans, rerenderRect], [, renderSelf], [, parent], [, width, height]]) => {
         if (renderSelf && parent) {
             parent.s.ft.renderBackgroundFor(service).dp(m);
@@ -60,14 +64,19 @@ function createBase(opts) {
         if (renderSelf)
             s.ft.needRerender(false).dp(m);
     })));
-    r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', table.l.setParent.pipe(rx.switchMap(([, parent]) => parent ?
-        rx.merge(service.error$.pipe(rx.tap(errInfo => parent.s.ft.onChildError(service.s.logPrefix, errInfo))), parent.destory$.pipe(rx.map(() => service.dispose()))) :
-        rx.EMPTY)));
+    r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', table.l.setParent.pipe(rx.switchMap(([m, parent]) => {
+        if (parent == null) {
+            s.ft.ofCanvas(null).dp(m);
+            return rx.EMPTY;
+        }
+        return rx.merge(parent.table.l.ofCanvas.pipe(rx.map(([m, canvas]) => s.ft.ofCanvas(canvas).dp(m))), service.error$.pipe(rx.tap(errInfo => parent.s.ft.onChildError(service.s.logPrefix, errInfo))), parent.destory$.pipe(rx.map(() => service.dispose())));
+    })));
     r('init', new rx.Observable(() => {
         s.ft.setFlexGrow(0).dp();
         s.ft.setPreferredSize(null, null).dp();
         s.ft.needRerender(true).dp();
         s.ft.setParent(null).dp();
+        s.ft.ofCanvas(null).dp();
     }));
     return service;
 }
@@ -100,7 +109,7 @@ function createContainerBase(opts) {
     }), rx.map(preferredSizeOfChildren => {
         ft.onChildPreferredSizeChange(preferredSizeOfChildren.map(([, w, h]) => [w, h])).dp();
     })))));
-    r('addReflowAction', s.pt.addReflowAction.pipe(rx.mergeMap(([, action$]) => action$), rx.map(actionOrPayload => {
+    r('addReflowAction -> needRerender, setLayoutValid', s.pt.addReflowAction.pipe(rx.mergeMap(([, action$]) => action$), rx.map(actionOrPayload => {
         const m = Array.isArray(actionOrPayload) ? actionOrPayload[0] : actionOrPayload;
         s.ft.needRerender(true).dp(m);
         s.ft.setLayoutValid(false).dp(m);

@@ -24,7 +24,7 @@ function log(...args: any[]) {
 const canvas = createTerminalCanvas({debug: true, log});
 const root = createFlexContainer({name: 'root', debug: true, log});
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootWidget(root).dp();
+canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {
   process.stdout.clearScreenDown();
   console.error(label, err);

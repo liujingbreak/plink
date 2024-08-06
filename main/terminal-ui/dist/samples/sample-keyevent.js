@@ -50,7 +50,7 @@ function log(...args) {
 const canvas = (0, terminal_canvas_1.createTerminalCanvas)({ debug: true, log });
 const root = (0, terminal_flex_container_1.createFlexContainer)({ name: 'root', debug: false, log });
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootWidget(root).dp();
+canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
@@ -68,19 +68,17 @@ root.s.ft.addChild(border.asBaseType.asBaseType, labelRecognized.asBaseType).dp(
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-    canvas.s.ft.render().dp();
 });
 const keyService = (0, terminal_keyEvent_1.createKeyEventService)(canvas, { log, debug: true, debugExcludeTypes: [] });
 const { r, s, table } = keyService;
-canvas.s.ft.render().dp();
+canvas.s.ft.setRenderOnRequest(true).dp();
+canvas.s.ft.requestRender().dp();
 canvas.s.ft.reportCursor(keyService).od(canvas.s.pt.doneReportCursor).pipe(rx.take(1)).subscribe(([m, x, y]) => {
     labelRecognized.s.ft.setContent(`Current cursor position: ${x},${y}`).dp(m);
-    canvas.s.ft.render().dp();
 });
 r('onExit', s.pt.onExit.pipe(rx.mergeMap(() => {
     return canvas.s.ft.reportCursor(keyService).od(canvas.s.pt.doneReportCursor).pipe(rx.take(1), rx.exhaustMap(([m, x, y]) => {
         labelRecognized.s.ft.setContent(`Current cursor position: ${x},${y}`).dp(m);
-        canvas.s.ft.render().dp();
         return rx.timer(1000);
     }), rx.map(() => {
         keyService.dispose();
@@ -94,9 +92,6 @@ r('onDisplayKeys', table.l.onDisplayKeys.pipe(
 rx.map(([m, text, completed, valid]) => {
     label.s.ft.setContent(text).dp(m);
     label.s.ft.setStyle(completed && valid ? ['green'] : []).dp(m);
-    canvas.s.ft.render().dp(m);
 })));
-r('onLeft, onRight, onUp, onDown', rx.merge(s.pt.onLeft.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' left').dp())), s.pt.onRight.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' right').dp())), s.pt.onUp.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' up').dp())), s.pt.onDown.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' down').dp())), s.pt.doneConsumeMultiKeyAction.pipe(rx.filter(([, act]) => act != null), rx.tap(([m, act]) => labelRecognized.s.ft.setContent(act).dp(m)))).pipe(rx.map(([m]) => {
-    canvas.s.ft.render().dp(m);
-})));
+r('onLeft, onRight, onUp, onDown', rx.merge(s.pt.onLeft.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' left').dp())), s.pt.onRight.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' right').dp())), s.pt.onUp.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' up').dp())), s.pt.onDown.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' down').dp())), s.pt.doneConsumeMultiKeyAction.pipe(rx.filter(([, act]) => act != null), rx.tap(([m, act]) => labelRecognized.s.ft.setContent(act).dp(m)))));
 //# sourceMappingURL=sample-keyevent.js.map

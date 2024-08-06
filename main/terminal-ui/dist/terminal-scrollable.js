@@ -40,7 +40,7 @@ function createScrollable(comp, opts) {
     });
     const prepended = s.prependController();
     const canvas = (0, terminal_canvas_1.createTerminalCanvas)(Object.assign({ name: 'scrollable.canvas' }, (opts ? { debug: opts.debug, log: opts.log } : {})));
-    canvas.s.ft.setRootWidget(comp).dp();
+    canvas.s.ft.setRootComponent(comp).dp();
     r('querySizeOf -> comp.querySizeOf', s.pt.querySizeOf.pipe(rx.mergeMap(([m, w, h]) => {
         if (w == null && h != null) {
             return comp.s.ft.querySizeOf(w, h).re(m).od(comp.s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, width]) => s.ft.prefWidthFor(width, h).dp(m)));

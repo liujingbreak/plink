@@ -30,13 +30,29 @@ exports.createKeyEventService = createKeyEventService;
 const readline_1 = __importDefault(require("readline"));
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
-const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted'];
+const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'];
 function createKeyEventService(canvas, opts) {
-    readline_1.default.emitKeypressEvents(process.stdin);
-    process.stdin.setRawMode(true);
     const service = new reactivizer_1.SimplexReactor(Object.assign({ name: 'keyEvent', tableFor }, opts));
     const { r, s, table } = service;
     const { ft } = s;
+    r('setInputStream', s.pt.setInputStream.pipe(rx.switchMap(([m, stdin, tty]) => {
+        if (tty) {
+            readline_1.default.emitKeypressEvents(stdin);
+            stdin.setRawMode(true);
+        }
+        return new rx.Observable(() => {
+            function h(_chr, data) {
+                ft.onRawKeyInput(data).dp(m);
+            }
+            stdin.on('keypress', h);
+            return () => {
+                stdin.off('keypress', h);
+                if (tty) {
+                    stdin.setRawMode(false);
+                }
+            };
+        });
+    })));
     r('onKeypress -> onDisplayKeys, onBreak', s.pt.onKeypress.pipe(rx.filter(([, , fallback]) => !fallback), rx.concatMap(payload => {
         const [m, evt] = payload;
         if (evt.sequence === '\x1B') {
@@ -174,7 +190,7 @@ function createKeyEventService(canvas, opts) {
             return ft.setPageSize(w, h).dp(m);
         })), s.pt.onLeft.pipe(rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(-amount, 0).dp(m);
-            canvas.s.ft.render().dp(m);
+            // canvas.s.ft.render().dp(m);
         })), s.pt.onUp.pipe(rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(0, -amount).dp(m);
             canvas.s.ft.render().dp(m);
@@ -231,9 +247,7 @@ function createKeyEventService(canvas, opts) {
         return rx.EMPTY;
     })));
     ft.setPageSize(10, 10).dp();
-    process.stdin.on('keypress', (_chr, data) => {
-        ft.onRawKeyInput(data).dp();
-    });
+    ft.setInputStream(process.stdin, true).dp();
     return service;
 }
 //# sourceMappingURL=terminal-keyEvent.js.map

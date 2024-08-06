@@ -17,6 +17,7 @@ export interface BaseWidgetMessages {
     prefHeightFor(constrainWidth: number, height: number): SingleActionFactory;
     overflow(yes: boolean): SingleActionFactory;
     setParent(p: TerminalContainer | null): SingleActionFactory;
+    ofCanvas(canvas: TerminalCanvas | null): SingleActionFactory;
     /** this message will be interceptor intercepts and skips if there is no "Rerender" action dispatched after last "render" message is handled,
      * @param relRerenderArea - Rectangle to be rerendered, the coordinate is relative to target (this) component
      */
@@ -27,10 +28,10 @@ export interface BaseWidgetMessages {
     /** If following action is dispatched, the next render message must not be skipped on current widget */
     addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
 }
-export declare const tableForBase: readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow"];
+export declare const tableForBase: readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas"];
 export type BaseWidget = SimplexReactor<BaseWidgetMessages, typeof tableForBase>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetMessages, typeof tableForBase>>): SimplexReactor<BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow"], unknown>;
+export declare function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetMessages, typeof tableForBase>>): SimplexReactor<BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas"], unknown>;
 export interface ContainerWidgetInput {
     addChild(...children: BaseWidget[]): SingleActionFactory;
     removeChild(...children: BaseWidget[]): SingleActionFactory;
@@ -53,5 +54,5 @@ export interface ContainerWidgetOutput {
 }
 declare const tableFor: readonly ["allChildren", "setLayoutValid", "setBackground", "onBgChangeWithParent", "onChildPreferredSizeChange"];
 export type TerminalContainer = SimplexReactorMergeType<SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>, BaseWidget>;
-export declare function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, ContainerWidgetInput & ContainerWidgetOutput>): SimplexReactor<BaseWidgetMessages & ContainerWidgetInput & ContainerWidgetOutput, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "allChildren" | "setLayoutValid" | "setBackground" | "onBgChangeWithParent" | "onChildPreferredSizeChange")[], SimplexReactor<BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow"], unknown>>;
+export declare function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, ContainerWidgetInput & ContainerWidgetOutput>): SimplexReactor<BaseWidgetMessages & ContainerWidgetInput & ContainerWidgetOutput, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "allChildren" | "setLayoutValid" | "setBackground" | "onBgChangeWithParent" | "onChildPreferredSizeChange")[], SimplexReactor<BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas"], unknown>>;
 export {};

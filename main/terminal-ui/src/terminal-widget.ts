@@ -19,6 +19,7 @@ export interface BaseWidgetMessages {
   overflow(yes: boolean): SingleActionFactory;
 
   setParent(p: TerminalContainer | null): SingleActionFactory;
+  ofCanvas(canvas: TerminalCanvas | null): SingleActionFactory;
   /** this message will be interceptor intercepts and skips if there is no "Rerender" action dispatched after last "render" message is handled,
    * @param relRerenderArea - Rectangle to be rerendered, the coordinate is relative to target (this) component
    */
@@ -31,7 +32,7 @@ export interface BaseWidgetMessages {
 }
 export const tableForBase = [
   'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-  'setPreferredSize', 'setFlexGrow'
+  'setPreferredSize', 'setFlexGrow', 'ofCanvas'
 ] as const;
 export type BaseWidget = SimplexReactor<BaseWidgetMessages, typeof tableForBase>;
 
@@ -71,6 +72,13 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetMessag
       })
     )
   ));
+  r('needRerender, ofCanvas', s.pt.needRerender.pipe(
+    rx.withLatestFrom(table.l.ofCanvas),
+    rx.map(([[m, need], [, canvas]]) => {
+      if (canvas && need)
+        canvas.s.ft.requestRender().dp(m);
+    })
+  ));
   r('render -> needRerender, onRender, renderBackgroundFor', s.pt.render.pipe(
     rx.withLatestFrom(table.l.needRerender, table.l.setParent, table.l.onSize),
     rx.map(([[m, canvas, trans, rerenderRect], [, renderSelf], [, parent], [, width, height]]) => {
@@ -83,22 +91,30 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetMessag
     })
   ));
   r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', table.l.setParent.pipe(
-    rx.switchMap(([, parent]) => parent ?
-      rx.merge(
+    rx.switchMap(([m, parent]) => {
+      if (parent == null) {
+        s.ft.ofCanvas(null).dp(m);
+        return rx.EMPTY;
+      }
+      return rx.merge(
+        parent.table.l.ofCanvas.pipe(
+          rx.map(([m, canvas]) => s.ft.ofCanvas(canvas).dp(m))
+        ),
         service.error$.pipe(
           rx.tap(errInfo => parent.s.ft.onChildError(service.s.logPrefix, errInfo))
         ),
         parent.destory$.pipe(
           rx.map(() => service.dispose())
         )
-      ) :
-      rx.EMPTY)
+      );
+    })
   ));
   r('init', new rx.Observable<never>(() => {
     s.ft.setFlexGrow(0).dp();
     s.ft.setPreferredSize(null, null).dp();
     s.ft.needRerender(true).dp();
     s.ft.setParent(null).dp();
+    s.ft.ofCanvas(null).dp();
   }));
   return service;
 }
@@ -173,7 +189,7 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
     ))
   ));
 
-  r('addReflowAction', s.pt.addReflowAction.pipe(
+  r('addReflowAction -> needRerender, setLayoutValid', s.pt.addReflowAction.pipe(
     rx.mergeMap(([, action$]) => action$),
     rx.map(actionOrPayload => {
       const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;

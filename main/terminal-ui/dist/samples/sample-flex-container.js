@@ -49,7 +49,7 @@ function log(...args) {
 const canvas = (0, terminal_canvas_1.createTerminalCanvas)({ debug: true, log });
 canvas.s.ft.autoHideCursor().dp();
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug: true, log });
-canvas.s.ft.setRootWidget(root).dp();
+canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
@@ -83,6 +83,8 @@ layoutDemoBorder.s.ft.setBorder('padding').dp();
 layoutDemoBorder.s.ft.setPadding(1, 1, 1, 1).dp();
 layoutDemoBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
 root.s.ft.addChild(layoutDemoBorder.asBaseType.asBaseType).dp();
+canvas.s.ft.setRenderOnRequest(true).dp();
+canvas.s.ft.requestRender().dp();
 const scene = new reactivizer_1.SimplexReactor({
     name: 'scene',
     debug: true,
@@ -102,33 +104,18 @@ r('showLablesLeftToRight', s.pt.showLablesLeftToRight.pipe(rx.concatMap(([m, num
         text.s.ft.setContent('This is label ' + (i + 1)).dp(m);
         text.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp(m);
         layoutDemoContainer.s.ft.addChild(text.asBaseType).dp(m);
-        canvas.s.ft.render().dp(m);
     }), rx.take(num), rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m)));
 })));
 r('changeStaticLabelToClock -> doneChangeStaticLabelToClock', s.pt.changeStaticLabelToClock.pipe(rx.mergeMap(([m, label, i, duration]) => rx.concat(rx.timer(16, 1000).pipe(rx.map(() => {
     const now = new Date();
     label.s.ft.setContent(`Current time: ${now.toLocaleTimeString()}`).dp(m);
-    canvas.s.ft.render().dp(m);
 }), rx.take(duration)), rx.timer(1000).pipe(rx.map(() => {
     label.s.ft.setContent(`This is label ${i + 1}`).dp(m);
-    // canvas.s.ft.render().dp(m);
     s.ft.doneChangeStaticLabelToClock().dp(m);
 }))))));
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-// canvas.s.ft.render().dp();
 process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-    canvas.s.ft.render().dp();
 });
 s.ft.showLablesLeftToRight(5).dp();
-// const [children] = root.table.getData().allChildren;
-// const timerLabel = children![children!.length - 1];
-// rx.timer(1000, 1000).pipe(
-//   rx.map(() => {
-//     const date = new Date();
-//     (timerLabel as MultiLineTextWidget).s.ft.setContent(`Current time: ${date.toLocaleTimeString()}`).dp();
-//     canvas.s.ft.render().dp();
-//   }),
-//   rx.take(20)
-// ).subscribe();
 //# sourceMappingURL=sample-flex-container.js.map

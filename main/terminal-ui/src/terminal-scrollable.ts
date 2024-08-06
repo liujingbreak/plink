@@ -37,7 +37,7 @@ export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr
     name: 'scrollable.canvas',
     ...(opts ? {debug: opts.debug, log: opts.log} : {})
   });
-  canvas.s.ft.setRootWidget(comp).dp();
+  canvas.s.ft.setRootComponent(comp).dp();
   r('querySizeOf -> comp.querySizeOf', s.pt.querySizeOf.pipe(
     rx.mergeMap(([m, w, h]) => {
       if (w == null && h != null) {

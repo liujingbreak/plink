@@ -1,12 +1,18 @@
+import tty from 'tty';
 import rl from 'readline';
 import * as rx from 'rxjs';
 import {SimplexReactor, SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
 import {Scrollable} from './terminal-scrollable';
 import {TerminalCanvas} from './terminal-canvas';
 
-export interface keypressActions {
+export interface keypressInput {
   setPageSize(w: number, h: number): SingleActionFactory;
   bindToScrollable(scrollable: Scrollable): SingleActionFactory;
+  /** default is process.stdin
+   * @param isTTY set to `true` to enable "readline" module's "emitKeypressEvents()",
+   * and enable "setRawMode(true)" on that TTY readable stream
+   */
+  setInputStream(stream: NodeJS.ReadableStream, isTTY: boolean): SingleActionFactory;
 
   onRight(amount: number): SingleActionFactory;
   onLeft(amount: number): SingleActionFactory;
@@ -19,7 +25,7 @@ export interface keypressActions {
   onExit(): SingleActionFactory;
 }
 
-interface keypressSignals extends keypressActions {
+interface keypressSignals extends keypressInput {
   onRawKeyInput(event: KeyEvent): SingleActionFactory;
   onKeypress(event: KeyEvent, fallback: boolean): SingleActionFactory;
   onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
@@ -36,7 +42,7 @@ interface keypressSignals extends keypressActions {
   onReportCursor(x: number, y: number): SingleActionFactory;
 }
 
-const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted'] as const;
+const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'] as const;
 interface KeyEvent {
   name: string | undefined;
   sequence: string;
@@ -45,10 +51,7 @@ interface KeyEvent {
   code?: string;
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
-export function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions<keypressActions>) {
-  rl.emitKeypressEvents(process.stdin);
-  process.stdin.setRawMode(true);
-
+export function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions<keypressInput>) {
   const service = new SimplexReactor<keypressSignals, typeof tableFor>({
     name: 'keyEvent',
     tableFor,
@@ -56,6 +59,26 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions
   });
   const {r, s, table} = service;
   const {ft} = s;
+  r('setInputStream', s.pt.setInputStream.pipe(
+    rx.switchMap(([m, stdin, tty]) => {
+      if (tty) {
+        rl.emitKeypressEvents(stdin);
+        (stdin as tty.ReadStream).setRawMode(true);
+      }
+      return new rx.Observable<never>(() => {
+        function h(_chr: unknown, data: KeyEvent) {
+          ft.onRawKeyInput(data).dp(m);
+        }
+        stdin.on('keypress', h);
+        return () => {
+          stdin.off('keypress', h);
+          if (tty) {
+            (stdin as tty.ReadStream).setRawMode(false);
+          }
+        };
+      });
+    })
+  ));
   r('onKeypress -> onDisplayKeys, onBreak', s.pt.onKeypress.pipe(
     rx.filter(([, , fallback]) => !fallback),
     rx.concatMap(payload => {
@@ -248,7 +271,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions
         s.pt.onLeft.pipe(
           rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(-amount, 0).dp(m);
-            canvas.s.ft.render().dp(m);
+            // canvas.s.ft.render().dp(m);
           })
         ),
         s.pt.onUp.pipe(
@@ -323,10 +346,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions
     })
   ));
   ft.setPageSize(10, 10).dp();
-
-  process.stdin.on('keypress', (_chr, data: KeyEvent) => {
-    ft.onRawKeyInput(data).dp();
-  });
+  ft.setInputStream(process.stdin, true).dp();
   return service;
 }
 

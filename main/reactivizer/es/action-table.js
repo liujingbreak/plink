@@ -52,8 +52,8 @@ export class ActionTable {
         this.actionNames = new Set();
         this.l = this.latestPayloads;
         this.addActions(...actionNames);
-        this.actionNamesAdded$.pipe(rx.map(actionNames => {
-            this.onAddActions(actionNames);
+        this.actionNamesAdded$.pipe(rx.mergeMap(actionNames => {
+            return this.onAddActions(actionNames);
         })).subscribe();
         this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
     }
@@ -72,11 +72,12 @@ export class ActionTable {
         return this;
     }
     onAddActions(actionNames) {
-        for (const type of actionNames) {
+        return rx.from(actionNames).pipe(rx.mergeMap(type => {
+            var _a;
             if (this.data[type] == null)
                 this.data[type] = EMPTY_ARRY;
             if (has.call(this.latestPayloads, type))
-                continue;
+                return rx.EMPTY;
             const a$ = new rx.ReplaySubject(1);
             this.streamCtl.at[type].pipe(rx.map(a => {
                 // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
@@ -84,10 +85,11 @@ export class ActionTable {
                 this.actionSnapshot.set(type, mapParam);
                 return mapParam;
             })).subscribe(a$);
-            this.latestPayloads[type] = this.streamCtl.opts.debugTableAction ?
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+            return this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debugTableAction) ?
                 a$.pipe(this.debugLogLatestActionOperator(type)) :
                 a$.asObservable();
-        }
+        }));
     }
     getLatestActionOf(actionName) {
         return this.actionSnapshot.get(actionName);
@@ -106,14 +108,14 @@ export class ActionTable {
                 rx.map((p, idx) => {
                     if (idx === 0 && !core.debugExcludeSet.has(type)) {
                         // eslint-disable-next-line no-console
-                        console.log(`%c ${core.logPrefix}rx:latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, actionMetaToStr(p[0]));
+                        console.log(`%c ${core.logPrefix} latest `, 'color: #f0fe0fe0; background: #8c61dd;', type, actionMetaToStr(p[0]));
                     }
                     return p;
                 }) :
                 rx.map((p, idx) => {
                     if (idx > 0 && !core.debugExcludeSet.has(type)) {
                         // eslint-disable-next-line no-console
-                        console.log(core.logPrefix + 'latest:', type, actionMetaToStr(p[0]));
+                        console.log(core.logPrefix + ' latest:', type, actionMetaToStr(p[0]));
                     }
                     return p;
                 });

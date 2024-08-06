@@ -6,26 +6,25 @@ import {SingleActionFactory, SimplexReactor, CoreOptions} from '@wfh/reactivizer
 import {IntervalTree} from '@wfh/algorithms';
 // import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 import {isCodePointFullWidth} from './text-split';
-import {BaseWidgetMessages} from './terminal-widget';
+import {BaseWidget} from './terminal-widget';
 import {KeyEventServcie} from './terminal-keyEvent';
 
 export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` | `bgHsl(${string})` | `bgRgb(${number},${number},${number})` | `hex(${string})` | `bgHex(${string})`)[];
 export type BackgroundStyle = typeof chalk.BackgroundColor | `bgRgb(${number},${number},${number})` | `bgHex(${string})` | `bgHsl(${string})`;
 
 const CHALK_NUMBER_FN = new Set<string>(['rgb', 'bgRgb', 'bgHsl', 'hsl']);
-export interface TerminalRootActions {
-  render(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
-  onSize: BaseWidgetMessages['onSize'];
-}
 
 export interface TerminalCanvasInput {
   /** render will not work until this message is dispatched */
   setBounding(left: number, top: number, width: number, height: number): SingleActionFactory;
-  setRootWidget<I extends TerminalRootActions>(rootWidget: SimplexReactor<I, any> | null): SingleActionFactory;
+  setRootComponent(rootWidget: BaseWidget | null): SingleActionFactory;
   addString(x: number, y: number, text: string, style?: TextStyle): SingleActionFactory;
   addDisplayUnits(x: number, y: number, units: number[], style?: TextStyle): SingleActionFactory;
   /** Unlike print ' ' (space), this action only remove existing "code point" from buffer for rendering */
   clearRect(x: number, y: number, width: number, height: number): SingleActionFactory;
+  setRenderOnRequest(enabled: boolean): SingleActionFactory;
+  /** request bundling rendering */
+  requestRender(): SingleActionFactory;
   render(): SingleActionFactory;
 
   copyRect(x: number, y: number, width: number, height: number): SingleActionFactory;
@@ -48,7 +47,7 @@ export interface TerminalCanvasOutput {
   doneReportCursor(row: number, col: number): SingleActionFactory;
 }
 
-const tableFor = ['setBounding', 'setRootWidget', 'onDirtyLineChange'] as const;
+const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange'] as const;
 
 export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & TerminalCanvasOutput>) {
   const canvas = new SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, typeof tableFor>({
@@ -98,9 +97,15 @@ export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & Te
         }));
     })
   ));
-  r('setBounding -> rootWidget.onSize', s.pt.setBounding.pipe(
+  r('setRootComponent', s.pt.setRootComponent.pipe(
+    rx.map(([m, root]) => {
+      if (root)
+        root.s.ft.ofCanvas(canvas).dp(m);
+    })
+  ));
+  r('setBounding -> rootComponent.onSize', s.pt.setBounding.pipe(
     rx.switchMap(([m, , , w, h]) => {
-      return table.l.setRootWidget.pipe(
+      return table.l.setRootComponent.pipe(
         rx.map(([, root]) => {
           if (root)
             root.s.ft.onSize(w, h).dp(m);
@@ -166,7 +171,7 @@ export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & Te
     })
   ));
   r('render -> onPrintText', s.pt.render.pipe(
-    rx.withLatestFrom(table.l.setBounding, table.l.setRootWidget),
+    rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent),
     rx.map(([[m], [, x, y], [, root]]) => {
       if (root)
         root.s.ft.render(canvas, mat4.create()).dp(m);
@@ -271,8 +276,21 @@ export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & Te
       s.ft.onCopyRect(result).dp(m);
     })
   ));
+  r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(
+    rx.switchMap(([, enabled]) => {
+      // eslint-disable-next-line multiline-ternary
+      return enabled ? s.pt.requestRender.pipe(
+        rx.exhaustMap(([m]) => new rx.Observable<never>(sub => {
+          setImmediate(() => {
+            s.ft.render().dp(m);
+            sub.complete();
+          });
+        }))
+      ) : rx.EMPTY;
+    })
+  ));
   r('init', new rx.Observable<never>(() => {
-    s.ft.setRootWidget(null).dp();
+    s.ft.setRootComponent(null).dp();
     s.ft.onDirtyLineChange(dirtyLines).dp();
   }));
 

@@ -21,9 +21,6 @@ export class SimplexReactor {
         this.opts = opts;
         this.s = new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `#${this.id}` }));
         const internalMsg$ = this.s;
-        if (opts === null || opts === void 0 ? void 0 : opts.debug) {
-            internalMsg$.ft.__onNew().dp();
-        }
         const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsg$.pt.__onError.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
@@ -135,12 +132,14 @@ export class SimplexReactor {
         return this;
     }
     log(...msg) {
-        var _a, _b, _c, _d, _e;
-        if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
-            this.opts.log(((_c = (_b = this.opts) === null || _b === void 0 ? void 0 : _b.name) !== null && _c !== void 0 ? _c : ''), ...msg);
-        else {
-            // eslint-disable-next-line no-console
-            console.log(((_e = (_d = this.opts) === null || _d === void 0 ? void 0 : _d.name) !== null && _e !== void 0 ? _e : ''), ...msg);
+        var _a, _b, _c, _d;
+        if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debug) {
+            if ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.log)
+                this.opts.log(((_c = this.s.logPrefix) !== null && _c !== void 0 ? _c : ''), ...msg);
+            else {
+                // eslint-disable-next-line no-console
+                console.log(((_d = this.s.logPrefix) !== null && _d !== void 0 ? _d : ''), ...msg);
+            }
         }
     }
     reactivizeFunction(key, func, funcThisRef) {
@@ -172,8 +171,14 @@ export class SimplexReactor {
         })));
         return resolveFuncKey;
     }
+    // init() {
+    //   this.s.ft.__onInit().dp();
+    //   return this;
+    // }
     /** @deprecated no longer needed, always start automatically after being contructed */
-    startAll() { }
+    startAll() {
+        return this;
+    }
     /** @deprecated call dispose() instead */
     destory() {
         this.dispose();

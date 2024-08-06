@@ -28,7 +28,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 require("source-map-support/register");
 const util_1 = __importDefault(require("util"));
-const readline_1 = __importDefault(require("readline"));
 const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
@@ -65,9 +64,8 @@ const label = (0, terminal_text_1.createTextWidget)('Hello border container', { 
 const border = (0, terminal_border_1.createBorderContainer)(label.asBaseType, { debug: true, log });
 const scrollable = (0, terminal_scrollable_1.createScrollable)(border.asBaseType.asBaseType, { debug: true, log });
 scrollable.s.ft.setScrollable(true, true).dp();
-canvas.s.ft.setRootWidget(scrollable).dp();
+canvas.s.ft.setRootComponent(scrollable.asBaseType.asBaseType).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows - 1).dp();
-canvas.s.ft.render().dp();
 const keyEventService = (0, terminal_keyEvent_1.createKeyEventService)(canvas, { debug: true, log });
 keyEventService.s.ft.bindToScrollable(scrollable).dp();
 keyEventService.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(rx.map(() => {
@@ -79,10 +77,9 @@ keyEventService.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(rx.
 })));
 process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-    canvas.s.ft.render().dp();
 });
-readline_1.default.emitKeypressEvents(process.stdin);
-process.stdin.setRawMode(true);
+canvas.s.ft.setRenderOnRequest(true).dp();
+canvas.s.ft.requestRender().dp();
 setTimeout(() => {
     const c = `To embrace Monorepo and Multiple-repo at same time.
 Web (or Node.js) frameworks or libraries like Angular, React, Vue, NestJS, they all come up with command line tools which help developer to initialize web projects, most of them are like scaffolding tool. Most of the tools are limited at or totally not supporting monorepo/library authoring. Which brings a lot room for enterprise developer to improve for sharing and maintaining resuable modules or functions cross multiple projects.
@@ -90,6 +87,5 @@ We want to offer similar experience of developing Web appliactions like authorin
 We want our appliactions be able to share fundations of UI, state management, server side functions and tools while different application goes separate CI/CD process like microservice.`;
     label.s.ft.setContent(c).dp();
     canvas.log('================== sample rerender for new size');
-    canvas.s.ft.render().dp();
 }, 1000);
 //# sourceMappingURL=sample-scrollable.js.map

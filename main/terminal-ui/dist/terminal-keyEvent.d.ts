@@ -1,9 +1,14 @@
 import { SimplexReactor, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
 import { Scrollable } from './terminal-scrollable';
 import { TerminalCanvas } from './terminal-canvas';
-export interface keypressActions {
+export interface keypressInput {
     setPageSize(w: number, h: number): SingleActionFactory;
     bindToScrollable(scrollable: Scrollable): SingleActionFactory;
+    /** default is process.stdin
+     * @param isTTY set to `true` to enable "readline" module's "emitKeypressEvents()",
+     * and enable "setRawMode(true)" on that TTY readable stream
+     */
+    setInputStream(stream: NodeJS.ReadableStream, isTTY: boolean): SingleActionFactory;
     onRight(amount: number): SingleActionFactory;
     onLeft(amount: number): SingleActionFactory;
     onUp(amount: number): SingleActionFactory;
@@ -14,7 +19,7 @@ export interface keypressActions {
     onEnd(): SingleActionFactory;
     onExit(): SingleActionFactory;
 }
-interface keypressSignals extends keypressActions {
+interface keypressSignals extends keypressInput {
     onRawKeyInput(event: KeyEvent): SingleActionFactory;
     onKeypress(event: KeyEvent, fallback: boolean): SingleActionFactory;
     onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
@@ -30,7 +35,7 @@ interface keypressSignals extends keypressActions {
     doneConsumeDigital(value: number): SingleActionFactory;
     onReportCursor(x: number, y: number): SingleActionFactory;
 }
-declare const tableFor: readonly ["setPageSize", "onDisplayKeys", "onInputCompleted"];
+declare const tableFor: readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"];
 interface KeyEvent {
     name: string | undefined;
     sequence: string;
@@ -39,5 +44,5 @@ interface KeyEvent {
     code?: string;
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
-export declare function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions<keypressActions>): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted"], unknown>;
+export declare function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions<keypressInput>): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"], unknown>;
 export {};

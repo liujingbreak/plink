@@ -19,7 +19,7 @@ export type Action<F> = {
 } & ActionMeta;
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<F>;
 export type DispatchFor<F> = (origActionMeta: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>, ...params: InferPayload<F>) => Action<F>;
-export type CoreOptions<I> = {
+export type CoreOptions<I = Record<string, never>> = {
     name?: string;
     /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
     * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
@@ -56,7 +56,7 @@ export declare class ControllerCore<I> {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.Subject<Set<"name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
+    configChange: rx.ReplaySubject<Set<"name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
     opts: CoreOptions<any>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };

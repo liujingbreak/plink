@@ -25,7 +25,7 @@ function log(...args: any[]) {
 const canvas = createTerminalCanvas({debug: true, log});
 const root = createFlexContainer({name: 'root', debug: false, log});
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootWidget(root).dp();
+canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {
   process.stdout.clearScreenDown();
   console.error(label, err);
@@ -46,18 +46,17 @@ canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout
 
 process.stdout.on('resize', () => {
   canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-  canvas.s.ft.render().dp();
 });
 
 const keyService = createKeyEventService(canvas, {log, debug: true, debugExcludeTypes: []});
 const {r, s, table} = keyService;
-canvas.s.ft.render().dp();
 
+canvas.s.ft.setRenderOnRequest(true).dp();
+canvas.s.ft.requestRender().dp();
 canvas.s.ft.reportCursor(keyService).od(canvas.s.pt.doneReportCursor).pipe(
   rx.take(1)
 ).subscribe(([m, x, y]) => {
   labelRecognized.s.ft.setContent(`Current cursor position: ${x},${y}`).dp(m);
-  canvas.s.ft.render().dp();
 });
 
 r('onExit', s.pt.onExit.pipe(
@@ -66,7 +65,6 @@ r('onExit', s.pt.onExit.pipe(
       rx.take(1),
       rx.exhaustMap(([m, x, y]) => {
         labelRecognized.s.ft.setContent(`Current cursor position: ${x},${y}`).dp(m);
-        canvas.s.ft.render().dp();
         return rx.timer(1000);
       }),
       rx.map(() => {
@@ -84,7 +82,6 @@ r('onDisplayKeys', table.l.onDisplayKeys.pipe(
   rx.map(([m, text, completed, valid]) => {
     label.s.ft.setContent(text).dp(m);
     label.s.ft.setStyle(completed && valid ? ['green'] : []).dp(m);
-    canvas.s.ft.render().dp(m);
   })
 ));
 r('onLeft, onRight, onUp, onDown', rx.merge(
@@ -96,8 +93,4 @@ r('onLeft, onRight, onUp, onDown', rx.merge(
     rx.filter(([, act]) => act != null),
     rx.tap(([m, act]) => labelRecognized.s.ft.setContent(act!).dp(m))
   )
-).pipe(
-  rx.map(([m]) => {
-    canvas.s.ft.render().dp(m);
-  })
 ));

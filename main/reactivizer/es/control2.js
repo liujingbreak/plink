@@ -117,7 +117,9 @@ export class RxController2 extends ControllerCore {
                 groupedRxCtl.connect();
             }), rx.take(1)), 
             // Then dispatch source action to grouped controller
-            grouped.pipe(rx.tap(action => deserializeAction2(action, groupedRxCtl)))).pipe(rx.takeUntil(groupedRxCtl.actionUnsubscribed$)).subscribe();
+            grouped.pipe(rx.tap(action => {
+                deserializeAction2(action, groupedRxCtl);
+            }))).pipe(rx.takeUntil(groupedRxCtl.actionUnsubscribed$)).subscribe();
             return groupedRxCtl;
         }), rx.scan((acc, el) => {
             const ret = acc;

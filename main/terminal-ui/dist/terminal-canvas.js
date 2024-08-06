@@ -38,7 +38,7 @@ const algorithms_1 = require("@wfh/algorithms");
 // import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 const text_split_1 = require("./text-split");
 const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl']);
-const tableFor = ['setBounding', 'setRootWidget', 'onDirtyLineChange'];
+const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange'];
 function createTerminalCanvas(opts) {
     const canvas = new reactivizer_1.SimplexReactor(Object.assign({ name: 'TerminalCanvas', 
         // debugExcludeTypes: ['onPrintText'],
@@ -70,8 +70,12 @@ function createTerminalCanvas(opts) {
             sub.complete();
         }));
     })));
-    r('setBounding -> rootWidget.onSize', s.pt.setBounding.pipe(rx.switchMap(([m, , , w, h]) => {
-        return table.l.setRootWidget.pipe(rx.map(([, root]) => {
+    r('setRootComponent', s.pt.setRootComponent.pipe(rx.map(([m, root]) => {
+        if (root)
+            root.s.ft.ofCanvas(canvas).dp(m);
+    })));
+    r('setBounding -> rootComponent.onSize', s.pt.setBounding.pipe(rx.switchMap(([m, , , w, h]) => {
+        return table.l.setRootComponent.pipe(rx.map(([, root]) => {
             if (root)
                 root.s.ft.onSize(w, h).dp(m);
         }));
@@ -122,7 +126,7 @@ function createTerminalCanvas(opts) {
             node_readline_1.default.clearLine(process.stdout, 0);
         }
     })));
-    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootWidget), rx.map(([[m], [, x, y], [, root]]) => {
+    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m], [, x, y], [, root]]) => {
         if (root)
             root.s.ft.render(canvas, gl_matrix_1.mat4.create()).dp(m);
         for (const [lineIdx, [left, right]] of dirtyLines) {
@@ -222,8 +226,17 @@ function createTerminalCanvas(opts) {
         }
         s.ft.onCopyRect(result).dp(m);
     })));
+    r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(rx.switchMap(([, enabled]) => {
+        // eslint-disable-next-line multiline-ternary
+        return enabled ? s.pt.requestRender.pipe(rx.exhaustMap(([m]) => new rx.Observable(sub => {
+            setImmediate(() => {
+                s.ft.render().dp(m);
+                sub.complete();
+            });
+        }))) : rx.EMPTY;
+    })));
     r('init', new rx.Observable(() => {
-        s.ft.setRootWidget(null).dp();
+        s.ft.setRootComponent(null).dp();
         s.ft.onDirtyLineChange(dirtyLines).dp();
     }));
     function treeNodeToStyleText([codePoints, style]) {

@@ -20,3 +20,4 @@ export type SimplexReactorCfgOpts<IBase = Record<never, never>, IExt = Record<ne
     tableFor: LIExt;
 };
 export type OptionsOfExtendSmplxRctr<R extends SimplexReactor<any, any>, I, LI extends (readonly (keyof I)[] | (keyof I)[]) = []> = SimplexReactorCfgOpts<InferActionsOfSmplxRctr<R>, I, LI>;
+export type CoreOptsOfExtSmplxRctr<R extends SimplexReactor<any, any>, I = Record<never, never>> = CoreOptions<InferActionsOfSmplxRctr<R> & I>;

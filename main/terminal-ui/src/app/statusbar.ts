@@ -7,26 +7,29 @@ export interface StatusbarMessages {
   trackKeypressService(service: KeyEventServcie): SingleActionFactory;
 
   onScrollStatus(vertical: number, horizontal: number): SingleActionFactory;
-  onKeypressStatus(text: string): SingleActionFactory;
+  onKeypressStatus(text: string, isValid: boolean): SingleActionFactory;
 }
 
 const tableFor = ['trackKeypressService', 'trackScrollable'] as const;
 
 export function createStatusbar(opts?: CoreOptions<StatusbarMessages>) {
-  const container = createFlexContainer(opts as any);
+  const container = createFlexContainer({name: 'StatusBar', ...opts as any});
   const statusbar = container.config<StatusbarMessages, typeof tableFor>({
     tableFor
   });
+  container.s.ft.setBackground('bgBlue').dp();
   const {r, s, table} = statusbar;
-  const labelScrollText = createTextWidget('scroll:');
-  const labelScrollValue1 = createTextWidget('');
-  const labelScrollValue2 = createTextWidget('');
-  const labelKeypress = createTextWidget('');
+  const labelScrollText = createTextWidget('scroll', opts as any);
+  const labelScrollValue1 = createTextWidget('0%', opts as any);
+  const labelScrollValue2 = createTextWidget('0%', opts as any);
+  const labelKeypress = createTextWidget('', {name: 'keypressInfo', ...opts as any});
+  labelKeypress.s.ft.setFlexGrow(1).dp();
 
-  s.ft.addChild(labelScrollText.asBaseType,
+  s.ft.addChild(labelKeypress.asBaseType,
+    labelScrollText.asBaseType,
     labelScrollValue1.asBaseType,
-    labelScrollValue2.asBaseType,
-    labelKeypress.asBaseType).dp();
+    labelScrollValue2.asBaseType
+  ).dp();
   r('trackScrollable, scrollable.onValidScroll', table.l.trackScrollable.pipe(
     rx.switchMap(([, scrollable]) => {
       return rx.combineLatest([
@@ -41,9 +44,16 @@ export function createStatusbar(opts?: CoreOptions<StatusbarMessages>) {
         )
       ]).pipe(
         rx.map(([[m1, sLeft, sTop], [m2, sWidth, sHeight], [m3, cWidth, cHeight]]) => {
-          const vertRatio = sTop / (cHeight - sHeight);
-          const horizRatio = sLeft / (cWidth - sWidth);
-          s.ft.onScrollStatus(vertRatio, horizRatio).dp(m1, m2, m3);
+          const scrollSpaceY = cHeight - sHeight;
+          if (scrollSpaceY < Number.EPSILON)
+            return;
+          const scrollSpaceX = cWidth - sWidth;
+          if (scrollSpaceX < Number.EPSILON)
+            return;
+          const vertRatio = sTop / scrollSpaceY;
+          const horizRatio = sLeft / scrollSpaceX;
+          s.ft.onScrollStatus(vertRatio < Number.EPSILON ? 0 : vertRatio,
+            horizRatio < Number.EPSILON ? 0 : horizRatio).dp(m1, m2, m3);
         })
       );
     })
@@ -52,18 +62,30 @@ export function createStatusbar(opts?: CoreOptions<StatusbarMessages>) {
   r('trackKeypressService, keyEventServcie.onDisplayKeys, keyEventServcie.onInputCompleted',
     table.l.trackKeypressService.pipe(
       rx.switchMap(([, keypress]) => {
-        return keypress.table.l.onDisplayKeys.pipe(
-          rx.map(([m, text]) => {
-            s.ft.onKeypressStatus(text).dp(m);
-          })
+        return rx.merge(
+          keypress.table.l.onDisplayKeys.pipe(
+            rx.map(([m, text, _isCompleted, isValid]) => {
+              s.ft.onKeypressStatus(text, isValid).dp(m);
+            })
+          ),
+          keypress.s.pt.onExit.pipe(
+            rx.map(([m]) => {
+              s.ft.onKeypressStatus('Quit', true).dp(m);
+            })
+          )
         );
       })
     ));
 
   r('onScrollStatus', s.pt.onScrollStatus.pipe(
     rx.map(([m, v, h]) => {
-      labelScrollValue1.s.ft.setContent('row: ' + Math.floor(v * 100)).dp(m);
-      labelScrollValue2.s.ft.setContent('col: ' + Math.floor(h * 100)).dp(m);
+      labelScrollValue1.s.ft.setContent('row: ' + Math.floor(v * 100) + '%').dp(m);
+      labelScrollValue2.s.ft.setContent('col: ' + Math.floor(h * 100) + '%').dp(m);
+    })
+  ));
+  r('onKeypressStatus', s.pt.onKeypressStatus.pipe(
+    rx.map(([m, text, valid]) => {
+      labelKeypress.s.ft.setContent(text).dp(m);
     })
   ));
   return statusbar;

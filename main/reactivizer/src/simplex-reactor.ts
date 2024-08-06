@@ -201,11 +201,13 @@ export class SimplexReactor<
     return this as SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>;
   }
   log(...msg: any[]) {
-    if (this.opts?.log)
-      this.opts.log((this.s.logPrefix ?? ''), ...msg);
-    else {
+    if (this.opts?.debug) {
+      if (this.opts?.log)
+        this.opts.log((this.s.logPrefix ?? ''), ...msg);
+      else {
       // eslint-disable-next-line no-console
-      console.log((this.s.logPrefix ?? ''), ...msg);
+        console.log((this.s.logPrefix ?? ''), ...msg);
+      }
     }
   }
 

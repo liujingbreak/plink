@@ -6,9 +6,7 @@ import { SimplexReactorOptions, SimplexReactorCfgOpts } from './reactor-base';
 import { ActionTable } from './action-table';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
-    /** Internal use, when option `debug` is `true`, this message will be dispatched when
-     * ReactorComposite2 is instantiated */
-    __onNew(): SingleActionFactory;
+    /** This event is when we can dispatch actions for initializing "action table" */
     __onError(err: any): SingleActionFactory;
     __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
     __onDisposed(): SingleActionFactory;
@@ -63,7 +61,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     log(...msg: any[]): void;
     reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     /** @deprecated no longer needed, always start automatically after being contructed */
-    startAll(): void;
+    startAll(): this;
     /** @deprecated call dispose() instead */
     destory(): void;
     protected logError(label: string, err: any): void;

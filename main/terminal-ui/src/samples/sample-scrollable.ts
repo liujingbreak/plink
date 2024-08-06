@@ -1,6 +1,5 @@
 import 'source-map-support/register';
 import util from 'util';
-import rl from 'readline';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
@@ -41,11 +40,10 @@ const label = createTextWidget('Hello border container', {debug: true, log});
 const border = createBorderContainer(label.asBaseType, {debug: true, log});
 const scrollable = createScrollable(border.asBaseType.asBaseType, {debug: true, log});
 scrollable.s.ft.setScrollable(true, true).dp();
-canvas.s.ft.setRootWidget(scrollable).dp();
+canvas.s.ft.setRootComponent(scrollable.asBaseType.asBaseType).dp();
 
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns,
   screenHeight ? Number(screenHeight) : process.stdout.rows - 1).dp();
-canvas.s.ft.render().dp();
 const keyEventService = createKeyEventService(canvas, {debug: true, log});
 keyEventService.s.ft.bindToScrollable(scrollable).dp();
 
@@ -61,11 +59,10 @@ keyEventService.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(
 
 process.stdout.on('resize', () => {
   canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-  canvas.s.ft.render().dp();
 });
 
-rl.emitKeypressEvents(process.stdin);
-process.stdin.setRawMode(true);
+canvas.s.ft.setRenderOnRequest(true).dp();
+canvas.s.ft.requestRender().dp();
 
 setTimeout(() => {
   const c = `To embrace Monorepo and Multiple-repo at same time.
@@ -74,5 +71,4 @@ We want to offer similar experience of developing Web appliactions like authorin
 We want our appliactions be able to share fundations of UI, state management, server side functions and tools while different application goes separate CI/CD process like microservice.`;
   label.s.ft.setContent(c).dp();
   canvas.log('================== sample rerender for new size');
-  canvas.s.ft.render().dp();
 }, 1000);

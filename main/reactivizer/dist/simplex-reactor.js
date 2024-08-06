@@ -158,12 +158,14 @@ class SimplexReactor {
         return this;
     }
     log(...msg) {
-        var _a, _b, _c;
-        if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
-            this.opts.log(((_b = this.s.logPrefix) !== null && _b !== void 0 ? _b : ''), ...msg);
-        else {
-            // eslint-disable-next-line no-console
-            console.log(((_c = this.s.logPrefix) !== null && _c !== void 0 ? _c : ''), ...msg);
+        var _a, _b, _c, _d;
+        if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debug) {
+            if ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.log)
+                this.opts.log(((_c = this.s.logPrefix) !== null && _c !== void 0 ? _c : ''), ...msg);
+            else {
+                // eslint-disable-next-line no-console
+                console.log(((_d = this.s.logPrefix) !== null && _d !== void 0 ? _d : ''), ...msg);
+            }
         }
     }
     reactivizeFunction(key, func, funcThisRef) {
