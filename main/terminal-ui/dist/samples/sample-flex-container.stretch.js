@@ -33,8 +33,8 @@ canvas.error$.subscribe(([err, label]) => {
     log('-----------------\n', label, util_1.default.inspect(err));
     process.exit(0);
 });
-const thinLabel = (0, terminal_text_1.createTextWidget)('I am normal component', { debug: true, log });
-const fatLabel = (0, terminal_text_1.createTextWidget)('I am non-zero grow component');
+const thinLabel = (0, terminal_text_1.createTextWidget)('label A', { debug: true, log });
+const fatLabel = (0, terminal_text_1.createTextWidget)('Label B');
 const border = (0, terminal_border_1.createBorderContainer)(fatLabel.asBaseType, { debug: true, log });
 border.s.ft.setFlexGrow(1).dp();
 root.s.ft.addChild(thinLabel.asBaseType, border.asBaseType.asBaseType).dp();

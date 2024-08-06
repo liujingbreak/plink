@@ -389,7 +389,7 @@ function shrinkEachSize(individualPrefSizes: number[], totalSpace: number) {
 }
 
 function stretchEachSize(prefSizes: number[], growOfEach: number[], totalSpace: number) {
-  const remaining = prefSizes.reduce((sum, size) => {
+  const remaining = totalSpace - prefSizes.reduce((sum, size) => {
     sum += size;
     return sum;
   }, 0);

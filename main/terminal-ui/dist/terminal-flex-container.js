@@ -301,7 +301,7 @@ function shrinkEachSize(individualPrefSizes, totalSpace) {
     return chrSizes;
 }
 function stretchEachSize(prefSizes, growOfEach, totalSpace) {
-    const remaining = prefSizes.reduce((sum, size) => {
+    const remaining = totalSpace - prefSizes.reduce((sum, size) => {
         sum += size;
         return sum;
     }, 0);

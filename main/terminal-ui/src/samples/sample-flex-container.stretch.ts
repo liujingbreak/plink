@@ -32,8 +32,8 @@ canvas.error$.subscribe(([err, label]) => {
   process.exit(0);
 });
 
-const thinLabel = createTextWidget('I am normal component', {debug: true, log});
-const fatLabel = createTextWidget('I am non-zero grow component');
+const thinLabel = createTextWidget('label A', {debug: true, log});
+const fatLabel = createTextWidget('Label B');
 const border = createBorderContainer(fatLabel.asBaseType, {debug: true, log});
 border.s.ft.setFlexGrow(1).dp();
 root.s.ft.addChild(thinLabel.asBaseType, border.asBaseType.asBaseType).dp();
