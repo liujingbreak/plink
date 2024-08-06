@@ -7,6 +7,7 @@ export interface StatusbarMessages {
   trackKeypressService(service: KeyEventServcie): SingleActionFactory;
 
   onScrollStatus(vertical: number, horizontal: number): SingleActionFactory;
+  onKeypressStatus(text: string): SingleActionFactory;
 }
 
 const tableFor = ['trackKeypressService', 'trackScrollable'] as const;
@@ -48,10 +49,21 @@ export function createStatusbar(opts?: CoreOptions<StatusbarMessages>) {
     })
   ));
 
+  r('trackKeypressService, keyEventServcie.onDisplayKeys, keyEventServcie.onInputCompleted',
+    table.l.trackKeypressService.pipe(
+      rx.switchMap(([, keypress]) => {
+        return keypress.table.l.onDisplayKeys.pipe(
+          rx.map(([m, text]) => {
+            s.ft.onKeypressStatus(text).dp(m);
+          })
+        );
+      })
+    ));
+
   r('onScrollStatus', s.pt.onScrollStatus.pipe(
     rx.map(([m, v, h]) => {
-      labelScrollValue1.s.ft.setContent('v: ' + Math.floor(v * 100)).dp(m);
-      labelScrollValue2.s.ft.setContent('h: ' + Math.floor(h * 100)).dp(m);
+      labelScrollValue1.s.ft.setContent('row: ' + Math.floor(v * 100)).dp(m);
+      labelScrollValue2.s.ft.setContent('col: ' + Math.floor(h * 100)).dp(m);
     })
   ));
   return statusbar;

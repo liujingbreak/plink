@@ -22,7 +22,7 @@ export interface keypressActions {
 interface keypressSignals extends keypressActions {
   onRawKeyInput(event: KeyEvent): SingleActionFactory;
   onKeypress(event: KeyEvent, fallback: boolean): SingleActionFactory;
-  onDisplayKeys(text: string): SingleActionFactory;
+  onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
   onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
   onBreak(): SingleActionFactory;
   onDigital(chr: string): SingleActionFactory;
@@ -56,25 +56,46 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions
   });
   const {r, s, table} = service;
   const {ft} = s;
-  r('onKeypress -> onBreak', s.pt.onKeypress.pipe(
+  r('onKeypress -> onDisplayKeys, onBreak', s.pt.onKeypress.pipe(
     rx.filter(([, , fallback]) => !fallback),
     rx.concatMap(payload => {
       const [m, evt] = payload;
       if (evt.sequence === '\x1B') {
         ft.onBreak().dp(m);
-        ft.onDisplayKeys('').dp(m);
+        ft.onDisplayKeys('', false, false).dp(m);
         return rx.EMPTY;
       }
       return rx.of(payload);
     }),
-    rx.withLatestFrom(table.l.onDisplayKeys, table.l.onInputCompleted),
-    rx.map(([[m, evt], [, displayKeys], [, onInputCompleted]]) => {
-      if (!onInputCompleted)
-        ft.onDisplayKeys(displayKeys + (evt.name ?? evt.sequence)).dp(m);
-      else {
-        ft.onDisplayKeys(evt.name ?? evt.sequence).dp(m);
-      }
-    })
+    rx.window(rx.merge(s.pt.onBreak, s.pt.onInputCompleted.pipe(
+      rx.distinctUntilChanged(([, a], [, b]) => a === b),
+      rx.filter(([, completed]) => completed)
+    ))),
+    rx.switchMap(branched => rx.concat(
+      branched.pipe(
+        rx.scan((acc, [m, keyEvt]) => {
+          acc += keyEvt.name ?? keyEvt.sequence;
+          acc += ' ';
+          ft.onDisplayKeys(acc, false, false).dp(m);
+          return acc;
+        }, '')
+      ),
+      rx.combineLatest([table.l.onInputCompleted, table.l.onDisplayKeys]).pipe(
+        rx.take(1),
+        rx.map(([[m, isCompleted, isValid], [m2, text]]) => {
+          ft.onDisplayKeys(text, isCompleted, isValid).dp(m, m2);
+          return false;
+        })
+      )
+    ))
+    // rx.withLatestFrom(table.l.onDisplayKeys, table.l.onInputCompleted),
+    // rx.map(([[m, evt], [, displayKeys], [, onInputCompleted]]) => {
+    //   if (!onInputCompleted)
+    //     ft.onDisplayKeys(displayKeys + (evt.name ?? evt.sequence)).dp(m);
+    //   else {
+    //     ft.onDisplayKeys(evt.name ?? evt.sequence).dp(m);
+    //   }
+    // })
   ));
   r('consumeMultiKeyAction -> consumeDigital, consumePageAction, doneConsumeMultiKeyAction, onEscOrQuit', s.pt.consumeMultiKeyAction.pipe(
     rx.mergeMap(([m, evt]) => {
@@ -188,7 +209,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions
       }
     })
   ));
-  ft.onDisplayKeys('').dp();
+  ft.onDisplayKeys('', false, false).dp();
   ft.onInputCompleted(false, false).dp();
 
   r('onKeypress -> consumeMultiKeyAction, onInputCompleted...', s.pt.onKeypress.pipe(

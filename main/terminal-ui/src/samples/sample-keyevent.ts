@@ -79,19 +79,11 @@ r('onExit', s.pt.onExit.pipe(
   })
 ));
 
-r('onInputCompleted', table.l.onInputCompleted.pipe(
-  rx.distinctUntilChanged(([, a], [, b]) => a === b),
-  rx.map(([m, completed, valid]) => {
-    // border.s.ft.setBackground(completed && valid ? 'bgGreen' : null).dp(m);
-    label.s.ft.setStyle(completed && valid ? ['green'] : []).dp(m);
-    canvas.s.ft.render().dp(m);
-  })
-));
-
 r('onDisplayKeys', table.l.onDisplayKeys.pipe(
-  rx.distinctUntilChanged(([, a], [, b]) => a === b),
-  rx.map(([m, text]) => {
+  // rx.distinctUntilChanged(([, a], [, b]) => a === b),
+  rx.map(([m, text, completed, valid]) => {
     label.s.ft.setContent(text).dp(m);
+    label.s.ft.setStyle(completed && valid ? ['green'] : []).dp(m);
     canvas.s.ft.render().dp(m);
   })
 ));

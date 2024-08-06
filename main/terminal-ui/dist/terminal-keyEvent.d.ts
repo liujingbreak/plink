@@ -17,7 +17,7 @@ export interface keypressActions {
 interface keypressSignals extends keypressActions {
     onRawKeyInput(event: KeyEvent): SingleActionFactory;
     onKeypress(event: KeyEvent, fallback: boolean): SingleActionFactory;
-    onDisplayKeys(text: string): SingleActionFactory;
+    onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
     onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
     onBreak(): SingleActionFactory;
     onDigital(chr: string): SingleActionFactory;

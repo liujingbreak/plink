@@ -89,13 +89,11 @@ r('onExit', s.pt.onExit.pipe(rx.mergeMap(() => {
         process.nextTick(() => process.exit());
     }));
 })));
-r('onInputCompleted', table.l.onInputCompleted.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([m, completed, valid]) => {
-    // border.s.ft.setBackground(completed && valid ? 'bgGreen' : null).dp(m);
-    label.s.ft.setStyle(completed && valid ? ['green'] : []).dp(m);
-    canvas.s.ft.render().dp(m);
-})));
-r('onDisplayKeys', table.l.onDisplayKeys.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.map(([m, text]) => {
+r('onDisplayKeys', table.l.onDisplayKeys.pipe(
+// rx.distinctUntilChanged(([, a], [, b]) => a === b),
+rx.map(([m, text, completed, valid]) => {
     label.s.ft.setContent(text).dp(m);
+    label.s.ft.setStyle(completed && valid ? ['green'] : []).dp(m);
     canvas.s.ft.render().dp(m);
 })));
 r('onLeft, onRight, onUp, onDown', rx.merge(s.pt.onLeft.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' left').dp())), s.pt.onRight.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' right').dp())), s.pt.onUp.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' up').dp())), s.pt.onDown.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' down').dp())), s.pt.doneConsumeMultiKeyAction.pipe(rx.filter(([, act]) => act != null), rx.tap(([m, act]) => labelRecognized.s.ft.setContent(act).dp(m)))).pipe(rx.map(([m]) => {
