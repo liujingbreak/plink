@@ -25,6 +25,7 @@ function log(...args) {
 }
 const canvas = (0, terminal_canvas_1.createTerminalCanvas)({ debug: true, log });
 const root = (0, terminal_flex_container_1.createFlexContainer)({ name: 'root', debug: true, log });
+root.s.ft.alignItems('center').dp();
 canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {

@@ -8,7 +8,7 @@ import {RectangleOverlapTree} from './rectangle-overlap-tree';
 export interface FlexContainerInput {
   setDirection(dir: 'col' | 'row'): SingleActionFactory;
   justifyContent(value: 'stretch' | 'start' | 'center' | 'end' | 'space-between'): SingleActionFactory;
-  alignItems(value: 'start' | 'center' | 'end'): SingleActionFactory;
+  alignItems(value: 'stretch' | 'start' | 'center' | 'end'): SingleActionFactory;
   setBorderSpacing(value: number): SingleActionFactory;
 }
 
@@ -177,17 +177,29 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
             )
           )
         ).pipe(
-          rx.switchMap(values => values),
-          rx.map((value, i) => {
-            chrCrossAxisSizes[i] = value > crossAxis ? crossAxis : value;
+          // rx.withLatestFrom(rx.zip(children.map(
+          //   chd => chd.table.l.setFlexGrow.pipe(
+          //     rx.map(([, grow]) => grow)
+          //   )
+          // ))),
+          rx.map((prefCrossSizeOfEach) => {
+            if (alignItems !== 'stretch') {
+              chrCrossAxisSizes.push(...prefCrossSizeOfEach.map(pref => pref > crossAxis ? crossAxis : pref));
+              return rx.EMPTY;
+            } else {
+              chrCrossAxisSizes = children.map(() => crossAxis);
+            }
           })
         );
       } else if (crossAxis < pCrossAxis) {
         chrMainAxisSizes = [];
-        for (const v of chrCrossAxisPrefSizes) {
-          chrCrossAxisSizes.push(Math.min(v, crossAxis));
+        if (alignItems === 'stretch') {
+          chrCrossAxisSizes = children.map(() => crossAxis);
+        } else {
+          for (const v of chrCrossAxisPrefSizes) {
+            chrCrossAxisSizes.push(Math.min(v, crossAxis));
+          }
         }
-
         calcChdSizes$ = rx.zip(dir === 'row' ?
           children.map((chr, i) => chr.s.ft.querySizeOf(null, chrCrossAxisSizes[i]).re(m)
             .od(chr.s.pt.prefWidthFor).pipe(
@@ -200,6 +212,7 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
               rx.map(([, , h]) => h)
             ))
         ).pipe(
+          rx.take(1),
           rx.switchMap(values => values),
           rx.reduce((sum, value) => {
             chrMainAxisSizes.push(value);
@@ -236,6 +249,11 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
             listContainer.log('growOfEach', growOfEach, 'pref sizes', chrMainAxisPrefSizes);
             chrMainAxisSizes = stretchEachSize(chrMainAxisPrefSizes, growOfEach, mainAxis - margin * (children.length - 1));
             listContainer.log('chrMainAxisSizes', chrMainAxisSizes);
+            if (alignItems === 'stretch') {
+              for (let i = 0, l = children.length; i < l; i++) {
+                chrCrossAxisSizes[i] = crossAxis;
+              }
+            }
           })
         );
       }
@@ -356,7 +374,7 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
   ));
   r('init', new rx.Observable<never>(() => {
     ft.setDirection('row').dp();
-    ft.alignItems('center').dp();
+    ft.alignItems('stretch').dp();
     ft.justifyContent('stretch').dp();
     ft.setBorderSpacing(1).dp();
     for (const a$ of [

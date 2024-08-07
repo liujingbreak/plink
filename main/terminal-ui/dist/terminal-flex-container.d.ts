@@ -3,7 +3,7 @@ import { TerminalContainer } from './terminal-widget';
 export interface FlexContainerInput {
     setDirection(dir: 'col' | 'row'): SingleActionFactory;
     justifyContent(value: 'stretch' | 'start' | 'center' | 'end' | 'space-between'): SingleActionFactory;
-    alignItems(value: 'start' | 'center' | 'end'): SingleActionFactory;
+    alignItems(value: 'stretch' | 'start' | 'center' | 'end'): SingleActionFactory;
     setBorderSpacing(value: number): SingleActionFactory;
 }
 export interface FlexContainerEvents {

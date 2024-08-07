@@ -23,6 +23,7 @@ function log(...args: any[]) {
 
 const canvas = createTerminalCanvas({debug: true, log});
 const root = createFlexContainer({name: 'root', debug: true, log});
+root.s.ft.alignItems('center').dp();
 canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {

@@ -30,9 +30,9 @@ const statusbar_1 = require("./statusbar");
 function createApp(mainComponent, opts) {
     const root = (0, index_1.createFlexContainer)(Object.assign({ name: 'AppShell' }, opts));
     root.s.ft.setDirection('col').dp();
-    mainComponent.s.ft.setFlexGrow(1).dp();
     const statusbar = (0, statusbar_1.createStatusbar)(opts);
     const scrollable = (0, index_1.createScrollable)(mainComponent, opts);
+    scrollable.s.ft.setFlexGrow(1).dp();
     root.s.ft.addChild(scrollable.asBaseType.asBaseType, statusbar.asBaseType.asBaseType.asBaseType).dp();
     const canvas = (0, index_1.createTerminalCanvas)(opts);
     canvas.s.ft.autoHideCursor().dp();

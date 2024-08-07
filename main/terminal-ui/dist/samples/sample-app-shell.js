@@ -25,8 +25,9 @@ process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 });
 const welcome = (0, index_1.createTextWidget)('Hello...');
+welcome.s.ft.setStyle(['cyan']).dp();
 panel.s.ft.addChild(welcome.asBaseType).dp();
-border.s.ft.setBackground('bgGray').dp();
-// panel.s.ft.justifyContent('center').dp();
+// panel.s.ft.setBackground('bgGray').dp();
+panel.s.ft.justifyContent('center').dp();
 panel.s.ft.alignItems('center').dp();
 //# sourceMappingURL=sample-app-shell.js.map

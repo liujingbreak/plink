@@ -7,9 +7,9 @@ import {createStatusbar} from './statusbar';
 export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
   const root = createFlexContainer({name: 'AppShell', ...opts as any});
   root.s.ft.setDirection('col').dp();
-  mainComponent.s.ft.setFlexGrow(1).dp();
   const statusbar = createStatusbar(opts as any);
   const scrollable = createScrollable(mainComponent, opts as any);
+  scrollable.s.ft.setFlexGrow(1).dp();
   root.s.ft.addChild(scrollable.asBaseType.asBaseType, statusbar.asBaseType.asBaseType.asBaseType).dp();
   const canvas = createTerminalCanvas(opts as Pick<CoreOptions, 'debug'>);
   canvas.s.ft.autoHideCursor().dp();

@@ -24,8 +24,9 @@ process.stdout.on('resize', () => {
 });
 
 const welcome = createTextWidget('Hello...');
+welcome.s.ft.setStyle(['cyan']).dp();
 panel.s.ft.addChild(welcome.asBaseType).dp();
-border.s.ft.setBackground('bgGray').dp();
-// panel.s.ft.justifyContent('center').dp();
+// panel.s.ft.setBackground('bgGray').dp();
+panel.s.ft.justifyContent('center').dp();
 panel.s.ft.alignItems('center').dp();
 
