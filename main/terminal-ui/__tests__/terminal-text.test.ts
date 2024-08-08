@@ -2,7 +2,7 @@
 import {describe, it, expect, jest}  from '@jest/globals';
 import * as rx from 'rxjs';
 import {formatToConcise} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTextWidget} from '../src/terminal-text';
+import {createTextWidget} from '../src';
 import {createWordSplitter} from '../src/text-split';
 
 describe('word splitter', () => {

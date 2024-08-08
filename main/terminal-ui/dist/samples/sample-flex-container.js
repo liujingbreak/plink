@@ -32,10 +32,10 @@ const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const reactivizer_1 = require("@wfh/reactivizer");
-const terminal_canvas_1 = require("../terminal-canvas");
-const terminal_text_1 = require("../terminal-text");
 const index_1 = require("../index");
+const index_2 = require("../index");
 const screenWidth = process.argv[2];
+const debug = false;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
     const date = new Date();
@@ -46,9 +46,9 @@ function log(...args) {
     fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
     fout.write('\n');
 }
-const canvas = (0, terminal_canvas_1.createTerminalCanvas)({ debug: true, log });
+const canvas = (0, index_1.createTerminalCanvas)({ debug, log });
 canvas.s.ft.autoHideCursor().dp();
-const root = (0, index_1.createFlexContainer)({ name: 'root', debug: true, log });
+const root = (0, index_2.createFlexContainer)({ name: 'root', debug, log });
 canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
@@ -63,22 +63,21 @@ canvas.error$.subscribe(([err, label]) => {
 root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
 root.s.ft.setDirection('col').dp();
-const layout1TitleLabel = (0, terminal_text_1.createTextWidget)('Demo dynamically updating text labels in a flex layout');
-const titleBorder = (0, index_1.createBorderContainer)(layout1TitleLabel.asBaseType);
-titleBorder.config({ name: 'title-border', debug: true, log });
-layout1TitleLabel.config({ name: 'title', debug: true, log });
+const layout1TitleLabel = (0, index_2.createTextWidget)('Demo dynamically updating text labels in a flex layout');
+const titleBorder = (0, index_2.createBorderContainer)(layout1TitleLabel.asBaseType);
+titleBorder.config({ name: 'title-border', debug, log });
+layout1TitleLabel.config({ name: 'title', debug, log });
 titleBorder.s.ft.setBorderStyle(['green']).dp();
 layout1TitleLabel.s.ft.setStyle(['bold']).dp();
 root.s.ft.addChild(titleBorder.asBaseType.asBaseType).dp();
-const layoutDemoContainer = (0, index_1.createFlexContainer)({
+const layoutDemoContainer = (0, index_2.createFlexContainer)({
     name: 'layoutDemo',
-    debug: true,
+    debug,
     log
 });
 layoutDemoContainer.s.ft.justifyContent('center').dp();
 layoutDemoContainer.s.ft.setBorderSpacing(2).dp();
-const layoutDemoBorder = (0, index_1.createBorderContainer)(layoutDemoContainer.asBaseType.asBaseType);
-layoutDemoBorder.config({ debug: true, name: 'layoutDemoBorder', log });
+const layoutDemoBorder = (0, index_2.createBorderContainer)(layoutDemoContainer.asBaseType.asBaseType, { debug, name: 'layoutDemoBorder', log });
 layoutDemoBorder.s.ft.setBorder('padding').dp();
 layoutDemoBorder.s.ft.setPadding(1, 1, 1, 1).dp();
 layoutDemoBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
@@ -91,7 +90,14 @@ const scene = new reactivizer_1.SimplexReactor({
     log
 });
 const { r, s } = scene;
-r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(rx.switchMap(() => layoutDemoContainer.table.l.allChildren.pipe(rx.take(1))), rx.mergeMap(([, labels]) => rx.from(labels).pipe(rx.concatMap((label, i) => s.ft.changeStaticLabelToClock(label, i, 5)
+r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(rx.switchMap(() => layoutDemoContainer.table.l.allChildren.pipe(rx.take(1))), rx.mergeMap(([, labels]) => rx.from(labels).pipe(rx.map((label, i) => {
+    if (i === 0) {
+        (0, index_2.getBoundingOfCompTree)(root.asBaseType.asBaseType).pipe(rx.map(rects => {
+            scene.log('>>>>>> Bounding boxies', rects.map(r => util_1.default.inspect(r)).join());
+        }), rx.take(1)).subscribe();
+    }
+    return label;
+}), rx.concatMap((label, i) => s.ft.changeStaticLabelToClock(label, i, 5)
     .od(s.pt.doneChangeStaticLabelToClock).pipe(rx.take(1))), rx.finalize(() => {
     canvas.dispose();
     root.dispose();
@@ -99,9 +105,7 @@ r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(rx.switchMap(
 r('showLablesLeftToRight', s.pt.showLablesLeftToRight.pipe(rx.concatMap(([m, num]) => {
     const hueInterval = Math.round(360 / num);
     return rx.timer(0, 1000).pipe(rx.map(i => {
-        const text = (0, terminal_text_1.createTextWidget)();
-        text.config({ debug: true, log, name: 'text-' + i });
-        text.s.ft.setContent('This is label ' + (i + 1)).dp(m);
+        const text = (0, index_2.createTextWidget)('This is label ' + (i + 1), { name: 'text-' + i, debug, log });
         text.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp(m);
         layoutDemoContainer.s.ft.addChild(text.asBaseType).dp(m);
     }), rx.take(num), rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m)));

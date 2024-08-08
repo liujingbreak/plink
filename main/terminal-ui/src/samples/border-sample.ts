@@ -2,12 +2,12 @@ import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../terminal-canvas';
-import {createTextWidget} from '../terminal-text';
-// import {createScrollable} from '../terminal-scrollable';
-// import {createFlexContainer} from '../terminal-featured-widget';
-import {createFlexContainer} from '../terminal-flex-container';
-import {createBorderContainer} from '../terminal-border';
+import {createTerminalCanvas} from '../index';
+import {createTextWidget} from '../index';
+// import {createScrollable} from '../index';
+// import {createFlexContainer} from '../index';
+import {createFlexContainer} from '../index';
+import {createBorderContainer} from '../index';
 
 const screenWidth = process.argv[2];
 

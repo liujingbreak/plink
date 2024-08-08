@@ -8,10 +8,10 @@ const util_1 = __importDefault(require("util"));
 const fs_1 = __importDefault(require("fs"));
 // import * as rx from 'rxjs';
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const terminal_canvas_1 = require("../terminal-canvas");
-const terminal_text_1 = require("../terminal-text");
-const terminal_flex_container_1 = require("../terminal-flex-container");
-const terminal_border_1 = require("../terminal-border");
+const index_1 = require("../index");
+const index_2 = require("../index");
+const index_3 = require("../index");
+const index_4 = require("../index");
 const screenWidth = process.argv[2];
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
@@ -23,8 +23,8 @@ function log(...args) {
     fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
     fout.write('\n');
 }
-const canvas = (0, terminal_canvas_1.createTerminalCanvas)({ debug: true, log });
-const root = (0, terminal_flex_container_1.createFlexContainer)({ name: 'root', debug: true, log });
+const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
+const root = (0, index_3.createFlexContainer)({ name: 'root', debug: true, log });
 root.s.ft.alignItems('center').dp();
 canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
@@ -34,9 +34,9 @@ canvas.error$.subscribe(([err, label]) => {
     log('-----------------\n', label, util_1.default.inspect(err));
     process.exit(0);
 });
-const thinLabel = (0, terminal_text_1.createTextWidget)('label A', { debug: true, log });
-const fatLabel = (0, terminal_text_1.createTextWidget)('Label B');
-const border = (0, terminal_border_1.createBorderContainer)(fatLabel.asBaseType, { debug: true, log });
+const thinLabel = (0, index_2.createTextWidget)('label A', { debug: true, log });
+const fatLabel = (0, index_2.createTextWidget)('Label B');
+const border = (0, index_4.createBorderContainer)(fatLabel.asBaseType, { debug: true, log });
 border.s.ft.setFlexGrow(1).dp();
 root.s.ft.addChild(thinLabel.asBaseType, border.asBaseType.asBaseType).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();

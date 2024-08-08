@@ -7,12 +7,12 @@ require("source-map-support/register");
 const util_1 = __importDefault(require("util"));
 const fs_1 = __importDefault(require("fs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const terminal_canvas_1 = require("../terminal-canvas");
-const terminal_text_1 = require("../terminal-text");
-// import {createScrollable} from '../terminal-scrollable';
-// import {createFlexContainer} from '../terminal-featured-widget';
-const terminal_flex_container_1 = require("../terminal-flex-container");
-const terminal_border_1 = require("../terminal-border");
+const index_1 = require("../index");
+const index_2 = require("../index");
+// import {createScrollable} from '../index';
+// import {createFlexContainer} from '../index';
+const index_3 = require("../index");
+const index_4 = require("../index");
 const screenWidth = process.argv[2];
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
@@ -24,8 +24,8 @@ function log(...args) {
     fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
     fout.write('\n');
 }
-const canvas = (0, terminal_canvas_1.createTerminalCanvas)({ debug: true, log });
-const root = (0, terminal_flex_container_1.createFlexContainer)({ name: 'root', debug: true, log });
+const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
+const root = (0, index_3.createFlexContainer)({ name: 'root', debug: true, log });
 canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
@@ -39,8 +39,8 @@ canvas.error$.subscribe(([err, label]) => {
 });
 root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
-const label = (0, terminal_text_1.createTextWidget)('8', { debug: true, log });
-const border = (0, terminal_border_1.createBorderContainer)(label.asBaseType, { debug: true, log });
+const label = (0, index_2.createTextWidget)('8', { debug: true, log });
+const border = (0, index_4.createBorderContainer)(label.asBaseType, { debug: true, log });
 root.s.ft.addChild(border.asBaseType.asBaseType).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 canvas.s.ft.render().dp();

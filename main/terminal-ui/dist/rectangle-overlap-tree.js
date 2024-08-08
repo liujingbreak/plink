@@ -25,7 +25,7 @@ class RectangleOverlapTree {
             nodeY.value = [nodeY.value, content];
     }
     searchOverlaps([x, y, w, h]) {
-        const foundX = this.xIntervalTree.searchMultipleOverlaps(x, x + w);
+        const foundX = this.xIntervalTree.searchMultipleOverlaps(x, x + w - 1);
         const foundItemsOfX = new Set((function* () {
             for (const [, , data] of foundX) {
                 if (Array.isArray(data)) {
@@ -37,10 +37,44 @@ class RectangleOverlapTree {
                 }
             }
         })());
-        const foundY = this.yIntervalTree.searchMultipleOverlaps(y, y + h);
+        const foundY = this.yIntervalTree.searchMultipleOverlaps(y, y + h - 1);
         return [...foundY].flatMap(([, , data]) => {
             if (Array.isArray(data)) {
                 return data.filter(it => foundItemsOfX.has(it));
+            }
+            else if (foundItemsOfX.has(data)) {
+                return [data];
+            }
+            else {
+                return EMPTY_ARR;
+            }
+        });
+    }
+    searchForCovered([x, y, w, h]) {
+        const right = x + w - 1;
+        const foundX = this.xIntervalTree.searchMultipleOverlaps(x, right);
+        const foundItemsOfX = new Set((function* () {
+            for (const [low, high, data] of foundX) {
+                if (low < x || high > right)
+                    continue; // not fully covered
+                if (Array.isArray(data)) {
+                    for (const it of data)
+                        yield it;
+                }
+                else {
+                    yield data;
+                }
+            }
+        })());
+        const bottom = y + h - 1;
+        const foundY = this.yIntervalTree.searchMultipleOverlaps(y, bottom);
+        return [...foundY].flatMap(([low, high, data]) => {
+            if (low < y || high > bottom)
+                return EMPTY_ARR; // not fully covered
+            if (Array.isArray(data)) {
+                return data.filter(it => {
+                    return foundItemsOfX.has(it);
+                });
             }
             else if (foundItemsOfX.has(data)) {
                 return [data];

@@ -1,7 +1,8 @@
 import * as rx from 'rxjs';
 import {CoreOptions} from '@wfh/reactivizer';
 import {createScrollable, createFlexContainer, BaseWidget, createKeyEventService,
-  createTerminalCanvas} from '../index';
+  createTerminalCanvas, createElevator, createTextWidget, createBorderContainer,
+  DisplayMode} from '../index';
 import {createStatusbar} from './statusbar';
 
 export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
@@ -13,8 +14,8 @@ export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
   root.s.ft.addChild(scrollable.asBaseType.asBaseType, statusbar.asBaseType.asBaseType.asBaseType).dp();
   const canvas = createTerminalCanvas(opts as Pick<CoreOptions, 'debug'>);
   canvas.s.ft.autoHideCursor().dp();
-  canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
   const keyEventService = createKeyEventService(canvas, opts as any);
+  // keyEventService.config({debug: true});
   keyEventService.s.ft.bindToScrollable(scrollable).dp();
   statusbar.s.ft.trackKeypressService(keyEventService).dp();
   statusbar.s.ft.trackScrollable(scrollable).dp();
@@ -27,7 +28,39 @@ export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
       process.exit();
     })
   ));
+  keyEventService.r('onKeypress', keyEventService.s.pt.onKeypress.pipe(
+    rx.filter(([, evt]) => evt.name === 'return'),
+    rx.exhaustMap(([m]) => {
+      coverLayer.s.ft.setDisplay(DisplayMode.visible).dp(m);
+      return keyEventService.s.pt.onBreak.pipe(
+        rx.take(1),
+        rx.map(([m]) => {
+          coverLayer.s.ft.setDisplay(DisplayMode.none).dp(m);
+        })
+      );
+    })
+  ));
+  const elevator = createElevator(opts as any);
+  const coverLayer = createFlexContainer({...opts as any, name: 'coverLayer'});
+  coverLayer.s.ft.alignItems('center').dp();
+  coverLayer.s.ft.justifyContent('center').dp();
+
+  // const helpBox = createFlexContainer();
+  const helpNote = createTextWidget('Keyboard Help');
+  const coverLayerBorder = createBorderContainer(helpNote.b);
+  coverLayerBorder.s.ft.setPadding(5, 5, 5, 5).dp();
+  coverLayerBorder.s.ft.setBackground('bgGrey').dp();
+  coverLayerBorder.s.ft.setBorder('padding').dp();
+  coverLayer.s.ft.addChild(coverLayerBorder.b.b).dp();
+  elevator.s.ft.addChild(
+    root.b.b,
+    coverLayer.b.b
+  ).dp();
+  coverLayer.s.ft.setDisplay(DisplayMode.none).dp();
+
+  canvas.s.ft.setRootComponent(elevator.asBaseType.asBaseType).dp();
+
   canvas.s.ft.setRenderOnRequest(true).dp();
   canvas.s.ft.requestRender().dp();
-  return {canvas, root};
+  return {canvas, root, popupLayer: coverLayer};
 }

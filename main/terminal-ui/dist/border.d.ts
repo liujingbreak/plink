@@ -1,0 +1,9 @@
+import { SingleActionFactory, CoreOptsOfExtSmplxRctr } from '@wfh/reactivizer';
+import { BaseWidget, TerminalContainer } from './base';
+import { TextStyle } from './canvas';
+export interface BorderContainerActions {
+    setBorderStyle(style: TextStyle): SingleActionFactory;
+    setPadding(top: number, right: number, bottom: number, left: number): SingleActionFactory;
+    setBorder(type: 'padding' | 'line'): SingleActionFactory;
+}
+export declare function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmplxRctr<TerminalContainer, BorderContainerActions>): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetMessages & import("./base").ContainerWidgetInput & import("./base").ContainerWidgetOutput & BorderContainerActions, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "setBackground" | "onBgChangeWithParent" | "onChildPreferredSizeChange" | "setBorder" | "setBorderStyle" | "setPadding")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetMessages & import("./base").ContainerWidgetInput & import("./base").ContainerWidgetOutput, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "setBackground" | "onBgChangeWithParent" | "onChildPreferredSizeChange")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached"], unknown>>>;

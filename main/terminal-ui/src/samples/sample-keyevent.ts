@@ -3,11 +3,11 @@ import util from 'util';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../terminal-canvas';
-import {createTextWidget} from '../terminal-text';
-import {createKeyEventService} from '../terminal-keyEvent';
-import {createFlexContainer} from '../terminal-flex-container';
-import {createBorderContainer} from '../terminal-border';
+import {createTerminalCanvas} from '../index';
+import {createTextWidget} from '../index';
+import {createKeyEventService} from '../index';
+import {createFlexContainer} from '../index';
+import {createBorderContainer} from '../index';
 
 const screenWidth = process.argv[2];
 

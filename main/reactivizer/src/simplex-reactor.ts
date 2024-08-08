@@ -42,8 +42,12 @@ export class SimplexReactor<
       this.reactorSubj.next(['', ...params as [stream: rx.Observable<any>, disableCatchError?: boolean]]);
   };
   table: ActionTable<I & BaseActions<I>, LE<LI>>;
-  /** cast current SimplexReactor type to it's logical super type for Typescript type assignable check */
+  /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
   asBaseType = this as unknown as BaseType;
+  /** alias of "asBaseType",
+   * cast current SimplexReactor type to its logical super type for Typescript type assignable check
+   **/
+  b = this as unknown as BaseType;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]> = new rx.ReplaySubject();
   private id = SEQ++;
   // use type parameter <any> to make SimplexReactor more assignable to extend type

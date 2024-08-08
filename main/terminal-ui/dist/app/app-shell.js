@@ -36,8 +36,8 @@ function createApp(mainComponent, opts) {
     root.s.ft.addChild(scrollable.asBaseType.asBaseType, statusbar.asBaseType.asBaseType.asBaseType).dp();
     const canvas = (0, index_1.createTerminalCanvas)(opts);
     canvas.s.ft.autoHideCursor().dp();
-    canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
     const keyEventService = (0, index_1.createKeyEventService)(canvas, opts);
+    // keyEventService.config({debug: true});
     keyEventService.s.ft.bindToScrollable(scrollable).dp();
     statusbar.s.ft.trackKeypressService(keyEventService).dp();
     statusbar.s.ft.trackScrollable(scrollable).dp();
@@ -47,8 +47,28 @@ function createApp(mainComponent, opts) {
         keyEventService.dispose();
         process.exit();
     })));
+    keyEventService.r('onKeypress', keyEventService.s.pt.onKeypress.pipe(rx.filter(([, evt]) => evt.name === 'return'), rx.exhaustMap(([m]) => {
+        coverLayer.s.ft.setDisplay(index_1.DisplayMode.visible).dp(m);
+        return keyEventService.s.pt.onBreak.pipe(rx.take(1), rx.map(([m]) => {
+            coverLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp(m);
+        }));
+    })));
+    const elevator = (0, index_1.createElevator)(opts);
+    const coverLayer = (0, index_1.createFlexContainer)(Object.assign(Object.assign({}, opts), { name: 'coverLayer' }));
+    coverLayer.s.ft.alignItems('center').dp();
+    coverLayer.s.ft.justifyContent('center').dp();
+    // const helpBox = createFlexContainer();
+    const helpNote = (0, index_1.createTextWidget)('Keyboard Help');
+    const coverLayerBorder = (0, index_1.createBorderContainer)(helpNote.b);
+    coverLayerBorder.s.ft.setPadding(5, 5, 5, 5).dp();
+    coverLayerBorder.s.ft.setBackground('bgGrey').dp();
+    coverLayerBorder.s.ft.setBorder('padding').dp();
+    coverLayer.s.ft.addChild(coverLayerBorder.b.b).dp();
+    elevator.s.ft.addChild(root.b.b, coverLayer.b.b).dp();
+    coverLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp();
+    canvas.s.ft.setRootComponent(elevator.asBaseType.asBaseType).dp();
     canvas.s.ft.setRenderOnRequest(true).dp();
     canvas.s.ft.requestRender().dp();
-    return { canvas, root };
+    return { canvas, root, popupLayer: coverLayer };
 }
 //# sourceMappingURL=app-shell.js.map

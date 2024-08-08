@@ -6,7 +6,7 @@ import stripAnsi from 'strip-ansi';
 import * as rx from 'rxjs';
 // import chalk from 'chalk';
 // import {actionRelatedToAction} from '@wfh/reactivizer';
-import {createTerminalCanvas, TerminalCanvas} from '../src/terminal-canvas';
+import {createTerminalCanvas, TerminalCanvas} from '../src';
 
 describe('TerminalCanvas', () => {
   it('Single line, printing texts', () => {

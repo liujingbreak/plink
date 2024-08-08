@@ -27,12 +27,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.app = void 0;
-__exportStar(require("./terminal-canvas"), exports);
-__exportStar(require("./terminal-widget"), exports);
-__exportStar(require("./terminal-border"), exports);
-__exportStar(require("./terminal-flex-container"), exports);
-__exportStar(require("./terminal-text"), exports);
-__exportStar(require("./terminal-scrollable"), exports);
-__exportStar(require("./terminal-keyEvent"), exports);
+__exportStar(require("./canvas"), exports);
+__exportStar(require("./base"), exports);
+__exportStar(require("./border"), exports);
+__exportStar(require("./flex-container"), exports);
+__exportStar(require("./text"), exports);
+__exportStar(require("./scrollable"), exports);
+__exportStar(require("./keyEvent"), exports);
+__exportStar(require("./elevator-container"), exports);
 exports.app = __importStar(require("./app"));
 //# sourceMappingURL=index.js.map

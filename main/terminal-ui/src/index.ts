@@ -1,8 +1,9 @@
-export * from './terminal-canvas';
-export * from './terminal-widget';
-export * from './terminal-border';
-export * from './terminal-flex-container';
-export * from './terminal-text';
-export * from './terminal-scrollable';
-export * from './terminal-keyEvent';
+export * from './canvas';
+export * from './base';
+export * from './border';
+export * from './flex-container';
+export * from './text';
+export * from './scrollable';
+export * from './keyEvent';
+export * from './elevator-container';
 export * as app from './app';
