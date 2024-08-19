@@ -35,7 +35,7 @@ const reactivizer_1 = require("@wfh/reactivizer");
 const index_1 = require("../index");
 const index_2 = require("../index");
 const screenWidth = process.argv[2];
-const debug = false;
+const debug = true;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
     const date = new Date();

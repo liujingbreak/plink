@@ -11,10 +11,13 @@ export enum DisplayMode {
 export interface BaseWidgetInput {
   /** The size set by this message will only affect "preference" size which is by default calculated by its content size,
    * but this size is only a suggestion provided to its container component,
-   * the final size is decided by its container according to its layout feature
+   * the final size is decided by its container according to its layout feature,
+   * e.g. In case its parent container is a FlexContainer, this value is acting like "flex-basis" as in Web CSS property,
+   * the final size will be calculated also based on "setFlexGrow" or "setFlexShrink".
    **/
   setSize(width: number | `${number}%` | null, height: number | `${number}%` | null): SingleActionFactory;
   setFlexGrow(value: number): SingleActionFactory;
+  setFlexShrink(value: number): SingleActionFactory;
   setDisplay(mode: DisplayMode): SingleActionFactory;
 }
 export interface BaseWidgetMessages extends BaseWidgetInput {
@@ -47,7 +50,7 @@ export interface BaseWidgetMessages extends BaseWidgetInput {
 }
 export const tableForBase = [
   'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-  'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached'
+  'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink'
 ] as const;
 export type BaseWidget = SimplexReactor<BaseWidgetMessages, typeof tableForBase>;
 
@@ -193,6 +196,7 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetMessag
   ));
   r('init', new rx.Observable<never>(() => {
     s.ft.setFlexGrow(0).dp();
+    s.ft.setFlexShrink(1).dp();
     s.ft.setPreferredSize(null, null).dp();
     s.ft.needRerender(true).dp();
     s.ft.setParent(null).dp();

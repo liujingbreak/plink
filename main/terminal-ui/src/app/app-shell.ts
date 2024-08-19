@@ -1,11 +1,24 @@
 import * as rx from 'rxjs';
-import {CoreOptions} from '@wfh/reactivizer';
+import {CoreOptions, SingleActionFactory, SimplexReactor} from '@wfh/reactivizer';
 import {createScrollable, createFlexContainer, BaseWidget, createKeyEventService,
   createTerminalCanvas, createElevator, createTextWidget, createBorderContainer,
-  DisplayMode} from '../index';
+  DisplayMode,
+  FlexContainer} from '../index';
 import {createStatusbar} from './statusbar';
 
+export interface AppActions {
+  showPopup(component: BaseWidget): SingleActionFactory;
+}
+export interface AppSignals extends AppActions {
+  /** In context of "showPopup" action */
+  onPopup(component: BaseWidget): SingleActionFactory;
+  onHelp(helper: FlexContainer): SingleActionFactory;
+}
 export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
+  const appService = new SimplexReactor<AppSignals>({
+    ...opts as any,
+    name: 'App'
+  });
   const root = createFlexContainer({name: 'AppShell', ...opts as any});
   root.s.ft.setDirection('col').dp();
   const statusbar = createStatusbar(opts as any);
@@ -32,6 +45,7 @@ export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
     rx.filter(([, evt]) => evt.name === 'return'),
     rx.exhaustMap(([m]) => {
       coverLayer.s.ft.setDisplay(DisplayMode.visible).dp(m);
+      appService.s.ft.onHelp(coverLayer).dp(m);
       return keyEventService.s.pt.onBreak.pipe(
         rx.take(1),
         rx.map(([m]) => {
@@ -62,5 +76,5 @@ export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
 
   canvas.s.ft.setRenderOnRequest(true).dp();
   canvas.s.ft.requestRender().dp();
-  return {canvas, root, popupLayer: coverLayer};
+  return {canvas, root, app: appService};
 }

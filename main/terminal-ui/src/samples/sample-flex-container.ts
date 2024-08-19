@@ -8,7 +8,7 @@ import {createTerminalCanvas} from '../index';
 import {createFlexContainer, createBorderContainer, createTextWidget, MultiLineTextWidget, getBoundingOfCompTree} from '../index';
 
 const screenWidth = process.argv[2];
-const debug = false;
+const debug = true;
 
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 function log(...args: any[]) {

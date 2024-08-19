@@ -37,7 +37,7 @@ var DisplayMode;
 })(DisplayMode || (exports.DisplayMode = DisplayMode = {}));
 exports.tableForBase = [
     'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-    'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached'
+    'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink'
 ];
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 function createBase(opts) {
@@ -121,6 +121,7 @@ function createBase(opts) {
     })));
     r('init', new rx.Observable(() => {
         s.ft.setFlexGrow(0).dp();
+        s.ft.setFlexShrink(1).dp();
         s.ft.setPreferredSize(null, null).dp();
         s.ft.needRerender(true).dp();
         s.ft.setParent(null).dp();

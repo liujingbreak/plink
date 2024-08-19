@@ -9,6 +9,8 @@ export interface ScrollActions {
   scroll(relativeLeft: number, relativeTop: number): SingleActionFactory;
   /** Set which axis direction is allowed to be scrollabe */
   setScrollable(x: boolean, y: boolean): SingleActionFactory;
+}
+interface ScrollSignals extends ScrollActions {
   onContent(component: BaseWidget): SingleActionFactory;
   onValidScroll(left: number, top: number): SingleActionFactory;
   onOverflow(xOverflow: boolean, yOverflow: boolean): SingleActionFactory;
@@ -17,11 +19,11 @@ export interface ScrollActions {
 }
 const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded'] as const;
 
-export type Scrollable = SimplexReactorExtendType<TerminalContainer, ScrollActions, typeof tableFor>;
+export type Scrollable = SimplexReactorExtendType<TerminalContainer, ScrollSignals, typeof tableFor>;
 
-export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr<TerminalContainer, ScrollActions>) {
+export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr<TerminalContainer, ScrollSignals>) {
   const base = createContainerBase({name: 'scrollable', ...opts as any});
-  const scrollable = base.config<ScrollActions, typeof tableFor>({tableFor});
+  const scrollable = base.config<ScrollSignals, typeof tableFor>({tableFor});
   const {r, s, table} = scrollable;
 
   s.prependInterceptor(action$ => {

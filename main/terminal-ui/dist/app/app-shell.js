@@ -25,9 +25,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createApp = createApp;
 const rx = __importStar(require("rxjs"));
+const reactivizer_1 = require("@wfh/reactivizer");
 const index_1 = require("../index");
 const statusbar_1 = require("./statusbar");
 function createApp(mainComponent, opts) {
+    const appService = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({}, opts), { name: 'App' }));
     const root = (0, index_1.createFlexContainer)(Object.assign({ name: 'AppShell' }, opts));
     root.s.ft.setDirection('col').dp();
     const statusbar = (0, statusbar_1.createStatusbar)(opts);
@@ -49,6 +51,7 @@ function createApp(mainComponent, opts) {
     })));
     keyEventService.r('onKeypress', keyEventService.s.pt.onKeypress.pipe(rx.filter(([, evt]) => evt.name === 'return'), rx.exhaustMap(([m]) => {
         coverLayer.s.ft.setDisplay(index_1.DisplayMode.visible).dp(m);
+        appService.s.ft.onHelp(coverLayer).dp(m);
         return keyEventService.s.pt.onBreak.pipe(rx.take(1), rx.map(([m]) => {
             coverLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp(m);
         }));
@@ -69,6 +72,6 @@ function createApp(mainComponent, opts) {
     canvas.s.ft.setRootComponent(elevator.asBaseType.asBaseType).dp();
     canvas.s.ft.setRenderOnRequest(true).dp();
     canvas.s.ft.requestRender().dp();
-    return { canvas, root, popupLayer: coverLayer };
+    return { canvas, root, app: appService };
 }
 //# sourceMappingURL=app-shell.js.map

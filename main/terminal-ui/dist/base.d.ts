@@ -10,10 +10,13 @@ export declare enum DisplayMode {
 export interface BaseWidgetInput {
     /** The size set by this message will only affect "preference" size which is by default calculated by its content size,
      * but this size is only a suggestion provided to its container component,
-     * the final size is decided by its container according to its layout feature
+     * the final size is decided by its container according to its layout feature,
+     * e.g. In case its parent container is a FlexContainer, this value is acting like "flex-basis" as in Web CSS property,
+     * the final size will be calculated also based on "setFlexGrow" or "setFlexShrink".
      **/
     setSize(width: number | `${number}%` | null, height: number | `${number}%` | null): SingleActionFactory;
     setFlexGrow(value: number): SingleActionFactory;
+    setFlexShrink(value: number): SingleActionFactory;
     setDisplay(mode: DisplayMode): SingleActionFactory;
 }
 export interface BaseWidgetMessages extends BaseWidgetInput {
@@ -43,10 +46,10 @@ export interface BaseWidgetMessages extends BaseWidgetInput {
     onBoundingBox(rect: Rectangle): SingleActionFactory;
     onDettached(isDettached: boolean): SingleActionFactory;
 }
-export declare const tableForBase: readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached"];
+export declare const tableForBase: readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink"];
 export type BaseWidget = SimplexReactor<BaseWidgetMessages, typeof tableForBase>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetMessages, typeof tableForBase>>): SimplexReactor<BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached"], unknown>;
+export declare function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetMessages, typeof tableForBase>>): SimplexReactor<BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink"], unknown>;
 export interface ContainerWidgetInput {
     addChild(...children: BaseWidget[]): SingleActionFactory;
     removeChild(...children: BaseWidget[]): SingleActionFactory;
@@ -75,5 +78,5 @@ export interface ContainerWidgetOutput {
 }
 declare const tableFor: readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "setBackground", "onBgChangeWithParent", "onChildPreferredSizeChange"];
 export type TerminalContainer = SimplexReactorMergeType<SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>, BaseWidget>;
-export declare function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, ContainerWidgetInput & ContainerWidgetOutput>): SimplexReactor<BaseWidgetMessages & ContainerWidgetInput & ContainerWidgetOutput, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "setBackground" | "onBgChangeWithParent" | "onChildPreferredSizeChange")[], SimplexReactor<BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached"], unknown>>;
+export declare function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, ContainerWidgetInput & ContainerWidgetOutput>): SimplexReactor<BaseWidgetMessages & ContainerWidgetInput & ContainerWidgetOutput, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "setBackground" | "onBgChangeWithParent" | "onChildPreferredSizeChange")[], SimplexReactor<BaseWidgetMessages, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink"], unknown>>;
 export {};

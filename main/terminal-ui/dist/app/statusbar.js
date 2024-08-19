@@ -57,7 +57,7 @@ function createStatusbar(opts) {
             s.ft.onScrollStatus(vertRatio != null ? vertRatio < Number.EPSILON ? 0 : vertRatio : null, horizRatio != null ? horizRatio < Number.EPSILON ? 0 : horizRatio : null).dp(m1, m2, m3);
         }));
     })));
-    r('', table.l.trackScrollable.pipe(rx.switchMap(([, scrollable]) => scrollable.table.l.isScrollNeeded.pipe(rx.distinctUntilChanged(([, need0], [, need1]) => need0 === need1), rx.map(([m, need]) => {
+    r('trackScrollable, scrollable.isScrollNeeded -> "labelScrollText"', table.l.trackScrollable.pipe(rx.switchMap(([, scrollable]) => scrollable.table.l.isScrollNeeded.pipe(rx.distinctUntilChanged(([, need0], [, need1]) => need0 === need1), rx.map(([m, need]) => {
         labelScrollText.s.ft.setDisplay(need ? index_1.DisplayMode.visible : index_1.DisplayMode.none).dp(m);
     })))));
     r('trackKeypressService, keyEventServcie.onDisplayKeys, keyEventServcie.onInputCompleted -> onKeypressStatus', table.l.trackKeypressService.pipe(rx.switchMap(([, keypress]) => {
