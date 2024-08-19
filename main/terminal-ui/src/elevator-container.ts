@@ -92,9 +92,10 @@ export function createElevator(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, E
   ));
   r('reflow', s.pt.reflow.pipe(
     rx.mergeMap(([m]) => {
-      return table.l.onSize.pipe(
+      return rx.combineLatest([table.l.onSize, table.l.allDisplayChildren]).pipe(
         rx.take(1),
-        rx.map(([, w, h]) => {
+        rx.map(([[, w, h], [, chdn]]) => {
+          s.ft.onChildPositions(new Map<BaseWidget, [number, number]>(chdn.map(chd => [chd, [0, 0] as const] as const))).dp(m);
           for (const cv of canvasMap.values()) {
             cv.s.ft.setBounding(0, 0, w, h).dp(m);
           }
@@ -157,7 +158,7 @@ export function createElevator(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, E
 export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]> {
   return rx.combineLatest([
     c.table.l.setDisplay,
-    isContainer(c) ? c.table.l.setBackground : rx.of([null, ''])
+    isContainerWithoutOfflineCanvas(c) ? c.table.l.setBackground : rx.of([null, ''])
   ]).pipe(
     rx.switchMap(([[, d], [, bg]]) => {
       if (d !== DisplayMode.visible)
@@ -190,8 +191,10 @@ export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]>
   );
 }
 
-function isContainer(root: any): root is TerminalContainer {
-  return (root as TerminalContainer).table.getData().allChildren != null;
+function isContainerWithoutOfflineCanvas(root: any): root is TerminalContainer {
+  const container = (root as TerminalContainer).table.getData();
+  return container.allChildren != null &&
+    container.hasOfflineCanvas[0] === false;
 }
 // export function unionRectangles(rects: Iterable<Rectangle>) {
 //   let curr: Rectangle | undefined;

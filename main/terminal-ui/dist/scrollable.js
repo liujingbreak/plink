@@ -50,7 +50,7 @@ function createScrollable(comp, opts) {
         }
         return rx.EMPTY;
     })));
-    r('onRender', prepended.pt.onRender.pipe(rx.withLatestFrom(table.l.onValidScroll, table.l.onSize), rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height]]) => {
+    r('onRender -> comp.render,...', prepended.pt.onRender.pipe(rx.withLatestFrom(table.l.onValidScroll, table.l.onSize), rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height]]) => {
         if (renderSelf)
             s.ft.renderSelf(outerCanvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         const clipsOfView = clips.map(c => {
@@ -61,6 +61,7 @@ function createScrollable(comp, opts) {
                 return (0, canvas_1.rectIntersection)([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
             }).filter(c => c != null) :
             [];
+        // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
         comp.s.ft.render(canvas, gl_matrix_1.mat4.create(), clipsOfView, masksOfView).dp(m);
         const orig = [0, 0];
         gl_matrix_1.vec2.transformMat4(orig, orig, trans);
@@ -157,6 +158,7 @@ function createScrollable(comp, opts) {
         s.ft.onContent(comp).dp();
         s.ft.addReflowAction(s.at.scrollTo).dp();
         s.ft.addReflowAction(s.at.setScrollable).dp();
+        s.ft.hasOfflineCanvas(true).dp();
     }));
     return scrollable;
 }

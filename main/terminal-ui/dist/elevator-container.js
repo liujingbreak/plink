@@ -77,7 +77,8 @@ function createElevator(opts) {
         s.ft.preferredSize(xw, xh).dp(m);
     })));
     r('reflow', s.pt.reflow.pipe(rx.mergeMap(([m]) => {
-        return table.l.onSize.pipe(rx.take(1), rx.map(([, w, h]) => {
+        return rx.combineLatest([table.l.onSize, table.l.allDisplayChildren]).pipe(rx.take(1), rx.map(([[, w, h], [, chdn]]) => {
+            s.ft.onChildPositions(new Map(chdn.map(chd => [chd, [0, 0]]))).dp(m);
             for (const cv of canvasMap.values()) {
                 cv.s.ft.setBounding(0, 0, w, h).dp(m);
             }
@@ -118,7 +119,7 @@ function createElevator(opts) {
 function getBoundingOfCompTree(c) {
     return rx.combineLatest([
         c.table.l.setDisplay,
-        isContainer(c) ? c.table.l.setBackground : rx.of([null, ''])
+        isContainerWithoutOfflineCanvas(c) ? c.table.l.setBackground : rx.of([null, ''])
     ]).pipe(rx.switchMap(([[, d], [, bg]]) => {
         if (d !== index_1.DisplayMode.visible)
             return rx.of([]);
@@ -133,8 +134,10 @@ function getBoundingOfCompTree(c) {
         }
     }));
 }
-function isContainer(root) {
-    return root.table.getData().allChildren != null;
+function isContainerWithoutOfflineCanvas(root) {
+    const container = root.table.getData();
+    return container.allChildren != null &&
+        container.hasOfflineCanvas[0] === false;
 }
 // export function unionRectangles(rects: Iterable<Rectangle>) {
 //   let curr: Rectangle | undefined;

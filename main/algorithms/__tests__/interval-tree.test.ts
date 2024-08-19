@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // import inspector from 'inspector';
 import {describe, it, expect}  from '@jest/globals';
 import {IntervalTree, IntervalTreeNode} from '../src/interval-tree';

@@ -1,28 +1,29 @@
-import {IntervalTree} from '@wfh/algorithms';
+import {IntervalTree, stringifyIntervalTree} from '@wfh/algorithms';
 import type {Rectangle} from './canvas';
 
 const EMPTY_ARR = [] as unknown[];
 
 export class RectangleOverlapTree<C> {
-  private xIntervalTree = new IntervalTree<C | C[]>();
-  private yIntervalTree = new IntervalTree<C | C[]>();
+  private xIntervalTree = new IntervalTree<C[]>();
+  private yIntervalTree = new IntervalTree<C[]>();
+
+  toString() {
+    return '\nxTree:\n' + stringifyIntervalTree(this.xIntervalTree, true) +
+      '\nyTree:\n' + stringifyIntervalTree(this.yIntervalTree, true);
+  }
 
   addContent([x, y, w, h]: Rectangle, content: C) {
     const node = this.xIntervalTree.insertInterval(x, x + w - 1);
     if (node.value == null)
-      node.value = content;
-    else if (Array.isArray(node.value))
-      node.value.push(content);
+      node.value = [content];
     else
-      node.value = [node.value, content];
+      node.value.push(content);
 
     const nodeY = this.yIntervalTree.insertInterval(y, y + h - 1);
     if (nodeY.value == null)
-      nodeY.value = content;
-    else if (Array.isArray(nodeY.value))
-      nodeY.value.push(content);
+      nodeY.value = [content];
     else
-      nodeY.value = [nodeY.value, content];
+      nodeY.value.push(content);
   }
 
   searchOverlaps([x, y, w, h]: Rectangle) {
@@ -37,12 +38,13 @@ export class RectangleOverlapTree<C> {
         }
       }
     })());
+    console.log('foundX:', foundItemsOfX.size);
     const foundY = this.yIntervalTree.searchMultipleOverlaps(y, y + h - 1);
-    return [...foundY].flatMap(([, , data]) => {
+    const itemsY = [...foundY];
+    console.log('search Y:', y, y + h - 1);
+    return itemsY.flatMap(([, , data]) => {
       if (Array.isArray(data)) {
         return data.filter(it => foundItemsOfX.has(it));
-      } else if (foundItemsOfX.has(data)) {
-        return [data];
       } else {
         return EMPTY_ARR as C[];
       }
@@ -85,8 +87,8 @@ export class RectangleOverlapTree<C> {
   }
 
   clear() {
-    this.xIntervalTree = new IntervalTree<C | C[]>();
-    this.yIntervalTree = new IntervalTree<C | C[]>();
+    this.xIntervalTree = new IntervalTree<C[]>();
+    this.yIntervalTree = new IntervalTree<C[]>();
   }
 }
 

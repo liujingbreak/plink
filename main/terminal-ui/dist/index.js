@@ -35,5 +35,6 @@ __exportStar(require("./text"), exports);
 __exportStar(require("./scrollable"), exports);
 __exportStar(require("./keyEvent"), exports);
 __exportStar(require("./elevator-container"), exports);
+__exportStar(require("./table"), exports);
 exports.app = __importStar(require("./app"));
 //# sourceMappingURL=index.js.map

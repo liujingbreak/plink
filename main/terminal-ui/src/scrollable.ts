@@ -19,6 +19,10 @@ interface ScrollSignals extends ScrollActions {
 }
 const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded'] as const;
 
+/** Scrollable is a TerminalContainer which has an offline canvas, child components will only be "render"ed
+ * when they are scrolled to become visible, and they are firstly rendered to the offline canvas then will be copied
+ * to outsider canvas afterward
+ */
 export type Scrollable = SimplexReactorExtendType<TerminalContainer, ScrollSignals, typeof tableFor>;
 
 export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr<TerminalContainer, ScrollSignals>) {
@@ -62,7 +66,7 @@ export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr
       return rx.EMPTY;
     })
   ));
-  r('onRender', prepended.pt.onRender.pipe(
+  r('onRender -> comp.render,...', prepended.pt.onRender.pipe(
     rx.withLatestFrom(table.l.onValidScroll, table.l.onSize),
     rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height]]) => {
       if (renderSelf)
@@ -75,6 +79,7 @@ export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr
           return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
         }).filter(c => c != null) :
         [];
+      // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
       comp.s.ft.render(canvas, mat4.create(), clipsOfView, masksOfView).dp(m);
       const orig = [0, 0] as vec2;
       vec2.transformMat4(orig, orig, trans);
@@ -209,6 +214,7 @@ export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr
     s.ft.onContent(comp).dp();
     s.ft.addReflowAction(s.at.scrollTo).dp();
     s.ft.addReflowAction(s.at.setScrollable).dp();
+    s.ft.hasOfflineCanvas(true).dp();
   }));
   return scrollable;
 }

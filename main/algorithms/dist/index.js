@@ -18,4 +18,5 @@ __exportStar(require("./graph"), exports);
 __exportStar(require("./rb-tree"), exports);
 __exportStar(require("./interval-tree"), exports);
 __exportStar(require("./minMax"), exports);
+__exportStar(require("./utils"), exports);
 //# sourceMappingURL=index.js.map

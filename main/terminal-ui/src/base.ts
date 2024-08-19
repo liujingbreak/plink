@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SingleActionFactory, CoreOptsOfExtSmplxRctr, ActionDispenser, SimplexReactor, SimplexReactorMergeType, ActionMeta, Action, InferMapParam, SimplexReactorOptions} from '@wfh/reactivizer';
-import {TerminalCanvas, Rectangle, BackgroundStyle} from './canvas';
+import {TerminalCanvas, Rectangle, BackgroundStyle, rectIntersection} from './canvas';
 
 export enum DisplayMode {
   visible,
@@ -20,13 +20,15 @@ export interface BaseWidgetInput {
   setFlexShrink(value: number): SingleActionFactory;
   setDisplay(mode: DisplayMode): SingleActionFactory;
 }
-export interface BaseWidgetMessages extends BaseWidgetInput {
+export interface BaseWidgetEvents extends BaseWidgetInput {
   /** to override automatical "preferredSize" in layout calculation */
   setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
   onSize(width: number, height: number): SingleActionFactory;
-  /** Implementation needs to handle this action */
+  /** Implementation needs to handle this event */
   querySizeOf(width: number | null, height: number | null): SingleActionFactory;
-  /** Be aware that an interceptor is filtering "preferredSize" action for distinctUntilChanged(), which affects action table, some action will be skipped due to duplicate value */
+  /** Extended container implementation need to handle this event.
+   * Be aware that an interceptor is filtering "preferredSize" action for distinctUntilChanged(),
+   * which affects action table, some action will be skipped due to duplicate value */
   preferredSize(width: number, height: number): SingleActionFactory;
   /** As response to "querySizeOf" */
   prefWidthFor(width: number, constrainHeight: number): SingleActionFactory;
@@ -37,14 +39,21 @@ export interface BaseWidgetMessages extends BaseWidgetInput {
   setParent(p: TerminalContainer | null): SingleActionFactory;
   ofCanvas(canvas: TerminalCanvas | null): SingleActionFactory;
   /** this message will be intercepted and skipped if there is no "Rerender" action dispatched after last "render" message is handled,
-   * @param relRerenderArea - Rectangle to be rerendered, the coordinate is relative to target (this) component
+   * @param clips - Rectangle to be rerendered, the coordinate is relative to target (this), clip could be smaller than the size of current component,
+   *    e.g. When the container is a scrollable component, clip is the viewport area intersects with complete space taken by current component.
+   * @param masks - Rectangle indicates the space being masked by any elevator component, may not render masks area to improve performance
    */
-  render(canvas: TerminalCanvas, absTransform: mat4, clipArea?: Rectangle[], maskArea?: Rectangle[]): SingleActionFactory;
-  /** Implementation needed to handle this action */
+  render(canvas: TerminalCanvas, absTransform: mat4, clips?: Rectangle[], masks?: Rectangle[]): SingleActionFactory;
+  /** Implementation needed to handle this event */
   onRender(canvas: TerminalCanvas, absTransform: mat4, renderSelf: boolean, clipArea: Rectangle[], maskArea?: Rectangle[]): SingleActionFactory;
   needRerender(need: boolean): SingleActionFactory;
   /** If following action is dispatched, the next render message must not be skipped on current widget */
   addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
+  /** Get bouding rectangle that is calculated when the lastest "render" message is handled,
+   * the coordinate of rectangle is relative to canvas, in case of child component of "scrollable" container,
+   * the effect canvas is an offline canvas whose coordinate is different from containing canvas.
+   * Also see `ContainerWidgetEvents["hasOfflineCanvas"]`
+   */
   onBoundingBox(rect: Rectangle): SingleActionFactory;
   onDettached(isDettached: boolean): SingleActionFactory;
 }
@@ -52,11 +61,11 @@ export const tableForBase = [
   'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
   'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink'
 ] as const;
-export type BaseWidget = SimplexReactor<BaseWidgetMessages, typeof tableForBase>;
+export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
 
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetMessages, typeof tableForBase>>) {
-  const service = new SimplexReactor<BaseWidgetMessages, typeof tableForBase>({tableFor: tableForBase, ...opts});
+export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>>) {
+  const service = new SimplexReactor<BaseWidgetEvents, typeof tableForBase>({tableFor: tableForBase, ...opts});
   const {s, r, table} = service;
 
   // When table "setPreferredSize" contains non-null value, override corresponding "preferredSize" event, change or skip it
@@ -216,32 +225,51 @@ export interface ContainerWidgetInput {
   setBackground(color: BackgroundStyle | null): SingleActionFactory;
 }
 
-export interface ContainerWidgetOutput {
-  renderSelf(canvas: TerminalCanvas, absTransform: mat4, clipArea: Rectangle[], maskArea: Rectangle[]): SingleActionFactory;
+export interface ContainerWidgetEvents {
+  /** implement should dispatch this event in "onRender" hanlder,
+   * Default implementation is about: reflow, clear background, set flags
+   **/
+  renderSelf(canvas: TerminalCanvas, transform: mat4, clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
   renderChild(index: number, child: BaseWidget, canvas: TerminalCanvas, absTransform: mat4, clipArea: Rectangle[], maskArea: Rectangle[]): SingleActionFactory;
   allChildren(children: Array<BaseWidget>): SingleActionFactory;
   /** all children whose "setDisplay" is not `none` */
   allDisplayChildren(children: Array<BaseWidget>): SingleActionFactory;
-  allReflowChildren(children: BaseWidget[]): SingleActionFactory;
+  /** Under context of "relow" action
+   * @param positions the length of this parameter must equals to "allDisplayChildren"'s length
+   **/
+  onChildPositions(positions: Map<BaseWidget, [number, number]>): SingleActionFactory;
   onChildError(childId: string, errInfo: readonly [err: any, label: string | null]): SingleActionFactory;
   /** size of component which is "setDisplay" `none` is excluded */
   onChildPreferredSizeChange(sizes: [w: number, h: number][]): SingleActionFactory;
   onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
   setLayoutValid(isValid: boolean): SingleActionFactory;
+  /** Implementation container should set proper initial value, for container like "scrollable" whose child
+   * component is actually rendered to another canvas other than the containing one, they must set this 
+   * value to `true`, so that consumer knowns whether child components of this type of container has a different
+   * rendering coordinate. Also see `BaseWidgetEvents["onBoundingBox"]`
+   */
+  hasOfflineCanvas(yes: boolean): SingleActionFactory;
   /** This message is when to calculate layout information like postion and size of children component, for later rendering,
-   * this message is only signaled when latest "setLayoutValid" is `false`
+   * this message is only signaled when latest "setLayoutValid" is `false`.
+   * Implementation must handle this event to finish 2 tasks:
+   *    1) For every "allDisplayChildren" dispatch "onSize" of child component
+   *    2) Dispatch corresponding "onChildPositions" for latest "allDisplayChildren"
    **/
-  reflow(): SingleActionFactory;
-  /** No reaction yet , preserve for future */
+  reflow(clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
+  /** No reaction yet , preserve for the future */
   renderBackgroundFor(child: BaseWidget): SingleActionFactory;
 }
 
-const tableFor = ['allChildren', 'allDisplayChildren', 'setLayoutValid', 'setBackground', 'onBgChangeWithParent', 'onChildPreferredSizeChange'] as const;
-export type TerminalContainer = SimplexReactorMergeType<SimplexReactor<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>, BaseWidget>;
+const tableFor = [
+  'allChildren', 'allDisplayChildren', 'setLayoutValid', 'setBackground',
+  'onBgChangeWithParent', 'onChildPreferredSizeChange', 'hasOfflineCanvas',
+  'onChildPositions'
+] as const;
+export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<ContainerWidgetInput & ContainerWidgetEvents, typeof tableFor>>;
 
-export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, ContainerWidgetInput & ContainerWidgetOutput>) {
+export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, ContainerWidgetInput & ContainerWidgetEvents>) {
   const base = createBase(opts as any);
-  const service = base.config<ContainerWidgetInput & ContainerWidgetOutput, typeof tableFor>({
+  const service = base.config<ContainerWidgetInput & ContainerWidgetEvents, typeof tableFor>({
     tableFor
   });
 
@@ -313,12 +341,12 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
   ));
   r('renderSelf -> reflow, setLayoutValid, child.needRerender', s.pt.renderSelf.pipe(
     rx.withLatestFrom(table.l.setLayoutValid),
-    rx.mergeMap(([[m], [, valid]]) => {
+    rx.mergeMap(([[m, , , clips, masks], [, valid]]) => {
       if (!valid) {
         return table.l.allDisplayChildren.pipe(
           rx.take(1),
           rx.map(([, allChildren]) => {
-            s.ft.reflow().dp(m);
+            s.ft.reflow(clips, masks).dp(m);
             s.ft.setLayoutValid(true).dp(m);
             for (const child of allChildren)
               child.s.ft.needRerender(true).dp(m);
@@ -342,10 +370,38 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
       })
     ))
   ));
-  r('renderChild -> child.render, canvas.addString', s.pt.renderChild.pipe(
-    rx.map(([m, _index, chr, canvas, trans, _renderArea]) => {
-      chr.s.ft.render(canvas, trans).re(m).dp();
-    })
+  r('renderChild, onChildPositions -> child.render', s.pt.renderChild.pipe(
+    rx.switchMap(([m, , chr, canvas, trans, clips, masks]) => rx.combineLatest([
+      chr.table.l.onSize,
+      table.l.onChildPositions
+    ]).pipe(
+      rx.take(1),
+      rx.map(([[, width, height], [, childrenPosition]]) => {
+        // listContainer.log('.renderChild', index, ': childrenPosition:', ...childrenPosition[index]);
+        const [x, y] = childrenPosition.get(chr)!;
+        const clipsOfCh = clips.map(cp => {
+          const intersection = rectIntersection([x, y, width, height], cp);
+          if (intersection) {
+            intersection[0] -= x;
+            intersection[1] -= y;
+          }
+          return intersection;
+        }).filter(c => c != null);
+        const masksOfCh = masks.map(mk => {
+          const intersection = rectIntersection([x, y, width, height], mk);
+          if (intersection) {
+            intersection[0] -= x;
+            intersection[1] -= y;
+          }
+          return intersection;
+        }).filter(c => c != null);
+        if (clipsOfCh.length > 0) {
+          const tranOfChild = mat4.fromTranslation(mat4.create(), [x, y, 0]);
+          mat4.mul(tranOfChild, trans, tranOfChild);
+          chr.s.ft.render(canvas, tranOfChild, clipsOfCh, masksOfCh).re(m).dp();
+        }
+      })
+    ))
   ));
   r('onChildError -> parent.onChildError', s.pt.onChildError.pipe(
     rx.withLatestFrom(s.pt.setParent),
@@ -372,14 +428,6 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
         }
       } else {
         canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
-        // if (idx === 0) {
-        //   const fill = ' '.repeat(width);
-        //   for (let i = 0; i < height; i++) {
-        //     canvas.s.ft.addString(pos[0], pos[1] + i, fill).dp(m);
-        //   }
-        // } else {
-        //   canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
-        // }
       }
     })
   ));
@@ -408,6 +456,8 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
     ft.overflow(false).dp();
     ft.setLayoutValid(false).dp();
     ft.setBackground(null).dp();
+    ft.hasOfflineCanvas(false).dp();
+    ft.onChildPositions(new Map()).dp();
   }));
   return service;
 }

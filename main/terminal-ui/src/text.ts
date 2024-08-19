@@ -43,7 +43,7 @@ export function createTextWidget(initialText = '', opts?: CoreOptsOfExtSmplxRctr
         canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
       }
       if (overflow)
-        canvas.s.ft.addString(x + width - 3, lineCnt - 1, '...').dp(m);
+        canvas.s.ft.addString(x + width - 3, y0 + lineCnt - 1, '...').dp(m);
     })
   ));
   r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', s.pt.querySizeOf.pipe(

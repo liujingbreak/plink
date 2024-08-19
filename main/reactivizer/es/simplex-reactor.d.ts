@@ -23,8 +23,12 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     s: RxController2<I & BaseActions>;
     r: (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => void;
     table: ActionTable<I & BaseActions<I>, LE<LI>>;
-    /** cast current SimplexReactor type to it's logical super type for Typescript type assignable check */
+    /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
     asBaseType: BaseType;
+    /** alias of "asBaseType",
+     * cast current SimplexReactor type to its logical super type for Typescript type assignable check
+     **/
+    b: BaseType;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
     private id;
     opts?: SimplexReactorOptions<I, LI>;

@@ -26,7 +26,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createBorderContainer = createBorderContainer;
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
-const reactivizer_1 = require("@wfh/reactivizer");
 // import {TerminalCanvas} from './terminal-canvas';
 const base_1 = require("./base");
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'];
@@ -38,17 +37,6 @@ function createBorderContainer(child, opts) {
     });
     const { r, table, s } = service;
     const childPos = [0, 0];
-    // intercept "renderChild"
-    s.interceptor$.next(action$ => {
-        const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
-        return rx.merge(dispenser.at.renderChild.pipe(rx.map(action => {
-            const { p: [, child, canvas, trans] } = action;
-            const pos = childPos;
-            const tranOfChild = gl_matrix_1.mat4.fromTranslation(gl_matrix_1.mat4.create(), [pos[0], pos[1], 0]);
-            gl_matrix_1.mat4.mul(tranOfChild, trans, tranOfChild);
-            child.s.ft.render(canvas, tranOfChild).dp(action);
-        }), rx.ignoreElements()), dispenser.ofOtherTypes());
-    });
     r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.allChildren, table.l.setBorder, table.l.setPadding), rx.mergeMap(([[m, w, h], [, children], [, border], [, top, right, bottom, left]]) => {
         if (w == null && h != null) {
             return children[0].s.ft.querySizeOf(null, h - top - bottom - (border === 'line' ? 2 : 0)).re(m).od(children[0].s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, childWidth]) => {
@@ -85,7 +73,6 @@ function createBorderContainer(child, opts) {
         if (cWidth > 0 && cHeight > 0) {
             children[0].s.ft.onSize(cWidth, cHeight).dp(m);
         }
-        // service.log('>>>>>>>>>>>>>>>>>>>>>>>>>>> childPos', childPos);
     })));
     r('renderSelf', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setBorder, rx.combineLatest([table.l.setBorderStyle, table.l.onBgChangeWithParent]).pipe(rx.map(([[, style], [, bg]]) => {
         return bg ? [bg, ...style] : style;
@@ -110,6 +97,7 @@ function createBorderContainer(child, opts) {
         s.ft.setBorder('line').dp();
         s.ft.addChild(child).dp();
         s.ft.setBorderStyle([]).dp();
+        s.ft.onChildPositions(new Map([[child, childPos]])).dp();
     }));
     return service;
 }

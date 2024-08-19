@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
-import {vec2, mat4} from 'gl-matrix';
-import {SingleActionFactory, CoreOptsOfExtSmplxRctr, ActionDispenser} from '@wfh/reactivizer';
+import {vec2} from 'gl-matrix';
+import {SingleActionFactory, CoreOptsOfExtSmplxRctr} from '@wfh/reactivizer';
 // import {TerminalCanvas} from './terminal-canvas';
 import {createContainerBase, BaseWidget, TerminalContainer} from './base';
 import {TextStyle} from './canvas';
@@ -19,24 +19,7 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
     tableFor: tableForBorderContainer
   });
   const {r, table, s} = service;
-  const childPos = [0, 0];
-  // intercept "renderChild"
-  s.interceptor$.next(action$ => {
-    const dispenser = ActionDispenser.ofAction$<typeof service.s>(action$);
-    return rx.merge(
-      dispenser.at.renderChild.pipe(
-        rx.map(action => {
-          const {p: [ , child, canvas, trans]} = action;
-          const pos = childPos;
-          const tranOfChild = mat4.fromTranslation(mat4.create(), [pos[0], pos[1], 0]);
-          mat4.mul(tranOfChild, trans, tranOfChild);
-          child.s.ft.render(canvas, tranOfChild).dp(action);
-        }),
-        rx.ignoreElements()
-      ),
-      dispenser.ofOtherTypes()
-    );
-  });
+  const childPos = [0, 0] as [number, number];
   r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(
     rx.withLatestFrom(table.l.allChildren, table.l.setBorder, table.l.setPadding),
     rx.mergeMap(([[m, w, h], [, children], [, border], [, top, right, bottom, left]]) => {
@@ -92,7 +75,6 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
       if (cWidth > 0 && cHeight > 0) {
         children[0].s.ft.onSize(cWidth, cHeight).dp(m);
       }
-      // service.log('>>>>>>>>>>>>>>>>>>>>>>>>>>> childPos', childPos);
     })
   ));
   r('renderSelf', s.pt.renderSelf.pipe(
@@ -127,6 +109,7 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
     s.ft.setBorder('line').dp();
     s.ft.addChild(child).dp();
     s.ft.setBorderStyle([]).dp();
+    s.ft.onChildPositions(new Map<BaseWidget, [number, number]>([[child, childPos]])).dp();
   }));
   return service;
 }

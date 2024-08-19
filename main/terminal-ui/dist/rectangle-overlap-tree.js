@@ -8,21 +8,21 @@ class RectangleOverlapTree {
         this.xIntervalTree = new algorithms_1.IntervalTree();
         this.yIntervalTree = new algorithms_1.IntervalTree();
     }
+    toString() {
+        return '\nxTree:\n' + (0, algorithms_1.stringifyIntervalTree)(this.xIntervalTree, true) +
+            '\nyTree:\n' + (0, algorithms_1.stringifyIntervalTree)(this.yIntervalTree, true);
+    }
     addContent([x, y, w, h], content) {
         const node = this.xIntervalTree.insertInterval(x, x + w - 1);
         if (node.value == null)
-            node.value = content;
-        else if (Array.isArray(node.value))
-            node.value.push(content);
+            node.value = [content];
         else
-            node.value = [node.value, content];
+            node.value.push(content);
         const nodeY = this.yIntervalTree.insertInterval(y, y + h - 1);
         if (nodeY.value == null)
-            nodeY.value = content;
-        else if (Array.isArray(nodeY.value))
-            nodeY.value.push(content);
+            nodeY.value = [content];
         else
-            nodeY.value = [nodeY.value, content];
+            nodeY.value.push(content);
     }
     searchOverlaps([x, y, w, h]) {
         const foundX = this.xIntervalTree.searchMultipleOverlaps(x, x + w - 1);
@@ -37,13 +37,13 @@ class RectangleOverlapTree {
                 }
             }
         })());
+        console.log('foundX:', foundItemsOfX.size);
         const foundY = this.yIntervalTree.searchMultipleOverlaps(y, y + h - 1);
-        return [...foundY].flatMap(([, , data]) => {
+        const itemsY = [...foundY];
+        console.log('search Y:', y, y + h - 1);
+        return itemsY.flatMap(([, , data]) => {
             if (Array.isArray(data)) {
                 return data.filter(it => foundItemsOfX.has(it));
-            }
-            else if (foundItemsOfX.has(data)) {
-                return [data];
             }
             else {
                 return EMPTY_ARR;

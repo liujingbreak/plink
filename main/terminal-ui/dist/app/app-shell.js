@@ -35,7 +35,7 @@ function createApp(mainComponent, opts) {
     const statusbar = (0, statusbar_1.createStatusbar)(opts);
     const scrollable = (0, index_1.createScrollable)(mainComponent, opts);
     scrollable.s.ft.setFlexGrow(1).dp();
-    root.s.ft.addChild(scrollable.asBaseType.asBaseType, statusbar.asBaseType.asBaseType.asBaseType).dp();
+    root.s.ft.addChild(scrollable.b.b, statusbar.b.b.b).dp();
     const canvas = (0, index_1.createTerminalCanvas)(opts);
     canvas.s.ft.autoHideCursor().dp();
     const keyEventService = (0, index_1.createKeyEventService)(canvas, opts);

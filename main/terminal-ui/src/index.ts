@@ -6,4 +6,5 @@ export * from './text';
 export * from './scrollable';
 export * from './keyEvent';
 export * from './elevator-container';
+export * from './table';
 export * as app from './app';

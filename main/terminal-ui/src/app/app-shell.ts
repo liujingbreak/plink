@@ -24,7 +24,7 @@ export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
   const statusbar = createStatusbar(opts as any);
   const scrollable = createScrollable(mainComponent, opts as any);
   scrollable.s.ft.setFlexGrow(1).dp();
-  root.s.ft.addChild(scrollable.asBaseType.asBaseType, statusbar.asBaseType.asBaseType.asBaseType).dp();
+  root.s.ft.addChild(scrollable.b.b, statusbar.b.b.b).dp();
   const canvas = createTerminalCanvas(opts as Pick<CoreOptions, 'debug'>);
   canvas.s.ft.autoHideCursor().dp();
   const keyEventService = createKeyEventService(canvas, opts as any);
@@ -71,9 +71,7 @@ export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
     coverLayer.b.b
   ).dp();
   coverLayer.s.ft.setDisplay(DisplayMode.none).dp();
-
   canvas.s.ft.setRootComponent(elevator.asBaseType.asBaseType).dp();
-
   canvas.s.ft.setRenderOnRequest(true).dp();
   canvas.s.ft.requestRender().dp();
   return {canvas, root, app: appService};

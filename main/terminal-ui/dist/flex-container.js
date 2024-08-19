@@ -23,28 +23,36 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.FlexBorderSeparator = void 0;
 exports.createFlexContainer = createFlexContainer;
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
-const canvas_1 = require("./canvas");
 const base_1 = require("./base");
 const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
-const tableForFlexContainer = ['setDirection', 'alignItems', 'justifyContent', 'setBorderSpacing', 'onChildPositions'];
+var FlexBorderSeparator;
+(function (FlexBorderSeparator) {
+    FlexBorderSeparator[FlexBorderSeparator["none"] = 0] = "none";
+    FlexBorderSeparator[FlexBorderSeparator["line"] = 1] = "line";
+})(FlexBorderSeparator || (exports.FlexBorderSeparator = FlexBorderSeparator = {}));
+const tableForFlexContainer = [
+    'setDirection', 'alignItems', 'justifyContent', 'setBorderSpacing', 'setBorderSeparator',
+    'setBorderSeparatorStyle'
+];
 function createFlexContainer(opts = {}) {
     const base = (0, base_1.createContainerBase)(Object.assign({ name: 'listContainer' }, opts));
     const listContainer = base.config({ tableFor: tableForFlexContainer });
-    // const childToIdx = new Map<unknown, number>();
-    // intercept "renderChild, onRender"
-    base.s.interceptor$.next(action$ => {
+    // intercept "onRender"
+    base.s.prependInterceptor(action$ => {
         const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
-        return rx.merge(dispenser.at.renderChild.pipe(rx.ignoreElements()), dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
+        return rx.merge(dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
     });
     const prependCtl = listContainer.s.prependController();
     const childBoundingTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
     const { r, table, s } = listContainer;
     const { ft } = s;
-    r('querySizeOf,... -> prefHeightFor, prefWidthFor', listContainer.s.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.allDisplayChildren, table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing), rx.switchMap(([[m, w, h], [, children], [, chrPreferredSizes], [, _justifyContent], [, _alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
+    const separatorPos = [];
+    r('querySizeOf,... -> prefHeightFor, prefWidthFor', listContainer.s.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.allDisplayChildren, table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator), rx.switchMap(([[m, w, h], [, children], [, chrPreferredSizes], [, _justifyContent], [, _alignItems], [, pWidth, pHeight], [, dir], [, marginWidth], [, borderSep]]) => {
         let mainAxis = w;
         let crossAxis = h;
         let pMainAxis = pWidth;
@@ -54,6 +62,7 @@ function createFlexContainer(opts = {}) {
             crossAxis = w;
             pMainAxis = pHeight;
             marginWidth = 0;
+            borderSep = FlexBorderSeparator.none;
         }
         if (mainAxis != null) {
             if (mainAxis > pMainAxis) {
@@ -64,7 +73,8 @@ function createFlexContainer(opts = {}) {
                 return rx.EMPTY;
             }
             else {
-                const availableSpace = mainAxis - (children.length > 1 ? marginWidth * children.length - 1 : 0);
+                const sep = borderSep === FlexBorderSeparator.line ? 1 + 2 * marginWidth : marginWidth;
+                const availableSpace = mainAxis - (children.length > 1 ? sep * children.length - 1 : 0);
                 const childrenSizeOfMainAxis$ = rx.combineLatest(children.map(chd => chd.table.l.setFlexShrink.pipe(rx.map(([, v]) => v)))).pipe(rx.take(1), rx.map(shrinks => shrinkEachSize(dir === 'row' ? chrPreferredSizes.map(([w]) => w) : chrPreferredSizes.map(([, h]) => h), shrinks, availableSpace)));
                 return childrenSizeOfMainAxis$.pipe(rx.mergeMap(childrenSizeOfMainAxis => rx.merge(...children.map((chr, idx) => {
                     return dir === 'row' ?
@@ -101,7 +111,8 @@ function createFlexContainer(opts = {}) {
                     return mainAxisSize;
                 }, 0), rx.map(mainAxisPrefSize => {
                     if (dir === 'row') {
-                        ft.prefWidthFor(mainAxisPrefSize + marginWidth * (children.length - 1), crossAxis).dp(m);
+                        const sep = borderSep === FlexBorderSeparator.line ? 1 + 2 * marginWidth : marginWidth;
+                        ft.prefWidthFor(mainAxisPrefSize + sep * (children.length - 1), crossAxis).dp(m);
                     }
                     else
                         ft.prefHeightFor(crossAxis, mainAxisPrefSize).dp(m);
@@ -115,10 +126,9 @@ function createFlexContainer(opts = {}) {
         return rx.combineLatest([
             s.pt.onChildPositions.pipe((0, reactivizer_1.actionRelatedToAction)(m)),
             table.l.allDisplayChildren
-        ]).pipe(rx.take(1), rx.mergeMap(([[, pos], [, children]]) => children.map((chd, i) => [chd, pos[i]])), rx.mergeMap(([chd, pos], idx) => chd.table.l.onSize.pipe(rx.take(1), rx.map(([, w, h]) => {
+        ]).pipe(rx.take(1), rx.mergeMap(([[, pos], [, children]]) => children.map((chd) => [chd, pos.get(chd)])), rx.mergeMap(([chd, pos], idx) => chd.table.l.onSize.pipe(rx.take(1), rx.map(([, w, h]) => {
             const [x, y] = pos;
-            childBoundingTree.addContent([x, y, w, h], chd);
-            base.log('add child', idx, 'bounding box to tree', x, y, w, h);
+            childBoundingTree.addContent([x, y, w, h], [idx, chd]);
         }))));
     })));
     r('reflow, ... -> onChildPositions, setLayoutValid, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(rx.mergeMap(a => rx.combineLatest([
@@ -130,20 +140,23 @@ function createFlexContainer(opts = {}) {
             ]).pipe(rx.map(([grows, shrinks]) => [chdn, grows, shrinks]));
         })),
         table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
-        table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing
-    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.switchMap(([[m], [, w, h], [children, growOfEach, shrinkOfEach], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth]]) => {
-        // ft.setLayoutValid(true).dp(m);
-        const childrenPosition = [];
+        table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator
+    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.switchMap(([[m], [, w, h], [children, growOfEach, shrinkOfEach], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth], [, borderSep]]) => {
+        const childrenPosition = new Map();
         let mainAxis = w;
         let crossAxis = h;
         let pMainAxis = pWidth;
         let pCrossAxis = pHeight;
-        const margin = dir === 'row' ? marginWidth : 0;
+        let margin = dir === 'row' ? marginWidth : 0;
         if (dir === 'col') {
             mainAxis = h;
             crossAxis = w;
             pMainAxis = pHeight;
             pCrossAxis = pWidth;
+            borderSep = FlexBorderSeparator.none;
+        }
+        else {
+            margin = borderSep === FlexBorderSeparator.line ? 1 + 2 * margin : margin;
         }
         let chrMainAxisSizes;
         let chrCrossAxisSizes = [];
@@ -155,13 +168,27 @@ function createFlexContainer(opts = {}) {
             chrPrefSizes.map(([, h]) => h);
         let calcChdSizes$;
         if (mainAxis < pMainAxis) {
-            const remainSpace = mainAxis - margin * (children.length > 0 ? children.length - 1 : 0);
-            chrMainAxisSizes = shrinkEachSize(chrMainAxisPrefSizes, shrinkOfEach, remainSpace);
-            calcChdSizes$ = rx.forkJoin(dir === 'row' ?
-                children.map((chr, i) => chr.s.ft.querySizeOf(chrMainAxisSizes[i], null)
-                    .re(m).od(chr.s.pt.prefHeightFor).pipe(rx.take(1), rx.map(([, , h]) => h))) :
-                children.map((chr, i) => chr.s.ft.querySizeOf(null, chrMainAxisSizes[i])
-                    .re(m).od(chr.s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, w]) => w)))).pipe(rx.map((prefCrossSizeOfEach) => {
+            let chdPrefMainChanged$ = rx.of(chrMainAxisPrefSizes);
+            listContainer.log('::case mainAxis < pMainAxis');
+            if (crossAxis < pCrossAxis) {
+                listContainer.log('::case mainAxis < pMainAxis && crossAxis < pCrossAxis');
+                chdPrefMainChanged$ = rx.zip(children.map((chd, i) => dir === 'row' ?
+                    chd.s.ft.querySizeOf(null, chrCrossAxisPrefSizes[i] > crossAxis ? crossAxis : chrCrossAxisPrefSizes[i])
+                        .re(m).od(chd.s.pt.prefWidthFor).pipe(rx.map(([, w]) => w)) :
+                    chd.s.ft.querySizeOf(chrCrossAxisPrefSizes[i] > crossAxis ? crossAxis : chrCrossAxisPrefSizes[i], null)
+                        .re(m).od(chd.s.pt.prefHeightFor).pipe(rx.map(([, , h]) => h)))).pipe(rx.take(1));
+            }
+            let remainSpace = mainAxis - margin * (children.length > 0 ? children.length - 1 : 0);
+            if (remainSpace < 0)
+                remainSpace = 0;
+            calcChdSizes$ = chdPrefMainChanged$.pipe(rx.mergeMap(chdMainPrefSize => {
+                chrMainAxisSizes = shrinkEachSize(chdMainPrefSize, shrinkOfEach, remainSpace);
+                return rx.forkJoin(dir === 'row' ?
+                    children.map((chr, i) => chr.s.ft.querySizeOf(chrMainAxisSizes[i], null)
+                        .re(m).od(chr.s.pt.prefHeightFor).pipe(rx.take(1), rx.map(([, , h]) => h))) :
+                    children.map((chr, i) => chr.s.ft.querySizeOf(null, chrMainAxisSizes[i])
+                        .re(m).od(chr.s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, w]) => w))));
+            }), rx.map((prefCrossSizeOfEach) => {
                 if (alignItems !== 'stretch') {
                     chrCrossAxisSizes.push(...prefCrossSizeOfEach.map(pref => pref > crossAxis ? crossAxis : pref));
                     return rx.EMPTY;
@@ -227,13 +254,18 @@ function createFlexContainer(opts = {}) {
                 const crossSpace = crossAxis - chrCrossAxisSizes[i];
                 const crossPos = alignItems === 'start' ? 0 : alignItems === 'center' ? crossSpace >> 1 : crossSpace;
                 if (dir === 'row')
-                    childrenPosition.push([pos, crossPos]);
+                    childrenPosition.set(children[i], [pos, crossPos]);
                 else
-                    childrenPosition.push([crossPos, pos]);
+                    childrenPosition.set(children[i], [crossPos, pos]);
                 if (i !== l - 1) {
                     const fSpaceBetween = justifyContent === 'space-between' ? space / (l - 1 - i) : 0;
                     baseSpaceBetween = Math.floor(fSpaceBetween);
                     pos += chrMainAxisSizes[i];
+                    if (dir === 'row') {
+                        separatorPos[i] = borderSep === FlexBorderSeparator.line ?
+                            marginWidth + pos + (justifyContent === 'space-between' ? fSpaceBetween >> 1 : 0) :
+                            pos;
+                    }
                     pos += margin + baseSpaceBetween;
                     space -= baseSpaceBetween;
                 }
@@ -250,8 +282,9 @@ function createFlexContainer(opts = {}) {
     })));
     r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
         listContainer.s.pt.onChildPreferredSizeChange,
-        table.l.setDirection, table.l.setBorderSpacing
-    ]).pipe(rx.map(([[m, sizes], [, direction], [, marginWidth]]) => {
+        table.l.setDirection, table.l.setBorderSpacing,
+        table.l.setBorderSeparator
+    ]).pipe(rx.map(([[m, sizes], [, direction], [, marginWidth], [, borderSeq]]) => {
         if (direction === 'row') {
             const finalPreferredSize = sizes.reduce((preferred, [w, h]) => {
                 preferred[0] += w;
@@ -259,7 +292,7 @@ function createFlexContainer(opts = {}) {
                     preferred[1] = h;
                 return preferred;
             }, [0, 0]);
-            finalPreferredSize[0] += marginWidth * (sizes.length - 1);
+            finalPreferredSize[0] += (borderSeq === FlexBorderSeparator.line ? 2 + marginWidth + 1 : marginWidth) * (sizes.length - 1);
             ft.preferredSize(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
         }
         else if (direction === 'col') {
@@ -272,52 +305,34 @@ function createFlexContainer(opts = {}) {
             ft.preferredSize(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
         }
     })));
-    r('onRender -> renderSelf, renderChild', prependCtl.pt.onRender.pipe(rx.withLatestFrom(table.l.allDisplayChildren), rx.map(([[m, canvas, trans, renderSelf, clips, masks], [, children]]) => {
+    r('onRender -> renderSelf, renderChild', prependCtl.pt.onRender.pipe(rx.withLatestFrom(table.l.allDisplayChildren, table.l.setDirection, table.l.onSize, table.l.setBorderSeparator, table.l.setBorderSeparatorStyle), rx.map(([[m, canvas, trans, renderSelf, clips, masks], [, children], [, dir], [, , h], [, borderSep], [, sepStyle]]) => {
         if (masks == null)
             masks = [];
         if (renderSelf)
             s.ft.renderSelf(canvas, trans, clips, masks).dp(m);
+        if (dir === 'row' && borderSep === FlexBorderSeparator.line) {
+            const orig = gl_matrix_1.vec2.create();
+            gl_matrix_1.vec2.transformMat4(orig, orig, trans);
+            for (const sepPos of separatorPos) {
+                for (let i = 0; i < h; i++)
+                    canvas.s.ft.addString(orig[0] + sepPos, orig[1] + i, '│', sepStyle).dp(m);
+            }
+        }
         let chrToRender = clips.flatMap(clip => childBoundingTree.searchOverlaps(clip));
-        const excluded = new Set(masks ? masks.flatMap(c => childBoundingTree.searchForCovered(c)) : []);
-        chrToRender = chrToRender.filter(c => !excluded.has(c));
+        const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, w]) => w)).flat() : []);
+        chrToRender = chrToRender.filter(([, c]) => !excluded.has(c));
         for (let i = 0, l = chrToRender.length; i < l; i++) {
-            const chr = children[i];
-            s.ft.renderChild(i, chr, canvas, trans, clips, masks).dp(m);
+            const [idx, chr] = chrToRender[i];
+            s.ft.renderChild(idx, chr, canvas, trans, clips, masks).dp(m);
         }
     })));
-    r('renderChild, onChildPositions -> child.render', prependCtl.pt.renderChild.pipe(rx.switchMap(([m, index, chr, canvas, trans, clips, masks]) => rx.combineLatest([
-        chr.table.l.onSize,
-        table.l.onChildPositions
-    ]).pipe(rx.take(1), rx.map(([[, width, height], [, childrenPosition]]) => {
-        // listContainer.log('.renderChild', index, ': childrenPosition:', ...childrenPosition[index]);
-        const [x, y] = childrenPosition[index];
-        const clipsOfCh = clips.map(cp => {
-            const intersection = (0, canvas_1.rectIntersection)([x, y, width, height], cp);
-            if (intersection) {
-                intersection[0] -= x;
-                intersection[1] -= y;
-            }
-            return intersection;
-        }).filter(c => c != null);
-        const masksOfCh = masks.map(mk => {
-            const intersection = (0, canvas_1.rectIntersection)([x, y, width, height], mk);
-            if (intersection) {
-                intersection[0] -= x;
-                intersection[1] -= y;
-            }
-            return intersection;
-        }).filter(c => c != null);
-        if (clipsOfCh.length > 0) {
-            const tranOfChild = gl_matrix_1.mat4.fromTranslation(gl_matrix_1.mat4.create(), [x, y, 0]);
-            gl_matrix_1.mat4.mul(tranOfChild, trans, tranOfChild);
-            chr.s.ft.render(canvas, tranOfChild, clipsOfCh, masksOfCh).re(m).dp();
-        }
-    })))));
     r('init', new rx.Observable(() => {
         ft.setDirection('row').dp();
         ft.alignItems('stretch').dp();
         ft.justifyContent('stretch').dp();
         ft.setBorderSpacing(1).dp();
+        ft.setBorderSeparator(FlexBorderSeparator.none).dp();
+        ft.setBorderSeparatorStyle([]).dp();
         for (const a$ of [
             s.pt.setDirection, s.pt.setBorderSpacing,
             s.pt.alignItems, s.pt.justifyContent, s.pt.setBackground
@@ -328,8 +343,9 @@ function createFlexContainer(opts = {}) {
     return listContainer;
 }
 function shrinkEachSize(individualPrefSizes, shrinkOfEach, availableSpace) {
-    if (availableSpace < 0)
-        throw new Error('availableSpace < 0');
+    if (availableSpace < 0) {
+        availableSpace = 0;
+    }
     const prefSizeTotal = individualPrefSizes.reduce((prev, curr) => prev + curr);
     const spaceToShrink = prefSizeTotal - availableSpace;
     const numOfShrinkUnit = individualPrefSizes.reduce((prev, curr, i) => prev + (curr * shrinkOfEach[i]), 0);

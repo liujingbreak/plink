@@ -29,6 +29,7 @@ exports.createContainerBase = createContainerBase;
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
+const canvas_1 = require("./canvas");
 var DisplayMode;
 (function (DisplayMode) {
     DisplayMode[DisplayMode["visible"] = 0] = "visible";
@@ -132,7 +133,11 @@ function createBase(opts) {
     }));
     return service;
 }
-const tableFor = ['allChildren', 'allDisplayChildren', 'setLayoutValid', 'setBackground', 'onBgChangeWithParent', 'onChildPreferredSizeChange'];
+const tableFor = [
+    'allChildren', 'allDisplayChildren', 'setLayoutValid', 'setBackground',
+    'onBgChangeWithParent', 'onChildPreferredSizeChange', 'hasOfflineCanvas',
+    'onChildPositions'
+];
 function createContainerBase(opts) {
     const base = createBase(opts);
     const service = base.config({
@@ -176,10 +181,10 @@ function createContainerBase(opts) {
         ft.needRerender(true).dp(m);
         ft.setLayoutValid(false).dp(m);
     })));
-    r('renderSelf -> reflow, setLayoutValid, child.needRerender', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.mergeMap(([[m], [, valid]]) => {
+    r('renderSelf -> reflow, setLayoutValid, child.needRerender', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.mergeMap(([[m, , , clips, masks], [, valid]]) => {
         if (!valid) {
             return table.l.allDisplayChildren.pipe(rx.take(1), rx.map(([, allChildren]) => {
-                s.ft.reflow().dp(m);
+                s.ft.reflow(clips, masks).dp(m);
                 s.ft.setLayoutValid(true).dp(m);
                 for (const child of allChildren)
                     child.s.ft.needRerender(true).dp(m);
@@ -197,9 +202,34 @@ function createContainerBase(opts) {
             s.ft.renderChild(i, chr, canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         }
     })))));
-    r('renderChild -> child.render, canvas.addString', s.pt.renderChild.pipe(rx.map(([m, _index, chr, canvas, trans, _renderArea]) => {
-        chr.s.ft.render(canvas, trans).re(m).dp();
-    })));
+    r('renderChild, onChildPositions -> child.render', s.pt.renderChild.pipe(rx.switchMap(([m, , chr, canvas, trans, clips, masks]) => rx.combineLatest([
+        chr.table.l.onSize,
+        table.l.onChildPositions
+    ]).pipe(rx.take(1), rx.map(([[, width, height], [, childrenPosition]]) => {
+        // listContainer.log('.renderChild', index, ': childrenPosition:', ...childrenPosition[index]);
+        const [x, y] = childrenPosition.get(chr);
+        const clipsOfCh = clips.map(cp => {
+            const intersection = (0, canvas_1.rectIntersection)([x, y, width, height], cp);
+            if (intersection) {
+                intersection[0] -= x;
+                intersection[1] -= y;
+            }
+            return intersection;
+        }).filter(c => c != null);
+        const masksOfCh = masks.map(mk => {
+            const intersection = (0, canvas_1.rectIntersection)([x, y, width, height], mk);
+            if (intersection) {
+                intersection[0] -= x;
+                intersection[1] -= y;
+            }
+            return intersection;
+        }).filter(c => c != null);
+        if (clipsOfCh.length > 0) {
+            const tranOfChild = gl_matrix_1.mat4.fromTranslation(gl_matrix_1.mat4.create(), [x, y, 0]);
+            gl_matrix_1.mat4.mul(tranOfChild, trans, tranOfChild);
+            chr.s.ft.render(canvas, tranOfChild, clipsOfCh, masksOfCh).re(m).dp();
+        }
+    })))));
     r('onChildError -> parent.onChildError', s.pt.onChildError.pipe(rx.withLatestFrom(s.pt.setParent), rx.map(([[, childId, errInfo], [, parent]]) => {
         if (parent)
             parent.s.ft.onChildError(childId, errInfo);
@@ -218,14 +248,6 @@ function createContainerBase(opts) {
         }
         else {
             canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
-            // if (idx === 0) {
-            //   const fill = ' '.repeat(width);
-            //   for (let i = 0; i < height; i++) {
-            //     canvas.s.ft.addString(pos[0], pos[1] + i, fill).dp(m);
-            //   }
-            // } else {
-            //   canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
-            // }
         }
     })));
     r('setParent, parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
@@ -249,6 +271,8 @@ function createContainerBase(opts) {
         ft.overflow(false).dp();
         ft.setLayoutValid(false).dp();
         ft.setBackground(null).dp();
+        ft.hasOfflineCanvas(false).dp();
+        ft.onChildPositions(new Map()).dp();
     }));
     return service;
 }
