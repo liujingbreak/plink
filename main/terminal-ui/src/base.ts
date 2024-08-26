@@ -1,6 +1,7 @@
+/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
-import {SingleActionFactory, CoreOptsOfExtSmplxRctr, ActionDispenser, SimplexReactor, SimplexReactorMergeType, ActionMeta, Action, InferMapParam, SimplexReactorOptions} from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, ActionMeta, Action, InferMapParam, SimplexReactorOptions} from '@wfh/reactivizer';
 import {TerminalCanvas, Rectangle, BackgroundStyle, rectIntersection} from './canvas';
 
 export enum DisplayMode {
@@ -19,21 +20,22 @@ export interface BaseWidgetInput {
   setFlexGrow(value: number): SingleActionFactory;
   setFlexShrink(value: number): SingleActionFactory;
   setDisplay(mode: DisplayMode): SingleActionFactory;
-}
-export interface BaseWidgetEvents extends BaseWidgetInput {
+  setBackground(color: BackgroundStyle | null): SingleActionFactory;
   /** to override automatical "preferredSize" in layout calculation */
   setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
+}
+export interface BaseWidgetEvents extends BaseWidgetInput {
   onSize(width: number, height: number): SingleActionFactory;
   /** Implementation needs to handle this event */
   querySizeOf(width: number | null, height: number | null): SingleActionFactory;
-  /** Extended container implementation need to handle this event.
-   * Be aware that an interceptor is filtering "preferredSize" action for distinctUntilChanged(),
-   * which affects action table, some action will be skipped due to duplicate value */
+  /** Extended container implementation need to handle this event. */
   preferredSize(width: number, height: number): SingleActionFactory;
   /** As response to "querySizeOf" */
   prefWidthFor(width: number, constrainHeight: number): SingleActionFactory;
   /** As response to "querySizeOf" */
   prefHeightFor(constrainWidth: number, height: number): SingleActionFactory;
+  /** Calculated size based on child components or content, which ignores setPreferredSize value */
+  onContentSizeChange(width: number, height: number): SingleActionFactory;
   overflow(yes: boolean): SingleActionFactory;
 
   setParent(p: TerminalContainer | null): SingleActionFactory;
@@ -52,40 +54,44 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   /** Get bouding rectangle that is calculated when the lastest "render" message is handled,
    * the coordinate of rectangle is relative to canvas, in case of child component of "scrollable" container,
    * the effect canvas is an offline canvas whose coordinate is different from containing canvas.
-   * Also see `ContainerWidgetEvents["hasOfflineCanvas"]`
+   * Also see `TermainlContainerEvents["hasOfflineCanvas"]`
    */
   onBoundingBox(rect: Rectangle): SingleActionFactory;
   onDettached(isDettached: boolean): SingleActionFactory;
+  onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
 }
 export const tableForBase = [
   'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-  'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink'
+  'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink',
+  'setBackground', 'onBgChangeWithParent'
 ] as const;
 export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
 
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>>) {
-  const service = new SimplexReactor<BaseWidgetEvents, typeof tableForBase>({tableFor: tableForBase, ...opts});
+  const service = new SimplexReactor<BaseWidgetEvents, typeof tableForBase>({
+    ...opts,
+    tableFor: tableForBase,
+    debugExcludeTypes: ['ofCanvas', ...(opts?.debugExcludeTypes ?? [])]
+  });
   const {s, r, table} = service;
 
-  // When table "setPreferredSize" contains non-null value, override corresponding "preferredSize" event, change or skip it
-  service.s.prependInterceptor(up => {
-    const disp = ActionDispenser.ofAction$<BaseWidget>(up);
-    return rx.merge(
-      disp.at.preferredSize.pipe(
-        rx.withLatestFrom(table.l.setPreferredSize),
-        rx.map(([a, [, w, h]]) => {
-          if (w != null && a.p[0] !== w)
-            a.p[0] = w;
-          if (h != null && a.p[1] !== h)
-            a.p[1] = h;
-          return a;
-        }),
-        rx.distinctUntilChanged((a, b) => a.p[0] === b.p[0] && a.p[1] === b.p[1])
-      ),
-      disp.ofOtherTypes()
-    );
-  });
+  r('setPreferredSize, onContentSizeChange -> preferredSize', rx.combineLatest([
+    table.l.setPreferredSize, s.pt.onContentSizeChange
+  ]).pipe(
+    rx.map(([[, w, h], [, cW, cH]]) => {
+      const override = [cW, cH] as [number, number];
+      if (w != null && cW !== w)
+        override[0] = w;
+      if (h != null && cH !== h)
+        override[1] = h;
+      return override;
+    }),
+    rx.distinctUntilChanged((a, b) => a[0] === b[0] && a[1] === b[1]),
+    rx.map(([w, h]) => {
+      s.ft.preferredSize(w, h).dp();
+    })
+  ));
   r('addRerenderAction', rx.merge(
     s.pt.onSize.pipe(
       rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
@@ -163,19 +169,21 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
   r('render -> needRerender, onRender, renderBackgroundFor, onBoundingBox', s.pt.render.pipe(
     rx.withLatestFrom(table.l.needRerender, table.l.setParent, table.l.onSize, table.l.setDisplay),
     rx.map(([[m, canvas, trans, clips, masks], [, renderSelf], [, parent], [, width, height], [, display]]) => {
-      if (renderSelf && parent) {
-        parent.s.ft.renderBackgroundFor(service).dp(m);
+      if (renderSelf) {
+        s.ft.needRerender(false).dp(m);
+        if (parent)
+          parent.s.ft.renderBackgroundFor(service).dp(m);
       }
       const pos = [0, 0] as [number, number];
       vec2.transformMat4(pos, pos, trans);
       const bounding = [pos[0], pos[1], width, height] as [number, number, number, number];
       s.ft.onBoundingBox(bounding).dp(m);
-      if (display === DisplayMode.hidden) {
-        canvas.s.ft.clearRect(...bounding).dp(m);
-      } else
-        s.ft.onRender(canvas, trans, renderSelf, clips ?? [[0, 0, width, height]], masks).dp(m);
-      if (renderSelf)
-        s.ft.needRerender(false).dp(m);
+      if (renderSelf) {
+        if (display === DisplayMode.hidden) {
+          canvas.s.ft.clearRect(...bounding).dp(m);
+        } else
+          s.ft.onRender(canvas, trans, renderSelf, clips ?? [[0, 0, width, height]], masks).dp(m);
+      }
     })
   ));
   r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', table.l.setParent.pipe(
@@ -203,6 +211,21 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
       );
     })
   ));
+  r('setParent, parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
+    table.l.setParent.pipe(
+      rx.switchMap(([, parent]) => parent?.table.l.onBgChangeWithParent ?? rx.of([null, null] as const))
+    ),
+    table.l.setBackground
+  ]).pipe(
+    rx.map(([[m, pBg], [m2, ownBg]]) => {
+      if (ownBg)
+        s.ft.onBgChangeWithParent(ownBg).dp(m2);
+      else if (m && pBg)
+        s.ft.onBgChangeWithParent(pBg).dp(m, m2);
+      else
+        s.ft.onBgChangeWithParent(null).dp(m2);
+    })
+  ));
   r('init', new rx.Observable<never>(() => {
     s.ft.setFlexGrow(0).dp();
     s.ft.setFlexShrink(1).dp();
@@ -213,19 +236,20 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
     s.ft.setDisplay(DisplayMode.visible).dp();
     s.ft.onBoundingBox([0, 0, 0, 0]).dp();
     s.ft.onDettached(true).dp();
+    s.ft.setBackground(null).dp();
   }));
   return service;
 }
 
-export interface ContainerWidgetInput {
+export interface TerminalContainerInput {
   addChild(...children: BaseWidget[]): SingleActionFactory;
+  insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
   removeChild(...children: BaseWidget[]): SingleActionFactory;
   /** If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
   addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
-  setBackground(color: BackgroundStyle | null): SingleActionFactory;
 }
 
-export interface ContainerWidgetEvents {
+export interface TermainlContainerEvents extends TerminalContainerInput {
   /** implement should dispatch this event in "onRender" hanlder,
    * Default implementation is about: reflow, clear background, set flags
    **/
@@ -241,7 +265,6 @@ export interface ContainerWidgetEvents {
   onChildError(childId: string, errInfo: readonly [err: any, label: string | null]): SingleActionFactory;
   /** size of component which is "setDisplay" `none` is excluded */
   onChildPreferredSizeChange(sizes: [w: number, h: number][]): SingleActionFactory;
-  onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
   setLayoutValid(isValid: boolean): SingleActionFactory;
   /** Implementation container should set proper initial value, for container like "scrollable" whose child
    * component is actually rendered to another canvas other than the containing one, they must set this 
@@ -258,19 +281,20 @@ export interface ContainerWidgetEvents {
   reflow(clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
   /** No reaction yet , preserve for the future */
   renderBackgroundFor(child: BaseWidget): SingleActionFactory;
+  /** Being relied by ElevatorContainer */
+  isOpaque(yes: boolean): SingleActionFactory;
 }
 
 const tableFor = [
-  'allChildren', 'allDisplayChildren', 'setLayoutValid', 'setBackground',
-  'onBgChangeWithParent', 'onChildPreferredSizeChange', 'hasOfflineCanvas',
-  'onChildPositions'
+  'allChildren', 'allDisplayChildren', 'setLayoutValid', 'onChildPreferredSizeChange', 'hasOfflineCanvas', 'onChildPositions', 'isOpaque'
 ] as const;
-export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<ContainerWidgetInput & ContainerWidgetEvents, typeof tableFor>>;
+export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<TermainlContainerEvents, typeof tableFor>>;
 
-export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, ContainerWidgetInput & ContainerWidgetEvents>) {
-  const base = createBase(opts as any);
-  const service = base.config<ContainerWidgetInput & ContainerWidgetEvents, typeof tableFor>({
-    tableFor
+export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
+  const base = createBase(opts as BaseWidget['opts']);
+  const service = base.config<TermainlContainerEvents, typeof tableFor>({
+    tableFor,
+    debugExcludeTypes: ['renderBackgroundFor']
   });
 
   const {r, s, table} = service;
@@ -280,6 +304,14 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
   r('addChild -> child.setParent', s.pt.addChild.pipe(
     rx.map(([m, ...added]) => {
       children.push(...added);
+      for (const child of children) {
+        child.s.ft.setParent(service).dp(m);
+      }
+    })
+  ));
+  r('insertChild', s.pt.insertChild.pipe(
+    rx.map(([m, before, children]) => {
+      children.splice(before, 0, ...children);
       for (const child of children) {
         child.s.ft.setParent(service).dp(m);
       }
@@ -295,10 +327,9 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
     })
   ));
   r('addChild, removeChild, allChildren, children.preferredSize, children.setDisplay -> onChildPreferredSizeChange, setLayoutValid, allDisplayChildren', rx.merge(
-    s.pt.addChild,
-    s.pt.removeChild
+    s.pt.addChild, s.pt.insertChild, s.pt.removeChild
   ).pipe(
-    rx.switchMap(() => table.l.allChildren.pipe(
+    rx.switchMap(([m]) => table.l.allChildren.pipe(
       rx.switchMap(([, children]) => {
         return rx.merge(
           // -> allDisplayChildren
@@ -314,7 +345,7 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
                 );
               }));
             }),
-            rx.map(sizes => ft.onChildPreferredSizeChange(sizes.map(([, w, h]) => [w, h] as const)).dp())
+            rx.map(sizes => ft.onChildPreferredSizeChange(sizes.map(([, w, h]) => [w, h] as const)).dp(m))
           ),
           rx.merge(children.map(widget => widget.table.l.setDisplay.pipe(
             rx.scan(([, prev], curr) => {
@@ -339,6 +370,27 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
       ft.setLayoutValid(false).dp(m);
     })
   ));
+  r('renderSelf, onBgChangeWithParent, onSize -> canvas.addString, canvas.clearRect', s.pt.renderSelf.pipe(
+    rx.mergeMap(a => rx.combineLatest([
+      table.l.onSize,
+      table.l.onBgChangeWithParent
+    ]).pipe(
+      rx.take(1),
+      rx.map(b => [a, ...b] as const)
+    )),
+    rx.map(([[m, canvas, trans], [, width, height], [, bg]], _idx) => {
+      const pos = [0, 0] as vec2;
+      vec2.transformMat4(pos, pos, trans);
+      if (bg) {
+        const fill = ' '.repeat(width);
+        for (let i = 0; i < height; i++) {
+          canvas.s.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
+        }
+      } else {
+        canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
+      }
+    })
+  ));
   r('renderSelf -> reflow, setLayoutValid, child.needRerender', s.pt.renderSelf.pipe(
     rx.withLatestFrom(table.l.setLayoutValid),
     rx.mergeMap(([[m, , , clips, masks], [, valid]]) => {
@@ -346,8 +398,8 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
         return table.l.allDisplayChildren.pipe(
           rx.take(1),
           rx.map(([, allChildren]) => {
-            s.ft.reflow(clips, masks).dp(m);
             s.ft.setLayoutValid(true).dp(m);
+            s.ft.reflow(clips, masks).dp(m);
             for (const child of allChildren)
               child.s.ft.needRerender(true).dp(m);
           })
@@ -358,6 +410,7 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
     })
   ));
   r('onRender -> renderSelf, renderChild', s.pt.onRender.pipe(
+    rx.observeOn(rx.queueScheduler),
     rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(
       rx.take(1),
       rx.map(([, children]) => {
@@ -410,54 +463,20 @@ export function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, Co
         parent.s.ft.onChildError(childId, errInfo);
     })
   ));
-  r('renderSelf, onBgChangeWithParent, onSize -> canvas.addString, canvas.clearRect', s.pt.renderSelf.pipe(
-    rx.mergeMap(a => rx.combineLatest([
-      table.l.onSize,
-      table.l.onBgChangeWithParent
-    ]).pipe(
-      rx.take(1),
-      rx.map(b => [a, ...b] as const)
-    )),
-    rx.map(([[m, canvas, trans], [, width, height], [, bg]], _idx) => {
-      const pos = [0, 0] as vec2;
-      vec2.transformMat4(pos, pos, trans);
-      if (bg) {
-        const fill = ' '.repeat(width);
-        for (let i = 0; i < height; i++) {
-          canvas.s.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
-        }
-      } else {
-        canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
-      }
-    })
-  ));
-  r('setParent, parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
-    table.l.setParent.pipe(
-      rx.switchMap(([, parent]) => parent?.table.l.onBgChangeWithParent ?? rx.of([null, null] as const))
-    ),
-    table.l.setBackground
-  ]).pipe(
-    rx.map(([[m, pBg], [m2, ownBg]]) => {
-      if (ownBg)
-        s.ft.onBgChangeWithParent(ownBg).dp(m2);
-      else if (m && pBg)
-        s.ft.onBgChangeWithParent(pBg).dp(m, m2);
-      else
-        s.ft.onBgChangeWithParent(null).dp(m2);
-    })
-  ));
   r('init', new rx.Observable<never>(() => {
     ft.addReflowAction(s.pt.onSize).dp();
     ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
     ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
     ft.allChildren(children).dp();
     ft.onSize(0, 0).dp();
-    ft.preferredSize(0, 0).dp();
+    ft.onContentSizeChange(0, 0).dp();
     ft.overflow(false).dp();
     ft.setLayoutValid(false).dp();
-    ft.setBackground(null).dp();
     ft.hasOfflineCanvas(false).dp();
     ft.onChildPositions(new Map()).dp();
+    ft.allDisplayChildren([]).dp();
+    ft.onChildPreferredSizeChange([]).dp();
+    ft.isOpaque(false).dp();
   }));
   return service;
 }

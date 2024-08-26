@@ -17,7 +17,8 @@ describe('interval tree for bounding search', () => {
     }
 
     console.log(stringifyIntervalTree(tree));
-    const overlaps = [...tree.searchMultipleOverlaps(0, 2)];
+    const overlapsIt = tree.searchMultipleOverlaps(0, 2);
+    const overlaps = [...overlapsIt];
     console.log('found', overlaps);
     expect(overlaps.length).toBe(2);
   });

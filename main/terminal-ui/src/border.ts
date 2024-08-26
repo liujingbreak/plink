@@ -12,6 +12,7 @@ export interface BorderContainerActions {
 }
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'] as const;
 
+// https://symbl.cc/en/unicode/blocks/box-drawing/
 const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
 export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmplxRctr<TerminalContainer, BorderContainerActions>) {
   const container = createContainerBase({name: 'borderContainer', ...opts as CoreOptsOfExtSmplxRctr<TerminalContainer>});
@@ -51,7 +52,7 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
   ]).pipe(
     rx.map(([[m, sizes], [m2, border], [m3, top, right, bottom, left]]) => {
       const line = border === 'line' ? 2 : 0;
-      s.ft.preferredSize(
+      s.ft.onContentSizeChange(
         sizes[0][0] + line + right + left,
         sizes[0][1] + line + top + bottom
       ).dp(m, m2, m3);

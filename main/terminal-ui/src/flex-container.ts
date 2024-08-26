@@ -30,8 +30,8 @@ const tableForFlexContainer = [
 ] as const;
 
 export type FlexContainer = SimplexReactorExtendType<TerminalContainer, FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>;
-
-export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, FlexContainerInput & FlexContainerEvents> = {}) {
+export type FlexContainerOpts = CoreOptsOfExtSmplxRctr<TerminalContainer, FlexContainerInput & FlexContainerEvents>;
+export function createFlexContainer(opts: FlexContainerOpts = {}) {
   const base = createContainerBase({name: 'listContainer', ...opts as any});
   const listContainer = base.config<FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>({tableFor: tableForFlexContainer});
   // intercept "onRender"
@@ -174,7 +174,7 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
       );
     })
   ));
-  r('reflow, ... -> onChildPositions, setLayoutValid, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(
+  r('reflow, ... -> onChildPositions, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(
     rx.mergeMap(a => rx.combineLatest([
       table.l.onSize,
       table.l.allDisplayChildren.pipe(
@@ -368,7 +368,7 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
       );
     })
   ));
-  r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
+  r('onChildPreferredSizeChange,... -> onContentSizeChange', rx.combineLatest([
     listContainer.s.pt.onChildPreferredSizeChange,
     table.l.setDirection, table.l.setBorderSpacing,
     table.l.setBorderSeparator
@@ -382,7 +382,7 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
           return preferred;
         }, [0, 0] as const);
         finalPreferredSize[0] += (borderSeq === FlexBorderSeparator.line ? 2 + marginWidth + 1 : marginWidth) * (sizes.length - 1);
-        ft.preferredSize(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
+        ft.onContentSizeChange(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
       } else if (direction === 'col') {
         const finalPreferredSize = sizes.reduce((preferred, [w, h]) => {
           preferred[1] += h;
@@ -390,7 +390,7 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
             preferred[0] = w;
           return preferred;
         }, [0, 0] as const);
-        ft.preferredSize(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
+        ft.onContentSizeChange(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
       }
     })
   ));
@@ -432,6 +432,7 @@ export function createFlexContainer(opts: CoreOptsOfExtSmplxRctr<TerminalContain
       ft.addReflowAction(a$).dp();
     }
   }));
+  listContainer.s = prependCtl;
   return listContainer;
 }
 

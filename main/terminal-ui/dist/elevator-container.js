@@ -29,8 +29,9 @@ const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const index_1 = require("./index");
 function createElevator(opts) {
-    const base = (0, index_1.createContainerBase)(opts);
-    const service = base.config({ name: 'Elevator' });
+    var _a, _b;
+    const base = (0, index_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: (_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'Elevator' }), opts === null || opts === void 0 ? void 0 : opts.core));
+    const service = base.config({});
     const { s, r, table } = service;
     const canvasMap = new Map();
     // intercept "onRender"
@@ -39,12 +40,8 @@ function createElevator(opts) {
         return rx.merge(dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
     });
     const prependCtl = service.s.prependController();
-    r('addChild, removeChild -> "canvasMap"', s.pt.addChild.pipe(rx.mergeMap(([m, ...chd]) => rx.from(chd).pipe(rx.mergeMap(chd => {
-        const cv = (0, index_1.createTerminalCanvas)({
-            debug: opts.debug,
-            log: opts.log,
-            name: 'Elevator.canvas'
-        });
+    r('addChild, removeChild -> "canvasMap"', rx.merge(s.pt.addChild.pipe(rx.map(([m, ...chdn]) => [m, chdn])), s.pt.insertChild.pipe(rx.map(([m, , chdn]) => [m, chdn]))).pipe(rx.mergeMap(([m, chd]) => rx.from(chd).pipe(rx.mergeMap(chd => {
+        const cv = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Elevator.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
         canvasMap.set(chd, cv);
         cv.s.ft.setRootComponent(chd).dp(m);
         return s.pt.removeChild.pipe(rx.filter(([, w]) => w === chd), rx.take(1), rx.map(() => {
@@ -74,9 +71,9 @@ function createElevator(opts) {
         const [xw, xh] = sizes.reduce(([maxW, maxH], [w, h]) => {
             return [maxW > w ? maxW : w, maxH > h ? maxH : h];
         }, [0, 0]);
-        s.ft.preferredSize(xw, xh).dp(m);
+        s.ft.onContentSizeChange(xw, xh).dp(m);
     })));
-    r('reflow', s.pt.reflow.pipe(rx.mergeMap(([m]) => {
+    r('reflow -> canvas.setBounding', s.pt.reflow.pipe(rx.mergeMap(([m]) => {
         return rx.combineLatest([table.l.onSize, table.l.allDisplayChildren]).pipe(rx.take(1), rx.map(([[, w, h], [, chdn]]) => {
             s.ft.onChildPositions(new Map(chdn.map(chd => [chd, [0, 0]]))).dp(m);
             for (const cv of canvasMap.values()) {
@@ -92,7 +89,12 @@ function createElevator(opts) {
             s.ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         const allMasks = [];
         const last = children.length - 1;
-        return rx.concat(rx.from(children.slice(0).reverse()).pipe(rx.concatMap((chd, i) => {
+        return rx.concat(
+        // From top layer to bottom, render them to corresponding offline canvas,
+        // so that get a tree of bounding box of all child compnents of each layer.
+        // The bounding box tree is treated as "mask" array being given to next
+        // lower layer's rendering parameter
+        rx.from(children.slice(0).reverse()).pipe(rx.concatMap((chd, i) => {
             const canvasOfChd = canvasMap.get(chd);
             const isBottomLayer = i === last;
             const idx = last - i;
@@ -101,9 +103,7 @@ function createElevator(opts) {
         }), rx.map(rects => {
             service.log('-- getBoundingOfCompTree', rects.join());
             allMasks.push(...rects);
-        })), rx.from(children).pipe(
-        // rx.tap(chd => service.log('>>>', chd.s.logPrefix)),
-        rx.skip(1), // the 1st has been dorectly rendered to outer canvas
+        })), rx.from(children).pipe(rx.skip(1), // the 1st has been directly rendered to outer canvas
         rx.map(chd => canvasMap.get(chd)), rx.concatMap(c => {
             return c.table.l.setBounding.pipe(rx.take(1), rx.mergeMap(([, , , w, h]) => {
                 return c.s.ft.copyDirtyRectAndClear(0, 0, w, h).re(m).od(c.s.pt.onCopyRect);
@@ -114,21 +114,24 @@ function createElevator(opts) {
             }), rx.take(1));
         })));
     })))));
+    service.s = prependCtl;
     return service;
 }
 function getBoundingOfCompTree(c) {
     return rx.combineLatest([
         c.table.l.setDisplay,
-        isContainerWithoutOfflineCanvas(c) ? c.table.l.setBackground : rx.of([null, ''])
-    ]).pipe(rx.switchMap(([[, d], [, bg]]) => {
+        isContainerWithoutOfflineCanvas(c) ?
+            rx.combineLatest([c.table.l.setBackground, c.table.l.isOpaque]) :
+            rx.of([[null, ''], [null, false]])
+    ]).pipe(rx.switchMap(([[, d], [[, bg], [, isOpaque]]]) => {
         if (d !== index_1.DisplayMode.visible)
             return rx.of([]);
-        else if (bg != null) {
+        else if (bg != null || isOpaque) {
             return c.table.l.onBoundingBox.pipe(rx.map(([, r]) => [r]));
         }
         else {
             const p = c;
-            return rx.concat(p.table.l.allChildren.pipe(rx.take(1)), rx.merge(p.s.pt.addChild, p.s.pt.removeChild).pipe(rx.switchMap(() => p.table.l.allChildren.pipe(rx.take(1))))).pipe(rx.mergeMap(([, chrd]) => chrd.length > 0 ?
+            return rx.concat(p.table.l.allChildren.pipe(rx.take(1)), rx.merge(p.s.pt.addChild, p.s.pt.insertChild, p.s.pt.removeChild).pipe(rx.switchMap(() => p.table.l.allChildren.pipe(rx.take(1))))).pipe(rx.mergeMap(([, chrd]) => chrd.length > 0 ?
                 rx.combineLatest(chrd.map(it => getBoundingOfCompTree(it))) :
                 rx.of([])), rx.map(chrdArr => chrdArr.flat()));
         }

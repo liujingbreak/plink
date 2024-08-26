@@ -40,7 +40,7 @@ const text_split_1 = require("./text-split");
 const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl']);
 const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange'];
 function createTerminalCanvas(opts) {
-    const canvas = new reactivizer_1.SimplexReactor(Object.assign({ name: 'TerminalCanvas', 
+    const canvas = new reactivizer_1.SimplexReactor(Object.assign({ name: 'Canvas', 
         // debugExcludeTypes: ['onPrintText'],
         tableFor }, opts));
     const { r, s, table } = canvas;
@@ -95,6 +95,13 @@ function createTerminalCanvas(opts) {
         if (units.length > 0)
             addCodePointsToCanvas(x, y, units, style ? style.sort() : []);
     })));
+    r('fillRect', s.pt.fillRect.pipe(rx.map(([, x, y, w, h, bg]) => {
+        const units = [...getTextDisplayUnits(' '.repeat(w))];
+        const style = [bg];
+        for (let i = y, l = y + h; i < l; i++) {
+            addCodePointsToCanvas(x, i, units, style ? style.sort() : []);
+        }
+    })));
     r('clearRect', s.pt.clearRect.pipe(rx.map(([, x, y, w, h]) => {
         for (let i = y, l = y + h; i < l; i++) {
             const dirtyRange = clearCodePointFromLine(x, i, w);
@@ -110,7 +117,6 @@ function createTerminalCanvas(opts) {
             }
             // canvas.log('#### clearRect line', i, dirtyLines.get(y));
         }
-        // console.log('clearRect done', '#' + m.i);
     })));
     r('onPrintText', s.pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
         node_readline_1.default.cursorTo(process.stdout, x, y);
@@ -227,11 +233,18 @@ function createTerminalCanvas(opts) {
         s.ft.onCopyRect(result).dp(m);
     })));
     r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(rx.switchMap(([, enabled]) => {
+        let suspended = false; // Has recursive render request?
         // eslint-disable-next-line multiline-ternary
-        return enabled ? s.pt.requestRender.pipe(rx.exhaustMap(([m]) => new rx.Observable(sub => {
+        return enabled ? s.pt.requestRender.pipe(rx.tap(() => suspended = true), rx.exhaustMap(([m]) => new rx.Observable(sub => {
+            suspended = false;
             setImmediate(() => {
                 s.ft.render().dp(m);
                 sub.complete();
+                canvas.log('has suspended:', suspended);
+                if (suspended) {
+                    // to process possible request which is recursively issued during "exhaustMap"
+                    s.ft.render().dp(m);
+                }
             });
         }))) : rx.EMPTY;
     })));

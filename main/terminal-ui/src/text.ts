@@ -1,7 +1,6 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
-import {SimplexReactorExtendType, SingleActionFactory, CoreOptsOfExtSmplxRctr} from '@wfh/reactivizer';
-import {conciseNocolorConsoleLogger} from '@wfh/reactivizer/dist/nodejs-utils';
+import {SimplexReactorExtendType, SingleActionFactory} from '@wfh/reactivizer';
 import {getTextDisplayUnits, TextStyle} from './canvas';
 import {createBase, BaseWidget} from './base';
 import {isCodePointFullWidth, createWordSplitter} from './text-split';
@@ -23,11 +22,12 @@ export type MultiLineTextWidget = SimplexReactorExtendType<
 BaseWidget, MultiLineTextActions, typeof tableForMultiLineText
 >;
 
-export function createTextWidget(initialText = '', opts?: CoreOptsOfExtSmplxRctr<BaseWidget, MultiLineTextActions>) {
-  const service = createBase().config<MultiLineTextActions, typeof tableForMultiLineText>({
-    name: 'text', tableFor: tableForMultiLineText,
-    log: conciseNocolorConsoleLogger,
-    ...opts
+export type MultiLineTextWidgetOpts = Omit<NonNullable<MultiLineTextWidget['opts']>, 'tableFor'>;
+export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpts) {
+  const service = createBase(opts as BaseWidget['opts']).config<MultiLineTextActions, typeof tableForMultiLineText>({
+    name: 'text',
+    ...opts,
+    tableFor: tableForMultiLineText
   });
   const spliter = createWordSplitter({debug: false, log: opts?.log});
   const {r, s, table} = service;
@@ -91,7 +91,7 @@ export function createTextWidget(initialText = '', opts?: CoreOptsOfExtSmplxRctr
       rx.map(([m, content]) => {
         const [lines, maxWidth] = preferLayoutText(content);
         s.ft.onDisplayLinesForWidth().dp(m);
-        s.ft.preferredSize(maxWidth, lines.length).dp(m);
+        s.ft.onContentSizeChange(maxWidth, lines.length).dp(m);
         const linesForPrefSize = lines.map(line => [...getTextDisplayUnits(line)]);
         s.ft.onDisplayLinesForPrefSize(linesForPrefSize).dp(m);
         return [m, maxWidth, lines.length, linesForPrefSize] as const;
@@ -125,9 +125,7 @@ export function createTextWidget(initialText = '', opts?: CoreOptsOfExtSmplxRctr
     })
   ));
   r('setParent, setStyle, parent.setBackground -> onStyleWithParentBg', rx.combineLatest([
-    table.l.setParent.pipe(
-      rx.switchMap(([, parent]) => parent ? parent.table.l.onBgChangeWithParent : rx.of([null, null] as const))
-    ),
+    table.l.onBgChangeWithParent,
     table.l.setStyle
   ]).pipe(
     rx.map(([[m, pBg], [m2, style]]) => {
@@ -140,7 +138,7 @@ export function createTextWidget(initialText = '', opts?: CoreOptsOfExtSmplxRctr
   r('init', new rx.Observable<never>(() => {
     s.ft.addRerenderAction(s.pt.setContent).dp();
     s.ft.addRerenderAction(s.pt.setStyle).dp();
-    s.ft.preferredSize(0, 0).dp();
+    s.ft.onContentSizeChange(0, 0).dp();
     s.ft.onSize(0, 0).dp();
     s.ft.setParent(null).dp();
     s.ft.overflow(false).dp();

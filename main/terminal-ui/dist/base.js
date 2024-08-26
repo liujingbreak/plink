@@ -26,6 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.tableForBase = exports.DisplayMode = void 0;
 exports.createBase = createBase;
 exports.createContainerBase = createContainerBase;
+/* eslint-disable array-bracket-newline */
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
@@ -38,23 +39,26 @@ var DisplayMode;
 })(DisplayMode || (exports.DisplayMode = DisplayMode = {}));
 exports.tableForBase = [
     'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-    'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink'
+    'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink',
+    'setBackground', 'onBgChangeWithParent'
 ];
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 function createBase(opts) {
-    const service = new reactivizer_1.SimplexReactor(Object.assign({ tableFor: exports.tableForBase }, opts));
+    var _a;
+    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({}, opts), { tableFor: exports.tableForBase, debugExcludeTypes: ['ofCanvas', ...((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : [])] }));
     const { s, r, table } = service;
-    // When table "setPreferredSize" contains non-null value, override corresponding "preferredSize" event, change or skip it
-    service.s.prependInterceptor(up => {
-        const disp = reactivizer_1.ActionDispenser.ofAction$(up);
-        return rx.merge(disp.at.preferredSize.pipe(rx.withLatestFrom(table.l.setPreferredSize), rx.map(([a, [, w, h]]) => {
-            if (w != null && a.p[0] !== w)
-                a.p[0] = w;
-            if (h != null && a.p[1] !== h)
-                a.p[1] = h;
-            return a;
-        }), rx.distinctUntilChanged((a, b) => a.p[0] === b.p[0] && a.p[1] === b.p[1])), disp.ofOtherTypes());
-    });
+    r('setPreferredSize, onContentSizeChange -> preferredSize', rx.combineLatest([
+        table.l.setPreferredSize, s.pt.onContentSizeChange
+    ]).pipe(rx.map(([[, w, h], [, cW, cH]]) => {
+        const override = [cW, cH];
+        if (w != null && cW !== w)
+            override[0] = w;
+        if (h != null && cH !== h)
+            override[1] = h;
+        return override;
+    }), rx.distinctUntilChanged((a, b) => a[0] === b[0] && a[1] === b[1]), rx.map(([w, h]) => {
+        s.ft.preferredSize(w, h).dp();
+    })));
     r('addRerenderAction', rx.merge(s.pt.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)), s.pt.setDisplay.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b)), s.pt.addRerenderAction.pipe(rx.mergeMap(([, action$]) => action$)).pipe(rx.map(actionOrPayload => {
         const m = Array.isArray(actionOrPayload) ? actionOrPayload[0] : actionOrPayload;
         s.ft.needRerender(true).dp(m);
@@ -95,20 +99,22 @@ function createBase(opts) {
             canvas.s.ft.requestRender().dp(m);
     })));
     r('render -> needRerender, onRender, renderBackgroundFor, onBoundingBox', s.pt.render.pipe(rx.withLatestFrom(table.l.needRerender, table.l.setParent, table.l.onSize, table.l.setDisplay), rx.map(([[m, canvas, trans, clips, masks], [, renderSelf], [, parent], [, width, height], [, display]]) => {
-        if (renderSelf && parent) {
-            parent.s.ft.renderBackgroundFor(service).dp(m);
+        if (renderSelf) {
+            s.ft.needRerender(false).dp(m);
+            if (parent)
+                parent.s.ft.renderBackgroundFor(service).dp(m);
         }
         const pos = [0, 0];
         gl_matrix_1.vec2.transformMat4(pos, pos, trans);
         const bounding = [pos[0], pos[1], width, height];
         s.ft.onBoundingBox(bounding).dp(m);
-        if (display === DisplayMode.hidden) {
-            canvas.s.ft.clearRect(...bounding).dp(m);
+        if (renderSelf) {
+            if (display === DisplayMode.hidden) {
+                canvas.s.ft.clearRect(...bounding).dp(m);
+            }
+            else
+                s.ft.onRender(canvas, trans, renderSelf, clips !== null && clips !== void 0 ? clips : [[0, 0, width, height]], masks).dp(m);
         }
-        else
-            s.ft.onRender(canvas, trans, renderSelf, clips !== null && clips !== void 0 ? clips : [[0, 0, width, height]], masks).dp(m);
-        if (renderSelf)
-            s.ft.needRerender(false).dp(m);
     })));
     r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', table.l.setParent.pipe(rx.switchMap(([m, parent]) => {
         if (parent == null) {
@@ -120,6 +126,17 @@ function createBase(opts) {
             s.ft.onDettached(d).dp(m);
         })), parent.table.l.ofCanvas.pipe(rx.map(([m, canvas]) => s.ft.ofCanvas(canvas).dp(m))), service.error$.pipe(rx.tap(errInfo => parent.s.ft.onChildError(service.s.logPrefix, errInfo))), parent.destory$.pipe(rx.map(() => service.dispose())));
     })));
+    r('setParent, parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
+        table.l.setParent.pipe(rx.switchMap(([, parent]) => { var _a; return (_a = parent === null || parent === void 0 ? void 0 : parent.table.l.onBgChangeWithParent) !== null && _a !== void 0 ? _a : rx.of([null, null]); })),
+        table.l.setBackground
+    ]).pipe(rx.map(([[m, pBg], [m2, ownBg]]) => {
+        if (ownBg)
+            s.ft.onBgChangeWithParent(ownBg).dp(m2);
+        else if (m && pBg)
+            s.ft.onBgChangeWithParent(pBg).dp(m, m2);
+        else
+            s.ft.onBgChangeWithParent(null).dp(m2);
+    })));
     r('init', new rx.Observable(() => {
         s.ft.setFlexGrow(0).dp();
         s.ft.setFlexShrink(1).dp();
@@ -130,24 +147,30 @@ function createBase(opts) {
         s.ft.setDisplay(DisplayMode.visible).dp();
         s.ft.onBoundingBox([0, 0, 0, 0]).dp();
         s.ft.onDettached(true).dp();
+        s.ft.setBackground(null).dp();
     }));
     return service;
 }
 const tableFor = [
-    'allChildren', 'allDisplayChildren', 'setLayoutValid', 'setBackground',
-    'onBgChangeWithParent', 'onChildPreferredSizeChange', 'hasOfflineCanvas',
-    'onChildPositions'
+    'allChildren', 'allDisplayChildren', 'setLayoutValid', 'onChildPreferredSizeChange', 'hasOfflineCanvas', 'onChildPositions', 'isOpaque'
 ];
 function createContainerBase(opts) {
     const base = createBase(opts);
     const service = base.config({
-        tableFor
+        tableFor,
+        debugExcludeTypes: ['renderBackgroundFor']
     });
     const { r, s, table } = service;
     const { ft } = s;
     const children = [];
     r('addChild -> child.setParent', s.pt.addChild.pipe(rx.map(([m, ...added]) => {
         children.push(...added);
+        for (const child of children) {
+            child.s.ft.setParent(service).dp(m);
+        }
+    })));
+    r('insertChild', s.pt.insertChild.pipe(rx.map(([m, before, children]) => {
+        children.splice(before, 0, ...children);
         for (const child of children) {
             child.s.ft.setParent(service).dp(m);
         }
@@ -159,7 +182,7 @@ function createContainerBase(opts) {
                 children.splice(idx, 1);
         }
     })));
-    r('addChild, removeChild, allChildren, children.preferredSize, children.setDisplay -> onChildPreferredSizeChange, setLayoutValid, allDisplayChildren', rx.merge(s.pt.addChild, s.pt.removeChild).pipe(rx.switchMap(() => table.l.allChildren.pipe(rx.switchMap(([, children]) => {
+    r('addChild, removeChild, allChildren, children.preferredSize, children.setDisplay -> onChildPreferredSizeChange, setLayoutValid, allDisplayChildren', rx.merge(s.pt.addChild, s.pt.insertChild, s.pt.removeChild).pipe(rx.switchMap(([m]) => table.l.allChildren.pipe(rx.switchMap(([, children]) => {
         return rx.merge(
         // -> allDisplayChildren
         rx.combineLatest(children.map(c => c.table.l.setDisplay.pipe(rx.map(([, d]) => d === DisplayMode.none ? null : c)))).pipe(rx.map(chdn => chdn.filter(c => c != null)), rx.switchMap(chdn => {
@@ -167,7 +190,7 @@ function createContainerBase(opts) {
             return rx.combineLatest(chdn.map(widget => {
                 return widget.table.l.preferredSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2));
             }));
-        }), rx.map(sizes => ft.onChildPreferredSizeChange(sizes.map(([, w, h]) => [w, h])).dp())), rx.merge(children.map(widget => widget.table.l.setDisplay.pipe(rx.scan(([, prev], curr) => {
+        }), rx.map(sizes => ft.onChildPreferredSizeChange(sizes.map(([, w, h]) => [w, h])).dp(m))), rx.merge(children.map(widget => widget.table.l.setDisplay.pipe(rx.scan(([, prev], curr) => {
             const [m, mode] = curr;
             if (!((prev === DisplayMode.hidden && mode === DisplayMode.visible) ||
                 (mode === DisplayMode.hidden && prev === DisplayMode.visible))) {
@@ -181,11 +204,27 @@ function createContainerBase(opts) {
         ft.needRerender(true).dp(m);
         ft.setLayoutValid(false).dp(m);
     })));
+    r('renderSelf, onBgChangeWithParent, onSize -> canvas.addString, canvas.clearRect', s.pt.renderSelf.pipe(rx.mergeMap(a => rx.combineLatest([
+        table.l.onSize,
+        table.l.onBgChangeWithParent
+    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.map(([[m, canvas, trans], [, width, height], [, bg]], _idx) => {
+        const pos = [0, 0];
+        gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+        if (bg) {
+            const fill = ' '.repeat(width);
+            for (let i = 0; i < height; i++) {
+                canvas.s.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
+            }
+        }
+        else {
+            canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
+        }
+    })));
     r('renderSelf -> reflow, setLayoutValid, child.needRerender', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.mergeMap(([[m, , , clips, masks], [, valid]]) => {
         if (!valid) {
             return table.l.allDisplayChildren.pipe(rx.take(1), rx.map(([, allChildren]) => {
-                s.ft.reflow(clips, masks).dp(m);
                 s.ft.setLayoutValid(true).dp(m);
+                s.ft.reflow(clips, masks).dp(m);
                 for (const child of allChildren)
                     child.s.ft.needRerender(true).dp(m);
             }));
@@ -194,7 +233,7 @@ function createContainerBase(opts) {
             return rx.EMPTY;
         }
     })));
-    r('onRender -> renderSelf, renderChild', s.pt.onRender.pipe(rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(rx.take(1), rx.map(([, children]) => {
+    r('onRender -> renderSelf, renderChild', s.pt.onRender.pipe(rx.observeOn(rx.queueScheduler), rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(rx.take(1), rx.map(([, children]) => {
         if (renderSelf)
             s.ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         for (let i = 0, l = children.length; i < l; i++) {
@@ -234,45 +273,20 @@ function createContainerBase(opts) {
         if (parent)
             parent.s.ft.onChildError(childId, errInfo);
     })));
-    r('renderSelf, onBgChangeWithParent, onSize -> canvas.addString, canvas.clearRect', s.pt.renderSelf.pipe(rx.mergeMap(a => rx.combineLatest([
-        table.l.onSize,
-        table.l.onBgChangeWithParent
-    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.map(([[m, canvas, trans], [, width, height], [, bg]], _idx) => {
-        const pos = [0, 0];
-        gl_matrix_1.vec2.transformMat4(pos, pos, trans);
-        if (bg) {
-            const fill = ' '.repeat(width);
-            for (let i = 0; i < height; i++) {
-                canvas.s.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
-            }
-        }
-        else {
-            canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
-        }
-    })));
-    r('setParent, parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
-        table.l.setParent.pipe(rx.switchMap(([, parent]) => { var _a; return (_a = parent === null || parent === void 0 ? void 0 : parent.table.l.onBgChangeWithParent) !== null && _a !== void 0 ? _a : rx.of([null, null]); })),
-        table.l.setBackground
-    ]).pipe(rx.map(([[m, pBg], [m2, ownBg]]) => {
-        if (ownBg)
-            s.ft.onBgChangeWithParent(ownBg).dp(m2);
-        else if (m && pBg)
-            s.ft.onBgChangeWithParent(pBg).dp(m, m2);
-        else
-            s.ft.onBgChangeWithParent(null).dp(m2);
-    })));
     r('init', new rx.Observable(() => {
         ft.addReflowAction(s.pt.onSize).dp();
         ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
         ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
         ft.allChildren(children).dp();
         ft.onSize(0, 0).dp();
-        ft.preferredSize(0, 0).dp();
+        ft.onContentSizeChange(0, 0).dp();
         ft.overflow(false).dp();
         ft.setLayoutValid(false).dp();
-        ft.setBackground(null).dp();
         ft.hasOfflineCanvas(false).dp();
         ft.onChildPositions(new Map()).dp();
+        ft.allDisplayChildren([]).dp();
+        ft.onChildPreferredSizeChange([]).dp();
+        ft.isOpaque(false).dp();
     }));
     return service;
 }

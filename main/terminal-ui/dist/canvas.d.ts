@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { SingleActionFactory, SimplexReactor, CoreOptions } from '@wfh/reactivizer';
+import { SingleActionFactory, SimplexReactor } from '@wfh/reactivizer';
 import { IntervalTree } from '@wfh/algorithms';
 import { BaseWidget } from './base';
 import { KeyEventServcie } from './keyEvent';
@@ -21,6 +21,7 @@ export interface TerminalCanvasInput {
     /** request bundling rendering */
     requestRender(): SingleActionFactory;
     render(): SingleActionFactory;
+    fillRect(x: number, y: number, width: number, height: number, bg: BackgroundStyle): SingleActionFactory;
     copyRect(x: number, y: number, width: number, height: number): SingleActionFactory;
     /** Response: onCopyRect */
     copyDirtyRectAndClear(x: number, y: number, width: number, height: number): SingleActionFactory;
@@ -30,7 +31,7 @@ export interface TerminalCanvasInput {
     /** Replied by "doneReportCursor", Terminal-keyEvent service must be enabled before dispatching this action */
     reportCursor(keyEventService: KeyEventServcie): SingleActionFactory;
 }
-export interface TerminalCanvasOutput {
+export interface TerminalCanvasEvents extends TerminalCanvasInput {
     /** In context of "render", x, y are both absolute 0 based coordinates value */
     onPrintText(x: number, y: number, text: string): SingleActionFactory;
     onClearLine(y: number, x?: number, dir?: 0 | 1 | -1): SingleActionFactory;
@@ -41,8 +42,9 @@ export interface TerminalCanvasOutput {
     doneReportCursor(row: number, col: number): SingleActionFactory;
 }
 declare const tableFor: readonly ["setBounding", "setRootComponent", "onDirtyLineChange"];
-export declare function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & TerminalCanvasOutput>): SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, readonly ["setBounding", "setRootComponent", "onDirtyLineChange"], unknown>;
-export type TerminalCanvas = SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, typeof tableFor>;
+export type TerminalCanvas = SimplexReactor<TerminalCanvasInput & TerminalCanvasEvents, typeof tableFor>;
+export type TerminalCanvasOptions = Partial<NonNullable<TerminalCanvas['opts']>>;
+export declare function createTerminalCanvas(opts?: TerminalCanvasOptions): SimplexReactor<TerminalCanvasEvents, readonly ["setBounding", "setRootComponent", "onDirtyLineChange"], unknown>;
 export declare function getTextDisplayUnits(text: string): Generator<number, number[], unknown>;
 export type Range = [low: number, high: number];
 export type Rectangle = [x: number, y: number, w: number, h: number];

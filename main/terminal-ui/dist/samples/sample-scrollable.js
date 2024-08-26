@@ -39,15 +39,7 @@ const index_5 = require("../index");
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
-function log(...args) {
-    const date = new Date();
-    fout.write(date.toLocaleTimeString());
-    // console.log(formatToConciseNoColor(...args));
-    fout.write('.');
-    fout.write(date.getMilliseconds() + ' - ');
-    fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
-    fout.write('\n');
-}
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
 canvas.s.ft.autoHideCursor().dp();
 canvas.error$.subscribe(([err, label]) => {
@@ -62,8 +54,8 @@ canvas.error$.subscribe(([err, label]) => {
 });
 const label = (0, index_2.createTextWidget)('Hello border container', { debug: true, log });
 const border = (0, index_3.createBorderContainer)(label.asBaseType, { debug: true, log });
-const scrollable = (0, index_4.createScrollable)(border.asBaseType.asBaseType, { debug: true, log });
-scrollable.s.ft.setScrollable(true, true).dp();
+const scrollable = (0, index_4.createScrollable)(border.asBaseType.asBaseType, { default: { debug: true, log } });
+scrollable.s.ft.setScrollable(false, true).dp();
 canvas.s.ft.setRootComponent(scrollable.asBaseType.asBaseType).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows - 1).dp();
 const keyEventService = (0, index_5.createKeyEventService)(canvas, { debug: true, log });

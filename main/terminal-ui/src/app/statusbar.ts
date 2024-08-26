@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
-import {SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
-import {createFlexContainer, Scrollable, KeyEventServcie, createBorderContainer, DisplayMode, createTextWidget} from '../index';
+import {SingleActionFactory, SimplexReactorExtendType} from '@wfh/reactivizer';
+import {FlexContainer, createFlexContainer, Scrollable, KeyEventServcie, createBorderContainer, DisplayMode, createTextWidget} from '../index';
 
 export interface StatusbarMessages {
   trackScrollable(scrollable: Scrollable): SingleActionFactory;
@@ -11,8 +11,13 @@ export interface StatusbarMessages {
 
 const tableFor = ['trackKeypressService', 'trackScrollable'] as const;
 
-export function createStatusbar(opts?: CoreOptions<StatusbarMessages>) {
-  const container = createFlexContainer(opts as any);
+export type Statusbar = SimplexReactorExtendType<FlexContainer, StatusbarMessages, typeof tableFor>;
+export type StatusbarOptions = Partial<Statusbar['opts']>;
+export function createStatusbar(opts?: StatusbarOptions) {
+  const container = createFlexContainer({
+    ...opts as any,
+    name: (opts?.name ?? 'statusbar') + '.container'
+  });
   const containerWithBorder = createBorderContainer(container.asBaseType.asBaseType, {name: 'StatusBar', ...opts as any});
   const statusbar = containerWithBorder.config<StatusbarMessages, typeof tableFor>({
     tableFor
@@ -20,12 +25,25 @@ export function createStatusbar(opts?: CoreOptions<StatusbarMessages>) {
   // containerWithBorder.s.ft.setBackground('bgBlue').dp();
   statusbar.s.ft.setPadding(0, 1, 0, 1).dp();
   statusbar.s.ft.setBorder('padding').dp();
+  statusbar.s.ft.setFlexShrink(0).dp();
   const {r, s, table} = statusbar;
-  const labelScrollText = createTextWidget('scroll', opts as any);
-  const labelScrollValue1 = createTextWidget('0%', opts as any);
-  const labelScrollValue2 = createTextWidget('0%', opts as any);
+  const labelScrollText = createTextWidget('scroll', {
+    ...opts as any,
+    name: (opts?.name ?? 'statusbar') + '.container'
+  });
+  const labelScrollValue1 = createTextWidget('0%', {
+    ...opts as any,
+    name: (opts?.name ?? 'statusbar') + '.v1'
+  });
+  const labelScrollValue2 = createTextWidget('0%', {
+    ...opts as any,
+    name: (opts?.name ?? 'statusbar') + '.v2'
+  });
   const HELP_KEY_HINT = 'Press <Enter> for help';
-  const labelKeypress = createTextWidget(HELP_KEY_HINT, {name: 'keypressInfo', ...opts as any});
+  const labelKeypress = createTextWidget(HELP_KEY_HINT, {
+    ...opts as any,
+    name: (opts?.name ?? 'statusbar') + '.key'
+  });
   labelKeypress.s.ft.setFlexGrow(1).dp();
 
   container.s.ft.addChild(labelKeypress.b,

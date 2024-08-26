@@ -22,7 +22,7 @@ const canvas = (0, index_1.createTerminalCanvas)({ debug, log });
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
 canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRenderOnRequest(true).dp();
-const ev = (0, index_1.createElevator)({ debug, log });
+const ev = (0, index_1.createElevator)({ default: { debug, log } });
 const popupLayer = (0, index_1.createFlexContainer)({ name: 'popup', debug, log });
 ev.s.ft.addChild(root.asBaseType.asBaseType, popupLayer.asBaseType.asBaseType).dp();
 const popupMsg = (0, index_1.createTextWidget)('POPUP MESSAGE', { name: 'popupMsg', debug, log });

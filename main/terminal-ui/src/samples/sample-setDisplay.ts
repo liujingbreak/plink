@@ -17,7 +17,7 @@ function log(...args: any[]) {
 }
 const panel = createFlexContainer({name: 'contentPanel', debug, log});
 const border = createBorderContainer(panel.asBaseType.asBaseType, {name: 'contentPanelBorder', debug, log});
-const {canvas} = app.createApp(border.asBaseType.asBaseType, {debug, log});
+const {canvas} = app.createApp(border.asBaseType.asBaseType, {default: {debug, log}});
 
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];

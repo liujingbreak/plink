@@ -1,6 +1,6 @@
 import {CoreOptions} from './stream-core';
 import {DuplexOptions} from './duplex';
-import {InferActionsOfSmplxRctr, InferTableForSmplxRctr} from './inferred-types';
+import {InferActionsOfSmplxRctr} from './inferred-types';
 import {SimplexReactor, BaseActions} from './simplex-reactor';
 
 export interface ReactorCompositeOpt<
@@ -18,8 +18,8 @@ export type SimplexReactorOptions<
   LI extends readonly (keyof I)[] = readonly []
 > = LI['length'] extends 0 ? CoreOptions<I & BaseActions<I>> & {tableFor?: LI} : CoreOptions<I & BaseActions<I>> & {tableFor: LI};
 
-export type OptionsOfSmplxRctr<R extends SimplexReactor<any, any>> =
-  SimplexReactorOptions<InferActionsOfSmplxRctr<R>, InferTableForSmplxRctr<R>[]>;
+export type OptionsOfSmplxRctr<R extends SimplexReactor<any, any, any>> =
+  NonNullable<R['opts']>;
 
 export type SimplexReactorCfgOpts<
   IBase = Record<never, never>,
@@ -31,8 +31,8 @@ export type SimplexReactorCfgOpts<
     CoreOptions<IBase & IExt & BaseActions<IBase & IExt>> & {tableFor?: unknown[]} :
     CoreOptions<IBase & IExt & BaseActions<IBase & IExt>> & {tableFor: LIExt};
 
-export type OptionsOfExtendSmplxRctr<R extends SimplexReactor<any, any>, I, LI extends (readonly (keyof I)[] | (keyof I)[]) = []> = SimplexReactorCfgOpts<
+export type OptionsOfExtendSmplxRctr<R extends SimplexReactor<any, any, any>, I, LI extends (readonly (keyof I)[] | (keyof I)[]) = []> = SimplexReactorCfgOpts<
 InferActionsOfSmplxRctr<R>, I, LI
 >;
 
-export type CoreOptsOfExtSmplxRctr<R extends SimplexReactor<any, any>, I = Record<never, never>> = CoreOptions<InferActionsOfSmplxRctr<R> & I>;
+export type CoreOptsOfExtSmplxRctr<R extends SimplexReactor<any, any, any>, I = Record<never, never>> = CoreOptions<InferActionsOfSmplxRctr<R> & I>;

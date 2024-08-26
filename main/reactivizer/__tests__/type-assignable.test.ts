@@ -3,7 +3,7 @@
   * has no error report to parsing the file content.
  **/
 import {describe, it, expect}  from '@jest/globals';
-import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, SimplexReactorExtendType, RxController2, ExtractTupleElement} from '../src';
+import {SingleActionFactory, SimplexReactor, RxController2} from '../src';
 
 interface TestActions {
   message1(): SingleActionFactory;
@@ -48,8 +48,8 @@ describe('Typescript compiler', () => {
     function acceptBaseType(base: BaseService) {
       base.table.l.message2.subscribe();
     }
-    acceptBaseType(extendedService);
-    acceptBaseType(extendedWithoutTable);
+    acceptBaseType(extendedService.b);
+    acceptBaseType(extendedWithoutTable.b);
     const baseControl = new RxController2<TestActions>();
     const control = baseControl as unknown as RxController2<ExtendActions2>;
     const castToBase = control as RxController2<TestActions>;

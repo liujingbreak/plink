@@ -1,4 +1,27 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -6,9 +29,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("source-map-support/register");
 const util_1 = __importDefault(require("util"));
 const fs_1 = __importDefault(require("fs"));
+const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
-const debug = true;
+const debug = false;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
     const date = new Date();
@@ -18,14 +42,34 @@ function log(...args) {
     fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
     fout.write('\n');
 }
-const canvas = (0, index_1.createTerminalCanvas)({ debug: false, log });
+const canvas = (0, index_1.createTerminalCanvas)({ debug, debugIncludeTypes: ['fillRect'], log });
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
-// const scrollable = createScrollable(border.b.b, {debug, log});
 root.s.ft.alignItems('center').dp();
-const table = (0, index_1.createTable)({ debug, log });
-table.s.ft.addRow(['12345', 'abcde']).dp();
-table.s.ft.addRow(['123459876', '-----abcde\nokok']).dp();
+const table = (0, index_1.createTable)({
+    core: { name: 'table', debug: true, log, debugExcludeTypes: ['onCellBgRender'] },
+    default: { debug: false, log }
+});
+const SAMPLE_ROW_COUNT = 6;
+const SAMPLE_COLUMN_CNT = 7;
+table.s.pt.onRowAdded.pipe(rx.map(([, idx, id, cells]) => {
+    cells.map(cell => {
+        cell.s.ft.setStyle(['black']).dp();
+    });
+})).subscribe();
+for (let r = 0; r < SAMPLE_ROW_COUNT; r++) {
+    const cells = [];
+    for (let i = 0; i < 7; i++) {
+        cells.push(`Cell ${r}:${i}`);
+    }
+    table.s.ft.addRow(cells).dp();
+}
+table.s.ft.setBorderType(index_1.TableBorderType.rowSeparator, true).dp();
+table.s.ft.setBorderType(index_1.TableBorderType.border, true).dp();
+const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
+const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
+table.s.ft.setCellBackground((col, row) => `bgHsl(${hueInterval * row},${30 + saturation * col},70)`).dp();
 root.s.ft.addChild(table.b.b).dp();
+root.s.ft.setDirection('col').dp();
 canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRootComponent(root.b.b).dp();
 canvas.error$.subscribe(([err, label]) => {
@@ -34,13 +78,6 @@ canvas.error$.subscribe(([err, label]) => {
     log('-----------------\n', label, util_1.default.inspect(err));
     process.exit(0);
 });
-// const num = 10;
-// const hueInterval = Math.round(360 / num);
-// for (let i = 0; i < num; i++) {
-//   const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug: false, log});
-//   label.s.ft.setStyle([`bgHsl(${hueInterval * i},65,70)`]).dp();
-//   root.s.ft.addChild(label.asBaseType).dp();
-// }
 canvas.s.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp();
 canvas.s.ft.render().dp();
 canvas.dispose();

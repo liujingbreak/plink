@@ -52,11 +52,12 @@ interface KeyEvent {
   code?: string;
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
-export function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions<keypressInput>) {
+export type KeyEventOptions = CoreOptions<keypressInput>;
+export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions) {
   const service = new SimplexReactor<keypressSignals, typeof tableFor>({
     name: 'keyEvent',
-    tableFor,
-    ...opts
+    ...opts,
+    tableFor
   });
   const {r, s, table} = service;
   const {ft} = s;

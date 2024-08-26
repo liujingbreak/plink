@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
-import { SingleActionFactory, CoreOptsOfExtSmplxRctr, SimplexReactor, SimplexReactorMergeType, Action, InferMapParam, SimplexReactorOptions } from '@wfh/reactivizer';
+import { SingleActionFactory, SimplexReactor, SimplexReactorMergeType, Action, InferMapParam, SimplexReactorOptions } from '@wfh/reactivizer';
 import { TerminalCanvas, Rectangle, BackgroundStyle } from './canvas';
 export declare enum DisplayMode {
     visible = 0,
@@ -18,21 +18,22 @@ export interface BaseWidgetInput {
     setFlexGrow(value: number): SingleActionFactory;
     setFlexShrink(value: number): SingleActionFactory;
     setDisplay(mode: DisplayMode): SingleActionFactory;
-}
-export interface BaseWidgetEvents extends BaseWidgetInput {
+    setBackground(color: BackgroundStyle | null): SingleActionFactory;
     /** to override automatical "preferredSize" in layout calculation */
     setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
+}
+export interface BaseWidgetEvents extends BaseWidgetInput {
     onSize(width: number, height: number): SingleActionFactory;
     /** Implementation needs to handle this event */
     querySizeOf(width: number | null, height: number | null): SingleActionFactory;
-    /** Extended container implementation need to handle this event.
-     * Be aware that an interceptor is filtering "preferredSize" action for distinctUntilChanged(),
-     * which affects action table, some action will be skipped due to duplicate value */
+    /** Extended container implementation need to handle this event. */
     preferredSize(width: number, height: number): SingleActionFactory;
     /** As response to "querySizeOf" */
     prefWidthFor(width: number, constrainHeight: number): SingleActionFactory;
     /** As response to "querySizeOf" */
     prefHeightFor(constrainWidth: number, height: number): SingleActionFactory;
+    /** Calculated size based on child components or content, which ignores setPreferredSize value */
+    onContentSizeChange(width: number, height: number): SingleActionFactory;
     overflow(yes: boolean): SingleActionFactory;
     setParent(p: TerminalContainer | null): SingleActionFactory;
     ofCanvas(canvas: TerminalCanvas | null): SingleActionFactory;
@@ -50,23 +51,24 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     /** Get bouding rectangle that is calculated when the lastest "render" message is handled,
      * the coordinate of rectangle is relative to canvas, in case of child component of "scrollable" container,
      * the effect canvas is an offline canvas whose coordinate is different from containing canvas.
-     * Also see `ContainerWidgetEvents["hasOfflineCanvas"]`
+     * Also see `TermainlContainerEvents["hasOfflineCanvas"]`
      */
     onBoundingBox(rect: Rectangle): SingleActionFactory;
     onDettached(isDettached: boolean): SingleActionFactory;
+    onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
 }
-export declare const tableForBase: readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink"];
+export declare const tableForBase: readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent"];
 export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>>): SimplexReactor<BaseWidgetEvents, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink"], unknown>;
-export interface ContainerWidgetInput {
+export declare function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>>): SimplexReactor<BaseWidgetEvents, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent"], unknown>;
+export interface TerminalContainerInput {
     addChild(...children: BaseWidget[]): SingleActionFactory;
+    insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
     removeChild(...children: BaseWidget[]): SingleActionFactory;
     /** If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
     addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
-    setBackground(color: BackgroundStyle | null): SingleActionFactory;
 }
-export interface ContainerWidgetEvents {
+export interface TermainlContainerEvents extends TerminalContainerInput {
     /** implement should dispatch this event in "onRender" hanlder,
      * Default implementation is about: reflow, clear background, set flags
      **/
@@ -82,7 +84,6 @@ export interface ContainerWidgetEvents {
     onChildError(childId: string, errInfo: readonly [err: any, label: string | null]): SingleActionFactory;
     /** size of component which is "setDisplay" `none` is excluded */
     onChildPreferredSizeChange(sizes: [w: number, h: number][]): SingleActionFactory;
-    onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
     setLayoutValid(isValid: boolean): SingleActionFactory;
     /** Implementation container should set proper initial value, for container like "scrollable" whose child
      * component is actually rendered to another canvas other than the containing one, they must set this
@@ -99,8 +100,10 @@ export interface ContainerWidgetEvents {
     reflow(clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
     /** No reaction yet , preserve for the future */
     renderBackgroundFor(child: BaseWidget): SingleActionFactory;
+    /** Being relied by ElevatorContainer */
+    isOpaque(yes: boolean): SingleActionFactory;
 }
-declare const tableFor: readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "setBackground", "onBgChangeWithParent", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions"];
-export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<ContainerWidgetInput & ContainerWidgetEvents, typeof tableFor>>;
-export declare function createContainerBase(opts?: CoreOptsOfExtSmplxRctr<BaseWidget, ContainerWidgetInput & ContainerWidgetEvents>): SimplexReactor<BaseWidgetEvents & ContainerWidgetInput & ContainerWidgetEvents, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "setBackground" | "onBgChangeWithParent" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions")[], SimplexReactor<BaseWidgetEvents, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink"], unknown>>;
+declare const tableFor: readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque"];
+export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<TermainlContainerEvents, typeof tableFor>>;
+export declare function createContainerBase(opts?: Partial<TerminalContainer['opts']>): SimplexReactor<BaseWidgetEvents & TermainlContainerEvents, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque")[], SimplexReactor<BaseWidgetEvents, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent"], unknown>>;
 export {};

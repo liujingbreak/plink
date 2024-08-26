@@ -29,6 +29,7 @@ const gl_matrix_1 = require("gl-matrix");
 // import {TerminalCanvas} from './terminal-canvas';
 const base_1 = require("./base");
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'];
+// https://symbl.cc/en/unicode/blocks/box-drawing/
 const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
 function createBorderContainer(child, opts) {
     const container = (0, base_1.createContainerBase)(Object.assign({ name: 'borderContainer' }, opts));
@@ -55,7 +56,7 @@ function createBorderContainer(child, opts) {
         table.l.setBorder, table.l.setPadding
     ]).pipe(rx.map(([[m, sizes], [m2, border], [m3, top, right, bottom, left]]) => {
         const line = border === 'line' ? 2 : 0;
-        s.ft.preferredSize(sizes[0][0] + line + right + left, sizes[0][1] + line + top + bottom).dp(m, m2, m3);
+        s.ft.onContentSizeChange(sizes[0][0] + line + right + left, sizes[0][1] + line + top + bottom).dp(m, m2, m3);
     })));
     r('reflow -> onSize, setLayoutValid', s.pt.reflow.pipe(rx.withLatestFrom(table.l.onSize, table.l.setBorder, table.l.setPadding, table.l.allChildren), rx.map(([[m], [, w, h], [, border], [, top, right, bottom, left], [, children]]) => {
         s.ft.setLayoutValid(true).dp(m);

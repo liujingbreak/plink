@@ -2,7 +2,7 @@ import rl from 'node:readline';
 import * as rx from 'rxjs';
 import {mat4} from 'gl-matrix';
 import chalk from 'chalk';
-import {SingleActionFactory, SimplexReactor, CoreOptions} from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactor} from '@wfh/reactivizer';
 import {IntervalTree} from '@wfh/algorithms';
 // import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 import {isCodePointFullWidth} from './text-split';
@@ -30,7 +30,7 @@ export interface TerminalCanvasInput {
   /** request bundling rendering */
   requestRender(): SingleActionFactory;
   render(): SingleActionFactory;
-
+  fillRect(x: number, y: number, width: number, height: number, bg: BackgroundStyle): SingleActionFactory;
   copyRect(x: number, y: number, width: number, height: number): SingleActionFactory;
   /** Response: onCopyRect */
   copyDirtyRectAndClear(x: number, y: number, width: number, height: number): SingleActionFactory;
@@ -41,7 +41,7 @@ export interface TerminalCanvasInput {
   reportCursor(keyEventService: KeyEventServcie): SingleActionFactory;
 }
 
-export interface TerminalCanvasOutput {
+export interface TerminalCanvasEvents extends TerminalCanvasInput {
   /** In context of "render", x, y are both absolute 0 based coordinates value */
   onPrintText(x: number, y: number, text: string): SingleActionFactory;
   onClearLine(y: number, x?: number, dir?: 0 | 1 | -1): SingleActionFactory;
@@ -54,9 +54,11 @@ export interface TerminalCanvasOutput {
 
 const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange'] as const;
 
-export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & TerminalCanvasOutput>) {
-  const canvas = new SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, typeof tableFor>({
-    name: 'TerminalCanvas',
+export type TerminalCanvas = SimplexReactor<TerminalCanvasInput & TerminalCanvasEvents, typeof tableFor>;
+export type TerminalCanvasOptions = Partial<NonNullable<TerminalCanvas['opts']>>;
+export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
+  const canvas = new SimplexReactor<TerminalCanvasEvents, typeof tableFor>({
+    name: 'Canvas',
     // debugExcludeTypes: ['onPrintText'],
     tableFor,
     ...opts
@@ -140,6 +142,15 @@ export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & Te
         addCodePointsToCanvas(x, y, units, style ? style.sort() : []);
     })
   ));
+  r('fillRect', s.pt.fillRect.pipe(
+    rx.map(([, x, y, w, h, bg]) => {
+      const units = [...getTextDisplayUnits(' '.repeat(w))];
+      const style = [bg];
+      for (let i = y, l = y + h; i < l; i++) {
+        addCodePointsToCanvas(x, i, units, style ? style.sort() : []);
+      }
+    })
+  ));
   r('clearRect', s.pt.clearRect.pipe(
     rx.map(([, x, y, w, h]) => {
       for (let i = y, l = y + h; i < l; i++) {
@@ -155,7 +166,6 @@ export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & Te
         }
         // canvas.log('#### clearRect line', i, dirtyLines.get(y));
       }
-      // console.log('clearRect done', '#' + m.i);
     })
   ));
   r('onPrintText', s.pt.onPrintText.pipe(
@@ -283,12 +293,20 @@ export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & Te
   ));
   r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(
     rx.switchMap(([, enabled]) => {
+      let suspended = false; // Has recursive render request?
       // eslint-disable-next-line multiline-ternary
       return enabled ? s.pt.requestRender.pipe(
+        rx.tap(() => suspended = true),
         rx.exhaustMap(([m]) => new rx.Observable<never>(sub => {
+          suspended = false;
           setImmediate(() => {
             s.ft.render().dp(m);
             sub.complete();
+            canvas.log('has suspended:', suspended);
+            if (suspended) {
+              // to process possible request which is recursively issued during "exhaustMap"
+              s.ft.render().dp(m);
+            }
           });
         }))
       ) : rx.EMPTY;
@@ -419,7 +437,6 @@ export function createTerminalCanvas(opts?: CoreOptions<TerminalCanvasInput & Te
   return canvas;
 }
 
-export type TerminalCanvas = SimplexReactor<TerminalCanvasInput & TerminalCanvasOutput, typeof tableFor>;
 export function* getTextDisplayUnits(text: string) {
   const screenLineBuffer = [] as number[];
   for (const char of text) {

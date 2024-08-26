@@ -18,7 +18,7 @@ function log(...args: any[]) {
 const canvas = createTerminalCanvas({debug: false, log});
 const root = createFlexContainer({name: 'root', debug, log});
 const border = createBorderContainer(root.b.b, {debug, log});
-const scrollable = createScrollable(border.b.b, {debug, log});
+const scrollable = createScrollable(border.b.b, {default: {debug, log}});
 root.s.ft.alignItems('center').dp();
 root.s.ft.setDirection('col').dp();
 canvas.s.ft.autoHideCursor().dp();

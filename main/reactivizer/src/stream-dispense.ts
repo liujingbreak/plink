@@ -6,7 +6,7 @@ import {InferMapParam} from './stream-core';
 import {SimplexReactor} from './simplex-reactor';
 import {RxController2} from './control2';
 
-type InferInterface<X> = X extends SimplexReactor<infer Y, any> ? Y : X extends RxController2<infer I> ? I : never;
+type InferInterface<X> = X extends SimplexReactor<infer Y, any, any> ? Y : X extends RxController2<infer I> ? I : never;
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.
@@ -22,7 +22,7 @@ export class ActionDispenser<I> {
   /** you need explicitly specify generic type parameter of this function, it won't inference proper type itself
    * X - SimplexReactor or RxController2
    * */
-  static ofAction$<X extends SimplexReactor<any, any> | RxController2<any> = never>(action$: rx.Observable<Action<any>>) {
+  static ofAction$<X extends SimplexReactor<any, any, any> | RxController2<any> = never>(action$: rx.Observable<Action<any>>) {
     return new ActionDispenser<InferInterface<X>>(action$ as rx.Observable<Action<InferInterface<X>[keyof InferInterface<X>]>>);
   }
   /** Action observable streamby type */

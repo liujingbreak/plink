@@ -37,10 +37,8 @@ class RectangleOverlapTree {
                 }
             }
         })());
-        console.log('foundX:', foundItemsOfX.size);
         const foundY = this.yIntervalTree.searchMultipleOverlaps(y, y + h - 1);
         const itemsY = [...foundY];
-        console.log('search Y:', y, y + h - 1);
         return itemsY.flatMap(([, , data]) => {
             if (Array.isArray(data)) {
                 return data.filter(it => foundItemsOfX.has(it));
@@ -50,6 +48,8 @@ class RectangleOverlapTree {
             }
         });
     }
+    /** search for any rectangle from the tree that is being fully
+     * covered by paramerter rectangle */
     searchForCovered([x, y, w, h]) {
         const right = x + w - 1;
         const foundX = this.xIntervalTree.searchMultipleOverlaps(x, right);

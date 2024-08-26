@@ -6,20 +6,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
-const debug = true;
+const debug = false;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
-function log(...args) {
-    const date = new Date();
-    fout.write(date.toLocaleTimeString());
-    // console.log(formatToConciseNoColor(...args));
-    fout.write('.');
-    fout.write(date.getMilliseconds() + ' - ');
-    fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
-    fout.write('\n');
-}
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, log });
 const border = (0, index_1.createBorderContainer)(panel.b.b, { name: 'contentPanelBorder', debug, log });
-const { canvas } = index_1.app.createApp(border.b.b, { debug, log });
+const { canvas } = index_1.app.createApp(border.b.b, {
+    default: { debug, log },
+    statusbar: { debug: true },
+    keyService: { debug: true },
+    canvas: { debug: true },
+    elevator: { default: { debug: true } },
+    scrollable: {
+        default: { debug: true }
+    }
+});
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
@@ -29,7 +30,7 @@ process.stdout.on('resize', () => {
 setTimeout(() => {
     panel.s.ft.removeChild(welcome.asBaseType).dp();
     panel.s.ft.setDirection('col').dp();
-    const num = 40;
+    const num = 20;
     const hueInterval = Math.round(360 / num);
     for (let i = 0; i < num; i++) {
         const label = (0, index_1.createTextWidget)('TEST LABEL ' + i, { name: 'LABEL ' + i, debug: false, log });

@@ -24,7 +24,7 @@ let SEQ = new Date().getUTCMilliseconds();
 
 export class SimplexReactor<
   I = Record<never, never>,
-  LI extends readonly (keyof I)[] | (keyof I)[] = [],
+  LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
   BaseType = unknown
 > {
   protected errorSubject: rx.Subject<[label: string, originError: any]> =
@@ -202,7 +202,7 @@ export class SimplexReactor<
         this.reactivizeFunction(key, func, fObject);
       }
     }
-    return this as SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>;
+    return this as SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI, BaseType>;
   }
   log(...msg: any[]) {
     if (this.opts?.debug) {

@@ -1,21 +1,22 @@
 import fs from 'fs';
-import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
+import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {app, createFlexContainer, createTextWidget, createBorderContainer} from '../index';
 
-const debug = true;
+const debug = false;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
-function log(...args: any[]) {
-  const date = new Date();
-  fout.write(date.toLocaleTimeString());
-  // console.log(formatToConciseNoColor(...args));
-  fout.write('.');
-  fout.write(date.getMilliseconds() + ' - ');
-  fout.write(formatToConciseNoColor(...args));
-  fout.write('\n');
-}
+const log = createSimpleIndentLogger(false, false, fout);
 const panel = createFlexContainer({name: 'contentPanel', debug, log});
 const border = createBorderContainer(panel.b.b, {name: 'contentPanelBorder', debug, log});
-const {canvas} = app.createApp(border.b.b, {debug, log});
+const {canvas} = app.createApp(border.b.b, {
+  default: {debug, log},
+  statusbar: {debug: true},
+  keyService: {debug: true},
+  canvas: {debug: true},
+  elevator: {default: {debug: true}},
+  scrollable: {
+    default: {debug: true}
+  }
+});
 
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
@@ -28,7 +29,7 @@ process.stdout.on('resize', () => {
 setTimeout(() => {
   panel.s.ft.removeChild(welcome.asBaseType).dp();
   panel.s.ft.setDirection('col').dp();
-  const num = 40;
+  const num = 20;
   const hueInterval = Math.round(360 / num);
   for (let i = 0; i < num; i++) {
     const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug: false, log});

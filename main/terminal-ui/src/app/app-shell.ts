@@ -1,10 +1,10 @@
 import * as rx from 'rxjs';
-import {CoreOptions, SingleActionFactory, SimplexReactor} from '@wfh/reactivizer';
+import {CoreOptions, SingleActionFactory, SimplexReactor, SimplexReactorOptions} from '@wfh/reactivizer';
 import {createScrollable, createFlexContainer, BaseWidget, createKeyEventService,
   createTerminalCanvas, createElevator, createTextWidget, createBorderContainer,
-  DisplayMode,
-  FlexContainer} from '../index';
-import {createStatusbar} from './statusbar';
+  DisplayMode, ScrollableOptions, TerminalCanvasOptions, ElevatorOptions,
+  FlexContainer, FlexContainerOpts, KeyEventOptions} from '../index';
+import {StatusbarOptions, createStatusbar} from './statusbar';
 
 export interface AppActions {
   showPopup(component: BaseWidget): SingleActionFactory;
@@ -14,20 +14,52 @@ export interface AppSignals extends AppActions {
   onPopup(component: BaseWidget): SingleActionFactory;
   onHelp(helper: FlexContainer): SingleActionFactory;
 }
-export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
+export interface AppOptions {
+  default?: CoreOptions<any>;
+  core?: SimplexReactorOptions<AppSignals>;
+  statusbar?: StatusbarOptions,
+  keyService?: KeyEventOptions;
+  scrollable?: ScrollableOptions;
+  elevator?: ElevatorOptions;
+  canvas?: TerminalCanvasOptions;
+  cover?: FlexContainerOpts;
+  root?: FlexContainerOpts;
+}
+export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
   const appService = new SimplexReactor<AppSignals>({
-    ...opts as any,
-    name: 'App'
+    ...opts?.default as SimplexReactorOptions<AppSignals>,
+    name: opts?.default?.name ?? 'App'
   });
-  const root = createFlexContainer({name: 'AppShell', ...opts as any});
+  const root = createFlexContainer({
+    ...opts?.default as FlexContainerOpts,
+    name: 'root',
+    ...opts?.root
+  });
   root.s.ft.setDirection('col').dp();
-  const statusbar = createStatusbar(opts as any);
-  const scrollable = createScrollable(mainComponent, opts as any);
+  const statusbar = createStatusbar({
+    ...opts?.default as StatusbarOptions,
+    name: 'Statusbar',
+    ...opts?.statusbar
+  });
+  const scrollable = createScrollable(mainComponent, {
+    ...opts?.scrollable,
+    default: {
+      ...opts?.default as ScrollableOptions['default'],
+      name: 'AppScrollable',
+      ...opts?.scrollable?.default
+    }
+  });
   scrollable.s.ft.setFlexGrow(1).dp();
   root.s.ft.addChild(scrollable.b.b, statusbar.b.b.b).dp();
-  const canvas = createTerminalCanvas(opts as Pick<CoreOptions, 'debug'>);
+  const canvas = createTerminalCanvas({
+    ...opts?.default as TerminalCanvasOptions,
+    ...opts?.canvas
+  });
   canvas.s.ft.autoHideCursor().dp();
-  const keyEventService = createKeyEventService(canvas, opts as any);
+  const keyEventService = createKeyEventService(canvas, {
+    ...opts?.default as KeyEventOptions,
+    ...opts?.keyService
+  });
   // keyEventService.config({debug: true});
   keyEventService.s.ft.bindToScrollable(scrollable).dp();
   statusbar.s.ft.trackKeypressService(keyEventService).dp();
@@ -55,13 +87,17 @@ export function createApp(mainComponent: BaseWidget, opts: CoreOptions) {
     })
   ));
   const elevator = createElevator(opts as any);
-  const coverLayer = createFlexContainer({...opts as any, name: 'coverLayer'});
+  const coverLayer = createFlexContainer({
+    ...opts?.default as FlexContainerOpts,
+    name: 'coverLayer',
+    ...opts?.cover
+  });
   coverLayer.s.ft.alignItems('center').dp();
   coverLayer.s.ft.justifyContent('center').dp();
 
   // const helpBox = createFlexContainer();
   const helpNote = createTextWidget('Keyboard Help');
-  const coverLayerBorder = createBorderContainer(helpNote.b);
+  const coverLayerBorder = createBorderContainer(helpNote.b, {...opts?.default as any});
   coverLayerBorder.s.ft.setPadding(5, 5, 5, 5).dp();
   coverLayerBorder.s.ft.setBackground('bgGrey').dp();
   coverLayerBorder.s.ft.setBorder('padding').dp();

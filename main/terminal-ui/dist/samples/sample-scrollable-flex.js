@@ -21,7 +21,7 @@ function log(...args) {
 const canvas = (0, index_1.createTerminalCanvas)({ debug: false, log });
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
 const border = (0, index_1.createBorderContainer)(root.b.b, { debug, log });
-const scrollable = (0, index_1.createScrollable)(border.b.b, { debug, log });
+const scrollable = (0, index_1.createScrollable)(border.b.b, { default: { debug, log } });
 root.s.ft.alignItems('center').dp();
 root.s.ft.setDirection('col').dp();
 canvas.s.ft.autoHideCursor().dp();

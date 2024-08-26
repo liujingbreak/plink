@@ -228,66 +228,74 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
    * @param key the value of key to be compared which could be related to none nodes in current tree
    * @return interator of existing nodes whose key are greater than specific key
    */
-  *keysGreaterThan(key: T) {
-    let node = this.root;
-    while (!this.isNil(node)) {
-      const cmp = this.comparator!(key, node.key);
-      if (cmp === 0)
-        break;
+  *keysGreaterThan(key: T, includeEqual = false) {
+    let node = this.smallestNodeGreaterThanOrEqual(key);
+    if (node == null)
+      return;
+    while (node != null && !this.isNil(node)) {
+      if (node.key !== key || includeEqual)
+        yield node;
+      node = this.successorNode(node);
+    }
+  }
+  greatestNodeSmallerThanOrEqual(key: T): RbTreeNode<T, V> | null {
+    let y: RbTreeNode<T, V> = this.nil;
+    let x = this.root;
+    let cmp: number | undefined;
+    while (!this.isNil(x)) {
+      y = x ;
+      cmp = this.comparator!(key, x.key);
       if (cmp < 0) {
-        if (node.left === this.nil) {
-          let z = node as typeof node | null | undefined;
-          while (z) {
-            yield z as ND;
-            z = this.successorNode(z);
-          }
-          break;
-        }
-        node = node.left;
+        x = x.left;
+      } else if (cmp > 0) {
+        x = x.right;
       } else {
-        if (node.right === this.nil) {
-          let z = node.p;
-          while (!this.isNil(z)) {
-            yield z as ND;
-            z = this.successorNode(z) ?? this.nil;
-          }
-          break;
-        }
-        node = node.right;
+        return x; // duplicate key found
       }
     }
+    if (cmp == null || this.isNil(y))
+      return null;
+    if (cmp < 0)
+      return this.predecessorNode(y);
+    else if (cmp > 0)
+      return y;
+    return null;
+  }
+  smallestNodeGreaterThanOrEqual(key: T): RbTreeNode<T, V> | null {
+    let y: RbTreeNode<T, V> = this.nil;
+    let x = this.root;
+    let cmp: number | undefined;
+    while (!this.isNil(x)) {
+      y = x ;
+      cmp = this.comparator!(key, x.key);
+      if (cmp < 0) {
+        x = x.left;
+      } else if (cmp > 0) {
+        x = x.right;
+      } else {
+        return x; // duplicate key found
+      }
+    }
+    if (cmp == null || this.isNil(y))
+      return null;
+    if (cmp < 0)
+      return y;
+    else if (cmp > 0)
+      return this.successorNode(y);
+    return null;
   }
   /**
    * @param key the value of key to be compared which could be related to none nodes in current tree
    * @return interator of existing nodes whose key are greater than specific key
    */
-  *keysSmallererThan(key: T) {
-    let node = this.root;
-    while (!this.isNil(node)) {
-      const cmp = this.comparator!(key, node.key);
-      if (cmp === 0)
-        break;
-      if (cmp < 0) {
-        if (node.left === this.nil) {
-          let z = node.p;
-          while (!this.isNil(z)) {
-            yield z as ND;
-            z = this.predecessorNode(z) ?? this.nil;
-          }
-          break;
-        }
-        node = node.left;
-      } else {
-        if (node.right === this.nil) {
-          let z = node;
-          while (!this.isNil(z)) {
-            yield z as ND;
-            z = this.predecessorNode(z) ?? this.nil;
-          }
-          break;
-        }
-        node = node.right;
-      }
+  *keysSmallerThan(key: T, includeEqual = false) {
+    let node = this.greatestNodeSmallerThanOrEqual(key);
+    if (node == null)
+      return;
+    while (node != null && !this.isNil(node)) {
+      if (node.key !== key || includeEqual)
+        yield node;
+      node = this.predecessorNode(node);
     }
   }
   inorderWalk(callback: (node: ND, level: number) => void, node = this.root, level = 0) {

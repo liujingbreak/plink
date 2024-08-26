@@ -131,7 +131,7 @@ function createFlexContainer(opts = {}) {
             childBoundingTree.addContent([x, y, w, h], [idx, chd]);
         }))));
     })));
-    r('reflow, ... -> onChildPositions, setLayoutValid, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(rx.mergeMap(a => rx.combineLatest([
+    r('reflow, ... -> onChildPositions, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(rx.mergeMap(a => rx.combineLatest([
         table.l.onSize,
         table.l.allDisplayChildren.pipe(rx.switchMap(([, chdn]) => {
             return rx.combineLatest([
@@ -280,7 +280,7 @@ function createFlexContainer(opts = {}) {
         });
         return rx.concat(calcChdSizes$.pipe(rx.finalize(() => s.ft.onChangeChildrenSize(chrMainAxisSizes, chrCrossAxisSizes).dp(m))), setPositions$).pipe(listContainer.catchErrorFor(m));
     })));
-    r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
+    r('onChildPreferredSizeChange,... -> onContentSizeChange', rx.combineLatest([
         listContainer.s.pt.onChildPreferredSizeChange,
         table.l.setDirection, table.l.setBorderSpacing,
         table.l.setBorderSeparator
@@ -293,7 +293,7 @@ function createFlexContainer(opts = {}) {
                 return preferred;
             }, [0, 0]);
             finalPreferredSize[0] += (borderSeq === FlexBorderSeparator.line ? 2 + marginWidth + 1 : marginWidth) * (sizes.length - 1);
-            ft.preferredSize(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
+            ft.onContentSizeChange(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
         }
         else if (direction === 'col') {
             const finalPreferredSize = sizes.reduce((preferred, [w, h]) => {
@@ -302,7 +302,7 @@ function createFlexContainer(opts = {}) {
                     preferred[0] = w;
                 return preferred;
             }, [0, 0]);
-            ft.preferredSize(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
+            ft.onContentSizeChange(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
         }
     })));
     r('onRender -> renderSelf, renderChild', prependCtl.pt.onRender.pipe(rx.withLatestFrom(table.l.allDisplayChildren, table.l.setDirection, table.l.onSize, table.l.setBorderSeparator, table.l.setBorderSeparatorStyle), rx.map(([[m, canvas, trans, renderSelf, clips, masks], [, children], [, dir], [, , h], [, borderSep], [, sepStyle]]) => {
@@ -340,6 +340,7 @@ function createFlexContainer(opts = {}) {
             ft.addReflowAction(a$).dp();
         }
     }));
+    listContainer.s = prependCtl;
     return listContainer;
 }
 function shrinkEachSize(individualPrefSizes, shrinkOfEach, availableSpace) {

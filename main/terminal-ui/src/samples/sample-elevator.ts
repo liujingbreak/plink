@@ -20,7 +20,7 @@ const root = createFlexContainer({name: 'root', debug, log});
 canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRenderOnRequest(true).dp();
 
-const ev = createElevator({debug, log});
+const ev = createElevator({default: {debug, log}});
 const popupLayer = createFlexContainer({name: 'popup', debug, log});
 ev.s.ft.addChild(
   root.asBaseType.asBaseType,

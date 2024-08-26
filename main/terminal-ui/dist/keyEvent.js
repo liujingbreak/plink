@@ -32,7 +32,7 @@ const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'];
 function createKeyEventService(canvas, opts) {
-    const service = new reactivizer_1.SimplexReactor(Object.assign({ name: 'keyEvent', tableFor }, opts));
+    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'keyEvent' }, opts), { tableFor }));
     const { r, s, table } = service;
     const { ft } = s;
     r('setInputStream', s.pt.setInputStream.pipe(rx.switchMap(([m, stdin, tty]) => {

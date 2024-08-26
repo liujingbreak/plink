@@ -46,15 +46,17 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = 
      * @param key the value of key to be compared which could be related to none nodes in current tree
      * @return interator of existing nodes whose key are greater than specific key
      */
-    keysGreaterThan(key: T): Generator<ND, void, unknown>;
+    keysGreaterThan(key: T, includeEqual?: boolean): Generator<RbTreeNode<T, V>, void, unknown>;
+    greatestNodeSmallerThanOrEqual(key: T): RbTreeNode<T, V> | null;
+    smallestNodeGreaterThanOrEqual(key: T): RbTreeNode<T, V> | null;
     /**
      * @param key the value of key to be compared which could be related to none nodes in current tree
      * @return interator of existing nodes whose key are greater than specific key
      */
-    keysSmallererThan(key: T): Generator<ND, void, unknown>;
-    inorderWalk(callback: (node: ND, level: number) => void, node?: RbTreeNode<T, V> | ND, level?: number): void;
-    minimum(node?: RbTreeNode<T, V> | ND): ND | null;
-    maximum(node?: RbTreeNode<T, V> | ND): ND | null;
+    keysSmallerThan(key: T, includeEqual?: boolean): Generator<RbTreeNode<T, V>, void, unknown>;
+    inorderWalk(callback: (node: ND, level: number) => void, node?: ND | RbTreeNode<T, V>, level?: number): void;
+    minimum(node?: ND | RbTreeNode<T, V>): ND | null;
+    maximum(node?: ND | RbTreeNode<T, V>): ND | null;
     size(): number;
     isRed(node: RbTreeNode<T, V> | null | undefined): boolean;
     isBlack(node: RbTreeNode<T, V> | null | undefined): boolean;

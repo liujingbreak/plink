@@ -1,15 +1,26 @@
 import * as rx from 'rxjs';
-import {CoreOptsOfExtSmplxRctr, SingleActionFactory, ActionDispenser} from '@wfh/reactivizer';
+import {CoreOptsOfExtSmplxRctr, CoreOptions, SingleActionFactory, ActionDispenser} from '@wfh/reactivizer';
 import {createContainerBase, BaseWidget, TerminalContainer, Rectangle, TerminalCanvas,
-  createTerminalCanvas, DisplayMode, TextStyle} from './index';
+  createTerminalCanvas, TerminalCanvasOptions, DisplayMode, TextStyle} from './index';
 
 interface ElevatorActions {
   /** @param layerIndex 0 based number, this message simply triggers "setDisplay" on child component */
   toggleLayer(layerIndex: number, visible: boolean): SingleActionFactory;
 }
-export function createElevator(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, ElevatorActions>) {
-  const base = createContainerBase(opts as any);
-  const service = base.config({name: 'Elevator'});
+export interface ElevatorOptions {
+  default?: CoreOptions;
+  core?: CoreOptsOfExtSmplxRctr<TerminalContainer, ElevatorActions>;
+  /** Internal canvas */
+  canvas?: TerminalCanvasOptions;
+}
+
+export function createElevator(opts?: ElevatorOptions) {
+  const base = createContainerBase({
+    ...opts?.default as TerminalContainer['opts'],
+    name: opts?.default?.name ?? 'Elevator',
+    ...opts?.core as TerminalContainer['opts']
+  });
+  const service = base.config<ElevatorActions>({});
   const {s, r, table} = service;
   const canvasMap = new Map<BaseWidget, TerminalCanvas>();
   // intercept "onRender"
@@ -23,13 +34,20 @@ export function createElevator(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, E
     );
   });
   const prependCtl = service.s.prependController();
-  r('addChild, removeChild -> "canvasMap"', s.pt.addChild.pipe(
-    rx.mergeMap(([m, ...chd]) => rx.from(chd).pipe(
+  r('addChild, removeChild -> "canvasMap"', rx.merge(
+    s.pt.addChild.pipe(
+      rx.map(([m, ...chdn]) => [m, chdn] as const)
+    ),
+    s.pt.insertChild.pipe(
+      rx.map(([m, , chdn]) => [m, chdn] as const)
+    )
+  ).pipe(
+    rx.mergeMap(([m, chd]) => rx.from(chd).pipe(
       rx.mergeMap(chd => {
         const cv = createTerminalCanvas({
-          debug: opts.debug,
-          log: opts.log,
-          name: 'Elevator.canvas'
+          ...opts?.default as TerminalCanvasOptions,
+          name: 'Elevator.canvas',
+          ...opts?.canvas
         });
         canvasMap.set(chd, cv);
         cv.s.ft.setRootComponent(chd).dp(m);
@@ -87,10 +105,10 @@ export function createElevator(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, E
       const [xw, xh] = sizes.reduce(([maxW, maxH], [w, h]) => {
         return [maxW > w ? maxW : w, maxH > h ? maxH : h];
       }, [0, 0] as [number, number]);
-      s.ft.preferredSize(xw, xh).dp(m);
+      s.ft.onContentSizeChange(xw, xh).dp(m);
     })
   ));
-  r('reflow', s.pt.reflow.pipe(
+  r('reflow -> canvas.setBounding', s.pt.reflow.pipe(
     rx.mergeMap(([m]) => {
       return rx.combineLatest([table.l.onSize, table.l.allDisplayChildren]).pipe(
         rx.take(1),
@@ -117,6 +135,10 @@ export function createElevator(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, E
         const allMasks = [] as Rectangle[];
         const last = children.length - 1;
         return rx.concat(
+          // From top layer to bottom, render them to corresponding offline canvas,
+          // so that get a tree of bounding box of all child compnents of each layer.
+          // The bounding box tree is treated as "mask" array being given to next
+          // lower layer's rendering parameter
           rx.from(children.slice(0).reverse()).pipe(
             rx.concatMap((chd, i) => {
               const canvasOfChd = canvasMap.get(chd)!;
@@ -131,8 +153,7 @@ export function createElevator(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, E
             })
           ),
           rx.from(children).pipe(
-            // rx.tap(chd => service.log('>>>', chd.s.logPrefix)),
-            rx.skip(1), // the 1st has been dorectly rendered to outer canvas
+            rx.skip(1), // the 1st has been directly rendered to outer canvas
             rx.map(chd => canvasMap.get(chd)!),
             rx.concatMap(c => {
               return c.table.l.setBounding.pipe(
@@ -153,17 +174,20 @@ export function createElevator(opts: CoreOptsOfExtSmplxRctr<TerminalContainer, E
       })
     ))
   ));
+  service.s = prependCtl;
   return service;
 }
 export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]> {
   return rx.combineLatest([
     c.table.l.setDisplay,
-    isContainerWithoutOfflineCanvas(c) ? c.table.l.setBackground : rx.of([null, ''])
+    isContainerWithoutOfflineCanvas(c) ?
+      rx.combineLatest([c.table.l.setBackground, c.table.l.isOpaque]) :
+      rx.of([[null, ''], [null, false]] as const)
   ]).pipe(
-    rx.switchMap(([[, d], [, bg]]) => {
+    rx.switchMap(([[, d], [[, bg], [, isOpaque]]]) => {
       if (d !== DisplayMode.visible)
         return rx.of([] as Rectangle[]);
-      else if (bg != null) {
+      else if (bg != null || isOpaque) {
         return c.table.l.onBoundingBox.pipe(
           rx.map(([, r]) => [r])
         );
@@ -173,7 +197,7 @@ export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]>
           p.table.l.allChildren.pipe(
             rx.take(1)
           ),
-          rx.merge(p.s.pt.addChild, p.s.pt.removeChild).pipe(
+          rx.merge(p.s.pt.addChild, p.s.pt.insertChild, p.s.pt.removeChild).pipe(
             rx.switchMap(() => p.table.l.allChildren.pipe(
               rx.take(1)
             ))

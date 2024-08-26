@@ -106,8 +106,8 @@ export type InferActionsOfSmplxRctr<R> =
 /** alias of InferActionsOfSmplxRctr */
 export type ActionsOf<R> = InferActionsOfSmplxRctr<R>;
 export type InferTableForSmplxRctr<R> =
-  R extends SimplexReactor<any, infer L> ? L[number] : never;
-export type TableOf<R> = R extends SimplexReactor<any, infer L> ? L : never;
+  R extends SimplexReactor<any, infer L, any> ? L[number] : never;
+export type TableOf<R> = R extends SimplexReactor<any, infer L, any> ? L : never;
 export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any, any>, R2 extends SimplexReactor<any, any>> =
   SimplexReactor<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
   readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[],

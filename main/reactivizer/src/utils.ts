@@ -62,3 +62,4 @@ export function ascii2ArrayBuffer<T extends SharedArrayBuffer | ArrayBuffer>(str
 export function arrayBuffer2ascii(buf: ArrayBuffer | SharedArrayBuffer, byteOffset?: number, length?: number) {
   return String.fromCharCode.apply(null, (new Uint8Array(buf, byteOffset, length)) as unknown as number[]);
 }
+

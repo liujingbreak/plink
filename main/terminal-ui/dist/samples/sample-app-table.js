@@ -1,0 +1,129 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+require("source-map-support/register");
+const fs_1 = __importDefault(require("fs"));
+const rx = __importStar(require("rxjs"));
+const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
+const index_1 = require("../index");
+const debug = false;
+const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
+const table = (0, index_1.createTable)({
+    // core: {
+    //   debug: true
+    // },
+    default: {
+        debug, log
+    },
+    lazy: {
+        default: { debug: true },
+        core: { debug: true },
+        headPlaceHolderLabel: {
+            debug: false
+        },
+        tailPlaceHolderLabel: {
+            debug: false
+        }
+    }
+});
+const SAMPLE_ROW_COUNT = 10;
+const SAMPLE_COLUMN_CNT = 3;
+table.s.ft.setLazyLoad(true, page => {
+    table.log('*** handle onLoadPage', page);
+    const out$ = new rx.Observable(sub => {
+        if (page > 4) {
+            sub.complete();
+            return;
+        }
+        setTimeout(() => {
+            for (let r = 0; r < SAMPLE_ROW_COUNT; r++) {
+                const cells = [];
+                for (let i = 0; i < SAMPLE_COLUMN_CNT; i++) {
+                    cells.push(`page ${page}, ${r}:${i}`);
+                }
+                sub.next(cells);
+            }
+            sub.complete();
+            // setTimeout(() => {
+            //   canvas.s.ft.render().dp();
+            // }, 32);
+        }, 900);
+    });
+    return out$;
+}).dp();
+table.s.pt.onRowAdded.pipe(rx.map(([, _idx, _id, cells]) => {
+    cells.map(cell => {
+        cell.s.ft.setStyle(['black']).dp();
+    });
+})).subscribe();
+// for (let r = 0; r < SAMPLE_ROW_COUNT; r++) {
+//   const cells = [] as string[];
+//   for (let i = 0; i < SAMPLE_COLUMN_CNT; i++) {
+//     cells.push(`Cell ${r}:${i}`);
+//   }
+//   table.s.ft.addRow(cells).dp();
+// }
+table.s.ft.setBorderType(index_1.TableBorderType.rowSeparator, true).dp();
+table.s.ft.setBorderType(index_1.TableBorderType.border, true).dp();
+const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
+root.s.ft.alignItems('center').dp();
+root.s.ft.justifyContent('center').dp();
+root.s.ft.addChild(table.b.b).dp();
+const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
+const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
+table.s.ft.setCellBackground((col, row) => {
+    let hue;
+    if (row > SAMPLE_ROW_COUNT)
+        hue = hueInterval * (row % SAMPLE_ROW_COUNT);
+    else
+        hue = hueInterval * row;
+    let sat;
+    if (SAMPLE_COLUMN_CNT < col)
+        sat = saturation * (col % SAMPLE_COLUMN_CNT);
+    else
+        sat = saturation * col;
+    return `bgHsl(${hue},${30 + sat},70)`;
+}).dp();
+const { canvas } = index_1.app.createApp(root.b.b, {
+    default: {
+        debug, log
+    },
+    canvas: { debug: true, debugIncludeTypes: ['render'] },
+    scrollable: {
+        default: { debug },
+        canvas: { debugIncludeTypes: ['setBounding'] }
+    }
+});
+const screenWidth = process.argv[2];
+const screenHeight = process.argv[3];
+canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
+process.stdout.on('resize', () => {
+    canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
+});
+//# sourceMappingURL=sample-app-table.js.map

@@ -44,7 +44,7 @@ function log(...args) {
 }
 const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, log });
 const border = (0, index_1.createBorderContainer)(panel.asBaseType.asBaseType, { name: 'contentPanelBorder', debug, log });
-const { canvas } = index_1.app.createApp(border.asBaseType.asBaseType, { debug, log });
+const { canvas } = index_1.app.createApp(border.asBaseType.asBaseType, { default: { debug, log } });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();

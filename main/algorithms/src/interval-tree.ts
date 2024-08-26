@@ -146,13 +146,11 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
       return null;
 
     this._searchMultipleOverlaps(foundNodes, low, high, this.root as IntervalTreeNode<V>);
-    console.log('foundNodes', foundNodes.length);
     for (const node of foundNodes) {
-      console.log('for: node', node.key, (isDuplicateNode(node) ? 'duplicate' : ''));
       if (node.int) {
         yield [...node.int, node.value, node];
       } else if (isDuplicateNode(node)) {
-        for (const highTreeNode of node.highValuesTree.keysSmallererThan(high)) {
+        for (const highTreeNode of node.highValuesTree.keysSmallerThan(high, true)) {
           yield [node.key, highTreeNode.key, highTreeNode.value, node];
         }
       }

@@ -26,13 +26,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTextWidget = createTextWidget;
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const canvas_1 = require("./canvas");
 const base_1 = require("./base");
 const text_split_1 = require("./text-split");
 const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'];
 function createTextWidget(initialText = '', opts) {
-    const service = (0, base_1.createBase)().config(Object.assign({ name: 'text', tableFor: tableForMultiLineText, log: nodejs_utils_1.conciseNocolorConsoleLogger }, opts));
+    const service = (0, base_1.createBase)(opts).config(Object.assign(Object.assign({ name: 'text' }, opts), { tableFor: tableForMultiLineText }));
     const spliter = (0, text_split_1.createWordSplitter)({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });
     const { r, s, table } = service;
     r('onRender', s.pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(table.l.onDisplayLines, table.l.onStyleWithParentBg, table.l.onSize, table.l.overflow), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow]]) => {
@@ -84,7 +83,7 @@ function createTextWidget(initialText = '', opts) {
         table.l.setContent.pipe(rx.map(([m, content]) => {
             const [lines, maxWidth] = preferLayoutText(content);
             s.ft.onDisplayLinesForWidth().dp(m);
-            s.ft.preferredSize(maxWidth, lines.length).dp(m);
+            s.ft.onContentSizeChange(maxWidth, lines.length).dp(m);
             const linesForPrefSize = lines.map(line => [...(0, canvas_1.getTextDisplayUnits)(line)]);
             s.ft.onDisplayLinesForPrefSize(linesForPrefSize).dp(m);
             return [m, maxWidth, lines.length, linesForPrefSize];
@@ -115,7 +114,7 @@ function createTextWidget(initialText = '', opts) {
         }
     })));
     r('setParent, setStyle, parent.setBackground -> onStyleWithParentBg', rx.combineLatest([
-        table.l.setParent.pipe(rx.switchMap(([, parent]) => parent ? parent.table.l.onBgChangeWithParent : rx.of([null, null]))),
+        table.l.onBgChangeWithParent,
         table.l.setStyle
     ]).pipe(rx.map(([[m, pBg], [m2, style]]) => {
         if (m && pBg)
@@ -126,7 +125,7 @@ function createTextWidget(initialText = '', opts) {
     r('init', new rx.Observable(() => {
         s.ft.addRerenderAction(s.pt.setContent).dp();
         s.ft.addRerenderAction(s.pt.setStyle).dp();
-        s.ft.preferredSize(0, 0).dp();
+        s.ft.onContentSizeChange(0, 0).dp();
         s.ft.onSize(0, 0).dp();
         s.ft.setParent(null).dp();
         s.ft.overflow(false).dp();

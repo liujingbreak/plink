@@ -1,8 +1,8 @@
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
-import {SimplexReactorExtendType, SingleActionFactory, ActionDispenser, CoreOptsOfExtSmplxRctr} from '@wfh/reactivizer';
+import {SimplexReactorExtendType, SingleActionFactory, ActionDispenser, CoreOptions} from '@wfh/reactivizer';
 import {BaseWidget, TerminalContainer, createContainerBase} from './base';
-import {createTerminalCanvas, TextStyle, rectIntersection} from './canvas';
+import {createTerminalCanvas, TerminalCanvasOptions, TextStyle, rectIntersection} from './canvas';
 
 export interface ScrollActions {
   scrollTo(left: number, top: number): SingleActionFactory;
@@ -24,9 +24,18 @@ const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', '
  * to outsider canvas afterward
  */
 export type Scrollable = SimplexReactorExtendType<TerminalContainer, ScrollSignals, typeof tableFor>;
+export interface ScrollableOptions {
+  default?: CoreOptions;
+  core?: Partial<NonNullable<Scrollable['opts']>>;
+  canvas?: TerminalCanvasOptions;
+}
 
-export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr<TerminalContainer, ScrollSignals>) {
-  const base = createContainerBase({name: 'scrollable', ...opts as any});
+export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
+  const base = createContainerBase({
+    ...opts?.default as Scrollable['b']['opts'],
+    name: 'scrollable',
+    ...opts?.core as Scrollable['b']['opts']
+  });
   const scrollable = base.config<ScrollSignals, typeof tableFor>({tableFor});
   const {r, s, table} = scrollable;
 
@@ -42,10 +51,18 @@ export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr
   const prepended = s.prependController();
 
   const canvas = createTerminalCanvas({
+    ...opts?.default as TerminalCanvasOptions,
     name: 'scrollable.canvas',
-    ...(opts ? {debug: opts.debug, log: opts.log} : {})
+    ...opts?.canvas
   });
+  const cTable = canvas.table.addActions('requestRender');
   canvas.s.ft.setRootComponent(comp).dp();
+  r('canvas,requestRender -> outerCanvas.requestRender', s.pt.onRender.pipe(
+    rx.take(1),
+    rx.mergeMap(([, outerCanvas]) => cTable.l.requestRender.pipe(
+      rx.map(([m]) => outerCanvas.s.ft.requestRender().dp(m))
+    ))
+  ));
   r('querySizeOf -> comp.querySizeOf', s.pt.querySizeOf.pipe(
     rx.mergeMap(([m, w, h]) => {
       if (w == null && h != null) {
@@ -100,12 +117,9 @@ export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr
   ));
   r('scrollTo, onSize, canvas.setBounding -> onValidScroll', rx.combineLatest([
     s.pt.scrollTo,
-    s.pt.onSize
+    s.pt.onSize,
+    canvas.table.l.setBounding
   ]).pipe(
-    rx.switchMap(a => canvas.table.l.setBounding.pipe(
-      rx.take(1),
-      rx.map(b => [...a, b] as const)
-    )),
     rx.map(([[m, x, y], [m2, sWidth, sHeight], [m3, , , cWidth, cHeight]]) => {
       // base.log(sWidth, sHeight, cWidth, cHeight);
       if (x < 0)
@@ -189,9 +203,12 @@ export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr
       s.ft.isScrollNeeded(w < w2 || h < h2).dp(m, m2);
     })
   ));
-  r('onChildPreferredSizeChange,... -> preferredSize', table.l.onChildPreferredSizeChange.pipe(
+  r('onChildPreferredSizeChange,... -> onContentSizeChange', table.l.onChildPreferredSizeChange.pipe(
     rx.map(([m, sizes]) => {
-      s.ft.preferredSize(sizes[0][0], sizes[0][1]).dp(m);
+      if (sizes.length > 0)
+        s.ft.onContentSizeChange(sizes[0][0], sizes[0][1]).dp(m);
+      else
+        s.ft.onContentSizeChange(0, 0).dp(m);
     })
   ));
   r('canvas.error$', canvas.error$.pipe(
@@ -205,14 +222,14 @@ export function createScrollable(comp: BaseWidget, opts?: CoreOptsOfExtSmplxRctr
   ).subscribe();
 
   r('init', new rx.Observable<never>(() => {
-    s.ft.preferredSize(2, 2).dp();
+    s.ft.onContentSizeChange(2, 2).dp();
     s.ft.setPreferredSize(null, null).dp();
     s.ft.onValidScroll(0, 0).dp();
     s.ft.setScrollable(true, true).dp();
     s.ft.onOverflow(false, false).dp();
     s.ft.addChild(comp).dp();
     s.ft.onContent(comp).dp();
-    s.ft.addReflowAction(s.at.scrollTo).dp();
+    s.ft.addReflowAction(s.at.onValidScroll).dp();
     s.ft.addReflowAction(s.at.setScrollable).dp();
     s.ft.hasOfflineCanvas(true).dp();
   }));

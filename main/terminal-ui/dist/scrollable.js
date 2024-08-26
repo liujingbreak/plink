@@ -31,7 +31,7 @@ const base_1 = require("./base");
 const canvas_1 = require("./canvas");
 const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded'];
 function createScrollable(comp, opts) {
-    const base = (0, base_1.createContainerBase)(Object.assign({ name: 'scrollable' }, opts));
+    const base = (0, base_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable' }), opts === null || opts === void 0 ? void 0 : opts.core));
     const scrollable = base.config({ tableFor });
     const { r, s, table } = scrollable;
     s.prependInterceptor(action$ => {
@@ -39,8 +39,10 @@ function createScrollable(comp, opts) {
         return rx.merge(dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
     });
     const prepended = s.prependController();
-    const canvas = (0, canvas_1.createTerminalCanvas)(Object.assign({ name: 'scrollable.canvas' }, (opts ? { debug: opts.debug, log: opts.log } : {})));
+    const canvas = (0, canvas_1.createTerminalCanvas)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
+    const cTable = canvas.table.addActions('requestRender');
     canvas.s.ft.setRootComponent(comp).dp();
+    r('canvas,requestRender -> outerCanvas.requestRender', s.pt.onRender.pipe(rx.take(1), rx.mergeMap(([, outerCanvas]) => cTable.l.requestRender.pipe(rx.map(([m]) => outerCanvas.s.ft.requestRender().dp(m))))));
     r('querySizeOf -> comp.querySizeOf', s.pt.querySizeOf.pipe(rx.mergeMap(([m, w, h]) => {
         if (w == null && h != null) {
             return comp.s.ft.querySizeOf(w, h).re(m).od(comp.s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, width]) => s.ft.prefWidthFor(width, h).dp(m)));
@@ -76,8 +78,9 @@ function createScrollable(comp, opts) {
     })));
     r('scrollTo, onSize, canvas.setBounding -> onValidScroll', rx.combineLatest([
         s.pt.scrollTo,
-        s.pt.onSize
-    ]).pipe(rx.switchMap(a => canvas.table.l.setBounding.pipe(rx.take(1), rx.map(b => [...a, b]))), rx.map(([[m, x, y], [m2, sWidth, sHeight], [m3, , , cWidth, cHeight]]) => {
+        s.pt.onSize,
+        canvas.table.l.setBounding
+    ]).pipe(rx.map(([[m, x, y], [m2, sWidth, sHeight], [m3, , , cWidth, cHeight]]) => {
         // base.log(sWidth, sHeight, cWidth, cHeight);
         if (x < 0)
             x = 0;
@@ -141,22 +144,25 @@ function createScrollable(comp, opts) {
     ]).pipe(rx.map(([[m, w, h], [m2, w2, h2]]) => {
         s.ft.isScrollNeeded(w < w2 || h < h2).dp(m, m2);
     })));
-    r('onChildPreferredSizeChange,... -> preferredSize', table.l.onChildPreferredSizeChange.pipe(rx.map(([m, sizes]) => {
-        s.ft.preferredSize(sizes[0][0], sizes[0][1]).dp(m);
+    r('onChildPreferredSizeChange,... -> onContentSizeChange', table.l.onChildPreferredSizeChange.pipe(rx.map(([m, sizes]) => {
+        if (sizes.length > 0)
+            s.ft.onContentSizeChange(sizes[0][0], sizes[0][1]).dp(m);
+        else
+            s.ft.onContentSizeChange(0, 0).dp(m);
     })));
     r('canvas.error$', canvas.error$.pipe(rx.map(errInfo => s.ft.onChildError(canvas.s.logPrefix, errInfo))));
     scrollable.destory$.pipe(rx.map(() => {
         canvas.dispose();
     }), rx.take(1)).subscribe();
     r('init', new rx.Observable(() => {
-        s.ft.preferredSize(2, 2).dp();
+        s.ft.onContentSizeChange(2, 2).dp();
         s.ft.setPreferredSize(null, null).dp();
         s.ft.onValidScroll(0, 0).dp();
         s.ft.setScrollable(true, true).dp();
         s.ft.onOverflow(false, false).dp();
         s.ft.addChild(comp).dp();
         s.ft.onContent(comp).dp();
-        s.ft.addReflowAction(s.at.scrollTo).dp();
+        s.ft.addReflowAction(s.at.onValidScroll).dp();
         s.ft.addReflowAction(s.at.setScrollable).dp();
         s.ft.hasOfflineCanvas(true).dp();
     }));

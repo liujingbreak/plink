@@ -28,7 +28,8 @@ const rx = __importStar(require("rxjs"));
 const index_1 = require("../index");
 const tableFor = ['trackKeypressService', 'trackScrollable'];
 function createStatusbar(opts) {
-    const container = (0, index_1.createFlexContainer)(opts);
+    var _a, _b, _c, _d, _e;
+    const container = (0, index_1.createFlexContainer)(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'statusbar') + '.container' }));
     const containerWithBorder = (0, index_1.createBorderContainer)(container.asBaseType.asBaseType, Object.assign({ name: 'StatusBar' }, opts));
     const statusbar = containerWithBorder.config({
         tableFor
@@ -36,12 +37,13 @@ function createStatusbar(opts) {
     // containerWithBorder.s.ft.setBackground('bgBlue').dp();
     statusbar.s.ft.setPadding(0, 1, 0, 1).dp();
     statusbar.s.ft.setBorder('padding').dp();
+    statusbar.s.ft.setFlexShrink(0).dp();
     const { r, s, table } = statusbar;
-    const labelScrollText = (0, index_1.createTextWidget)('scroll', opts);
-    const labelScrollValue1 = (0, index_1.createTextWidget)('0%', opts);
-    const labelScrollValue2 = (0, index_1.createTextWidget)('0%', opts);
+    const labelScrollText = (0, index_1.createTextWidget)('scroll', Object.assign(Object.assign({}, opts), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _b !== void 0 ? _b : 'statusbar') + '.container' }));
+    const labelScrollValue1 = (0, index_1.createTextWidget)('0%', Object.assign(Object.assign({}, opts), { name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : 'statusbar') + '.v1' }));
+    const labelScrollValue2 = (0, index_1.createTextWidget)('0%', Object.assign(Object.assign({}, opts), { name: ((_d = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _d !== void 0 ? _d : 'statusbar') + '.v2' }));
     const HELP_KEY_HINT = 'Press <Enter> for help';
-    const labelKeypress = (0, index_1.createTextWidget)(HELP_KEY_HINT, Object.assign({ name: 'keypressInfo' }, opts));
+    const labelKeypress = (0, index_1.createTextWidget)(HELP_KEY_HINT, Object.assign(Object.assign({}, opts), { name: ((_e = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _e !== void 0 ? _e : 'statusbar') + '.key' }));
     labelKeypress.s.ft.setFlexGrow(1).dp();
     container.s.ft.addChild(labelKeypress.b, labelScrollText.b, labelScrollValue1.b, labelScrollValue2.b).dp();
     r('trackScrollable, scrollable.onValidScroll -> onScrollStatus', table.l.trackScrollable.pipe(rx.switchMap(([, scrollable]) => {

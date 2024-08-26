@@ -2,7 +2,7 @@ import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import * as rx from 'rxjs';
-import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
+import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas} from '../index';
 import {createTextWidget} from '../index';
 import {createBorderContainer} from '../index';
@@ -13,15 +13,7 @@ const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
 
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
-function log(...args: any[]) {
-  const date = new Date();
-  fout.write(date.toLocaleTimeString());
-  // console.log(formatToConciseNoColor(...args));
-  fout.write('.');
-  fout.write(date.getMilliseconds() + ' - ');
-  fout.write(formatToConciseNoColor(...args));
-  fout.write('\n');
-}
+const log = createSimpleIndentLogger(false, false, fout);
 
 const canvas = createTerminalCanvas({debug: true, log});
 canvas.s.ft.autoHideCursor().dp();
@@ -38,8 +30,8 @@ canvas.error$.subscribe(([err, label]) => {
 
 const label = createTextWidget('Hello border container', {debug: true, log});
 const border = createBorderContainer(label.asBaseType, {debug: true, log});
-const scrollable = createScrollable(border.asBaseType.asBaseType, {debug: true, log});
-scrollable.s.ft.setScrollable(true, true).dp();
+const scrollable = createScrollable(border.asBaseType.asBaseType, {default: {debug: true, log}});
+scrollable.s.ft.setScrollable(false, true).dp();
 canvas.s.ft.setRootComponent(scrollable.asBaseType.asBaseType).dp();
 
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns,

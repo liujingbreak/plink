@@ -44,5 +44,6 @@ interface KeyEvent {
     code?: string;
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
-export declare function createKeyEventService(canvas: TerminalCanvas, opts?: CoreOptions<keypressInput>): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"], unknown>;
+export type KeyEventOptions = CoreOptions<keypressInput>;
+export declare function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"], unknown>;
 export {};
