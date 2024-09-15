@@ -175,21 +175,7 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
     })
   ));
   r('reflow, ... -> onChildPositions, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(
-    rx.mergeMap(a => rx.combineLatest([
-      table.l.onSize,
-      table.l.allDisplayChildren.pipe(
-        rx.switchMap(([, chdn]) => {
-          return rx.combineLatest([
-            rx.combineLatest(chdn.map(chd => chd.table.l.setFlexGrow.pipe(rx.map(([, v]) => v)))),
-            rx.combineLatest(chdn.map(chd => chd.table.l.setFlexShrink.pipe(rx.map(([, v]) => v))))
-          ]).pipe(
-            rx.map(([grows, shrinks]) => [chdn, grows, shrinks] as const)
-          );
-        })
-      ),
-      table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
-      table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator
-    ]).pipe(
+    rx.mergeMap(a => reflowData.pipe(
       rx.take(1),
       rx.map(b => [a, ...b] as const)
     )),
@@ -418,6 +404,22 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
       }
     })
   ));
+
+  const reflowData = rx.combineLatest([
+    table.l.onSize,
+    table.l.allDisplayChildren.pipe(
+      rx.switchMap(([, chdn]) => {
+        return rx.combineLatest([
+          rx.combineLatest(chdn.map(chd => chd.table.l.setFlexGrow.pipe(rx.map(([, v]) => v)))),
+          rx.combineLatest(chdn.map(chd => chd.table.l.setFlexShrink.pipe(rx.map(([, v]) => v))))
+        ]).pipe(
+          rx.map(([grows, shrinks]) => [chdn, grows, shrinks] as const)
+        );
+      })
+    ),
+    table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
+    table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator,
+  ]);
   r('init', new rx.Observable<never>(() => {
     ft.setDirection('row').dp();
     ft.alignItems('stretch').dp();
@@ -425,12 +427,13 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
     ft.setBorderSpacing(1).dp();
     ft.setBorderSeparator(FlexBorderSeparator.none).dp();
     ft.setBorderSeparatorStyle([]).dp();
-    for (const a$ of [
-      s.pt.setDirection, s.pt.setBorderSpacing,
-      s.pt.alignItems, s.pt.justifyContent, s.pt.setBackground
-    ]) {
-      ft.addReflowAction(a$).dp();
-    }
+    ft.latestReflowData(reflowData).dp();
+    // for (const a$ of [
+    //   s.pt.setDirection, s.pt.setBorderSpacing,
+    //   s.pt.alignItems, s.pt.justifyContent, s.pt.setBackground
+    // ]) {
+    //   ft.addReflowAction(a$).dp();
+    // }
   }));
   listContainer.s = prependCtl;
   return listContainer;

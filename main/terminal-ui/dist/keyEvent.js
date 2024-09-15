@@ -26,10 +26,27 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.KeyEventEnum = void 0;
 exports.createKeyEventService = createKeyEventService;
 const readline_1 = __importDefault(require("readline"));
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
+var KeyEventEnum;
+(function (KeyEventEnum) {
+    KeyEventEnum[KeyEventEnum["scrollLeft"] = 0] = "scrollLeft";
+    KeyEventEnum[KeyEventEnum["scrollRight"] = 1] = "scrollRight";
+    KeyEventEnum[KeyEventEnum["scrollUp"] = 2] = "scrollUp";
+    KeyEventEnum[KeyEventEnum["scrollDown"] = 3] = "scrollDown";
+    KeyEventEnum[KeyEventEnum["scrollTop"] = 4] = "scrollTop";
+    KeyEventEnum[KeyEventEnum["scrollBottom"] = 5] = "scrollBottom";
+    KeyEventEnum[KeyEventEnum["home"] = 6] = "home";
+    KeyEventEnum[KeyEventEnum["end"] = 7] = "end";
+    KeyEventEnum[KeyEventEnum["focusLeft"] = 8] = "focusLeft";
+    KeyEventEnum[KeyEventEnum["focusRight"] = 9] = "focusRight";
+    KeyEventEnum[KeyEventEnum["focusUp"] = 10] = "focusUp";
+    KeyEventEnum[KeyEventEnum["focusDown"] = 11] = "focusDown";
+    KeyEventEnum[KeyEventEnum["focusNext"] = 12] = "focusNext";
+})(KeyEventEnum || (exports.KeyEventEnum = KeyEventEnum = {}));
 const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'];
 function createKeyEventService(canvas, opts) {
     const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'keyEvent' }, opts), { tableFor }));
@@ -66,55 +83,73 @@ function createKeyEventService(canvas, opts) {
         acc += (_a = keyEvt.name) !== null && _a !== void 0 ? _a : keyEvt.sequence;
         ft.onDisplayKeys(acc, false, false).dp(m);
         return acc;
-    }, '')), rx.combineLatest([table.l.onInputCompleted, table.l.onDisplayKeys]).pipe(rx.take(1), rx.map(([[m, isCompleted, isValid], [m2, text]]) => {
+    }, '')), rx.combineLatest([
+        table.l.onInputCompleted,
+        table.l.onDisplayKeys
+    ]).pipe(rx.take(1), rx.map(([[m, isCompleted, isValid], [m2, text]]) => {
         ft.onDisplayKeys(text, isCompleted, isValid).dp(m, m2);
         return false;
     }))))));
-    r('consumeMultiKeyAction -> consumeDigital, consumePageAction, doneConsumeMultiKeyAction, onEscOrQuit', s.pt.consumeMultiKeyAction.pipe(rx.mergeMap(([m, evt]) => {
+    r('consumeMultiKey -> consumeDigital, consumePageAction, didConsumeMultiKey, onEscOrQuit', s.pt.consumeMultiKey.pipe(rx.mergeMap(([m, evt]) => {
         var _a;
         const kname = (_a = evt.name) !== null && _a !== void 0 ? _a : evt.sequence;
         return (/[0-9]/.test(kname)) ?
             ft.consumeDigital(kname).re(m).od(s.pt.doneConsumeDigital).pipe(rx.take(1), rx.mergeMap(([, times]) => {
-                return s.pt.onKeypress.pipe(rx.observeOn(rx.queueScheduler), rx.take(1), rx.mergeMap(([, nextEvt]) => ft.consumeMultiKeyAction(nextEvt).re(m).od(s.pt.doneConsumeMultiKeyAction).pipe(rx.take(1), rx.map(([, act, amount]) => ft.doneConsumeMultiKeyAction(act, amount * times).dp(m)))));
+                return s.pt.onKeypress.pipe(rx.observeOn(rx.queueScheduler), rx.take(1), rx.mergeMap(([, nextEvt]) => ft.consumeMultiKey(nextEvt).re(m).od(s.pt.didConsumeMultiKey).pipe(rx.take(1), rx.map(([, act, amount]) => ft.didConsumeMultiKey(act, amount * times).dp(m)))));
             }), rx.takeUntil(s.pt.onBreak)) :
             (kname === 'z' || kname === 'd' || kname === 'f' || kname === 'u' || kname === 'b') ?
-                ft.consumePageAction(evt).od(s.pt.doneConsumePageAction).pipe(rx.take(1), rx.map(([, act, quantity]) => ft.doneConsumeMultiKeyAction(act, quantity !== null && quantity !== void 0 ? quantity : 1).dp(m)), rx.takeUntil(s.pt.onBreak)) :
+                ft.consumePageAction(evt).od(s.pt.doneConsumePageAction).pipe(rx.take(1), rx.map(([, act, quantity]) => ft.didConsumeMultiKey(act, quantity !== null && quantity !== void 0 ? quantity : 1).dp(m)), rx.takeUntil(s.pt.onBreak)) :
                 evt.sequence === 'g' ?
                     s.pt.onKeypress.pipe(rx.take(1), rx.map(([m2, evt]) => {
                         if (evt.sequence === 'g') {
-                            ft.doneConsumeMultiKeyAction('top', 0).dp(m);
+                            ft.didConsumeMultiKey(KeyEventEnum.scrollTop, 0).dp(m);
                         }
                         else {
-                            ft.doneConsumeMultiKeyAction(null, 0).dp(m);
+                            ft.didConsumeMultiKey(null, 0).dp(m);
                             ft.onKeypress(evt, true).dp(m2);
                         }
                     })) :
                     new rx.Observable(sub => {
-                        if (kname === 'l' || evt.code === '[C')
-                            ft.doneConsumeMultiKeyAction('right', 1).dp(m);
-                        else if (kname === 'h' || evt.code === '[D') {
-                            ft.doneConsumeMultiKeyAction('left', 1).dp(m);
+                        if (kname === 'l')
+                            ft.didConsumeMultiKey(KeyEventEnum.scrollRight, 1).dp(m);
+                        else if (kname === 'h') {
+                            ft.didConsumeMultiKey(KeyEventEnum.scrollLeft, 1).dp(m);
                         }
-                        else if (kname === 'j' || evt.code === '[B') {
-                            ft.doneConsumeMultiKeyAction('down', 1).dp(m);
+                        else if (kname === 'j') {
+                            ft.didConsumeMultiKey(KeyEventEnum.scrollDown, 1).dp(m);
                         }
-                        else if (kname === 'k' || evt.code === '[A') {
-                            ft.doneConsumeMultiKeyAction('up', 1).dp(m);
+                        else if (kname === 'k') {
+                            ft.didConsumeMultiKey(KeyEventEnum.scrollUp, 1).dp(m);
+                        }
+                        else if (evt.code === '[C') {
+                            ft.didConsumeMultiKey(KeyEventEnum.focusRight, 1).dp(m);
+                        }
+                        else if (evt.code === '[D') {
+                            ft.didConsumeMultiKey(KeyEventEnum.focusLeft, 1).dp(m);
+                        }
+                        else if (evt.code === '[B') {
+                            ft.didConsumeMultiKey(KeyEventEnum.focusDown, 1).dp(m);
+                        }
+                        else if (evt.code === '[A') {
+                            ft.didConsumeMultiKey(KeyEventEnum.focusUp, 1).dp(m);
+                        }
+                        else if (evt.sequence === '\t') {
+                            ft.didConsumeMultiKey(KeyEventEnum.focusNext, 1).dp(m);
                         }
                         else if (kname === 'q' || (evt.ctrl && evt.name === 'c')) {
                             ft.onExit().dp();
                         }
                         else if (evt.sequence === '^' || evt.code === '[H') {
-                            ft.doneConsumeMultiKeyAction('home', 0).dp(m);
+                            ft.didConsumeMultiKey(KeyEventEnum.home, 0).dp(m);
                         }
                         else if (evt.sequence === '$' || evt.code === '[F') {
-                            ft.doneConsumeMultiKeyAction('end', 0).dp(m);
+                            ft.didConsumeMultiKey(KeyEventEnum.end, 0).dp(m);
                         }
                         else if (evt.sequence === 'G') {
-                            ft.doneConsumeMultiKeyAction('bottom', 0).dp(m);
+                            ft.didConsumeMultiKey(KeyEventEnum.scrollBottom, 0).dp(m);
                         }
                         else {
-                            ft.doneConsumeMultiKeyAction(null, 1).dp(m);
+                            ft.didConsumeMultiKey(null, 1).dp(m);
                         }
                         sub.complete();
                     });
@@ -142,33 +177,37 @@ function createKeyEventService(canvas, opts) {
         if (evt.name === 'z')
             return s.pt.onKeypress.pipe(rx.take(1), rx.map(([, evt2]) => {
                 if (evt2.name === 'l')
-                    ft.doneConsumePageAction('right', w >> 1).dp(m);
+                    ft.doneConsumePageAction(KeyEventEnum.scrollRight, w >> 1).dp(m);
                 else if (evt2.name === 'h')
-                    ft.doneConsumePageAction('left', w >> 1).dp(m);
+                    ft.doneConsumePageAction(KeyEventEnum.scrollLeft, w >> 1).dp(m);
                 else {
                     ft.onBreak().dp(m);
                     ft.onKeypress(evt2, true).dp(m);
                 }
             }));
         else {
-            ft.doneConsumePageAction((evt.name === 'd' || evt.name === 'f') ? 'down' : 'up', (evt.name === 'u' || evt.name === 'd') ? (h >> 1) : h).dp(m);
+            ft.doneConsumePageAction((evt.name === 'd' || evt.name === 'f') ? KeyEventEnum.scrollDown : KeyEventEnum.scrollUp, (evt.name === 'u' || evt.name === 'd') ? (h >> 1) : h).dp(m);
             return rx.EMPTY;
         }
     })));
     ft.onDisplayKeys('', false, false).dp();
     ft.onInputCompleted(false, false).dp();
-    r('onKeypress -> consumeMultiKeyAction, onInputCompleted...', s.pt.onKeypress.pipe(rx.observeOn(rx.queueScheduler), rx.exhaustMap(([m, evt]) => {
+    r('onKeypress -> consumeMultiKey, onInputCompleted...', s.pt.onKeypress.pipe(rx.observeOn(rx.queueScheduler), rx.exhaustMap(([m, evt]) => {
         ft.onInputCompleted(false, false).dp(m);
-        return ft.consumeMultiKeyAction(evt).od(s.pt.doneConsumeMultiKeyAction).pipe(rx.take(1), rx.takeUntil(s.pt.onBreak), rx.map(([, act, amount]) => {
+        return ft.consumeMultiKey(evt).od(s.pt.didConsumeMultiKey).pipe(rx.take(1), rx.takeUntil(s.pt.onBreak), rx.map(([, act, amount]) => {
             let valid = true;
-            if (act === 'left')
+            if (act === KeyEventEnum.scrollLeft)
                 ft.onLeft(amount).dp(m);
-            else if (act === 'right')
+            else if (act === KeyEventEnum.scrollRight)
                 ft.onRight(amount).dp(m);
-            else if (act === 'up')
+            else if (act === KeyEventEnum.scrollUp)
                 ft.onUp(amount).dp(m);
-            else if (act === 'down')
+            else if (act === KeyEventEnum.scrollDown)
                 ft.onDown(amount).dp(m);
+            else if (act === KeyEventEnum.focusUp || act === KeyEventEnum.focusDown ||
+                act === KeyEventEnum.focusLeft || act === KeyEventEnum.focusRight ||
+                act === KeyEventEnum.focusNext)
+                ft.onFocusChange(act, amount).dp(m);
             else if (act == null) {
                 valid = false;
             }
@@ -190,14 +229,14 @@ function createKeyEventService(canvas, opts) {
         })), s.pt.onDown.pipe(rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(0, amount).dp(m);
             canvas.s.ft.render().dp(m);
-        })), s.pt.doneConsumeMultiKeyAction.pipe(rx.withLatestFrom(scrollable.table.l.onValidScroll), rx.map(([[m, act], [, x, y]]) => {
-            if (act === 'top')
+        })), s.pt.didConsumeMultiKey.pipe(rx.withLatestFrom(scrollable.table.l.onValidScroll), rx.map(([[m, act], [, x, y]]) => {
+            if (act === KeyEventEnum.scrollTop)
                 scrollable.s.ft.scrollTo(x, 0).dp(m);
-            else if (act === 'bottom')
+            else if (act === KeyEventEnum.scrollBottom)
                 scrollable.s.ft.scrollTo(x, Number.MAX_VALUE).dp(m);
-            else if (act === 'home')
+            else if (act === KeyEventEnum.home)
                 scrollable.s.ft.scrollTo(0, y).dp(m);
-            else if (act === 'end')
+            else if (act === KeyEventEnum.end)
                 scrollable.s.ft.scrollTo(Number.MAX_VALUE, y).dp(m);
             canvas.s.ft.render().dp(m);
         })));

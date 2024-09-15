@@ -1,5 +1,7 @@
 import * as rx from 'rxjs';
 import {CoreOptsOfExtSmplxRctr, CoreOptions, SingleActionFactory, ActionDispenser} from '@wfh/reactivizer';
+import {OffsetParent} from './base';
+import {createFocusService, FocusableOptions, FocusService} from './focusable';
 import {createContainerBase, BaseWidget, TerminalContainer, Rectangle, TerminalCanvas,
   createTerminalCanvas, TerminalCanvasOptions, DisplayMode, TextStyle} from './index';
 
@@ -7,11 +9,15 @@ interface ElevatorActions {
   /** @param layerIndex 0 based number, this message simply triggers "setDisplay" on child component */
   toggleLayer(layerIndex: number, visible: boolean): SingleActionFactory;
 }
+interface ElevatorEvents extends ElevatorActions {
+  onFocusServieReady(chd: BaseWidget, focusable: FocusService): SingleActionFactory;
+}
 export interface ElevatorOptions {
   default?: CoreOptions;
   core?: CoreOptsOfExtSmplxRctr<TerminalContainer, ElevatorActions>;
   /** Internal canvas */
   canvas?: TerminalCanvasOptions;
+  focus?: FocusableOptions;
 }
 
 export function createElevator(opts?: ElevatorOptions) {
@@ -20,8 +26,9 @@ export function createElevator(opts?: ElevatorOptions) {
     name: opts?.default?.name ?? 'Elevator',
     ...opts?.core as TerminalContainer['opts']
   });
-  const service = base.config<ElevatorActions>({});
+  const service = base.config<ElevatorEvents>({});
   const {s, r, table} = service;
+  /** Canvas by root component */
   const canvasMap = new Map<BaseWidget, TerminalCanvas>();
   // intercept "onRender"
   base.s.interceptor$.next(action$ => {
@@ -51,15 +58,56 @@ export function createElevator(opts?: ElevatorOptions) {
         });
         canvasMap.set(chd, cv);
         cv.s.ft.setRootComponent(chd).dp(m);
-        return s.pt.removeChild.pipe(
-          rx.filter(([, w]) => w === chd),
-          rx.take(1),
-          rx.map(() => {
-            canvasMap.delete(chd);
-          })
+        return rx.merge(
+          // Set chd as an "offsetParent" if it was not already an offset parent
+          chd.table.l.isOffsetParent.pipe(
+            rx.take(1),
+            rx.map(([, isOffsetP]) => isOffsetP ? false : true),
+            rx.filter(notOffsetParent => notOffsetParent),
+            rx.map(() => {
+              const o = chd as BaseWidget & OffsetParent;
+              o.focusService = createFocusService({
+                ...opts?.default as any,
+                ...opts?.focus
+              });
+              o.destory$.subscribe(() => o.focusService.dispose());
+              s.ft.onFocusServieReady(o, o.focusService).dp(m);
+            })
+          ),
+          // Delete corresponding canvas when chd is removed
+          s.pt.removeChild.pipe(
+            rx.filter(([, w]) => w === chd),
+            rx.take(1),
+            rx.map(() => {
+              chd.s.ft.isOffsetParent(false).dp(m);
+              canvasMap.delete(chd);
+            })
+          )
         );
       })
     ))
+  ));
+  r('allDisplayChildren -> last.isOffsetParent', s.pt.allDisplayChildren.pipe(
+    rx.filter(([, childrn]) => childrn.length > 0),
+    rx.map(([, childrn]) => childrn[childrn.length - 1]),
+    rx.distinctUntilChanged(),
+    rx.switchMap(last => {
+      const waitForFocusService$ = (last as BaseWidget & OffsetParent).focusService != null ?
+        rx.of(true) :
+        s.pt.onFocusServieReady.pipe(
+          rx.filter(() => (last as BaseWidget & OffsetParent).focusService != null),
+          rx.take(1),
+          rx.map(() => true)
+        );
+      return waitForFocusService$.pipe(
+        rx.map(() => {
+          last.s.ft.isOffsetParent(last as BaseWidget & OffsetParent).dp();
+        }),
+        rx.finalize(() => {
+          last.s.ft.isOffsetParent(false).dp();
+        })
+      );
+    })
   ));
   r('querySizeOf', s.pt.querySizeOf.pipe(
     rx.mergeMap(([m, w, h]) => {
@@ -159,7 +207,7 @@ export function createElevator(opts?: ElevatorOptions) {
               return c.table.l.setBounding.pipe(
                 rx.take(1),
                 rx.mergeMap(([, , , w, h]) => {
-                  return c.s.ft.copyDirtyRectAndClear(0, 0, w, h).re(m).od(c.s.pt.onCopyRect);
+                  return c.s.ft.copyRect(0, 0, w, h).re(m).od(c.s.pt.onCopyRect);
                 }),
                 rx.map(([, lines]) => {
                   for (const [x, , y, units, style] of lines) {
@@ -214,26 +262,8 @@ export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]>
     })
   );
 }
-
 function isContainerWithoutOfflineCanvas(root: any): root is TerminalContainer {
   const container = (root as TerminalContainer).table.getData();
   return container.allChildren != null &&
     container.hasOfflineCanvas[0] === false;
 }
-// export function unionRectangles(rects: Iterable<Rectangle>) {
-//   let curr: Rectangle | undefined;
-//   for (const rect of rects) {
-//     const [x, y, w, h] = rect;
-//     if (curr != null) {
-//       if (x < curr[0])
-//         curr[0] = x;
-//       if (y < curr[1])
-//         curr[1] = y;
-//       if (x + w > curr[0] + curr[2])
-//         curr[2] = x + w - curr[0];
-//       if (y + h > curr[1] + curr[3])
-//         curr[3] = y + h - curr[1];
-//     }
-//   }
-//   return curr;
-// }

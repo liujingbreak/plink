@@ -27,6 +27,7 @@ exports.createApp = createApp;
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const index_1 = require("../index");
+const focusable_1 = require("../focusable");
 const statusbar_1 = require("./statusbar");
 function createApp(mainComponent, opts) {
     var _a, _b, _c;
@@ -57,8 +58,10 @@ function createApp(mainComponent, opts) {
             coverLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp(m);
         }));
     })));
-    const elevator = (0, index_1.createElevator)(opts);
+    const elevator = (0, index_1.createElevator)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.elevator));
     const coverLayer = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'coverLayer' }), opts === null || opts === void 0 ? void 0 : opts.cover));
+    const focusable = (0, focusable_1.createRootService)(keyEventService, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
+    focusable.s.ft.forRootComp(elevator.b.b).dp();
     coverLayer.s.ft.alignItems('center').dp();
     coverLayer.s.ft.justifyContent('center').dp();
     // const helpBox = createFlexContainer();

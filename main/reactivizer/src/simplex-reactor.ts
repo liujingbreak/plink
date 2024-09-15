@@ -27,8 +27,6 @@ export class SimplexReactor<
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
   BaseType = unknown
 > {
-  protected errorSubject: rx.Subject<[label: string, originError: any]> =
-    new rx.ReplaySubject(20);
   /** All catched error goes here, including those from "dispatchErrorFor" */
   error$: rx.Observable<readonly [error: any, label: string | null]>;
   destory$: rx.Observable<unknown>;
@@ -48,10 +46,12 @@ export class SimplexReactor<
    * cast current SimplexReactor type to its logical super type for Typescript type assignable check
    **/
   b = this as unknown as BaseType;
-  protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]> = new rx.ReplaySubject();
-  private id = SEQ++;
+  id = SEQ++;
   // use type parameter <any> to make SimplexReactor more assignable to extend type
   opts?: SimplexReactorOptions<I, LI>;
+  protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]> = new rx.ReplaySubject();
+  protected errorSubject: rx.Subject<[label: string, originError: any]> =
+    new rx.ReplaySubject(20);
 
   constructor(opts?: SimplexReactorOptions<I, LI>) {
     this.opts = opts;

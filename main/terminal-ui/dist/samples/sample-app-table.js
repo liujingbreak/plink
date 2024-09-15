@@ -32,32 +32,32 @@ const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
 const debug = false;
-const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
+const fout = fs_1.default.createWriteStream('terminal-table-sample.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const table = (0, index_1.createTable)({
-    // core: {
-    //   debug: true
-    // },
     default: {
         debug, log
     },
-    lazy: {
-        default: { debug: true },
-        core: { debug: true },
-        headPlaceHolderLabel: {
-            debug: false
-        },
-        tailPlaceHolderLabel: {
-            debug: false
-        }
+    core: {
+    // debug: true
     }
+    // lazy: {
+    //   core: {debug: true},
+    //   headPlaceHolder: {debug: true, debugIncludeTypes: ['onRender']},
+    //   headPlaceHolderLabel: {
+    //     debug: false
+    //   },
+    //   tailPlaceHolderLabel: {
+    //     debug: false
+    //   }
+    // }
 });
 const SAMPLE_ROW_COUNT = 10;
 const SAMPLE_COLUMN_CNT = 3;
 table.s.ft.setLazyLoad(true, page => {
     table.log('*** handle onLoadPage', page);
     const out$ = new rx.Observable(sub => {
-        if (page > 4) {
+        if (page > 5) {
             sub.complete();
             return;
         }
@@ -67,13 +67,10 @@ table.s.ft.setLazyLoad(true, page => {
                 for (let i = 0; i < SAMPLE_COLUMN_CNT; i++) {
                     cells.push(`page ${page}, ${r}:${i}`);
                 }
-                sub.next(cells);
+                sub.next([page + ':' + r, cells]);
             }
             sub.complete();
-            // setTimeout(() => {
-            //   canvas.s.ft.render().dp();
-            // }, 32);
-        }, 900);
+        }, Math.round(Math.random() * 700));
     });
     return out$;
 }).dp();
@@ -82,13 +79,6 @@ table.s.pt.onRowAdded.pipe(rx.map(([, _idx, _id, cells]) => {
         cell.s.ft.setStyle(['black']).dp();
     });
 })).subscribe();
-// for (let r = 0; r < SAMPLE_ROW_COUNT; r++) {
-//   const cells = [] as string[];
-//   for (let i = 0; i < SAMPLE_COLUMN_CNT; i++) {
-//     cells.push(`Cell ${r}:${i}`);
-//   }
-//   table.s.ft.addRow(cells).dp();
-// }
 table.s.ft.setBorderType(index_1.TableBorderType.rowSeparator, true).dp();
 table.s.ft.setBorderType(index_1.TableBorderType.border, true).dp();
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
@@ -114,10 +104,17 @@ const { canvas } = index_1.app.createApp(root.b.b, {
     default: {
         debug, log
     },
-    canvas: { debug: true, debugIncludeTypes: ['render'] },
+    canvas: {
+        debug: true,
+        debugIncludeTypes: ['clearRect']
+    },
     scrollable: {
         default: { debug },
-        canvas: { debugIncludeTypes: ['setBounding'] }
+        core: { debug: true },
+        canvas: {
+            debug: true,
+            debugIncludeTypes: ['clearRect']
+        }
     }
 });
 const screenWidth = process.argv[2];

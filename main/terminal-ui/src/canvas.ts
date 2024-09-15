@@ -227,7 +227,7 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
       lines.slice(y, y + h).forEach((lineTree, i) => {
         if (lineTree == null)
           return undefined;
-        const overlaps = lineTree.searchMultipleOverlaps(x, x + h - 1);
+        const overlaps = lineTree.searchMultipleOverlaps(x, x + w - 1);
         // const newTree = new IntervalTree<readonly [units: number[], style: string]>();
         for (const [low, high, [units, style]] of overlaps) {
           let newUnits = units;
@@ -299,15 +299,16 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
         rx.tap(() => suspended = true),
         rx.exhaustMap(([m]) => new rx.Observable<never>(sub => {
           suspended = false;
-          setImmediate(() => {
+          setTimeout(() => {
             s.ft.render().dp(m);
             sub.complete();
             canvas.log('has suspended:', suspended);
             if (suspended) {
               // to process possible request which is recursively issued during "exhaustMap"
               s.ft.render().dp(m);
+              suspended = false;
             }
-          });
+          }, 20);
         }))
       ) : rx.EMPTY;
     })

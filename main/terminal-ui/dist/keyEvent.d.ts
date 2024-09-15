@@ -1,7 +1,7 @@
 import { SimplexReactor, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
 import { Scrollable } from './scrollable';
 import { TerminalCanvas } from './canvas';
-export interface keypressInput {
+export interface KeyScrollingMsg {
     setPageSize(w: number, h: number): SingleActionFactory;
     bindToScrollable(scrollable: Scrollable): SingleActionFactory;
     /** default is process.stdin
@@ -9,6 +9,9 @@ export interface keypressInput {
      * and enable "setRawMode(true)" on that TTY readable stream
      */
     setInputStream(stream: NodeJS.ReadableStream, isTTY: boolean): SingleActionFactory;
+}
+interface KeyEvents {
+    onFocusChange(dir: KeyEventEnum.focusLeft | KeyEventEnum.focusRight | KeyEventEnum.focusUp | KeyEventEnum.focusDown | KeyEventEnum.focusNext, amount: number): SingleActionFactory;
     onRight(amount: number): SingleActionFactory;
     onLeft(amount: number): SingleActionFactory;
     onUp(amount: number): SingleActionFactory;
@@ -19,24 +22,39 @@ export interface keypressInput {
     onEnd(): SingleActionFactory;
     onExit(): SingleActionFactory;
 }
-interface keypressSignals extends keypressInput {
-    onRawKeyInput(event: KeyEvent): SingleActionFactory;
-    onKeypress(event: KeyEvent, fallback: boolean): SingleActionFactory;
+export declare enum KeyEventEnum {
+    scrollLeft = 0,
+    scrollRight = 1,
+    scrollUp = 2,
+    scrollDown = 3,
+    scrollTop = 4,
+    scrollBottom = 5,
+    home = 6,
+    end = 7,
+    focusLeft = 8,
+    focusRight = 9,
+    focusUp = 10,
+    focusDown = 11,
+    focusNext = 12
+}
+interface keypressSignals extends KeyScrollingMsg, KeyEvents {
+    onRawKeyInput(event: RawKeyEvent): SingleActionFactory;
+    onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
     onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
     onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
     onBreak(): SingleActionFactory;
     onDigital(chr: string): SingleActionFactory;
-    consumeMultiKeyAction(evt: KeyEvent): SingleActionFactory;
-    doneConsumeMultiKeyAction(action: 'left' | 'right' | 'up' | 'down' | 'top' | 'bottom' | 'home' | 'end' | null, amount: number): SingleActionFactory;
+    consumeMultiKey(evt: RawKeyEvent): SingleActionFactory;
+    didConsumeMultiKey(action: KeyEventEnum | null, amount: number): SingleActionFactory;
     consumeDigital(c: string): SingleActionFactory;
-    consumePageAction(event: KeyEvent): SingleActionFactory;
-    doneConsumePageAction(action: 'left' | 'right' | 'up' | 'down', amount?: number): SingleActionFactory;
+    consumePageAction(event: RawKeyEvent): SingleActionFactory;
+    doneConsumePageAction(action: KeyEventEnum, amount?: number): SingleActionFactory;
     consumeDirKey(c: string): SingleActionFactory;
     doneConsumeDigital(value: number): SingleActionFactory;
     onReportCursor(x: number, y: number): SingleActionFactory;
 }
 declare const tableFor: readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"];
-interface KeyEvent {
+interface RawKeyEvent {
     name: string | undefined;
     sequence: string;
     ctrl: boolean;
@@ -44,6 +62,6 @@ interface KeyEvent {
     code?: string;
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
-export type KeyEventOptions = CoreOptions<keypressInput>;
+export type KeyEventOptions = CoreOptions<KeyScrollingMsg>;
 export declare function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"], unknown>;
 export {};

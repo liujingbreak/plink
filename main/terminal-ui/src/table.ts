@@ -20,7 +20,7 @@ export enum TableVertAlig {
   top, middle, bottom
 }
 export interface TableInput {
-  setLazyLoad(enableLazy: boolean, handler?: (pageIndex: number) => rx.Observable<(BaseWidget | string)[]>): SingleActionFactory;
+  setLazyLoad(enableLazy: boolean, handler?: (pageIndex: number) => rx.Observable<[key: unknown, comp: (BaseWidget | string)[]]>): SingleActionFactory;
   addRow(cells: (string | BaseWidget)[]): SingleActionFactory;
   insertRow(index: number, cells: (string | BaseWidget)[]): SingleActionFactory;
   /** response: "didGetRowByIndex" */
@@ -43,15 +43,15 @@ export interface TableInput {
 }
 interface TableEvents extends TableInput {
   /** In context of "addRow" or "insertRow" */
-  onRowAdded(index: number, rowId: number, cells: BaseWidget[]): SingleActionFactory;
+  onRowAdded(index: number, rowKey: unknown, cells: BaseWidget[]): SingleActionFactory;
   /** In context of "removeRow" */
-  onRowRemoved(rowId: number, cells: BaseWidget[]): SingleActionFactory;
+  onRowRemoved(rowKey: unknown, cells: BaseWidget[]): SingleActionFactory;
   onBorderTypeSet(typeSet: Set<TableBorderType>): SingleActionFactory;
   onCellBgRender(col: number, row: number, canvas: TerminalCanvas, rect: Rectangle): SingleActionFactory;
-  rowById(rows: Map<number, BaseWidget[]>): SingleActionFactory;
+  rowById<K>(rows: Map<K, BaseWidget[]>): SingleActionFactory;
   calcSize(contrainWidth?: number): SingleActionFactory;
   didCalcSize(columnWidths: number[], rowHeights: number[], totalWidth: number, totalHeight: number, beforePhHeight?: number, afterPh?: number): SingleActionFactory;
-  rowIds(idList: number[]): SingleActionFactory;
+  rowIds(idList: unknown[]): SingleActionFactory;
   didGetRowByIndex(cells: BaseWidget[]): SingleActionFactory;
 }
 const tableFor = ['rowById', 'setColumnSpacing', 'onBorderTypeSet', 'setRowSpacing', 'setLazyLoad',
@@ -87,8 +87,8 @@ export function createTable(opts?: TableOptions) {
     );
   });
   const prependCtrl = service.s.prependController();
-  const rows = new Map<number, BaseWidget[]>();
-  const rowIds = [] as number[];
+  const rows = new Map<unknown, BaseWidget[]>();
+  const rowIds = [] as unknown[];
   const childBoundingTree = new RectangleOverlapTree<[number, BaseWidget]>();
   const cellBoundingTree = new RectangleOverlapTree<[col: number, row: number, rect: Rectangle]>();
   let rowIdSeed = 0;
@@ -108,10 +108,10 @@ export function createTable(opts?: TableOptions) {
   let afterPlaceHolder: BaseWidget | undefined;
   const pageLoaded = new Set<number>();
 
-  r('setLazyLoad, "lazyService".onLoadPage -> "lazyService", addChild, insertChild...', s.pt.setLazyLoad.pipe(
+  r('setLazyLoad, "lazyService".dp_onLoadPage -> "lazyService", addChild, insertChild...', s.pt.setLazyLoad.pipe(
     rx.switchMap(([m, enabled, handler]) => {
       if (enabled && lazyService == null) {
-        const {service, before, after} = createPlaceHolder({
+        const {service: lazyService0, before, after} = createPlaceHolder({
           ...opts?.lazy,
           default: {
             name: 'table.lazy',
@@ -119,36 +119,53 @@ export function createTable(opts?: TableOptions) {
             ...opts?.lazy?.default
           }
         });
-        lazyService = service;
+        lazyService = lazyService0;
         beforePlaceHolder = before.b.b;
         afterPlaceHolder = after.b.b;
-        s.ft.insertChild(0, [beforePlaceHolder]).dp(m);
-        s.ft.addChild(afterPlaceHolder).dp(m);
+        // s.ft.insertChild(0, [beforePlaceHolder]).dp(m);
+        s.ft.addChild(beforePlaceHolder, afterPlaceHolder).dp(m);
         if (handler) {
-          return service.s.pt.onLoadPage.pipe(
-            rx.mergeMap(([m, pageIdx, type]) => handler(pageIdx).pipe(
-              rx.mergeMap(row => {
-                let insertRowFac: SingleActionFactory;
-                if (type === 'prepend')
-                  insertRowFac = s.ft.insertRow(0, row);
-                else
-                  insertRowFac = s.ft.addRow(row);
-                return insertRowFac.re(m).od(s.pt.onRowAdded).pipe(
-                  rx.take(1),
-                  rx.map(([, , rowId]) => rowId)
-                );
-              }),
-              rx.reduce((all, rowId) => { all.push(rowId); return all; }, [] as number[]),
-              rx.map(ids => {
-                service.s.ft.didLoad<number>(ids).dp(m);
-                if(ids.length > 0) {
-                  pageLoaded.add(pageIdx);
+          return rx.merge(
+            lazyService.s.pt.dp_onLoadPage.pipe(
+              rx.mergeMap(([m, pageIdx, _type]) => handler(pageIdx).pipe(
+                rx.takeUntil(lazyService0.s.pt.dp_onCancelLoad.pipe(
+                  rx.filter(([, page]) => page === pageIdx)
+                )),
+                rx.reduce((all, row) => { all.push(row); return all; }, [] as [unknown, (string | BaseWidget)[]][]),
+                rx.map(rowWithKeys => {
+                  for (const [k, row] of rowWithKeys) {
+                    if (rows.has(k)) {
+                      service.log('current rows', [...rows.keys()]);
+                      throw new Error(`Duplicate key is used on different rows, key: "${rowWithKeys.map(([key]) => key as string).join()}"`);
+                    }
+                    rows.set(k, createRow(row));
+                  }
+                  if (rowWithKeys.length > 0) {
+                    pageLoaded.add(pageIdx);
+                  }
+                  lazyService0.s.ft.dp_didLoad(rowWithKeys.map(([key]) => key)).dp(m);
+                }),
+                rx.catchError(err => {
+                  lazyService0.s.ft.dp_onLoadError(err, pageIdx).dp(m, m.r);
+                  return rx.EMPTY;
+                })
+              ))
+            ),
+            lazyService.s.pt.onPagesLoaded.pipe(
+              rx.map(([m, isHead, _pStart, _pEnd, rowKeys]) => {
+                for (const key of rowKeys) {
+                  s.ft.onRowAdded(isHead ? 0 : rowIds.length, key, rows.get(key)!).dp(m);
+                  s.ft.addChild(...rows.get(key)!).dp(m);
                 }
+                if (isHead) {
+                  rowIds.unshift(...rowKeys);
+                } else
+                  rowIds.push(...rowKeys);
+                // service.log('>>> after onPagesLoaded, rowIds', rowIds.length, 'rows.size', rows.size);
               })
-            ))
+            )
           );
         }
-        // lazyService.s.ft.setAveragePageSize(100).dp();
       } else if (!enabled && lazyService != null && beforePlaceHolder && afterPlaceHolder) {
         s.ft.removeChild(beforePlaceHolder, afterPlaceHolder).dp(m);
         beforePlaceHolder.dispose();
@@ -162,27 +179,29 @@ export function createTable(opts?: TableOptions) {
       return rx.EMPTY;
     })
   ));
-  r('setLazyLoad... -> removeRow, lazyService.setAveragePageSize', s.pt.setLazyLoad.pipe(
+  r('setLazyLoad, lazyService.dp_onUnload... -> removeRow, lazyService.setAveragePageSize', s.pt.setLazyLoad.pipe(
     rx.distinctUntilChanged(([, enabledA], [, enabledB]) => enabledA === enabledB),
     rx.switchMap(([, enable]) => {
       if (enable && lazyService) {
         return rx.merge(
-          // lazyService.s.pt.onUnload.pipe(
-          //   rx.map(([m, pIdx, ids]) => {
-          //     pageLoaded.delete(pIdx);
-          //     const idSet = new Set((ids ?? []) as number[]);
-          //     let idx = 0;
-          //     const toDel = [] as number[];
-          //     for (const id of rowIds) {
-          //       if (idSet.has(id)) {
-          //         idSet.delete(id);
-          //         toDel.push(idx);
-          //       }
-          //       idx++;
-          //     }
-          //     s.ft.removeRow(toDel, true).dp(m);
-          //   })
-          // ),
+          lazyService.s.pt.dp_onUnload.pipe(
+            rx.map(([m, pIdx, ids]) => {
+              pageLoaded.delete(pIdx);
+              if (ids == null)
+                return;
+              const idSet = new Set(ids ?? []);
+              let idx = 0;
+              const toDel = [] as number[];
+              for (const id of rowIds) {
+                if (idSet.has(id)) {
+                  idSet.delete(id);
+                  toDel.push(idx);
+                }
+                idx++;
+              }
+              s.ft.removeRow(toDel, true).dp(m);
+            })
+          ),
           prependCtrl.pt.onRender.pipe(
             rx.mergeMap(a => rx.combineLatest([
               table.l.onSize,
@@ -201,7 +220,8 @@ export function createTable(opts?: TableOptions) {
               if (border.has(TableBorderType.border))
                 height -= (paddingY + 1) << 1;
               const pageHeight = Math.floor(height / pageLoaded.size);
-              lazyService!.s.ft.setAveragePageSize(pageHeight).dp();
+              // service.log('>>> onRender height:', height, 'pageLoaded', pageLoaded.size, 'rowIds', rowIds.join());
+              lazyService!.s.ft.setAveragePageSize(pageHeight).dp(m);
               const minRect = clips.reduce((min, [x, y, w, h]) => {
                 if (x > min[0])
                   min[0] = x;
@@ -380,18 +400,7 @@ export function createTable(opts?: TableOptions) {
     s.pt.insertRow
   ).pipe(
     rx.map(([m, idx, cells]) => {
-      const cellComps = cells.map(cell => {
-        const isValueString = typeof cell === 'string';
-        const comp = isValueString ?
-          createTextWidget(cell, {
-            name: (opts?.default?.name ?? 'table') + '.cell',
-            ...((opts?.optsForCellComponent) ?? {debug: opts?.default?.debug, log: opts?.default?.log})
-          }).b :
-          cell;
-        if (!isValueString && opts?.optsForCellComponent)
-          comp.config(opts?.optsForCellComponent as any);
-        return comp;
-      });
+      const cellComps = createRow(cells);
       rows.set(rowIdSeed, cellComps);
       s.ft.rowById(rows).dp(m);
       s.ft.onRowAdded(idx === -1 ? rowIds.length : idx, rowIdSeed, cellComps).dp(m);
@@ -410,6 +419,8 @@ export function createTable(opts?: TableOptions) {
         const row = rows.get(id);
         if (row)
           rows.delete(id);
+        else
+          throw new Error(`Can't remove row for key ${id as string}`);
         s.ft.onRowRemoved(id, row ?? []).dp(m);
         return row;
       });
@@ -422,6 +433,8 @@ export function createTable(opts?: TableOptions) {
       }
       for (const idx of [...idxes].sort().reverse())
         rowIds.splice(idx, 1);
+      if (rowIds.length !== rows.size)
+        service.log('>> after remove row, not matched rowIds: ', rowIds, 'with rows', [...rows.keys()]);
     })
   ));
   r('getRowByIndex -> didGetRowByIndex', s.pt.getRowByIndex.pipe(
@@ -434,11 +447,11 @@ export function createTable(opts?: TableOptions) {
         actionRelatedToAction(m2)
       )),
       rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet),
-      rx.map(([[, colWidths, rowHeights], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, border]]) => {
+      rx.map(([[, colWidths, rowHeights, , , beforePhHeight], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, border]]) => {
         // service.log('>>>> table cell sizes:', colWidths, rowHeights);
         cellBoundingTree.clear();
         let rowIdx = 0;
-        let y = 0;
+        let y = beforePhHeight ?? 0;
         if (border.has(TableBorderType.border))
           y += 1;
         for (let rowH of rowHeights) {
@@ -477,6 +490,9 @@ export function createTable(opts?: TableOptions) {
         table.l.allDisplayChildren
       ]).pipe(
         rx.take(1),
+        // rx.tap(([[, pos], [, children]]) => {
+        //   service.log('>>> childBoundingTree positions', pos.size, 'vs children', children.length);
+        // }),
         rx.mergeMap(([[, pos], [, children]]) => children.map(chd => [chd, pos.get(chd)] as const)),
         rx.filter(([, pos]) => pos != null),
         rx.mergeMap(([chd, pos], idx) => chd.table.l.onSize.pipe(
@@ -490,11 +506,12 @@ export function createTable(opts?: TableOptions) {
       );
     })
   ));
+  const reflowData = rx.combineLatest([
+    table.l.onSize, table.l.alignCell, table.l.setColumnSpacing, table.l.setRowSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet
+  ]);
   r('reflow -> overflow, onChildPositions, child.onSize', s.pt.reflow.pipe(
     rx.switchMap(([m, _clips, _masks]) => {
-      return rx.combineLatest([
-        table.l.onSize, table.l.alignCell, table.l.setColumnSpacing, table.l.setRowSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet
-      ]).pipe(
+      return reflowData.pipe(
         rx.mergeMap(([[, w, h], [, alignCellHori, alignCellVert], [, colSpacing], [, rowSpacing], [, paddingX, paddingY], [, border]]) => {
           return s.ft.calcSize(w).re(m).od(s.pt.didCalcSize).pipe(
             rx.mergeMap(([, ...calcResults]) => {
@@ -546,14 +563,16 @@ export function createTable(opts?: TableOptions) {
             moreIndicator.s.ft.onSize(moreW, moreH).dp(m);
             heightCon = moreTop;
           }
-          service.log('>>> reflow rowids', rowIds, 'rowTop', rowTop, 'beforeH', beforeH, 'height', heightCon);
+          // service.log('>>> reflow rowIds count:', rowIds.length, 'rowTop', rowTop, 'beforeH', beforeH, 'height', heightCon, 'row IDs:', rowIds.join());
           return rx.from(rowIds).pipe(
             rx.takeWhile(() => rowTop < heightCon),
-            rx.concatMap((rowId, rowIdx) => {
-              const row = rows.get(rowId)!;
+            rx.concatMap((rowKey, rowIdx) => {
+              const row = rows.get(rowKey);
               let cellLeft = border.has(TableBorderType.border) ?
                 1 + paddingX :
                 0;
+              if (row == null)
+                throw new Error(`Unknown error of missing row of key: "${rowKey as string}", row index: "${rowIdx}"`);
               return rx.from(row).pipe(
                 rx.concatMap((cell, cellIdx) => {
                   const width = colWidths[cellIdx];
@@ -590,6 +609,9 @@ export function createTable(opts?: TableOptions) {
                             rowTop + (height - cellPrefH) :
                             0;
                       }
+                      if (childPos.has(cell)) {
+                        throw new Error(`Duplicate table cell found in reflow function for row key: ${rowKey as string}, row index: ${rowIdx} cell index ${cellIdx}`);
+                      }
                       childPos.set(cell, pos);
                       cell.s.ft.onSize(cellCompWidth, cellCompHeigth).dp(m);
                       cellLeft += width;
@@ -609,7 +631,8 @@ export function createTable(opts?: TableOptions) {
               );
             }),
             rx.finalize(() => {
-              service.log('>>> reflow child pos', childPos);
+              // service.log('>>> reflow row\'s top positions', [...childPos.values()].map(([, h]) => h).join(' '),
+              //   'total', childPos.size);
               s.ft.onChildPositions(childPos).dp(m);
             })
           );
@@ -617,13 +640,14 @@ export function createTable(opts?: TableOptions) {
       );
     })
   ));
+  const renderData = rx.combineLatest([
+    table.l.onBorderTypeSet, table.l.setBorderStyle,
+    table.l.setRowSpacing, table.l.setColumnSpacing,
+    table.l.setBorderPadding, table.l.onSize
+  ]);
   r('onRender', prependCtrl.pt.onRender.pipe(
     rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks]) => {
-      return rx.combineLatest([
-        table.l.onBorderTypeSet, table.l.setBorderStyle,
-        table.l.setRowSpacing, table.l.setColumnSpacing,
-        table.l.setBorderPadding, table.l.onSize
-      ]).pipe(
+      return renderData.pipe(
         rx.take(1),
         rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height]]) => {
           if (renderSelf) {
@@ -643,7 +667,7 @@ export function createTable(opts?: TableOptions) {
           const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, w]) => w)).flat() : []);
           childToRender = childToRender.filter(([, c]) => !excluded.has(c));
           if (renderSelf && bType.size > 0) {
-            const [colWidths, rowHeights] = table.getData().didCalcSize;
+            const [colWidths, rowHeights, , , beforePhHeight, afterPhHeight] = table.getData().didCalcSize;
             const minClipLeft = clips.reduce((min, [x]) => {
               min = min > x ? x : min;
               return min;
@@ -662,7 +686,8 @@ export function createTable(opts?: TableOptions) {
               max = max < r ? r : max;
               return max;
             }, 0);
-            let top = bType.has(TableBorderType.border) ? 1 + paddingY : 0;
+            const top = (beforePhHeight ?? 0) + (bType.has(TableBorderType.border) ? 1 + paddingY : 0);
+            let rowSepTop = top;
             let left = bType.has(TableBorderType.border) ? 1 + paddingX : 0;
             let rowIdx = 0;
             const rowEndIdx = rowHeights!.length - 1;
@@ -690,13 +715,13 @@ export function createTable(opts?: TableOptions) {
                 if (rowIdx >= rowEndIdx)
                   break;
                 rowIdx++;
-                const sepY = rowH + top + rowSpc;
+                const sepY = rowH + rowSepTop + rowSpc;
                 if (clips.some(([, y, , h]) => sepY >= y && sepY < y + h)) {
                   const pos = [minClipLeft, sepY] as vec2;
                   vec2.transformMat4(pos, pos, trans);
                   canvas.s.ft.addString(pos[0], pos[1], '─'.repeat(lineWidth), bStyle).dp(m);
                 }
-                top = sepY + 1 + rowSpc;
+                rowSepTop = sepY + 1 + rowSpc;
               }
             }
             // draw bottom border line
@@ -726,43 +751,54 @@ export function createTable(opts?: TableOptions) {
                 canvas.s.ft.addString(posColBorderTop[0], y, '│', bStyle).dp(m);
               }
             }
-            // draw vertical separator lines
+            // draw vertical (column) separator lines and cross syntax
             if (bType.has(TableBorderType.columnSeparator)) {
+              let vertLineTop = beforePhHeight ? beforePhHeight + 1 : 0;
+              if (vertLineTop < minClipTop)
+                vertLineTop = minClipTop;
+              let vertLineBottom = height - (afterPhHeight ? afterPhHeight + 1 : 0);
+              if (vertLineBottom > maxClipBottom)
+                vertLineBottom = maxClipBottom;
               for (const colW of colWidths!.slice(0, colWidths!.length - 1)) {
                 const sepX = colW + left + colSpc;
                 if (clips.some(([x, _y, w, _h]) => sepX >= x && sepX < x + w)) {
                   // draw column separator line
-                  const pos = [sepX, minClipTop] as vec2;
+                  const pos = [sepX, vertLineTop] as vec2;
                   vec2.transformMat4(pos, pos, trans);
-                  const pos2 = [sepX, maxClipBottom] as vec2;
+                  const pos2 = [sepX, vertLineBottom] as vec2;
                   vec2.transformMat4(pos2, pos2, trans);
                   for (let i = pos[1]; i < pos2[1]; i++) {
                     canvas.s.ft.addString(pos[0], i, '│', bStyle).dp(m);
                   }
                   // Charaters refer to https://symbl.cc/en/unicode/blocks/box-drawing/
                   // draw "cross" syntax
+                  let sepY = top;
                   if (bType.has(TableBorderType.rowSeparator)) {
                     rowIdx = 0;
-                    top = bType.has(TableBorderType.border) ? 1 + paddingY : 0;
                     for (const rowH of rowHeights!) {
                       if (rowIdx >= rowEndIdx)
                         break;
                       rowIdx++;
-                      const sepY = rowH + top + rowSpc;
+                      sepY += rowH + rowSpc;
+                      // eslint-disable-next-line no-loop-func
                       if (clips.some(([, y, , h]) => sepY >= y && sepY < y + h)) {
                         const posCross = [sepX, sepY] as vec2;
                         vec2.transformMat4(posCross, posCross, trans);
                         canvas.s.ft.addString(posCross[0], posCross[1], '┼', bStyle).dp(m);
                       }
-                      top = sepY + 1 + rowSpc;
+                      sepY += 1 + rowSpc;
                     }
                   }
-                  if (bType.has(TableBorderType.border) && minClipTop <= 0) {
+                  if ((beforePhHeight == null || beforePhHeight === 0) &&
+                      bType.has(TableBorderType.border) && vertLineTop <= 0
+                  ) {
                     const posTCross = [sepX, 0] as vec2;
                     vec2.transformMat4(posTCross, posTCross, trans);
                     canvas.s.ft.addString(posTCross[0], posTCross[1], '┬', bStyle).dp(m);
                   }
-                  if (bType.has(TableBorderType.border) && maxClipBottom >= height) {
+                  if ((afterPhHeight == null || afterPhHeight === 0) &&
+                      bType.has(TableBorderType.border) && vertLineBottom >= height
+                  ) {
                     const posTCross = [sepX, height - 1] as vec2;
                     vec2.transformMat4(posTCross, posTCross, trans);
                     canvas.s.ft.addString(posTCross[0], posTCross[1], '┴', bStyle).dp(m);
@@ -794,7 +830,6 @@ export function createTable(opts?: TableOptions) {
             rx.take(1),
             rx.map(([, overflow]) => {
               if (overflow) {
-                service.log('>>> render moreIndicator');
                 s.ft.renderChild(i, moreIndicator.b.b, canvas, trans, clips, masks ?? []).dp(m);
               }
             })
@@ -854,6 +889,8 @@ export function createTable(opts?: TableOptions) {
         );
     })
   ));
+  s.ft.latestReflowData(reflowData).dp();
+  s.ft.latestRenderData(renderData).dp();
   s.ft.onBorderTypeSet(new Set([TableBorderType.border, TableBorderType.columnSeparator])).dp();
   s.ft.setBorderStyle([]).dp();
   s.ft.rowById(rows).dp();
@@ -861,14 +898,26 @@ export function createTable(opts?: TableOptions) {
   s.ft.setColumnSpacing(1).dp();
   s.ft.setRowSpacing(0).dp();
   s.ft.alignCell(TableHoriAlig.left, TableVertAlig.middle).dp();
-  s.ft.addReflowAction(s.pt.setBorderType).dp();
-  s.ft.addRerenderAction(s.at.setBorderStyle).dp();
   s.ft.setBorderPadding(1, 0).dp();
   s.ft.addChild(moreIndicator.b.b).dp();
   s.ft.setCellBackground(() => {}).dp();
   s.ft.isOpaque(true).dp();
   s.ft.setLazyLoad(false).dp();
   s = service.s = prependCtrl;
+  function createRow(cells: Array<string | BaseWidget>) {
+    return cells.map(cell => {
+      const isValueString = typeof cell === 'string';
+      const comp = isValueString ?
+        createTextWidget(cell, {
+          name: (opts?.default?.name ?? 'table') + '.cell',
+          ...((opts?.optsForCellComponent) ?? {debug: opts?.default?.debug, log: opts?.default?.log})
+        }).b :
+        cell;
+      if (!isValueString && opts?.optsForCellComponent)
+        comp.config(opts?.optsForCellComponent as any);
+      return comp;
+    });
+  }
   return service;
 }
 

@@ -32,10 +32,6 @@ const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
-const index_2 = require("../index");
-const index_3 = require("../index");
-const index_4 = require("../index");
-const index_5 = require("../index");
 const screenWidth = process.argv[2];
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
@@ -48,7 +44,7 @@ function log(...args) {
     fout.write('\n');
 }
 const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
-const root = (0, index_4.createFlexContainer)({ name: 'root', debug: false, log });
+const root = (0, index_1.createFlexContainer)({ name: 'root', debug: false, log });
 canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
 canvas.error$.subscribe(([err, label]) => {
@@ -60,16 +56,16 @@ canvas.error$.subscribe(([err, label]) => {
 root.s.ft.setDirection('col').dp();
 root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
-const label = (0, index_2.createTextWidget)('What you have typed', { name: 'label.1', debug: false, log });
-const labelRecognized = (0, index_2.createTextWidget)('What system understands', { name: 'label.2', debug: true, log });
-const border = (0, index_5.createBorderContainer)(label.asBaseType, { debug: true, log });
+const label = (0, index_1.createTextWidget)('What you have typed', { name: 'label.1', debug: false, log });
+const labelRecognized = (0, index_1.createTextWidget)('What system understands', { name: 'label.2', debug: true, log });
+const border = (0, index_1.createBorderContainer)(label.asBaseType, { debug: true, log });
 root.s.ft.addChild(border.asBaseType.asBaseType, labelRecognized.asBaseType).dp();
 // root.s.ft.setBackground('bgGreen').dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 });
-const keyService = (0, index_3.createKeyEventService)(canvas, { log, debug: true, debugExcludeTypes: [] });
+const keyService = (0, index_1.createKeyEventService)(canvas, { log, debug: true, debugExcludeTypes: [] });
 const { r, s, table } = keyService;
 canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
@@ -93,5 +89,5 @@ rx.map(([m, text, completed, valid]) => {
     label.s.ft.setContent(text).dp(m);
     label.s.ft.setStyle(completed && valid ? ['green'] : []).dp(m);
 })));
-r('onLeft, onRight, onUp, onDown', rx.merge(s.pt.onLeft.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' left').dp())), s.pt.onRight.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' right').dp())), s.pt.onUp.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' up').dp())), s.pt.onDown.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' down').dp())), s.pt.doneConsumeMultiKeyAction.pipe(rx.filter(([, act]) => act != null), rx.tap(([m, act]) => labelRecognized.s.ft.setContent(act).dp(m)))));
+r('onLeft, onRight, onUp, onDown', rx.merge(s.pt.onLeft.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' left').dp())), s.pt.onRight.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' right').dp())), s.pt.onUp.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' up').dp())), s.pt.onDown.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' down').dp())), s.pt.didConsumeMultiKey.pipe(rx.filter(([, act]) => act != null), rx.tap(([m, act]) => labelRecognized.s.ft.setContent(index_1.KeyEventEnum[act]).dp(m)))));
 //# sourceMappingURL=sample-keyevent.js.map

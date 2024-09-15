@@ -131,17 +131,7 @@ function createFlexContainer(opts = {}) {
             childBoundingTree.addContent([x, y, w, h], [idx, chd]);
         }))));
     })));
-    r('reflow, ... -> onChildPositions, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(rx.mergeMap(a => rx.combineLatest([
-        table.l.onSize,
-        table.l.allDisplayChildren.pipe(rx.switchMap(([, chdn]) => {
-            return rx.combineLatest([
-                rx.combineLatest(chdn.map(chd => chd.table.l.setFlexGrow.pipe(rx.map(([, v]) => v)))),
-                rx.combineLatest(chdn.map(chd => chd.table.l.setFlexShrink.pipe(rx.map(([, v]) => v))))
-            ]).pipe(rx.map(([grows, shrinks]) => [chdn, grows, shrinks]));
-        })),
-        table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
-        table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator
-    ]).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.switchMap(([[m], [, w, h], [children, growOfEach, shrinkOfEach], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth], [, borderSep]]) => {
+    r('reflow, ... -> onChildPositions, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(rx.mergeMap(a => reflowData.pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.switchMap(([[m], [, w, h], [children, growOfEach, shrinkOfEach], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth], [, borderSep]]) => {
         const childrenPosition = new Map();
         let mainAxis = w;
         let crossAxis = h;
@@ -326,6 +316,17 @@ function createFlexContainer(opts = {}) {
             s.ft.renderChild(idx, chr, canvas, trans, clips, masks).dp(m);
         }
     })));
+    const reflowData = rx.combineLatest([
+        table.l.onSize,
+        table.l.allDisplayChildren.pipe(rx.switchMap(([, chdn]) => {
+            return rx.combineLatest([
+                rx.combineLatest(chdn.map(chd => chd.table.l.setFlexGrow.pipe(rx.map(([, v]) => v)))),
+                rx.combineLatest(chdn.map(chd => chd.table.l.setFlexShrink.pipe(rx.map(([, v]) => v))))
+            ]).pipe(rx.map(([grows, shrinks]) => [chdn, grows, shrinks]));
+        })),
+        table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
+        table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator,
+    ]);
     r('init', new rx.Observable(() => {
         ft.setDirection('row').dp();
         ft.alignItems('stretch').dp();
@@ -333,12 +334,13 @@ function createFlexContainer(opts = {}) {
         ft.setBorderSpacing(1).dp();
         ft.setBorderSeparator(FlexBorderSeparator.none).dp();
         ft.setBorderSeparatorStyle([]).dp();
-        for (const a$ of [
-            s.pt.setDirection, s.pt.setBorderSpacing,
-            s.pt.alignItems, s.pt.justifyContent, s.pt.setBackground
-        ]) {
-            ft.addReflowAction(a$).dp();
-        }
+        ft.latestReflowData(reflowData).dp();
+        // for (const a$ of [
+        //   s.pt.setDirection, s.pt.setBorderSpacing,
+        //   s.pt.alignItems, s.pt.justifyContent, s.pt.setBackground
+        // ]) {
+        //   ft.addReflowAction(a$).dp();
+        // }
     }));
     listContainer.s = prependCtl;
     return listContainer;

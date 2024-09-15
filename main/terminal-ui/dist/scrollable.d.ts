@@ -1,6 +1,7 @@
 import { SimplexReactorExtendType, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
-import { BaseWidget, TerminalContainer } from './base';
+import { BaseWidget, TerminalContainer, OffsetParent } from './base';
 import { TerminalCanvasOptions } from './canvas';
+import { FocusService } from './focusable';
 export interface ScrollActions {
     scrollTo(left: number, top: number): SingleActionFactory;
     scroll(relativeLeft: number, relativeTop: number): SingleActionFactory;
@@ -24,6 +25,7 @@ export interface ScrollableOptions {
     default?: CoreOptions;
     core?: Partial<NonNullable<Scrollable['opts']>>;
     canvas?: TerminalCanvasOptions;
+    focusable?: Partial<FocusService['opts']>;
 }
-export declare function createScrollable(comp: BaseWidget, opts?: ScrollableOptions): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents & ScrollSignals, readonly ("onValidScroll" | "setScrollable" | "onOverflow" | "onContent" | "isScrollNeeded" | "onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent"], unknown>>>;
+export declare function createScrollable(comp: BaseWidget, opts?: ScrollableOptions): Scrollable & OffsetParent;
 export {};

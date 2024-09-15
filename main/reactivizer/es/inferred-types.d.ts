@@ -56,8 +56,8 @@ export type InferRCOptionsOfRecursiveFuncs<F> = ReactorCompositeOpt<ActionFactor
 export type InferActionsOfSmplxRctr<R> = R extends SimplexReactor<infer I, any> ? I : unknown;
 /** alias of InferActionsOfSmplxRctr */
 export type ActionsOf<R> = InferActionsOfSmplxRctr<R>;
-export type InferTableForSmplxRctr<R> = R extends SimplexReactor<any, infer L> ? L[number] : never;
-export type TableOf<R> = R extends SimplexReactor<any, infer L> ? L : never;
+export type InferTableForSmplxRctr<R> = R extends SimplexReactor<any, infer L, any> ? L[number] : never;
+export type TableOf<R> = R extends SimplexReactor<any, infer L, any> ? L : never;
 export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any, any>, R2 extends SimplexReactor<any, any>> = SimplexReactor<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>, readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[], R1>;
 export type SimplexReactorExtendType<RBase extends SimplexReactor<any, any, any>, I, L extends readonly (keyof I)[]> = SimplexReactor<InferActionsOfSmplxRctr<RBase> & I, ReadonlyArray<InferTableForSmplxRctr<RBase> | L[number]>, RBase>;
 export type OptionsOfMergedSmplxRctr<R1 extends SimplexReactor<any, any, any>, R2 extends SimplexReactor<any, any, any>> = SimplexReactorOptions<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>, ReadonlyArray<InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>>>;

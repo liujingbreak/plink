@@ -172,7 +172,7 @@ function createTerminalCanvas(opts) {
         lines.slice(y, y + h).forEach((lineTree, i) => {
             if (lineTree == null)
                 return undefined;
-            const overlaps = lineTree.searchMultipleOverlaps(x, x + h - 1);
+            const overlaps = lineTree.searchMultipleOverlaps(x, x + w - 1);
             // const newTree = new IntervalTree<readonly [units: number[], style: string]>();
             for (const [low, high, [units, style]] of overlaps) {
                 let newUnits = units;
@@ -237,15 +237,16 @@ function createTerminalCanvas(opts) {
         // eslint-disable-next-line multiline-ternary
         return enabled ? s.pt.requestRender.pipe(rx.tap(() => suspended = true), rx.exhaustMap(([m]) => new rx.Observable(sub => {
             suspended = false;
-            setImmediate(() => {
+            setTimeout(() => {
                 s.ft.render().dp(m);
                 sub.complete();
                 canvas.log('has suspended:', suspended);
                 if (suspended) {
                     // to process possible request which is recursively issued during "exhaustMap"
                     s.ft.render().dp(m);
+                    suspended = false;
                 }
-            });
+            }, 20);
         }))) : rx.EMPTY;
     })));
     r('init', new rx.Observable(() => {

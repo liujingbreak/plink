@@ -25,7 +25,12 @@ function createSimpleIndentLogger(colorful, timestamp, out) {
     let lastPrefix;
     return function (prefix, ...msgs) {
         if (lastPrefix === prefix) {
+            const hashPos = prefix.indexOf('#');
             out.write('  ');
+            if (hashPos >= 0) {
+                out.write(prefix.slice(hashPos));
+                out.write(' ');
+            }
         }
         else {
             out.write(prefix);

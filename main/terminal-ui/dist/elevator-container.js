@@ -27,12 +27,14 @@ exports.createElevator = createElevator;
 exports.getBoundingOfCompTree = getBoundingOfCompTree;
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
+const focusable_1 = require("./focusable");
 const index_1 = require("./index");
 function createElevator(opts) {
     var _a, _b;
     const base = (0, index_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: (_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'Elevator' }), opts === null || opts === void 0 ? void 0 : opts.core));
     const service = base.config({});
     const { s, r, table } = service;
+    /** Canvas by root component */
     const canvasMap = new Map();
     // intercept "onRender"
     base.s.interceptor$.next(action$ => {
@@ -44,10 +46,30 @@ function createElevator(opts) {
         const cv = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Elevator.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
         canvasMap.set(chd, cv);
         cv.s.ft.setRootComponent(chd).dp(m);
-        return s.pt.removeChild.pipe(rx.filter(([, w]) => w === chd), rx.take(1), rx.map(() => {
+        return rx.merge(
+        // Set chd as an "offsetParent" if it was not already an offset parent
+        chd.table.l.isOffsetParent.pipe(rx.take(1), rx.map(([, isOffsetP]) => isOffsetP ? false : true), rx.filter(notOffsetParent => notOffsetParent), rx.map(() => {
+            const o = chd;
+            o.focusService = (0, focusable_1.createFocusService)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focus));
+            o.destory$.subscribe(() => o.focusService.dispose());
+            s.ft.onFocusServieReady(o, o.focusService).dp(m);
+        })), 
+        // Delete corresponding canvas when chd is removed
+        s.pt.removeChild.pipe(rx.filter(([, w]) => w === chd), rx.take(1), rx.map(() => {
+            chd.s.ft.isOffsetParent(false).dp(m);
             canvasMap.delete(chd);
-        }));
+        })));
     })))));
+    r('allDisplayChildren -> last.isOffsetParent', s.pt.allDisplayChildren.pipe(rx.filter(([, childrn]) => childrn.length > 0), rx.map(([, childrn]) => childrn[childrn.length - 1]), rx.distinctUntilChanged(), rx.switchMap(last => {
+        const waitForFocusService$ = last.focusService != null ?
+            rx.of(true) :
+            s.pt.onFocusServieReady.pipe(rx.filter(() => last.focusService != null), rx.take(1), rx.map(() => true));
+        return waitForFocusService$.pipe(rx.map(() => {
+            last.s.ft.isOffsetParent(last).dp();
+        }), rx.finalize(() => {
+            last.s.ft.isOffsetParent(false).dp();
+        }));
+    })));
     r('querySizeOf', s.pt.querySizeOf.pipe(rx.mergeMap(([m, w, h]) => {
         return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chdn]) => {
             if (w == null && h != null) {
@@ -106,7 +128,7 @@ function createElevator(opts) {
         })), rx.from(children).pipe(rx.skip(1), // the 1st has been directly rendered to outer canvas
         rx.map(chd => canvasMap.get(chd)), rx.concatMap(c => {
             return c.table.l.setBounding.pipe(rx.take(1), rx.mergeMap(([, , , w, h]) => {
-                return c.s.ft.copyDirtyRectAndClear(0, 0, w, h).re(m).od(c.s.pt.onCopyRect);
+                return c.s.ft.copyRect(0, 0, w, h).re(m).od(c.s.pt.onCopyRect);
             }), rx.map(([, lines]) => {
                 for (const [x, , y, units, style] of lines) {
                     canvas.s.ft.addDisplayUnits(x, y, units, [style]).dp(m);
@@ -142,21 +164,4 @@ function isContainerWithoutOfflineCanvas(root) {
     return container.allChildren != null &&
         container.hasOfflineCanvas[0] === false;
 }
-// export function unionRectangles(rects: Iterable<Rectangle>) {
-//   let curr: Rectangle | undefined;
-//   for (const rect of rects) {
-//     const [x, y, w, h] = rect;
-//     if (curr != null) {
-//       if (x < curr[0])
-//         curr[0] = x;
-//       if (y < curr[1])
-//         curr[1] = y;
-//       if (x + w > curr[0] + curr[2])
-//         curr[2] = x + w - curr[0];
-//       if (y + h > curr[1] + curr[3])
-//         curr[3] = y + h - curr[1];
-//     }
-//   }
-//   return curr;
-// }
 //# sourceMappingURL=elevator-container.js.map

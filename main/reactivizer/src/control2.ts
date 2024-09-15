@@ -129,7 +129,7 @@ export class RxController2<I> extends ControllerCore<I> {
     return targetCtl;
   }
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-  groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
+  groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
   rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]> {
     return this.action$.pipe(
       rx.groupBy(keySelector),

@@ -21,7 +21,12 @@ export function createSimpleIndentLogger(colorful: boolean, timestamp: boolean, 
   let lastPrefix: string | undefined;
   return function(prefix: string, ...msgs: any[]) {
     if (lastPrefix === prefix) {
+      const hashPos = prefix.indexOf('#');
       out.write('  ');
+      if (hashPos >= 0) {
+        out.write(prefix.slice(hashPos));
+        out.write(' ');
+      }
     } else {
       out.write(prefix);
       out.write(' ');

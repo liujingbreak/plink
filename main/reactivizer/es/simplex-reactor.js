@@ -7,7 +7,6 @@ let SEQ = new Date().getUTCMilliseconds();
 export class SimplexReactor {
     constructor(opts) {
         var _a, _b;
-        this.errorSubject = new rx.ReplaySubject(20);
         this.r = (...params) => {
             if (typeof params[0] === 'string')
                 this.reactorSubj.next(params);
@@ -20,8 +19,9 @@ export class SimplexReactor {
          * cast current SimplexReactor type to its logical super type for Typescript type assignable check
          **/
         this.b = this;
-        this.reactorSubj = new rx.ReplaySubject();
         this.id = SEQ++;
+        this.reactorSubj = new rx.ReplaySubject();
+        this.errorSubject = new rx.ReplaySubject(20);
         this.opts = opts;
         this.s = new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `#${this.id}` }));
         const internalMsg$ = this.s;

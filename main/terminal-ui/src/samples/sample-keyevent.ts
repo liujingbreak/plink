@@ -3,11 +3,8 @@ import util from 'util';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../index';
-import {createTextWidget} from '../index';
-import {createKeyEventService} from '../index';
-import {createFlexContainer} from '../index';
-import {createBorderContainer} from '../index';
+import {createTerminalCanvas, KeyEventEnum, createTextWidget, createKeyEventService, createFlexContainer,
+  createBorderContainer} from '../index';
 
 const screenWidth = process.argv[2];
 
@@ -89,8 +86,8 @@ r('onLeft, onRight, onUp, onDown', rx.merge(
   s.pt.onRight.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' right').dp())),
   s.pt.onUp.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' up').dp())),
   s.pt.onDown.pipe(rx.tap(([, times]) => labelRecognized.s.ft.setContent(times + ' down').dp())),
-  s.pt.doneConsumeMultiKeyAction.pipe(
+  s.pt.didConsumeMultiKey.pipe(
     rx.filter(([, act]) => act != null),
-    rx.tap(([m, act]) => labelRecognized.s.ft.setContent(act!).dp(m))
+    rx.tap(([m, act]) => labelRecognized.s.ft.setContent(KeyEventEnum[act!]).dp(m))
   )
 ));

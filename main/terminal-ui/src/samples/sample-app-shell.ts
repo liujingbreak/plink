@@ -1,3 +1,4 @@
+import 'source-map-support/register';
 import fs from 'fs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {app, createFlexContainer, createTextWidget, createBorderContainer} from '../index';
@@ -9,12 +10,14 @@ const panel = createFlexContainer({name: 'contentPanel', debug, log});
 const border = createBorderContainer(panel.b.b, {name: 'contentPanelBorder', debug, log});
 const {canvas} = app.createApp(border.b.b, {
   default: {debug, log},
-  statusbar: {debug: true},
-  keyService: {debug: true},
-  canvas: {debug: true},
-  elevator: {default: {debug: true}},
+  // statusbar: {debug: false},
+  // keyService: {debug: false},
+  // canvas: {debug: true},
+  // elevator: {default: {debug: true, log}},
+  focusable: {debug: true},
   scrollable: {
-    default: {debug: true}
+    // default: {debug: true},
+    focusable: {debug: true}
   }
 });
 
@@ -32,8 +35,9 @@ setTimeout(() => {
   const num = 20;
   const hueInterval = Math.round(360 / num);
   for (let i = 0; i < num; i++) {
-    const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug: false, log});
+    const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug, log});
     label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
+    label.s.ft.setFocusable(true).dp();
     panel.s.ft.addChild(label.asBaseType).dp();
   }
 }, 1000);

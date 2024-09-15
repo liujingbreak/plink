@@ -1,8 +1,10 @@
+/* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, ActionMeta, Action, InferMapParam, SimplexReactorOptions} from '@wfh/reactivizer';
 import {TerminalCanvas, Rectangle, BackgroundStyle, rectIntersection} from './canvas';
+import {FocusService, SearchDirection} from './focusable';
 
 export enum DisplayMode {
   visible,
@@ -23,9 +25,14 @@ export interface BaseWidgetInput {
   setBackground(color: BackgroundStyle | null): SingleActionFactory;
   /** to override automatical "preferredSize" in layout calculation */
   setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
+  setFocusable(focusable: boolean | Rectangle): SingleActionFactory;
 }
 export interface BaseWidgetEvents extends BaseWidgetInput {
   onSize(width: number, height: number): SingleActionFactory;
+  onTransform(trans: mat4): SingleActionFactory;
+  _saveTransform(trans: mat4): SingleActionFactory;
+  offsetParent(p: OffsetParent | null): SingleActionFactory;
+  isOffsetParent(me: OffsetParent | false): SingleActionFactory;
   /** Implementation needs to handle this event */
   querySizeOf(width: number | null, height: number | null): SingleActionFactory;
   /** Extended container implementation need to handle this event. */
@@ -34,7 +41,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   prefWidthFor(width: number, constrainHeight: number): SingleActionFactory;
   /** As response to "querySizeOf" */
   prefHeightFor(constrainWidth: number, height: number): SingleActionFactory;
-  /** Calculated size based on child components or content, which ignores setPreferredSize value */
+  /** Implementation should dispatch this message after calculating size based on child components or content */
   onContentSizeChange(width: number, height: number): SingleActionFactory;
   overflow(yes: boolean): SingleActionFactory;
 
@@ -49,7 +56,9 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   /** Implementation needed to handle this event */
   onRender(canvas: TerminalCanvas, absTransform: mat4, renderSelf: boolean, clipArea: Rectangle[], maskArea?: Rectangle[]): SingleActionFactory;
   needRerender(need: boolean): SingleActionFactory;
-  /** If following action is dispatched, the next render message must not be skipped on current widget */
+  latestRenderData(renderData$: rx.Observable<unknown>): SingleActionFactory;
+  /** @deprecated use latestRenderData instead
+   * If following action is dispatched, the next render message must not be skipped on current widget */
   addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
   /** Get bouding rectangle that is calculated when the lastest "render" message is handled,
    * the coordinate of rectangle is relative to canvas, in case of child component of "scrollable" container,
@@ -59,11 +68,13 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   onBoundingBox(rect: Rectangle): SingleActionFactory;
   onDettached(isDettached: boolean): SingleActionFactory;
   onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
+  bgCleared(hasCleared: boolean): SingleActionFactory;
+  onFocus(direction: SearchDirection): SingleActionFactory;
 }
 export const tableForBase = [
-  'onSize', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
+  'onSize', 'onTransform', 'offsetParent', 'isOffsetParent', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
   'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink',
-  'setBackground', 'onBgChangeWithParent'
+  'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'latestRenderData'
 ] as const;
 export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
 
@@ -72,10 +83,15 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
   const service = new SimplexReactor<BaseWidgetEvents, typeof tableForBase>({
     ...opts,
     tableFor: tableForBase,
-    debugExcludeTypes: ['ofCanvas', ...(opts?.debugExcludeTypes ?? [])]
+    debugExcludeTypes: ['ofCanvas', 'bgCleared', ...(opts?.debugExcludeTypes ?? [])]
   });
   const {s, r, table} = service;
-
+  r('transform signals', rx.merge(
+    s.pt._saveTransform.pipe(
+      rx.distinctUntilChanged(([, t1], [, t2]) => mat4.equals(t1, t2)),
+      rx.map(([m, t]) => s.ft.onTransform(t).dp(m))
+    )
+  ));
   r('setPreferredSize, onContentSizeChange -> preferredSize', rx.combineLatest([
     table.l.setPreferredSize, s.pt.onContentSizeChange
   ]).pipe(
@@ -92,22 +108,28 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
       s.ft.preferredSize(w, h).dp();
     })
   ));
+  r('needRerender, latestRenderData -> needRerender', s.pt.needRerender.pipe(
+    rx.map(([, need]) => need),
+    rx.distinctUntilChanged(),
+    rx.switchMap(need => need ? rx.EMPTY :
+      table.l.latestRenderData.pipe(
+        rx.switchMap(([, data$]) => data$),
+        rx.skip(1),
+        rx.take(1),
+        rx.map(() => s.ft.needRerender(true).dp())
+      ))
+  ));
   r('addRerenderAction', rx.merge(
-    s.pt.onSize.pipe(
-      rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
-    ),
-    s.pt.setDisplay.pipe(
-      rx.distinctUntilChanged(([, a], [, b]) => a === b)
-    ),
     s.pt.addRerenderAction.pipe(
       rx.mergeMap(([, action$]) => action$)
-    ).pipe(
-      rx.map(actionOrPayload => {
-        const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;
-        s.ft.needRerender(true).dp(m);
-      })
     )
+  ).pipe(
+    rx.map(actionOrPayload => {
+      const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;
+      s.ft.needRerender(true).dp(m);
+    })
   ));
+
   r('setSize', s.pt.setSize.pipe(
     rx.switchMap(([m, w, h]) => {
       if (typeof w === 'string' && typeof h === 'string') {
@@ -169,6 +191,7 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
   r('render -> needRerender, onRender, renderBackgroundFor, onBoundingBox', s.pt.render.pipe(
     rx.withLatestFrom(table.l.needRerender, table.l.setParent, table.l.onSize, table.l.setDisplay),
     rx.map(([[m, canvas, trans, clips, masks], [, renderSelf], [, parent], [, width, height], [, display]]) => {
+      s.ft._saveTransform(trans).dp(m);
       if (renderSelf) {
         s.ft.needRerender(false).dp(m);
         if (parent)
@@ -178,15 +201,16 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
       vec2.transformMat4(pos, pos, trans);
       const bounding = [pos[0], pos[1], width, height] as [number, number, number, number];
       s.ft.onBoundingBox(bounding).dp(m);
-      if (renderSelf) {
-        if (display === DisplayMode.hidden) {
-          canvas.s.ft.clearRect(...bounding).dp(m);
-        } else
-          s.ft.onRender(canvas, trans, renderSelf, clips ?? [[0, 0, width, height]], masks).dp(m);
-      }
+      // if (renderSelf) {
+      if (display === DisplayMode.hidden) {
+        canvas.s.ft.clearRect(...bounding).dp(m);
+        s.ft.bgCleared(true).dp(m);
+      } else
+        s.ft.onRender(canvas, trans, renderSelf, clips ?? [[0, 0, width, height]], masks).dp(m);
+      // }
     })
   ));
-  r('setParent, error$, parent.destory$ -> parent.onChildError, dispose()', table.l.setParent.pipe(
+  r('setParent, error$, parent.destory$... -> parent.onChildError, dispose()...', table.l.setParent.pipe(
     rx.switchMap(([m, parent]) => {
       if (parent == null) {
         s.ft.ofCanvas(null).dp(m);
@@ -197,6 +221,14 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
         parent.table.l.onDettached.pipe(
           rx.map(([m, d]) => {
             s.ft.onDettached(d).dp(m);
+          })
+        ),
+        parent.s.pt.bgCleared.pipe(
+          rx.map(([m, cleared]) => {
+            if (cleared) {
+              s.ft.bgCleared(true).dp(m);
+              s.ft.needRerender(true).dp(m);
+            }
           })
         ),
         parent.table.l.ofCanvas.pipe(
@@ -226,7 +258,115 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
         s.ft.onBgChangeWithParent(null).dp(m2);
     })
   ));
+  // observe parent, when parent is a "offsetParent", set "offsetParent" to it,
+  // otherwise set offsetParent to parent's offsetParent
+  r('setParent, p.isOffsetParent, p.offsetParent -> offsetParent', s.pt.setParent.pipe(
+    rx.switchMap(([m, p]) => {
+      if (p) {
+        return rx.combineLatest([
+          p.table.l.isOffsetParent,
+          p.table.l.offsetParent
+        ]).pipe(
+          rx.map(([[m1, ofp], [m2, op]]) => {
+            if (ofp) {
+              s.ft.offsetParent(ofp).dp(m1);
+            } else {
+              s.ft.offsetParent(op).dp(m1, m2);
+            }
+          })
+        );
+      } else {
+        s.ft.offsetParent(null).dp(m);
+        return rx.EMPTY;
+      }
+    })
+  ));
+
+  // dispatch onRectChange to offsetParent when setFocusable is not false or "isOffsetParent" is true
+  r('offsetParent, isOffsetParent, setFocusable -> onRectChange, removeFocusable', table.l.offsetParent.pipe(
+    rx.switchMap(([m, op]) => {
+      if (op) {
+        return rx.combineLatest([
+          table.l.setFocusable,
+          table.l.isOffsetParent
+        ]).pipe(
+          rx.switchMap(([[m2, focusable], [m1, isOffsetParent]]) => {
+            // service.log('dispatch onRectChange for', focusable, 'isOffsetParent', isOffsetParent);
+            if (focusable) {
+              if (focusable === true) {
+                return rx.combineLatest([table.l.onTransform, table.l.onSize]).pipe(
+                  rx.map(([[, trans], [, w, h]]) => {
+                    const point = [0, 0] as [number, number];
+                    vec2.transformMat4(point, point, trans);
+                    const rect = [...point, w, h] as Rectangle;
+                    op.focusService.s.ft.onRectChange(rect, service).dp(m2);
+                  })
+                );
+              } else {
+                return table.l.onTransform.pipe(
+                  rx.map(([, trans]) => {
+                    const rect = focusable;
+                    const point = [rect[0], rect[1]] as [number, number];
+                    vec2.transformMat4(point, point, trans);
+                    op.focusService.s.ft.onRectChange([...point, rect[2], rect[3]], service).dp(m2);
+                  })
+                );
+              }
+            } else if (isOffsetParent) {
+              return rx.combineLatest([table.l.onTransform, table.l.onSize]).pipe(
+                rx.map(([[, trans], [, w, h]]) => {
+                  const pos = [0, 0] as [number, number];
+                  vec2.transformMat4(pos, pos, trans);
+                  op.focusService.s.ft.onRectChange([...pos, w, h], service).dp(m1);
+                })
+              );
+            } else {
+              op.focusService.s.ft.removeFocusable(service).dp(m);
+              return rx.EMPTY;
+            }
+          }),
+          rx.finalize(() => {
+            op.focusService.s.ft.removeFocusable(service).dp(m);
+          })
+        );
+      }
+      return rx.EMPTY;
+    })
+  ));
+  // Refer "rootService" to offset parent's focusService's "rootService"
+  r('offsetParent, isOffsetParent... -> focusService.rootService', rx.combineLatest([
+    s.pt.offsetParent,
+    s.pt.isOffsetParent
+  ]).pipe(
+    rx.switchMap(([[, op], [, isOffsetParent]]) => {
+      return op && isOffsetParent
+        ? op.focusService.table.l.rootService.pipe(
+          rx.map(([m, rootFocus]) => isOffsetParent.focusService.s.ft.rootService(rootFocus).dp(m))
+        )
+        : rx.EMPTY;
+    })
+  ));
+
+  r('onDettached -> focusService.removeFocusable', s.pt.onDettached.pipe(
+    rx.withLatestFrom(table.l.offsetParent),
+    rx.map(([[m], [m2, op]]) => {
+      if (op)
+        op.focusService.s.ft.removeFocusable(service).dp(m, m2);
+    })
+  ));
+
+  const renderData = rx.combineLatest([
+    table.l.setDisplay,
+    table.l.onSize.pipe(
+      rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
+    ),
+    table.l.setBackground
+  ]);
+
   r('init', new rx.Observable<never>(() => {
+    s.ft.bgCleared(false).dp();
+    s.ft.isOffsetParent(false).dp();
+    s.ft.offsetParent(null).dp();
     s.ft.setFlexGrow(0).dp();
     s.ft.setFlexShrink(1).dp();
     s.ft.setPreferredSize(null, null).dp();
@@ -235,8 +375,10 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
     s.ft.ofCanvas(null).dp();
     s.ft.setDisplay(DisplayMode.visible).dp();
     s.ft.onBoundingBox([0, 0, 0, 0]).dp();
+    s.ft.setFocusable(false).dp();
     s.ft.onDettached(true).dp();
     s.ft.setBackground(null).dp();
+    s.ft.latestRenderData(renderData).dp();
   }));
   return service;
 }
@@ -245,8 +387,10 @@ export interface TerminalContainerInput {
   addChild(...children: BaseWidget[]): SingleActionFactory;
   insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
   removeChild(...children: BaseWidget[]): SingleActionFactory;
-  /** If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
+  /** @deprecated use latestReflowData instead.
+   * If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
   addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
+  latestReflowData(data$: rx.Observable<unknown>): SingleActionFactory;
 }
 
 export interface TermainlContainerEvents extends TerminalContainerInput {
@@ -286,7 +430,8 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
 }
 
 const tableFor = [
-  'allChildren', 'allDisplayChildren', 'setLayoutValid', 'onChildPreferredSizeChange', 'hasOfflineCanvas', 'onChildPositions', 'isOpaque'
+  'allChildren', 'allDisplayChildren', 'setLayoutValid', 'onChildPreferredSizeChange', 'hasOfflineCanvas', 'onChildPositions',
+  'isOpaque', 'latestReflowData'
 ] as const;
 export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<TermainlContainerEvents, typeof tableFor>>;
 
@@ -304,25 +449,26 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
   r('addChild -> child.setParent', s.pt.addChild.pipe(
     rx.map(([m, ...added]) => {
       children.push(...added);
-      for (const child of children) {
+      for (const child of added) {
         child.s.ft.setParent(service).dp(m);
       }
     })
   ));
   r('insertChild', s.pt.insertChild.pipe(
-    rx.map(([m, before, children]) => {
-      children.splice(before, 0, ...children);
-      for (const child of children) {
+    rx.map(([m, before, added]) => {
+      children.splice(before, 0, ...added);
+      for (const child of added) {
         child.s.ft.setParent(service).dp(m);
       }
     })
   ));
   r('removeChild', s.pt.removeChild.pipe(
-    rx.map(([, ...widgets]) => {
+    rx.map(([m, ...widgets]) => {
       for (const w of widgets) {
         const idx = children.findIndex(c => c === w);
         if (idx >= 0)
           children.splice(idx, 1);
+        w.s.ft.setParent(null).dp(m);
       }
     })
   ));
@@ -347,7 +493,8 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
             }),
             rx.map(sizes => ft.onChildPreferredSizeChange(sizes.map(([, w, h]) => [w, h] as const)).dp(m))
           ),
-          rx.merge(children.map(widget => widget.table.l.setDisplay.pipe(
+          // watch display property change of each child component, dispatch setLayoutValid(false)
+          ...children.map(widget => widget.table.l.setDisplay.pipe(
             rx.scan(([, prev], curr) => {
               const [m, mode] = curr;
               if (!((prev === DisplayMode.hidden && mode === DisplayMode.visible) ||
@@ -357,28 +504,30 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
               return curr;
             }),
             service.labelError('children.setDisplay -> setLayoutValid')
-          )))
+          ))
         );
       })
     ))
   ));
-  r('addReflowAction -> needRerender, setLayoutValid', s.pt.addReflowAction.pipe(
+  r('addReflowAction -> needRerender, setLayoutValid, bgCleared', s.pt.addReflowAction.pipe(
     rx.mergeMap(([, action$]) => action$),
     rx.map(actionOrPayload => {
       const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;
       ft.needRerender(true).dp(m);
       ft.setLayoutValid(false).dp(m);
+      ft.bgCleared(false).dp(m);
     })
   ));
   r('renderSelf, onBgChangeWithParent, onSize -> canvas.addString, canvas.clearRect', s.pt.renderSelf.pipe(
     rx.mergeMap(a => rx.combineLatest([
       table.l.onSize,
-      table.l.onBgChangeWithParent
+      table.l.onBgChangeWithParent,
+      table.l.bgCleared
     ]).pipe(
       rx.take(1),
       rx.map(b => [a, ...b] as const)
     )),
-    rx.map(([[m, canvas, trans], [, width, height], [, bg]], _idx) => {
+    rx.map(([[m, canvas, trans], [, width, height], [, bg], [, cleared]], _idx) => {
       const pos = [0, 0] as vec2;
       vec2.transformMat4(pos, pos, trans);
       if (bg) {
@@ -386,8 +535,9 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
         for (let i = 0; i < height; i++) {
           canvas.s.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
         }
-      } else {
+      } else if (!cleared) {
         canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
+        s.ft.bgCleared(true).dp(m);
       }
     })
   ));
@@ -463,9 +613,33 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
         parent.s.ft.onChildError(childId, errInfo);
     })
   ));
+  r('setLayoutValid, latestReflowData -> setLayoutValid', s.pt.setLayoutValid.pipe(
+    rx.map(([, valid]) => valid),
+    rx.distinctUntilChanged(),
+    rx.switchMap(isValid => isValid ? table.l.latestReflowData.pipe(
+      rx.switchMap(([, data$]) => data$),
+      rx.skip(1),
+      rx.take(1),
+      rx.map(() => {
+        s.ft.setLayoutValid(false).dp();
+        s.ft.needRerender(true).dp();
+        s.ft.bgCleared(false).dp();
+      })
+    ) : rx.EMPTY)
+  ));
+
+  const reflowData = rx.combineLatest([
+    table.l.onSize.pipe(
+      rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
+    ),
+    table.l.onChildPreferredSizeChange
+  ]);
+
   r('init', new rx.Observable<never>(() => {
-    ft.addReflowAction(s.pt.onSize).dp();
-    ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
+    ft.latestReflowData(reflowData).dp();
+    // ft.addReflowAction(onSize$).dp();
+    // ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
+    ft.latestRenderData(reflowData).dp();
     ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
     ft.allChildren(children).dp();
     ft.onSize(0, 0).dp();
@@ -480,4 +654,6 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
   }));
   return service;
 }
-
+export interface OffsetParent {
+  focusService: FocusService;
+}

@@ -4,6 +4,7 @@ import {createScrollable, createFlexContainer, BaseWidget, createKeyEventService
   createTerminalCanvas, createElevator, createTextWidget, createBorderContainer,
   DisplayMode, ScrollableOptions, TerminalCanvasOptions, ElevatorOptions,
   FlexContainer, FlexContainerOpts, KeyEventOptions} from '../index';
+import {createRootService, FocusableOptions} from '../focusable';
 import {StatusbarOptions, createStatusbar} from './statusbar';
 
 export interface AppActions {
@@ -24,6 +25,7 @@ export interface AppOptions {
   canvas?: TerminalCanvasOptions;
   cover?: FlexContainerOpts;
   root?: FlexContainerOpts;
+  focusable?: FocusableOptions;
 }
 export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
   const appService = new SimplexReactor<AppSignals>({
@@ -86,12 +88,14 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
       );
     })
   ));
-  const elevator = createElevator(opts as any);
+  const elevator = createElevator({...opts?.default as any, ...opts?.elevator});
   const coverLayer = createFlexContainer({
     ...opts?.default as FlexContainerOpts,
     name: 'coverLayer',
     ...opts?.cover
   });
+  const focusable = createRootService(keyEventService, {...opts?.default as any, ...opts?.focusable});
+  focusable.s.ft.forRootComp(elevator.b.b).dp();
   coverLayer.s.ft.alignItems('center').dp();
   coverLayer.s.ft.justifyContent('center').dp();
 

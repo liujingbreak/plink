@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("source-map-support/register");
 const fs_1 = __importDefault(require("fs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
@@ -13,12 +14,14 @@ const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, lo
 const border = (0, index_1.createBorderContainer)(panel.b.b, { name: 'contentPanelBorder', debug, log });
 const { canvas } = index_1.app.createApp(border.b.b, {
     default: { debug, log },
-    statusbar: { debug: true },
-    keyService: { debug: true },
-    canvas: { debug: true },
-    elevator: { default: { debug: true } },
+    // statusbar: {debug: false},
+    // keyService: {debug: false},
+    // canvas: {debug: true},
+    // elevator: {default: {debug: true, log}},
+    focusable: { debug: true },
     scrollable: {
-        default: { debug: true }
+        // default: {debug: true},
+        focusable: { debug: true }
     }
 });
 const screenWidth = process.argv[2];
@@ -33,8 +36,9 @@ setTimeout(() => {
     const num = 20;
     const hueInterval = Math.round(360 / num);
     for (let i = 0; i < num; i++) {
-        const label = (0, index_1.createTextWidget)('TEST LABEL ' + i, { name: 'LABEL ' + i, debug: false, log });
+        const label = (0, index_1.createTextWidget)('TEST LABEL ' + i, { name: 'LABEL ' + i, debug, log });
         label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
+        label.s.ft.setFocusable(true).dp();
         panel.s.ft.addChild(label.asBaseType).dp();
     }
 }, 1000);

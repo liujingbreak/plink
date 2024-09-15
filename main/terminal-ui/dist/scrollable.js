@@ -24,13 +24,16 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createScrollable = createScrollable;
+/* eslint-disable array-bracket-newline */
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
 const base_1 = require("./base");
 const canvas_1 = require("./canvas");
+const focusable_1 = require("./focusable");
 const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded'];
 function createScrollable(comp, opts) {
+    var _a, _b;
     const base = (0, base_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable' }), opts === null || opts === void 0 ? void 0 : opts.core));
     const scrollable = base.config({ tableFor });
     const { r, s, table } = scrollable;
@@ -67,8 +70,9 @@ function createScrollable(comp, opts) {
         comp.s.ft.render(canvas, gl_matrix_1.mat4.create(), clipsOfView, masksOfView).dp(m);
         const orig = [0, 0];
         gl_matrix_1.vec2.transformMat4(orig, orig, trans);
-        // canvas.s.ft.clearRect(orig[0], orig[1], width, height).dp(m);
-        return canvas.s.ft.copyDirtyRectAndClear(scLeft, scTop, width, height).re(m).od(canvas.s.pt.onCopyRect).pipe(rx.take(1), rx.map(([, paintables]) => {
+        focusService.s.ft.setRenderClips(clipsOfView).dp(m);
+        focusService.s.ft.render(canvas).dp(m);
+        return canvas.s.ft.copyRect(scLeft, scTop, width, height).re(m).od(canvas.s.pt.onCopyRect).pipe(rx.take(1), rx.map(([, paintables]) => {
             for (const [x, , y, units, style] of paintables) {
                 const point = [x, y];
                 gl_matrix_1.vec2.transformMat4(point, point, trans);
@@ -151,10 +155,15 @@ function createScrollable(comp, opts) {
             s.ft.onContentSizeChange(0, 0).dp(m);
     })));
     r('canvas.error$', canvas.error$.pipe(rx.map(errInfo => s.ft.onChildError(canvas.s.logPrefix, errInfo))));
-    scrollable.destory$.pipe(rx.map(() => {
+    const focusService = (0, focusable_1.createFocusService)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) ? ((_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.name) + '.focusSvc' : 'scrollable.focusSvc' }), opts === null || opts === void 0 ? void 0 : opts.focusable));
+    r('destory$ -> focusService.dispose', scrollable.destory$.pipe(rx.map(() => {
+        focusService.dispose();
         canvas.dispose();
-    }), rx.take(1)).subscribe();
+    })));
+    const service = scrollable;
+    service.focusService = focusService;
     r('init', new rx.Observable(() => {
+        s.ft.isOffsetParent(service).dp();
         s.ft.onContentSizeChange(2, 2).dp();
         s.ft.setPreferredSize(null, null).dp();
         s.ft.onValidScroll(0, 0).dp();
@@ -166,6 +175,6 @@ function createScrollable(comp, opts) {
         s.ft.addReflowAction(s.at.setScrollable).dp();
         s.ft.hasOfflineCanvas(true).dp();
     }));
-    return scrollable;
+    return service;
 }
 //# sourceMappingURL=scrollable.js.map

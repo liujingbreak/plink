@@ -6,7 +6,7 @@ import {SimplexReactor, SingleActionFactory, CoreOptions} from '@wfh/reactivizer
 import {Scrollable} from './scrollable';
 import {TerminalCanvas} from './canvas';
 
-export interface keypressInput {
+export interface KeyScrollingMsg {
   setPageSize(w: number, h: number): SingleActionFactory;
   bindToScrollable(scrollable: Scrollable): SingleActionFactory;
   /** default is process.stdin
@@ -14,7 +14,11 @@ export interface keypressInput {
    * and enable "setRawMode(true)" on that TTY readable stream
    */
   setInputStream(stream: NodeJS.ReadableStream, isTTY: boolean): SingleActionFactory;
-
+}
+interface KeyEvents {
+  onFocusChange(
+    dir: KeyEventEnum.focusLeft | KeyEventEnum.focusRight | KeyEventEnum.focusUp | KeyEventEnum.focusDown | KeyEventEnum.focusNext,
+    amount: number): SingleActionFactory;
   onRight(amount: number): SingleActionFactory;
   onLeft(amount: number): SingleActionFactory;
   onUp(amount: number): SingleActionFactory;
@@ -25,26 +29,29 @@ export interface keypressInput {
   onEnd(): SingleActionFactory;
   onExit(): SingleActionFactory;
 }
-
-interface keypressSignals extends keypressInput {
-  onRawKeyInput(event: KeyEvent): SingleActionFactory;
-  onKeypress(event: KeyEvent, fallback: boolean): SingleActionFactory;
+export enum KeyEventEnum {
+  scrollLeft, scrollRight, scrollUp, scrollDown, scrollTop, scrollBottom, home, end,
+  focusLeft, focusRight, focusUp, focusDown, focusNext
+}
+interface keypressSignals extends KeyScrollingMsg, KeyEvents {
+  onRawKeyInput(event: RawKeyEvent): SingleActionFactory;
+  onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
   onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
   onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
   onBreak(): SingleActionFactory;
   onDigital(chr: string): SingleActionFactory;
-  consumeMultiKeyAction(evt: KeyEvent): SingleActionFactory;
-  doneConsumeMultiKeyAction(action: 'left' | 'right' | 'up' | 'down' | 'top' | 'bottom' | 'home' | 'end' | null, amount: number): SingleActionFactory;
+  consumeMultiKey(evt: RawKeyEvent): SingleActionFactory;
+  didConsumeMultiKey(action: KeyEventEnum | null, amount: number): SingleActionFactory;
   consumeDigital(c: string): SingleActionFactory;
-  consumePageAction(event: KeyEvent): SingleActionFactory;
-  doneConsumePageAction(action: 'left' | 'right' | 'up' | 'down', amount?: number): SingleActionFactory;
+  consumePageAction(event: RawKeyEvent): SingleActionFactory;
+  doneConsumePageAction(action: KeyEventEnum, amount?: number): SingleActionFactory;
   consumeDirKey(c: string): SingleActionFactory;
   doneConsumeDigital(value: number): SingleActionFactory;
   onReportCursor(x: number, y: number): SingleActionFactory;
 }
 
 const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'] as const;
-interface KeyEvent {
+interface RawKeyEvent {
   name: string | undefined;
   sequence: string;
   ctrl: boolean;
@@ -52,7 +59,7 @@ interface KeyEvent {
   code?: string;
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
-export type KeyEventOptions = CoreOptions<keypressInput>;
+export type KeyEventOptions = CoreOptions<KeyScrollingMsg>;
 export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions) {
   const service = new SimplexReactor<keypressSignals, typeof tableFor>({
     name: 'keyEvent',
@@ -68,7 +75,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
         (stdin as tty.ReadStream).setRawMode(true);
       }
       return new rx.Observable<never>(() => {
-        function h(_chr: unknown, data: KeyEvent) {
+        function h(_chr: unknown, data: RawKeyEvent) {
           ft.onRawKeyInput(data).dp(m);
         }
         stdin.on('keypress', h);
@@ -92,10 +99,13 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
       }
       return rx.of(payload);
     }),
-    rx.window(rx.merge(s.pt.onBreak, s.pt.onInputCompleted.pipe(
-      rx.distinctUntilChanged(([, a], [, b]) => a === b),
-      rx.filter(([, completed]) => completed)
-    ))),
+    rx.window(rx.merge(
+      s.pt.onBreak,
+      s.pt.onInputCompleted.pipe(
+        rx.distinctUntilChanged(([, a], [, b]) => a === b),
+        rx.filter(([, completed]) => completed)
+      ))
+    ),
     rx.switchMap(branched => rx.concat(
       branched.pipe(
         rx.scan((acc, [m, keyEvt]) => {
@@ -104,7 +114,10 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
           return acc;
         }, '')
       ),
-      rx.combineLatest([table.l.onInputCompleted, table.l.onDisplayKeys]).pipe(
+      rx.combineLatest([
+        table.l.onInputCompleted,
+        table.l.onDisplayKeys
+      ]).pipe(
         rx.take(1),
         rx.map(([[m, isCompleted, isValid], [m2, text]]) => {
           ft.onDisplayKeys(text, isCompleted, isValid).dp(m, m2);
@@ -113,7 +126,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
       )
     ))
   ));
-  r('consumeMultiKeyAction -> consumeDigital, consumePageAction, doneConsumeMultiKeyAction, onEscOrQuit', s.pt.consumeMultiKeyAction.pipe(
+  r('consumeMultiKey -> consumeDigital, consumePageAction, didConsumeMultiKey, onEscOrQuit', s.pt.consumeMultiKey.pipe(
     rx.mergeMap(([m, evt]) => {
       const kname = evt.name ?? evt.sequence;
       return (/[0-9]/.test(kname)) ?
@@ -123,11 +136,11 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
             return s.pt.onKeypress.pipe(
               rx.observeOn(rx.queueScheduler),
               rx.take(1),
-              rx.mergeMap(([, nextEvt]) => ft.consumeMultiKeyAction(nextEvt).re(m).od(
-                s.pt.doneConsumeMultiKeyAction
+              rx.mergeMap(([, nextEvt]) => ft.consumeMultiKey(nextEvt).re(m).od(
+                s.pt.didConsumeMultiKey
               ).pipe(
                 rx.take(1),
-                rx.map(([, act, amount]) => ft.doneConsumeMultiKeyAction(act, amount * times).dp(m))
+                rx.map(([, act, amount]) => ft.didConsumeMultiKey(act, amount * times).dp(m))
               ))
             );
           }),
@@ -136,7 +149,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
         (kname === 'z' || kname === 'd' || kname === 'f' || kname === 'u' || kname === 'b') ?
           ft.consumePageAction(evt).od(s.pt.doneConsumePageAction).pipe(
             rx.take(1),
-            rx.map(([, act, quantity]) => ft.doneConsumeMultiKeyAction(act, quantity ?? 1).dp(m)),
+            rx.map(([, act, quantity]) => ft.didConsumeMultiKey(act, quantity ?? 1).dp(m)),
             rx.takeUntil(s.pt.onBreak)
           ) :
           evt.sequence === 'g' ?
@@ -144,32 +157,42 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
               rx.take(1),
               rx.map(([m2, evt]) => {
                 if (evt.sequence === 'g') {
-                  ft.doneConsumeMultiKeyAction('top', 0).dp(m);
+                  ft.didConsumeMultiKey(KeyEventEnum.scrollTop, 0).dp(m);
                 } else {
-                  ft.doneConsumeMultiKeyAction(null, 0).dp(m);
+                  ft.didConsumeMultiKey(null, 0).dp(m);
                   ft.onKeypress(evt, true).dp(m2);
                 }
               })
             ) :
             new rx.Observable<never>(sub => {
-              if (kname === 'l' || evt.code === '[C')
-                ft.doneConsumeMultiKeyAction('right', 1).dp(m);
-              else if (kname === 'h' || evt.code === '[D') {
-                ft.doneConsumeMultiKeyAction('left', 1).dp(m);
-              } else if (kname === 'j' || evt.code === '[B') {
-                ft.doneConsumeMultiKeyAction('down', 1).dp(m);
-              } else if (kname === 'k' || evt.code === '[A') {
-                ft.doneConsumeMultiKeyAction('up', 1).dp(m);
+              if (kname === 'l')
+                ft.didConsumeMultiKey(KeyEventEnum.scrollRight, 1).dp(m);
+              else if (kname === 'h') {
+                ft.didConsumeMultiKey(KeyEventEnum.scrollLeft, 1).dp(m);
+              } else if (kname === 'j') {
+                ft.didConsumeMultiKey(KeyEventEnum.scrollDown, 1).dp(m);
+              } else if (kname === 'k') {
+                ft.didConsumeMultiKey(KeyEventEnum.scrollUp, 1).dp(m);
+              } else if (evt.code === '[C') {
+                ft.didConsumeMultiKey(KeyEventEnum.focusRight, 1).dp(m);
+              } else if (evt.code === '[D') {
+                ft.didConsumeMultiKey(KeyEventEnum.focusLeft, 1).dp(m);
+              } else if (evt.code === '[B') {
+                ft.didConsumeMultiKey(KeyEventEnum.focusDown, 1).dp(m);
+              } else if (evt.code === '[A') {
+                ft.didConsumeMultiKey(KeyEventEnum.focusUp, 1).dp(m);
+              } else if (evt.sequence === '\t') {
+                ft.didConsumeMultiKey(KeyEventEnum.focusNext, 1).dp(m);
               } else if (kname === 'q' || (evt.ctrl && evt.name === 'c')) {
                 ft.onExit().dp();
               } else if (evt.sequence === '^' || evt.code === '[H') {
-                ft.doneConsumeMultiKeyAction('home', 0).dp(m);
+                ft.didConsumeMultiKey(KeyEventEnum.home, 0).dp(m);
               } else if (evt.sequence === '$' || evt.code === '[F') {
-                ft.doneConsumeMultiKeyAction('end', 0).dp(m);
+                ft.didConsumeMultiKey(KeyEventEnum.end, 0).dp(m);
               } else if (evt.sequence === 'G') {
-                ft.doneConsumeMultiKeyAction('bottom', 0).dp(m);
+                ft.didConsumeMultiKey(KeyEventEnum.scrollBottom, 0).dp(m);
               } else {
-                ft.doneConsumeMultiKeyAction(null, 1).dp(m);
+                ft.didConsumeMultiKey(null, 1).dp(m);
               }
               sub.complete();
             });
@@ -178,7 +201,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
   r('consumeDigital, onKeypress -> doneConsumeDigital, onKeypress', s.pt.consumeDigital.pipe(
     rx.mergeMap(([m, c]) => {
       let word = c;
-      let lastEvt: KeyEvent | undefined;
+      let lastEvt: RawKeyEvent | undefined;
       return s.pt.onKeypress.pipe(
         rx.observeOn(rx.queueScheduler),
         rx.map(([, evt]) => {
@@ -207,9 +230,9 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
           rx.take(1),
           rx.map(([, evt2]) => {
             if (evt2.name === 'l')
-              ft.doneConsumePageAction('right', w >> 1).dp(m);
+              ft.doneConsumePageAction(KeyEventEnum.scrollRight, w >> 1).dp(m);
             else if (evt2.name === 'h')
-              ft.doneConsumePageAction('left', w >> 1).dp(m);
+              ft.doneConsumePageAction(KeyEventEnum.scrollLeft, w >> 1).dp(m);
             else {
               ft.onBreak().dp(m);
               ft.onKeypress(evt2, true).dp(m);
@@ -218,7 +241,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
         );
       else {
         ft.doneConsumePageAction(
-          (evt.name === 'd' || evt.name === 'f') ? 'down' : 'up',
+          (evt.name === 'd' || evt.name === 'f') ? KeyEventEnum.scrollDown : KeyEventEnum.scrollUp,
           (evt.name === 'u' || evt.name === 'd') ? (h >> 1) : h
         ).dp(m);
         return rx.EMPTY;
@@ -228,23 +251,28 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
   ft.onDisplayKeys('', false, false).dp();
   ft.onInputCompleted(false, false).dp();
 
-  r('onKeypress -> consumeMultiKeyAction, onInputCompleted...', s.pt.onKeypress.pipe(
+  r('onKeypress -> consumeMultiKey, onInputCompleted...', s.pt.onKeypress.pipe(
     rx.observeOn(rx.queueScheduler),
     rx.exhaustMap(([m, evt]) => {
       ft.onInputCompleted(false, false).dp(m);
-      return ft.consumeMultiKeyAction(evt).od(s.pt.doneConsumeMultiKeyAction).pipe(
+      return ft.consumeMultiKey(evt).od(s.pt.didConsumeMultiKey).pipe(
         rx.take(1),
         rx.takeUntil(s.pt.onBreak),
         rx.map(([, act, amount]) => {
           let valid = true;
-          if (act === 'left')
+          if (act === KeyEventEnum.scrollLeft)
             ft.onLeft(amount).dp(m);
-          else if (act === 'right')
+          else if (act === KeyEventEnum.scrollRight)
             ft.onRight(amount).dp(m);
-          else if (act === 'up')
+          else if (act === KeyEventEnum.scrollUp)
             ft.onUp(amount).dp(m);
-          else if (act === 'down')
+          else if (act === KeyEventEnum.scrollDown)
             ft.onDown(amount).dp(m);
+          else if (act === KeyEventEnum.focusUp || act === KeyEventEnum.focusDown ||
+            act === KeyEventEnum.focusLeft || act === KeyEventEnum.focusRight ||
+            act === KeyEventEnum.focusNext
+          )
+            ft.onFocusChange(act, amount).dp(m);
           else if (act == null) {
             valid = false;
           }
@@ -285,16 +313,16 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
             canvas.s.ft.render().dp(m);
           })
         ),
-        s.pt.doneConsumeMultiKeyAction.pipe(
+        s.pt.didConsumeMultiKey.pipe(
           rx.withLatestFrom(scrollable.table.l.onValidScroll),
           rx.map(([[m, act], [, x, y]]) => {
-            if (act === 'top')
+            if (act === KeyEventEnum.scrollTop)
               scrollable.s.ft.scrollTo(x, 0).dp(m);
-            else if (act === 'bottom')
+            else if (act === KeyEventEnum.scrollBottom)
               scrollable.s.ft.scrollTo(x, Number.MAX_VALUE).dp(m);
-            else if (act === 'home')
+            else if (act === KeyEventEnum.home)
               scrollable.s.ft.scrollTo(0, y).dp(m);
-            else if (act === 'end')
+            else if (act === KeyEventEnum.end)
               scrollable.s.ft.scrollTo(Number.MAX_VALUE, y).dp(m);
             canvas.s.ft.render().dp(m);
           })

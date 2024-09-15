@@ -19,7 +19,7 @@ export declare enum TableVertAlig {
     bottom = 2
 }
 export interface TableInput {
-    setLazyLoad(enableLazy: boolean, handler?: (pageIndex: number) => rx.Observable<(BaseWidget | string)[]>): SingleActionFactory;
+    setLazyLoad(enableLazy: boolean, handler?: (pageIndex: number) => rx.Observable<[key: unknown, comp: (BaseWidget | string)[]]>): SingleActionFactory;
     addRow(cells: (string | BaseWidget)[]): SingleActionFactory;
     insertRow(index: number, cells: (string | BaseWidget)[]): SingleActionFactory;
     /** response: "didGetRowByIndex" */
@@ -42,15 +42,15 @@ export interface TableInput {
 }
 interface TableEvents extends TableInput {
     /** In context of "addRow" or "insertRow" */
-    onRowAdded(index: number, rowId: number, cells: BaseWidget[]): SingleActionFactory;
+    onRowAdded(index: number, rowKey: unknown, cells: BaseWidget[]): SingleActionFactory;
     /** In context of "removeRow" */
-    onRowRemoved(rowId: number, cells: BaseWidget[]): SingleActionFactory;
+    onRowRemoved(rowKey: unknown, cells: BaseWidget[]): SingleActionFactory;
     onBorderTypeSet(typeSet: Set<TableBorderType>): SingleActionFactory;
     onCellBgRender(col: number, row: number, canvas: TerminalCanvas, rect: Rectangle): SingleActionFactory;
-    rowById(rows: Map<number, BaseWidget[]>): SingleActionFactory;
+    rowById<K>(rows: Map<K, BaseWidget[]>): SingleActionFactory;
     calcSize(contrainWidth?: number): SingleActionFactory;
     didCalcSize(columnWidths: number[], rowHeights: number[], totalWidth: number, totalHeight: number, beforePhHeight?: number, afterPh?: number): SingleActionFactory;
-    rowIds(idList: number[]): SingleActionFactory;
+    rowIds(idList: unknown[]): SingleActionFactory;
     didGetRowByIndex(cells: BaseWidget[]): SingleActionFactory;
 }
 declare const tableFor: readonly ["rowById", "setColumnSpacing", "onBorderTypeSet", "setRowSpacing", "setLazyLoad", "setBorderStyle", "setBorderPadding", "alignCell", "didCalcSize", "setCellBackground", "rowIds"];
@@ -62,5 +62,5 @@ export type TableOptions = {
     lazy?: LazyLoadPlaceHolderOpts;
     optsForCellComponent?: MultiLineTextWidgetOpts;
 };
-export declare function createTable(opts?: TableOptions): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents & TableEvents, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "setBorderStyle" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setLazyLoad" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents, readonly ("onSize" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents, readonly ["onSize", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent"], unknown>>>;
+export declare function createTable(opts?: TableOptions): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents & TableEvents, readonly ("setBorderStyle" | "onSize" | "onTransform" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setLazyLoad" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents, readonly ("onSize" | "onTransform" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents, readonly ["onSize", "onTransform", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "latestRenderData"], unknown>>>;
 export {};

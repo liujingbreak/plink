@@ -75,9 +75,9 @@ export class RxController2 extends ControllerCore {
      * - prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor
      *   when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)
      */
-    prependController(name = '.prepend') {
+    prependController(name) {
         const targetCtl = new RxController2();
-        targetCtl.config(Object.assign(Object.assign({}, this.opts), { name: this.logPrefix + name }));
+        targetCtl.config(Object.assign(Object.assign({}, this.opts), name ? { name } : {}));
         this.configChange.subscribe(targetCtl.configChange);
         // unlike actionUpstream, thisUpStream is posterior to interceptors
         const thisUpStream = new rx.Subject();

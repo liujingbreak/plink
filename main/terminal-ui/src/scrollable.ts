@@ -1,8 +1,10 @@
+/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SimplexReactorExtendType, SingleActionFactory, ActionDispenser, CoreOptions} from '@wfh/reactivizer';
-import {BaseWidget, TerminalContainer, createContainerBase} from './base';
+import {BaseWidget, TerminalContainer, createContainerBase, OffsetParent} from './base';
 import {createTerminalCanvas, TerminalCanvasOptions, TextStyle, rectIntersection} from './canvas';
+import {createFocusService, FocusService} from './focusable';
 
 export interface ScrollActions {
   scrollTo(left: number, top: number): SingleActionFactory;
@@ -28,6 +30,7 @@ export interface ScrollableOptions {
   default?: CoreOptions;
   core?: Partial<NonNullable<Scrollable['opts']>>;
   canvas?: TerminalCanvasOptions;
+  focusable?: Partial<FocusService['opts']>;
 }
 
 export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
@@ -100,8 +103,9 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       comp.s.ft.render(canvas, mat4.create(), clipsOfView, masksOfView).dp(m);
       const orig = [0, 0] as vec2;
       vec2.transformMat4(orig, orig, trans);
-      // canvas.s.ft.clearRect(orig[0], orig[1], width, height).dp(m);
-      return canvas.s.ft.copyDirtyRectAndClear(scLeft, scTop, width, height).re(m).od(
+      focusService.s.ft.setRenderClips(clipsOfView).dp(m);
+      focusService.s.ft.render(canvas).dp(m);
+      return canvas.s.ft.copyRect(scLeft, scTop, width, height).re(m).od(
         canvas.s.pt.onCopyRect
       ).pipe(
         rx.take(1),
@@ -214,14 +218,21 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
   r('canvas.error$', canvas.error$.pipe(
     rx.map(errInfo => s.ft.onChildError(canvas.s.logPrefix, errInfo))
   ));
-  scrollable.destory$.pipe(
+  const focusService = createFocusService({
+    ...opts?.default as any,
+    name: opts?.default?.name ? opts?.default?.name + '.focusSvc' : 'scrollable.focusSvc',
+    ...opts?.focusable
+  });
+  r('destory$ -> focusService.dispose', scrollable.destory$.pipe(
     rx.map(() => {
+      focusService.dispose();
       canvas.dispose();
-    }),
-    rx.take(1)
-  ).subscribe();
-
+    })
+  ));
+  const service = scrollable as (Scrollable & OffsetParent);
+  service.focusService = focusService;
   r('init', new rx.Observable<never>(() => {
+    s.ft.isOffsetParent(service).dp();
     s.ft.onContentSizeChange(2, 2).dp();
     s.ft.setPreferredSize(null, null).dp();
     s.ft.onValidScroll(0, 0).dp();
@@ -233,5 +244,5 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
     s.ft.addReflowAction(s.at.setScrollable).dp();
     s.ft.hasOfflineCanvas(true).dp();
   }));
-  return scrollable;
+  return service;
 }
