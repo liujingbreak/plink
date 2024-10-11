@@ -4,8 +4,8 @@ import { actionRelatedToAction } from './context-operators';
 export * from './stream-core';
 export class RxController {
     constructor(opts) {
-        this.opts = opts;
         const core = this.core = new ControllerCore(opts);
+        this.opts = opts;
         this.dispatcher = this.dp = new Proxy({}, {
             get(_target, key, _rec) {
                 return core.dispatchFactory(key);

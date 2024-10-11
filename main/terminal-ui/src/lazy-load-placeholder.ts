@@ -1,7 +1,7 @@
 /* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
-import {CoreOptions, SingleActionFactory, SimplexReactor, actionRelatedToAction} from '@wfh/reactivizer';
+import {OptionsOfSmplxRctr, CoreOptions, SingleActionFactory, SimplexReactor, actionRelatedToAction} from '@wfh/reactivizer';
 import {createFlexContainer, FlexContainerOpts} from './flex-container';
 import {Rectangle} from './canvas';
 import {createTextWidget, MultiLineTextWidgetOpts} from './text';
@@ -64,7 +64,7 @@ const tableFor = ['setExpandDir', 'setLabel', 'setAveragePageSize',
 
 export type LazyLoadPlaceHolderOpts = {
   default?: CoreOptions<any>;
-  core?: Partial<LazyLoadPlaceHolder['opts']>;
+  core?: Partial<OptionsOfSmplxRctr<LazyLoadPlaceHolder>>;
   headPlaceHolder?: Partial<FlexContainerOpts>;
   tailPlaceHolder?: Partial<FlexContainerOpts>;
   headPlaceHolderLabel?: Partial<MultiLineTextWidgetOpts>;

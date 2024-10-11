@@ -13,15 +13,16 @@ export class SimplexReactor {
             else
                 this.reactorSubj.next(['', ...params]);
         };
-        /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
-        this.asBaseType = this;
+        // /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
+        // asBaseType = this as unknown as BaseType;
         /** alias of "asBaseType",
          * cast current SimplexReactor type to its logical super type for Typescript type assignable check
          **/
-        this.b = this;
+        // b = this as unknown as BaseType;
         this.id = SEQ++;
         this.reactorSubj = new rx.ReplaySubject();
         this.errorSubject = new rx.ReplaySubject(20);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.opts = opts;
         this.s = new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `#${this.id}` }));
         const internalMsg$ = this.s;

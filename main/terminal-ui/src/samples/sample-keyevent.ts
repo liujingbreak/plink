@@ -22,7 +22,7 @@ function log(...args: any[]) {
 const canvas = createTerminalCanvas({debug: true, log});
 const root = createFlexContainer({name: 'root', debug: false, log});
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
   process.stdout.clearScreenDown();
   console.error(label, err);
@@ -35,9 +35,9 @@ root.s.ft.alignItems('center').dp();
 
 const label = createTextWidget('What you have typed', {name: 'label.1', debug: false, log});
 const labelRecognized = createTextWidget('What system understands', {name: 'label.2', debug: true, log});
-const border = createBorderContainer(label.asBaseType, {debug: true, log});
+const border = createBorderContainer(label, {debug: true, log});
 
-root.s.ft.addChild(border.asBaseType.asBaseType, labelRecognized.asBaseType).dp();
+root.s.ft.addChild(border, labelRecognized).dp();
 // root.s.ft.setBackground('bgGreen').dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 

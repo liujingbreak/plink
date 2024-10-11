@@ -63,5 +63,5 @@ interface RawKeyEvent {
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
 export type KeyEventOptions = CoreOptions<KeyScrollingMsg>;
-export declare function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"], unknown>;
+export declare function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"]>;
 export {};

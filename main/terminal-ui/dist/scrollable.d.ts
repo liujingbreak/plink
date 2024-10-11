@@ -1,4 +1,4 @@
-import { SimplexReactorExtendType, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
+import { SimplexReactorExtendType, OptionsOfSmplxRctr, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
 import { BaseWidget, TerminalContainer, OffsetParent } from './base';
 import { TerminalCanvasOptions } from './canvas';
 import { FocusService } from './focusable';
@@ -23,9 +23,9 @@ declare const tableFor: readonly ["onValidScroll", "setScrollable", "onOverflow"
 export type Scrollable = SimplexReactorExtendType<TerminalContainer, ScrollSignals, typeof tableFor>;
 export interface ScrollableOptions {
     default?: CoreOptions;
-    core?: Partial<NonNullable<Scrollable['opts']>>;
+    core?: Partial<OptionsOfSmplxRctr<Scrollable>>;
     canvas?: TerminalCanvasOptions;
-    focusable?: Partial<FocusService['opts']>;
+    focusable?: Partial<OptionsOfSmplxRctr<FocusService>>;
 }
 export declare function createScrollable(comp: BaseWidget, opts?: ScrollableOptions): Scrollable & OffsetParent;
 export {};

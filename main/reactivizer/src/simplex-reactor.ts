@@ -24,8 +24,8 @@ let SEQ = new Date().getUTCMilliseconds();
 
 export class SimplexReactor<
   I = Record<never, never>,
-  LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
-  BaseType = unknown
+  LI extends readonly (keyof I)[] | (keyof I)[] = readonly []
+  // BaseType = unknown
 > {
   /** All catched error goes here, including those from "dispatchErrorFor" */
   error$: rx.Observable<readonly [error: any, label: string | null]>;
@@ -40,21 +40,22 @@ export class SimplexReactor<
       this.reactorSubj.next(['', ...params as [stream: rx.Observable<any>, disableCatchError?: boolean]]);
   };
   table: ActionTable<I & BaseActions<I>, LE<LI>>;
-  /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
-  asBaseType = this as unknown as BaseType;
+  // /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
+  // asBaseType = this as unknown as BaseType;
   /** alias of "asBaseType",
    * cast current SimplexReactor type to its logical super type for Typescript type assignable check
    **/
-  b = this as unknown as BaseType;
+  // b = this as unknown as BaseType;
   id = SEQ++;
   // use type parameter <any> to make SimplexReactor more assignable to extend type
-  opts?: SimplexReactorOptions<I, LI>;
+  opts?: SimplexReactorOptions<unknown, readonly never[]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]> = new rx.ReplaySubject();
   protected errorSubject: rx.Subject<[label: string, originError: any]> =
     new rx.ReplaySubject(20);
 
   constructor(opts?: SimplexReactorOptions<I, LI>) {
-    this.opts = opts;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    this.opts = opts as any;
     this.s = new RxController2<I & BaseActions<I>>({...opts, name: (opts?.name ?? '') + `#${this.id}`});
     const internalMsg$ = this.s as unknown as RxController2<BaseActions>;
 
@@ -144,7 +145,7 @@ export class SimplexReactor<
       }
       return obj;
     }, {} as RxControlConfigType<I>));
-    return this as unknown as SimplexReactor<I & I2, readonly (LI[number] | L2[number])[], SimplexReactor<I, LI, BaseType>>;
+    return this as unknown as SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
   }
   /**
    * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
@@ -202,7 +203,7 @@ export class SimplexReactor<
         this.reactivizeFunction(key, func, fObject);
       }
     }
-    return this as SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI, BaseType>;
+    return this as SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>;
   }
   log(...msg: any[]) {
     if (this.opts?.debug) {

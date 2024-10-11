@@ -25,7 +25,7 @@ function log(...args: any[]) {
 const canvas = createTerminalCanvas({debug: true, log});
 
 const root = createFlexContainer({name: 'root', debug: true, log});
-canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
   process.stdout.clearScreenDown();
   console.error(label, err);
@@ -40,9 +40,9 @@ root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
 
 const label = createTextWidget('8', {debug: true, log});
-const border = createBorderContainer(label.asBaseType, {debug: true, log});
+const border = createBorderContainer(label, {debug: true, log});
 
-root.s.ft.addChild(border.asBaseType.asBaseType).dp();
+root.s.ft.addChild(border).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 canvas.s.ft.render().dp();
 

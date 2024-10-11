@@ -1,8 +1,9 @@
 import * as rx from 'rxjs';
-import { SingleActionFactory, SimplexReactorExtendType, CoreOptions } from '@wfh/reactivizer';
+import { SingleActionFactory, SimplexReactorExtendType, CoreOptsOfExtSmplxRctr, CoreOptions } from '@wfh/reactivizer';
 import { LazyLoadPlaceHolderOpts } from './lazy-load-placeholder';
 import { MultiLineTextWidgetOpts } from './text';
-import { BaseWidget, TerminalContainer, TextStyle, BackgroundStyle, Rectangle, TerminalCanvas, FlexContainer } from './index';
+import { FlexContainerOpts } from './flex-container';
+import { BaseWidget, TerminalContainer, TextStyle, BackgroundStyle, Rectangle, TerminalCanvas } from './index';
 export declare enum TableBorderType {
     border = 0,
     rowSeparator = 1,
@@ -55,12 +56,13 @@ interface TableEvents extends TableInput {
 }
 declare const tableFor: readonly ["rowById", "setColumnSpacing", "onBorderTypeSet", "setRowSpacing", "setLazyLoad", "setBorderStyle", "setBorderPadding", "alignCell", "didCalcSize", "setCellBackground", "rowIds"];
 export type Table = SimplexReactorExtendType<TerminalContainer, TableEvents, typeof tableFor>;
+export type TableCoreOptions = CoreOptsOfExtSmplxRctr<Table>;
 export type TableOptions = {
     default?: CoreOptions;
-    core?: Partial<Table['opts']>;
-    moreIndicator?: Partial<FlexContainer['opts']>;
+    core?: TableCoreOptions;
+    moreIndicator?: Partial<FlexContainerOpts>;
     lazy?: LazyLoadPlaceHolderOpts;
     optsForCellComponent?: MultiLineTextWidgetOpts;
 };
-export declare function createTable(opts?: TableOptions): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents & TableEvents, readonly ("setBorderStyle" | "onSize" | "onTransform" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setLazyLoad" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents, readonly ("onSize" | "onTransform" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents, readonly ["onSize", "onTransform", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "latestRenderData"], unknown>>>;
+export declare function createTable(opts?: TableOptions): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & import("./base").TermainlContainerEvents & TableEvents, readonly ("setBorderStyle" | "onSize" | "onTransform" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setLazyLoad" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[]>;
 export {};

@@ -14,7 +14,7 @@ export declare class ActionTable<I, IK extends keyof I> {
     }>;
     get dataChange$(): rx.Observable<ActionTableDataType<I, IK>>;
     private data;
-    actionSnapshot: Map<string, [import("./stream-core").ActionMeta, ...InferPayload<I[keyof I]>]>;
+    actionSnapshot: Map<string, [import("./stream-core").ActionMeta, ...unknown[]]>;
     private actionNamesAdded$;
     constructor(streamCtl: RxController<I> | RxController2<I>, actionNames: IK[] | readonly IK[]);
     getData(): ActionTableDataType<I, IK>;

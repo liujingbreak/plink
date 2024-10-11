@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
-import {SimplexReactorExtendType, SingleActionFactory} from '@wfh/reactivizer';
+import {SimplexReactorExtendType, SingleActionFactory, OptionsOfSmplxRctr} from '@wfh/reactivizer';
 import {getTextDisplayUnits, TextStyle} from './canvas';
 import {createBase, BaseWidget} from './base';
 import {isCodePointFullWidth, createWordSplitter} from './text-split';
@@ -22,9 +22,9 @@ export type MultiLineTextWidget = SimplexReactorExtendType<
 BaseWidget, MultiLineTextActions, typeof tableForMultiLineText
 >;
 
-export type MultiLineTextWidgetOpts = Omit<NonNullable<MultiLineTextWidget['opts']>, 'tableFor'>;
+export type MultiLineTextWidgetOpts = Omit<NonNullable<OptionsOfSmplxRctr<MultiLineTextWidget>>, 'tableFor'>;
 export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpts) {
-  const service = createBase(opts as BaseWidget['opts']).config<MultiLineTextActions, typeof tableForMultiLineText>({
+  const service = createBase(opts as OptionsOfSmplxRctr<BaseWidget>).config<MultiLineTextActions, typeof tableForMultiLineText>({
     name: 'text',
     ...opts,
     tableFor: tableForMultiLineText

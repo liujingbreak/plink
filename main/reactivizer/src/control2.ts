@@ -98,8 +98,8 @@ export class RxController2<I> extends ControllerCore<I> {
     targetCtl.config({...this.opts as CoreOptions<I>, ...name ? {name} : {}});
     this.configChange.subscribe(targetCtl.configChange);
     // unlike actionUpstream, thisUpStream is posterior to interceptors
-    const thisUpStream = new rx.Subject<Action<I[keyof I]>>();
-    const targetUpstream = new rx.Subject<Action<I[keyof I]>>();
+    const thisUpStream = new rx.Subject<Action<unknown>>();
+    const targetUpstream = new rx.Subject<Action<unknown>>();
     targetCtl.prependInterceptor(a$ => {
       return rx.merge(
         targetUpstream,

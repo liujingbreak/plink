@@ -5,9 +5,6 @@ export * from './stream-core';
 export type DispatchAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
 export type DispatchForAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
 export declare class RxController<I> {
-    opts?: (CoreOptions<I> & {
-        debugTableAction?: boolean;
-    }) | undefined;
     core: ControllerCore<I>;
     dispatcher: {
         [K in keyof I]: Dispatch<I[K]>;
@@ -43,17 +40,20 @@ export declare class RxController<I> {
     actionByType: ActionByType<I>;
     /** abbrevation of actionByType */
     at: ActionByType<I>;
-    interceptor$: ControllerCore<I>['interceptor$'];
-    constructor(opts?: (CoreOptions<I> & {
+    opts: CoreOptions<unknown> & {
         debugTableAction?: boolean;
-    }) | undefined);
+    };
+    interceptor$: ControllerCore<I>['interceptor$'];
+    constructor(opts?: CoreOptions<I> & {
+        debugTableAction?: boolean;
+    });
     /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
     * belongs to
     */
     setName(value: string): void;
     createAction<J = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J[K]>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-    groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
+    groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
     /**
      * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
      */

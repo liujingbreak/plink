@@ -10,7 +10,8 @@
  *  onFocus event should be dispatched
  */
 import * as rx from 'rxjs';
-import {SimplexReactor, SingleActionFactory, SimplexReactorExtendType, actionRelatedToAction, ActionMeta} from '@wfh/reactivizer';
+import {SimplexReactor, SingleActionFactory, SimplexReactorExtendType, actionRelatedToAction, ActionMeta,
+  SimplexReactorOptions} from '@wfh/reactivizer';
 import {RedBlackTree} from '@wfh/algorithms';
 import {BaseWidget, OffsetParent} from './base';
 import {Rectangle, TerminalCanvas, TextStyle} from './canvas';
@@ -55,7 +56,7 @@ const tableFor = [
 export type FocusService = SimplexReactor<FocusableMessages, typeof tableFor>;
 const COORD_ROUND_RATIO_X = 3;
 const COORD_ROUND_RATIO_Y = 2;
-export type FocusableOptions = Partial<FocusService['opts']>;
+export type FocusableOptions = Partial<SimplexReactorOptions<FocusableMessages, typeof tableFor>>;
 export function createFocusService(opts?: FocusableOptions) {
   const service = new SimplexReactor<FocusableMessages, typeof tableFor>({
     name: 'focusSvc',

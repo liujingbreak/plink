@@ -2,13 +2,15 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {ActionDispenser, SingleActionFactory, actionRelatedToAction,
-  SimplexReactorExtendType,
+  SimplexReactorExtendType, CoreOptsOfExtSmplxRctr,
   CoreOptions} from '@wfh/reactivizer';
 import {RectangleOverlapTree} from './rectangle-overlap-tree';
 import {createPlaceHolder, LazyLoadPlaceHolder, LazyLoadPlaceHolderOpts} from './lazy-load-placeholder';
 import {createTextWidget, MultiLineTextWidgetOpts} from './text';
+import {TerminalContainerOpts} from './base';
+import {FlexContainerOpts} from './flex-container';
 import {BaseWidget, createFlexContainer, createContainerBase, TerminalContainer,
-  TextStyle, BackgroundStyle, Rectangle, TerminalCanvas, FlexContainer} from './index';
+  TextStyle, BackgroundStyle, Rectangle, TerminalCanvas} from './index';
 
 export enum TableBorderType {
   border, rowSeparator, columnSeparator
@@ -58,10 +60,11 @@ const tableFor = ['rowById', 'setColumnSpacing', 'onBorderTypeSet', 'setRowSpaci
   'setBorderStyle', 'setBorderPadding', 'alignCell', 'didCalcSize', 'setCellBackground', 'rowIds'
 ] as const;
 export type Table = SimplexReactorExtendType<TerminalContainer, TableEvents, typeof tableFor>;
+export type TableCoreOptions = CoreOptsOfExtSmplxRctr<Table>;
 export type TableOptions = {
   default?: CoreOptions;
-  core?: Partial<Table['opts']>;
-  moreIndicator?: Partial<FlexContainer['opts']>;
+  core?: TableCoreOptions;
+  moreIndicator?: Partial<FlexContainerOpts>;
   lazy?: LazyLoadPlaceHolderOpts;
   optsForCellComponent?: MultiLineTextWidgetOpts;
 };
@@ -69,8 +72,8 @@ export type TableOptions = {
 export function createTable(opts?: TableOptions) {
   const base = createContainerBase({
     name: 'table',
-    ...opts?.default as TerminalContainer['opts'],
-    ...opts?.core as TerminalContainer['opts']
+    ...opts?.default as TerminalContainerOpts,
+    ...opts?.core as TerminalContainerOpts
   });
   const service = base.config<TableEvents, typeof tableFor>({
     debugExcludeTypes: ['renderChild', 'onCellBgRender', ...(base.opts!.debugExcludeTypes ?? [])],
@@ -102,7 +105,7 @@ export function createTable(opts?: TableOptions) {
     ...opts as any,
     name: 'table.more.text'
   });
-  moreIndicator.s.ft.addChild(moreText.b).dp();
+  moreIndicator.s.ft.addChild(moreText).dp();
   let lazyService: LazyLoadPlaceHolder | undefined;
   let beforePlaceHolder: BaseWidget | undefined;
   let afterPlaceHolder: BaseWidget | undefined;
@@ -120,8 +123,8 @@ export function createTable(opts?: TableOptions) {
           }
         });
         lazyService = lazyService0;
-        beforePlaceHolder = before.b.b;
-        afterPlaceHolder = after.b.b;
+        beforePlaceHolder = before;
+        afterPlaceHolder = after;
         // s.ft.insertChild(0, [beforePlaceHolder]).dp(m);
         s.ft.addChild(beforePlaceHolder, afterPlaceHolder).dp(m);
         if (handler) {
@@ -559,7 +562,7 @@ export function createTable(opts?: TableOptions) {
           let heightCon = tableH;
           if (moreH > 0) {
             const moreTop = border.has(TableBorderType.border) ? tableH - moreH - 1 : tableH - moreH;
-            childPos.set(moreIndicator.b.b, [border.has(TableBorderType.border) ? 1 : 0, moreTop]);
+            childPos.set(moreIndicator, [border.has(TableBorderType.border) ? 1 : 0, moreTop]);
             moreIndicator.s.ft.onSize(moreW, moreH).dp(m);
             heightCon = moreTop;
           }
@@ -821,7 +824,7 @@ export function createTable(opts?: TableOptions) {
           }
           let i = 0;
           for (const [idx, chd] of childToRender) {
-            if (chd !== moreIndicator.b.b) {
+            if (chd !== moreIndicator) {
               s.ft.renderChild(idx, chd, canvas, trans, clips, masks ?? []).dp(m);
               i++;
             }
@@ -830,7 +833,7 @@ export function createTable(opts?: TableOptions) {
             rx.take(1),
             rx.map(([, overflow]) => {
               if (overflow) {
-                s.ft.renderChild(i, moreIndicator.b.b, canvas, trans, clips, masks ?? []).dp(m);
+                s.ft.renderChild(i, moreIndicator, canvas, trans, clips, masks ?? []).dp(m);
               }
             })
           );
@@ -854,6 +857,29 @@ export function createTable(opts?: TableOptions) {
         }
       })
     ))
+  ));
+  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
+    rx.mergeMap(([m, ...rect]) => {
+      const children = childBoundingTree.searchOverlaps(rect);
+      return rx.from(children).pipe(
+        rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(
+          rx.take(1),
+          rx.mergeMap(([, isContainer]) => isContainer ?
+            (chd as TerminalContainer).s.ft.findOverlaps(...rect)
+              .od((chd as TerminalContainer).s.pt.didFindOverlaps).pipe(
+                rx.map(([, chdOfChd]) => chdOfChd),
+                rx.endWith([chd])
+              ) :
+            rx.of([chd])
+          )
+        )),
+        rx.reduce((acc, it) => {
+          acc.push(...it);
+          return acc;
+        }, [] as BaseWidget[]),
+        rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+      );
+    })
   ));
   r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(
     rx.mergeMap(([m, width, height]) => {
@@ -899,7 +925,7 @@ export function createTable(opts?: TableOptions) {
   s.ft.setRowSpacing(0).dp();
   s.ft.alignCell(TableHoriAlig.left, TableVertAlig.middle).dp();
   s.ft.setBorderPadding(1, 0).dp();
-  s.ft.addChild(moreIndicator.b.b).dp();
+  s.ft.addChild(moreIndicator).dp();
   s.ft.setCellBackground(() => {}).dp();
   s.ft.isOpaque(true).dp();
   s.ft.setLazyLoad(false).dp();
@@ -911,7 +937,7 @@ export function createTable(opts?: TableOptions) {
         createTextWidget(cell, {
           name: (opts?.default?.name ?? 'table') + '.cell',
           ...((opts?.optsForCellComponent) ?? {debug: opts?.default?.debug, log: opts?.default?.log})
-        }).b :
+        }) :
         cell;
       if (!isValueString && opts?.optsForCellComponent)
         comp.config(opts?.optsForCellComponent as any);

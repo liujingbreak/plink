@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {SingleActionFactory, SimplexReactorExtendType} from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactorExtendType, OptionsOfSmplxRctr} from '@wfh/reactivizer';
 import {FlexContainer, createFlexContainer, Scrollable, KeyEventServcie, createBorderContainer, DisplayMode, createTextWidget} from '../index';
 
 export interface StatusbarMessages {
@@ -12,7 +12,7 @@ export interface StatusbarMessages {
 const tableFor = ['trackKeypressService', 'trackScrollable'] as const;
 
 export type Statusbar = SimplexReactorExtendType<FlexContainer, StatusbarMessages, typeof tableFor>;
-export type StatusbarOptions = Partial<Statusbar['opts']>;
+export type StatusbarOptions = Partial<OptionsOfSmplxRctr<Statusbar>>;
 export function createStatusbar(opts?: StatusbarOptions) {
   const container = createFlexContainer({
     ...opts as any,

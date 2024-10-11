@@ -1,4 +1,4 @@
-import { SimplexReactorExtendType, SingleActionFactory } from '@wfh/reactivizer';
+import { SimplexReactorExtendType, SingleActionFactory, OptionsOfSmplxRctr } from '@wfh/reactivizer';
 import { TextStyle } from './canvas';
 import { BaseWidget } from './base';
 export interface MultiLineTextActions {
@@ -12,6 +12,6 @@ export interface MultiLineTextActions {
 }
 declare const tableForMultiLineText: readonly ["setContent", "setStyle", "onDisplayLines", "onDisplayLinesForWidth", "onDisplayLinesForPrefSize", "onStyleWithParentBg"];
 export type MultiLineTextWidget = SimplexReactorExtendType<BaseWidget, MultiLineTextActions, typeof tableForMultiLineText>;
-export type MultiLineTextWidgetOpts = Omit<NonNullable<MultiLineTextWidget['opts']>, 'tableFor'>;
-export declare function createTextWidget(initialText?: string, opts?: MultiLineTextWidgetOpts): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & MultiLineTextActions, readonly ("onSize" | "onTransform" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "setContent" | "setStyle" | "onDisplayLines" | "onDisplayLinesForWidth" | "onDisplayLinesForPrefSize" | "onStyleWithParentBg")[], import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents, readonly ["onSize", "onTransform", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "latestRenderData"], unknown>>;
+export type MultiLineTextWidgetOpts = Omit<NonNullable<OptionsOfSmplxRctr<MultiLineTextWidget>>, 'tableFor'>;
+export declare function createTextWidget(initialText?: string, opts?: MultiLineTextWidgetOpts): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents & MultiLineTextActions, readonly ("onSize" | "onTransform" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "setContent" | "setStyle" | "onDisplayLines" | "onDisplayLinesForWidth" | "onDisplayLinesForPrefSize" | "onStyleWithParentBg")[]>;
 export {};

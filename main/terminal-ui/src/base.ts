@@ -2,7 +2,7 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
-import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, ActionMeta, Action, InferMapParam, SimplexReactorOptions} from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactor, SimplexReactorMergeType, ActionMeta, Action, InferMapParam, OptionsOfSmplxRctr, SimplexReactorOptions} from '@wfh/reactivizer';
 import {TerminalCanvas, Rectangle, BackgroundStyle, rectIntersection} from './canvas';
 import {FocusService, SearchDirection} from './focusable';
 
@@ -28,6 +28,7 @@ export interface BaseWidgetInput {
   setFocusable(focusable: boolean | Rectangle): SingleActionFactory;
 }
 export interface BaseWidgetEvents extends BaseWidgetInput {
+  isContainer(yes: boolean): SingleActionFactory;
   onSize(width: number, height: number): SingleActionFactory;
   onTransform(trans: mat4): SingleActionFactory;
   _saveTransform(trans: mat4): SingleActionFactory;
@@ -74,12 +75,12 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
 export const tableForBase = [
   'onSize', 'onTransform', 'offsetParent', 'isOffsetParent', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
   'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink',
-  'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'latestRenderData'
+  'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'latestRenderData', 'isContainer'
 ] as const;
 export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
-
+export type BaseWidgetOptions = SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>>) {
+export function createBase(opts?: Partial<BaseWidgetOptions>) {
   const service = new SimplexReactor<BaseWidgetEvents, typeof tableForBase>({
     ...opts,
     tableFor: tableForBase,
@@ -378,6 +379,7 @@ export function createBase(opts?: Partial<SimplexReactorOptions<BaseWidgetEvents
     s.ft.setFocusable(false).dp();
     s.ft.onDettached(true).dp();
     s.ft.setBackground(null).dp();
+    s.ft.isContainer(false).dp();
     s.ft.latestRenderData(renderData).dp();
   }));
   return service;
@@ -391,6 +393,9 @@ export interface TerminalContainerInput {
    * If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
   addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
   latestReflowData(data$: rx.Observable<unknown>): SingleActionFactory;
+
+  /** Respond by didFindOverlaps */
+  findOverlaps(...rect: Rectangle): SingleActionFactory;
 }
 
 export interface TermainlContainerEvents extends TerminalContainerInput {
@@ -427,6 +432,8 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
   renderBackgroundFor(child: BaseWidget): SingleActionFactory;
   /** Being relied by ElevatorContainer */
   isOpaque(yes: boolean): SingleActionFactory;
+  /** In context of findOverlaps */
+  didFindOverlaps(children: BaseWidget[]): SingleActionFactory;
 }
 
 const tableFor = [
@@ -434,9 +441,10 @@ const tableFor = [
   'isOpaque', 'latestReflowData'
 ] as const;
 export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<TermainlContainerEvents, typeof tableFor>>;
+export type TerminalContainerOpts = Partial<OptionsOfSmplxRctr<TerminalContainer>>;
 
-export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
-  const base = createBase(opts as BaseWidget['opts']);
+export function createContainerBase(opts?: TerminalContainerOpts) {
+  const base = createBase(opts as SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>);
   const service = base.config<TermainlContainerEvents, typeof tableFor>({
     tableFor,
     debugExcludeTypes: ['renderBackgroundFor']
@@ -627,6 +635,42 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
       })
     ) : rx.EMPTY)
   ));
+  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
+    rx.mergeMap(([m, x, y, w, h]) => {
+      return table.l.allDisplayChildren.pipe(
+        rx.take(1),
+        rx.mergeMap(([, chd]) => chd),
+        rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(
+          rx.take(1),
+          rx.filter(([, [cx, cy, cw, ch]]) => {
+            return !(cx > x + w || cx + cw < x ||
+                     cy > y + h || cy + ch < y);
+          }),
+          rx.map(() => chr)
+        )),
+
+        rx.mergeMap(chr => chr.table.l.isContainer.pipe(
+          rx.take(1),
+          rx.mergeMap(isContainer => {
+            if (isContainer) {
+              return (chr as TerminalContainer).s.ft.findOverlaps(x, y, w, h)
+                .re(m).od((chr as TerminalContainer).s.pt.didFindOverlaps).pipe(
+                  rx.take(1),
+                  rx.map(([, chdOfChd]) => chdOfChd),
+                  rx.endWith([chr])
+                );
+            }
+            return rx.of([chr]);
+          }),
+          rx.reduce((acc, it) => {
+            acc.push(...it);
+            return acc;
+          }, [] as BaseWidget[]),
+          rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+        ))
+      );
+    })
+  ));
 
   const reflowData = rx.combineLatest([
     table.l.onSize.pipe(
@@ -640,7 +684,8 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
     // ft.addReflowAction(onSize$).dp();
     // ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
     ft.latestRenderData(reflowData).dp();
-    ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
+    ft.isContainer(true).dp();
+    // ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
     ft.allChildren(children).dp();
     ft.onSize(0, 0).dp();
     ft.onContentSizeChange(0, 0).dp();
@@ -654,6 +699,10 @@ export function createContainerBase(opts?: Partial<TerminalContainer['opts']>) {
   }));
   return service;
 }
-export interface OffsetParent {
-  focusService: FocusService;
+
+export interface OffsetParentMessages {
+  findOverlapComponent(...rect: Rectangle): SingleActionFactory;
 }
+export type OffsetParent = SimplexReactor<OffsetParentMessages> & {
+  focusService: FocusService;
+};

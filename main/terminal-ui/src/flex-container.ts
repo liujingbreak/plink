@@ -41,6 +41,9 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
       dispenser.at.onRender.pipe(
         rx.ignoreElements()
       ),
+      dispenser.at.findOverlaps.pipe(
+        rx.ignoreElements()
+      ),
       dispenser.ofOtherTypes()
     );
   });
@@ -402,6 +405,29 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
         const [idx, chr] = chrToRender[i];
         s.ft.renderChild(idx, chr, canvas, trans, clips, masks).dp(m);
       }
+    })
+  ));
+  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
+    rx.mergeMap(([m, ...rect]) => {
+      const children = childBoundingTree.searchOverlaps(rect);
+      return rx.from(children).pipe(
+        rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(
+          rx.take(1),
+          rx.mergeMap(([, isContainer]) => isContainer ?
+            (chd as TerminalContainer).s.ft.findOverlaps(...rect)
+              .od((chd as TerminalContainer).s.pt.didFindOverlaps).pipe(
+                rx.map(([, chdOfChd]) => chdOfChd),
+                rx.endWith([chd])
+              ) :
+            rx.of([chd])
+          )
+        )),
+        rx.reduce((acc, it) => {
+          acc.push(...it);
+          return acc;
+        }, [] as BaseWidget[]),
+        rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+      );
     })
   ));
 

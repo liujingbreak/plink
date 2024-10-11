@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { SingleActionFactory, SimplexReactor } from '@wfh/reactivizer';
+import { SingleActionFactory, SimplexReactor, SimplexReactorOptions } from '@wfh/reactivizer';
 import { IntervalTree } from '@wfh/algorithms';
 import { BaseWidget } from './base';
 import { KeyEventServcie } from './keyEvent';
@@ -43,8 +43,8 @@ export interface TerminalCanvasEvents extends TerminalCanvasInput {
 }
 declare const tableFor: readonly ["setBounding", "setRootComponent", "onDirtyLineChange"];
 export type TerminalCanvas = SimplexReactor<TerminalCanvasInput & TerminalCanvasEvents, typeof tableFor>;
-export type TerminalCanvasOptions = Partial<NonNullable<TerminalCanvas['opts']>>;
-export declare function createTerminalCanvas(opts?: TerminalCanvasOptions): SimplexReactor<TerminalCanvasEvents, readonly ["setBounding", "setRootComponent", "onDirtyLineChange"], unknown>;
+export type TerminalCanvasOptions = Partial<SimplexReactorOptions<TerminalCanvasInput & TerminalCanvasEvents, typeof tableFor>>;
+export declare function createTerminalCanvas(opts?: TerminalCanvasOptions): SimplexReactor<TerminalCanvasEvents, readonly ["setBounding", "setRootComponent", "onDirtyLineChange"]>;
 export declare function getTextDisplayUnits(text: string): Generator<number, number[], unknown>;
 export type Range = [low: number, high: number];
 export type Rectangle = [x: number, y: number, w: number, h: number];

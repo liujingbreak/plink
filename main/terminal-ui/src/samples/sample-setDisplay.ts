@@ -16,8 +16,8 @@ function log(...args: any[]) {
   fout.write('\n');
 }
 const panel = createFlexContainer({name: 'contentPanel', debug, log});
-const border = createBorderContainer(panel.asBaseType.asBaseType, {name: 'contentPanelBorder', debug, log});
-const {canvas} = app.createApp(border.asBaseType.asBaseType, {default: {debug, log}});
+const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug, log});
+const {canvas} = app.createApp(border, {default: {debug, log}});
 
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
@@ -29,7 +29,7 @@ process.stdout.on('resize', () => {
 
 const welcome = createTextWidget('Hello...');
 welcome.s.ft.setStyle(['cyan']).dp();
-panel.s.ft.addChild(welcome.asBaseType).dp();
+panel.s.ft.addChild(welcome).dp();
 // panel.s.ft.setBackground('bgGray').dp();
 panel.s.ft.justifyContent('center').dp();
 panel.s.ft.alignItems('center').dp();
@@ -38,7 +38,7 @@ const thinLabel = createTextWidget('label A', {debug: true, log});
 const fatLabel = createTextWidget('Label B');
 const hiddenLabel = createTextWidget('Label C');
 border.s.ft.setFlexGrow(1).dp();
-panel.s.ft.addChild(hiddenLabel.asBaseType, thinLabel.asBaseType, fatLabel.asBaseType).dp();
+panel.s.ft.addChild(hiddenLabel, thinLabel, fatLabel).dp();
 
 rx.timer(1000, 1000).pipe(
   rx.take(6),

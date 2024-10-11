@@ -10,7 +10,7 @@ interface WordSplitterActions {
     onWord(wordCodePoints: number[], type: CodePointStateType[2], displayLength: number): SingleActionFactory;
     onWordRecorded(replay$: rx.Observable<InferPayload<WordSplitterActions['onWord']>>): SingleActionFactory;
 }
-export declare function createWordSplitter(opts?: CoreOptions<WordSplitterActions>): SimplexReactor<WordSplitterActions, readonly ["requestToken", "onWordRecorded"], unknown>;
+export declare function createWordSplitter(opts?: CoreOptions<WordSplitterActions>): SimplexReactor<WordSplitterActions, readonly ["requestToken", "onWordRecorded"]>;
 /**
  * Simply guessing any code point that is greater than 16-bit (might be Surrogate pairs) is full-width character,
  * and code point within CJK range is also full-width

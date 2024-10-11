@@ -17,13 +17,13 @@ function log(...args: any[]) {
 
 const canvas = createTerminalCanvas({debug: false, log});
 const root = createFlexContainer({name: 'root', debug, log});
-const border = createBorderContainer(root.b.b, {debug, log});
+const border = createBorderContainer(root, {debug, log});
 // const scrollable = createScrollable(border.b.b, {debug, log});
 root.s.ft.alignItems('center').dp();
 root.s.ft.justifyContent('space-between').dp();
 root.s.ft.setBorderSeparator(FlexBorderSeparator.line).dp();
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootComponent(border.b.b).dp();
+canvas.s.ft.setRootComponent(border).dp();
 canvas.error$.subscribe(([err, label]) => {
   process.stdout.clearScreenDown();
   console.error(label, err);
@@ -35,7 +35,7 @@ const hueInterval = Math.round(360 / num);
 for (let i = 0; i < num; i++) {
   const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug: false, log});
   label.s.ft.setStyle([`bgHsl(${hueInterval * i},65,70)`]).dp();
-  root.s.ft.addChild(label.asBaseType).dp();
+  root.s.ft.addChild(label).dp();
 }
 canvas.s.ft.setBounding(0, 0, process.stdout.columns, 10).dp();
 

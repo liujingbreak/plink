@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {CoreOptsOfExtSmplxRctr, CoreOptions, SingleActionFactory, ActionDispenser} from '@wfh/reactivizer';
-import {OffsetParent} from './base';
+import {OffsetParent, TerminalContainerOpts} from './base';
 import {createFocusService, FocusableOptions, FocusService} from './focusable';
 import {createContainerBase, BaseWidget, TerminalContainer, Rectangle, TerminalCanvas,
   createTerminalCanvas, TerminalCanvasOptions, DisplayMode, TextStyle} from './index';
@@ -22,9 +22,9 @@ export interface ElevatorOptions {
 
 export function createElevator(opts?: ElevatorOptions) {
   const base = createContainerBase({
-    ...opts?.default as TerminalContainer['opts'],
+    ...opts?.default as TerminalContainerOpts,
     name: opts?.default?.name ?? 'Elevator',
-    ...opts?.core as TerminalContainer['opts']
+    ...opts?.core as TerminalContainerOpts
   });
   const service = base.config<ElevatorEvents>({});
   const {s, r, table} = service;

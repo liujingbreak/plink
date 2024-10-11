@@ -1,8 +1,8 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
-import {SimplexReactorExtendType, SingleActionFactory, ActionDispenser, CoreOptions} from '@wfh/reactivizer';
-import {BaseWidget, TerminalContainer, createContainerBase, OffsetParent} from './base';
+import {SimplexReactorExtendType, OptionsOfSmplxRctr, SingleActionFactory, ActionDispenser, CoreOptions} from '@wfh/reactivizer';
+import {BaseWidget, TerminalContainer, TerminalContainerOpts, createContainerBase, OffsetParent, OffsetParentMessages} from './base';
 import {createTerminalCanvas, TerminalCanvasOptions, TextStyle, rectIntersection} from './canvas';
 import {createFocusService, FocusService} from './focusable';
 
@@ -28,16 +28,16 @@ const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', '
 export type Scrollable = SimplexReactorExtendType<TerminalContainer, ScrollSignals, typeof tableFor>;
 export interface ScrollableOptions {
   default?: CoreOptions;
-  core?: Partial<NonNullable<Scrollable['opts']>>;
+  core?: Partial<OptionsOfSmplxRctr<Scrollable>>;
   canvas?: TerminalCanvasOptions;
-  focusable?: Partial<FocusService['opts']>;
+  focusable?: Partial<OptionsOfSmplxRctr<FocusService>>;
 }
 
 export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
   const base = createContainerBase({
-    ...opts?.default as Scrollable['b']['opts'],
+    ...opts?.default as TerminalContainerOpts,
     name: 'scrollable',
-    ...opts?.core as Scrollable['b']['opts']
+    ...opts?.core as TerminalContainerOpts
   });
   const scrollable = base.config<ScrollSignals, typeof tableFor>({tableFor});
   const {r, s, table} = scrollable;
@@ -230,6 +230,24 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
     })
   ));
   const service = scrollable as (Scrollable & OffsetParent);
+  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
+    rx.withLatestFrom(comp.table.l.isContainer,
+      table.l.onValidScroll,
+      table.l.onSize),
+    rx.mergeMap(([[m, x, y, w, h], [, isContainer], [, left, top], [, w2, h2]]) => {
+      if (!isContainer) {
+        s.ft.didFindOverlaps([comp]).dp(m);
+        return rx.EMPTY;
+      }
+      x += left;
+      y += top;
+      return (comp as TerminalContainer).s.ft.findOverlaps(x, y, w, h)
+        .re(m)
+        .od((comp as TerminalContainer).s.pt.didFindOverlaps).pipe(
+          rx.map(([m2, found]) => s.ft.didFindOverlaps(found).dp(m, m2))
+        );
+    })
+  ));
   service.focusService = focusService;
   r('init', new rx.Observable<never>(() => {
     s.ft.isOffsetParent(service).dp();

@@ -104,7 +104,7 @@ export class ControllerCore {
     }
     /** action id is also copied */
     copyActionFrom(source) {
-        const copied = this.createAction(nameOfAction(source), source.p);
+        const copied = this.createAction(source.t, source.p);
         copied.i = source.i;
         copied.r = source.r;
         return copied;
@@ -189,6 +189,7 @@ export class ControllerCore {
     }
 }
 /**
+ * @deprecated use "action.t" instead
  * Get the "action name" from payload's "type" field,
  * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
  * this function returns the `actionName` part

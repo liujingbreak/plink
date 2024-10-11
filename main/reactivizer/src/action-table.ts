@@ -47,7 +47,7 @@ export class ActionTable<I, IK extends keyof I> {
 
   private data: ActionTableDataType<I, IK> = {} as ActionTableDataType<I, IK>;
 
-  actionSnapshot = new Map<string, InferMapParam<I[keyof I]>>();
+  actionSnapshot = new Map<string, InferMapParam<unknown>>();
 
   // private
   #latestPayloadsByName$: rx.Observable<ActionTableDataType<I, IK>> | undefined;

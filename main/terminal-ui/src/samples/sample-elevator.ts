@@ -22,16 +22,13 @@ canvas.s.ft.setRenderOnRequest(true).dp();
 
 const ev = createElevator({default: {debug, log}});
 const popupLayer = createFlexContainer({name: 'popup', debug, log});
-ev.s.ft.addChild(
-  root.asBaseType.asBaseType,
-  popupLayer.asBaseType.asBaseType
-).dp();
+ev.s.ft.addChild(root, popupLayer).dp();
 
 const popupMsg = createTextWidget('POPUP MESSAGE', {name: 'popupMsg', debug, log});
 popupLayer.s.ft.justifyContent('center').dp();
 popupLayer.s.ft.alignItems('center').dp();
-popupLayer.s.ft.addChild(popupMsg.b).dp();
-canvas.s.ft.setRootComponent(ev.b.b).dp();
+popupLayer.s.ft.addChild(popupMsg).dp();
+canvas.s.ft.setRootComponent(ev).dp();
 canvas.error$.subscribe(([err, label]) => {
   process.stdout.clearScreenDown();
   console.error(label, err);
@@ -48,7 +45,7 @@ process.stdout.on('resize', () => {
 root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
 const label = createTextWidget('ok', {debug, log});
-root.s.ft.addChild(label.b).dp();
+root.s.ft.addChild(label).dp();
 
 canvas.s.ft.requestRender().dp();
 setTimeout(() => {

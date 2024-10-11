@@ -25,7 +25,7 @@ const canvas = createTerminalCanvas({debug: true, log});
 const root = createFlexContainer({name: 'root', debug: true, log});
 root.s.ft.alignItems('start').dp();
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
   process.stdout.clearScreenDown();
   console.error(label, err);
@@ -35,9 +35,9 @@ canvas.error$.subscribe(([err, label]) => {
 
 const thinLabel = createTextWidget('label A', {debug: true, log});
 const fatLabel = createTextWidget('Label B');
-const border = createBorderContainer(fatLabel.asBaseType, {debug: true, log});
+const border = createBorderContainer(fatLabel, {debug: true, log});
 border.s.ft.setFlexGrow(1).dp();
-root.s.ft.addChild(thinLabel.asBaseType, border.asBaseType.asBaseType).dp();
+root.s.ft.addChild(thinLabel, border).dp();
 
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 process.stdout.on('resize', () => {

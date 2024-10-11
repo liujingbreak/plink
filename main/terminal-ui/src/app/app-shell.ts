@@ -52,7 +52,7 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
     }
   });
   scrollable.s.ft.setFlexGrow(1).dp();
-  root.s.ft.addChild(scrollable.b.b, statusbar.b.b.b).dp();
+  root.s.ft.addChild(scrollable, statusbar).dp();
   const canvas = createTerminalCanvas({
     ...opts?.default as TerminalCanvasOptions,
     ...opts?.canvas
@@ -95,23 +95,23 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
     ...opts?.cover
   });
   const focusable = createRootService(keyEventService, {...opts?.default as any, ...opts?.focusable});
-  focusable.s.ft.forRootComp(elevator.b.b).dp();
+  focusable.s.ft.forRootComp(elevator).dp();
   coverLayer.s.ft.alignItems('center').dp();
   coverLayer.s.ft.justifyContent('center').dp();
 
   // const helpBox = createFlexContainer();
   const helpNote = createTextWidget('Keyboard Help');
-  const coverLayerBorder = createBorderContainer(helpNote.b, {...opts?.default as any});
+  const coverLayerBorder = createBorderContainer(helpNote, {...opts?.default as any});
   coverLayerBorder.s.ft.setPadding(5, 5, 5, 5).dp();
   coverLayerBorder.s.ft.setBackground('bgGrey').dp();
   coverLayerBorder.s.ft.setBorder('padding').dp();
-  coverLayer.s.ft.addChild(coverLayerBorder.b.b).dp();
+  coverLayer.s.ft.addChild(coverLayerBorder).dp();
   elevator.s.ft.addChild(
-    root.b.b,
-    coverLayer.b.b
+    root,
+    coverLayer
   ).dp();
   coverLayer.s.ft.setDisplay(DisplayMode.none).dp();
-  canvas.s.ft.setRootComponent(elevator.asBaseType.asBaseType).dp();
+  canvas.s.ft.setRootComponent(elevator).dp();
   canvas.s.ft.setRenderOnRequest(true).dp();
   canvas.s.ft.requestRender().dp();
   return {canvas, root, app: appService};

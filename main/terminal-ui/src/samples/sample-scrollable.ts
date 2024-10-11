@@ -29,10 +29,10 @@ canvas.error$.subscribe(([err, label]) => {
 });
 
 const label = createTextWidget('Hello border container', {debug: true, log});
-const border = createBorderContainer(label.asBaseType, {debug: true, log});
-const scrollable = createScrollable(border.asBaseType.asBaseType, {default: {debug: true, log}});
+const border = createBorderContainer(label, {debug: true, log});
+const scrollable = createScrollable(border, {default: {debug: true, log}});
 scrollable.s.ft.setScrollable(false, true).dp();
-canvas.s.ft.setRootComponent(scrollable.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(scrollable).dp();
 
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns,
   screenHeight ? Number(screenHeight) : process.stdout.rows - 1).dp();

@@ -2,7 +2,7 @@ import rl from 'node:readline';
 import * as rx from 'rxjs';
 import {mat4} from 'gl-matrix';
 import chalk from 'chalk';
-import {SingleActionFactory, SimplexReactor} from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactor, SimplexReactorOptions} from '@wfh/reactivizer';
 import {IntervalTree} from '@wfh/algorithms';
 // import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 import {isCodePointFullWidth} from './text-split';
@@ -55,7 +55,7 @@ export interface TerminalCanvasEvents extends TerminalCanvasInput {
 const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange'] as const;
 
 export type TerminalCanvas = SimplexReactor<TerminalCanvasInput & TerminalCanvasEvents, typeof tableFor>;
-export type TerminalCanvasOptions = Partial<NonNullable<TerminalCanvas['opts']>>;
+export type TerminalCanvasOptions = Partial<SimplexReactorOptions<TerminalCanvasInput & TerminalCanvasEvents, typeof tableFor>>;
 export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
   const canvas = new SimplexReactor<TerminalCanvasEvents, typeof tableFor>({
     name: 'Canvas',

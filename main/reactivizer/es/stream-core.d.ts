@@ -11,7 +11,7 @@ export type ActionMeta = {
     r?: number | number[];
 };
 export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
-export type Action<F> = {
+export type Action<F = unknown> = {
     /** type */
     t: string;
     /** payload **/
@@ -44,19 +44,19 @@ export type CoreOptions<I = Record<string, never>> = {
 };
 export declare const has: (v: PropertyKey) => boolean;
 export declare class ControllerCore<I> {
-    actionUpstream: rx.Subject<Action<I[keyof I]>>;
+    actionUpstream: rx.Subject<Action<unknown>>;
     /** Insert action "interceptor" operator function
      */
-    interceptor$: rx.Subject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>;
+    interceptor$: rx.Subject<(up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>>;
     logPrefix: string;
-    action$: rx.Observable<Action<I[keyof I]>>;
+    action$: rx.Observable<Action<unknown>>;
     debugIncludeSet: Set<string | number | symbol> | null | undefined;
     debugExcludeSet: Set<string | number | symbol>;
     /** Event when `action$` is first time subscribed */
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.ReplaySubject<Set<"name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
+    configChange: rx.ReplaySubject<Set<"log" | "name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle">>;
     opts: CoreOptions<any>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
@@ -64,29 +64,30 @@ export declare class ControllerCore<I> {
     constructor(opts?: CoreOptions<I>);
     createAction<J = I, K extends keyof J = keyof J>(name: K, params?: InferPayload<J[K]>): Action<J[K]>;
     /** action id is also copied */
-    copyActionFrom(source: Action<any>): Action<I[keyof I]>;
+    copyActionFrom(source: Action<any>): Action<unknown>;
     /** change the "name" as previous specified in CoreOptions of constructor */
     setName(name: string | null | undefined): void;
     /** This method is used to change `this.opts` which is initially provided in constructor.
      * Only changed properties are merged to current options */
     config(opts: RxControlConfigType<I>): void;
     /** Insert action "interceptor" operator function */
-    prependInterceptor(interceptor: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>): void;
+    prependInterceptor(interceptor: (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>): void;
     /** This method is not meant to be used directly */
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]>;
     /** This method is not meant to be used directly */
     dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I[K]>;
     ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[T[number]]>>;
     notOfType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[Exclude<keyof I, T[number]>]>>;
-    isType<K extends keyof I>(action: Action<I[keyof I]>, type: K): action is Action<I[K]>;
+    isType<K extends keyof I>(action: Action<unknown>, type: K): action is Action<I[K]>;
     connect(): void;
 }
 /**
+ * @deprecated use "action.t" instead
  * Get the "action name" from payload's "type" field,
  * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
  * this function returns the `actionName` part
  * @return undefined if current action doesn't have a valid "type" field
  */
-export declare function nameOfAction<I = ActionFunctions>(action: Pick<Action<I[keyof I]>, 't'>): keyof I;
+export declare function nameOfAction<I = ActionFunctions>(action: Pick<Action<unknown>, 't'>): keyof I;
 export declare function actionMetaToStr(action: ActionMeta): string;
 export declare function assignActionReferParam(action: Action<any>, metas: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): Action<any>;

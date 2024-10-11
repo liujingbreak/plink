@@ -52,7 +52,7 @@ var SearchDirection;
 const tableFor = [
     'didFocus', 'isDirtyForRender', 'handleKeyEvents',
     'setBorderStyle', 'rootService', 'controlHandleEvents',
-    'setRenderClips'
+    'setRenderClips', 'latestRenderedRect'
 ];
 const COORD_ROUND_RATIO_X = 3;
 const COORD_ROUND_RATIO_Y = 2;
@@ -293,31 +293,35 @@ function createFocusService(opts) {
             s.ft.focus(SearchDirection.right, evt, m.i).dp(m, m1);
     })))));
     r('render -> isDirtyForRender', s.pt.render.pipe(rx.withLatestFrom(table.l.isDirtyForRender, table.l.setBorderStyle), rx.exhaustMap(([[m, canvas], [, dirty], [, ...style]]) => {
-        if (dirty) {
-            s.ft.isDirtyForRender(false).dp(m);
-            return rx.combineLatest([
-                table.l.didFocus,
-                canvas.table.l.setBounding
-            ]).pipe(rx.take(1), rx.map(([[, rect, comp], [, , , canvasWidth, canvasHeight]]) => {
-                if (rect == null || comp == null)
-                    return;
-                let [x, y, w, h] = rect;
-                if (x > 0) {
-                    x--;
-                    w++;
-                }
-                if (y > 0) {
-                    y--;
-                    h++;
-                }
-                if (w < canvasWidth)
-                    w++;
-                if (h < canvasHeight)
-                    h++;
-                (0, border_1.renderLineBorder)(m, canvas, x, y, w, h, style);
-            }));
+        if (!dirty) {
+            return rx.EMPTY;
         }
-        return rx.EMPTY;
+        s.ft.isDirtyForRender(false).dp(m);
+        return rx.combineLatest([
+            table.l.didFocus,
+            canvas.table.l.setBounding
+        ]).pipe(rx.take(1), rx.map(([[, rect, comp], [, , , canvasWidth, canvasHeight]]) => {
+            if (rect == null || comp == null)
+                return;
+            let [x, y, w, h] = rect;
+            if (x > 0) {
+                x--;
+                w++;
+            }
+            if (y > 0) {
+                y--;
+                h++;
+            }
+            if (w < canvasWidth)
+                w++;
+            if (h < canvasHeight)
+                h++;
+            s.ft.latestRenderedRect(x, y, w, h).dp(m);
+            (0, border_1.renderLineBorder)(m, canvas, x, y, w, h, style);
+        }));
+    })));
+    r('latestRenderedRect', s.pt.latestRenderedRect.pipe(rx.distinctUntilChanged(([, x, y, w, h], [, x2, y2, w2, h2]) => {
+        return x === x2 && y === y2 && w === w2 && h === h2;
     })));
     s.ft.isDirtyForRender(false).dp();
     s.ft.controlHandleEvents(false).dp();

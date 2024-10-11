@@ -9,7 +9,7 @@ import {ForkWorkerOutput} from './types';
  * @return {Observable} which should `complete`, so that it notifies scheduler to demote current thread
  * worker as current thread will be back to continue previous task.
  */
-export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: SimplexReactor<O, any, any>, waitingTask$: rx.ObservableInput<T>): rx.Observable<T> {
+export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: SimplexReactor<O, any>, waitingTask$: rx.ObservableInput<T>): rx.Observable<T> {
   const worker = workerCtl as unknown as SimplexReactor<ForkWorkerOutput>;
   worker.s.ft.wait().dp();
   return rx.from(waitingTask$).pipe(
@@ -29,7 +29,7 @@ export function setIdleDuring<T, O extends ForkWorkerOutput>(workerCtl: SimplexR
  * worker as current thread will be back to continue previous task.
  */
 export namespace setIdleDuring {
-  export function asPromise<T, O extends ForkWorkerOutput>(workerCtl: SimplexReactor<O, any, any>, waitingTask$: rx.ObservableInput<T>) {
+  export function asPromise<T, O extends ForkWorkerOutput>(workerCtl: SimplexReactor<O, any>, waitingTask$: rx.ObservableInput<T>) {
     return rx.firstValueFrom(setIdleDuring(workerCtl, waitingTask$));
   }
 }

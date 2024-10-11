@@ -162,6 +162,7 @@ function createScrollable(comp, opts) {
     })));
     const service = scrollable;
     service.focusService = focusService;
+    service.container = service.config({});
     r('init', new rx.Observable(() => {
         s.ft.isOffsetParent(service).dp();
         s.ft.onContentSizeChange(2, 2).dp();

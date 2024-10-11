@@ -2,8 +2,8 @@
   * The test approach of this file is attest Typescript compiler
   * has no error report to parsing the file content.
  **/
-import {describe, it, expect}  from '@jest/globals';
-import {SingleActionFactory, SimplexReactor, RxController2} from '../src';
+import {describe, it}  from '@jest/globals';
+import {SingleActionFactory, SimplexReactor} from '../src';
 
 interface TestResponse {
   action1(...backMsg: string[]): SingleActionFactory;
@@ -16,10 +16,12 @@ const tableFor = ['action1'] as const;
 
 const baseService = new SimplexReactor<TestResponse, typeof tableFor>();
 type BaseService = SimplexReactor<TestResponse, typeof tableFor>;
-function acceptDerivedTypeForBaseType<I, L extends Array<keyof I>>(base: SimplexReactor<TestResponse & I, readonly (L[number] | (typeof tableFor)[number])[]>) {
+function acceptDerivedTypeForBaseType(base: BaseService) {
+  base.table.l.action1.subscribe();
 }
 
 interface ExtendActions {
+  message4(b: boolean): SingleActionFactory;
   message5(a: number | null): SingleActionFactory;
 }
 const tableFor1 = ['message5'] as const;
@@ -29,9 +31,13 @@ interface ExtendActions2 extends ExtendActions {
 type FeatureService = SimplexReactor<ExtendActions, typeof tableFor1>;
 
 function acceptBaseType(base: BaseService) {
-  // base.table.l.message2.subscribe();
+  base.table.l.action1.subscribe();
 }
-function acceptFeatureService(f: FeatureService) {}
+function acceptFeatureService(f: FeatureService) {
+  f.s.pt.message5.subscribe();
+  f.s.ft.message4(false).dp();
+  f.table.l.message5.subscribe();
+}
 const tableFor2 = ['message5', 'message6'] as const;
 describe('Typescript compiler', () => {
   it.skip('should not report any error on assignable SimplexReactor type casting', () => {
@@ -43,14 +49,10 @@ describe('Typescript compiler', () => {
 
     acceptBaseType(extendedService.b);
     acceptBaseType(extendedWithoutTable.b);
-    const baseControl = new RxController2<TestActions>();
-    const control = baseControl as unknown as RxController2<ExtendActions2>;
-    const castToBase = control as RxController2<TestActions>;
 
     function acceptDerivedTypeForBaseType2(accepted: SimplexReactor<ExtendActions, typeof tableFor1>) {
       accepted.table.l.message5.subscribe();
     }
-    acceptDerivedTypeForBaseType2({} as SimplexReactor<ExtendActions2, (typeof tableFor2>);
-    expect(castToBase).not.toBeNull();
+    acceptDerivedTypeForBaseType2({} as SimplexReactor<ExtendActions2, (typeof tableFor2)>);
   });
 });

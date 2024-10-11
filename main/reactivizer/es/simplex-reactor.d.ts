@@ -13,7 +13,7 @@ export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly
 }
 declare const baseTableFor: readonly ["__onError", "__onDisposed"];
 type LE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;
-export declare class SimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly [], BaseType = unknown> {
+export declare class SimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> {
     /** All catched error goes here, including those from "dispatchErrorFor" */
     error$: rx.Observable<readonly [error: any, label: string | null]>;
     destory$: rx.Observable<unknown>;
@@ -22,14 +22,11 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     s: RxController2<I & BaseActions>;
     r: (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => void;
     table: ActionTable<I & BaseActions<I>, LE<LI>>;
-    /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
-    asBaseType: BaseType;
     /** alias of "asBaseType",
      * cast current SimplexReactor type to its logical super type for Typescript type assignable check
      **/
-    b: BaseType;
     id: number;
-    opts?: SimplexReactorOptions<I, LI>;
+    opts?: SimplexReactorOptions<unknown, readonly never[]>;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
     protected errorSubject: rx.Subject<[label: string, originError: any]>;
     constructor(opts?: SimplexReactorOptions<I, LI>);
@@ -38,7 +35,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
      * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
      * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
      */
-    config<I2 = Record<string, never>, L2 extends (Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[], SimplexReactor<I, LI, BaseType>>;
+    config<I2 = Record<string, never>, L2 extends (Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
@@ -61,7 +58,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
      * This method emits an event "__onError" under the hood.
      */
     dispatchErrorFor(err: any, actionMeta: ActionMeta, ...moreActionMetas: ActionMeta[]): void;
-    reactivize<F extends ActionFunctions>(fObject: F): SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI, BaseType>;
+    reactivize<F extends ActionFunctions>(fObject: F): SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>;
     log(...msg: any[]): void;
     reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
     /** @deprecated no longer needed, always start automatically after being contructed */

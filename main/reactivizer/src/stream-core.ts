@@ -16,7 +16,7 @@ export type ActionMeta = {
 
 export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
 
-export type Action<F> = {
+export type Action<F = unknown> = {
   /** type */
   t: string;
   /** payload **/
@@ -57,15 +57,15 @@ let SEQ = 0;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 
 export const has = Object.prototype.hasOwnProperty;
-type Interceptor<I> = (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>;
+type Interceptor<I> = (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>;
 
 export class ControllerCore<I> {
-  actionUpstream = new rx.Subject<Action<I[keyof I]>>();
+  actionUpstream = new rx.Subject<Action<unknown>>();
   /** Insert action "interceptor" operator function
    */
-  interceptor$ = new rx.Subject<(up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>>();
+  interceptor$ = new rx.Subject<(up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>>();
   logPrefix = '';
-  action$: rx.Observable<Action<I[keyof I]>>;
+  action$: rx.Observable<Action<unknown>>;
   debugIncludeSet: Set<string | number | symbol> | null | undefined;
   debugExcludeSet: Set<string | number | symbol> = new Set();
 
@@ -77,7 +77,7 @@ export class ControllerCore<I> {
   opts: CoreOptions<any> = {}; // Using CoreOption<I> here will results in non-assignable issue of entire controller type, always use <any> instead
   protected dispatcher = {} as {[K in keyof I]: Dispatch<I[K]>};
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[K]>};
-  private connectableAction$: rx.Connectable<Action<I[keyof I]>>;
+  private connectableAction$: rx.Connectable<Action<unknown>>;
 
   constructor(opts: CoreOptions<I> = {}) {
     this.setName(opts?.name);
@@ -190,10 +190,10 @@ export class ControllerCore<I> {
 
   /** action id is also copied */
   copyActionFrom(source: Action<any>) {
-    const copied = this.createAction<I, keyof I>(nameOfAction(source), source.p as any);
+    const copied = this.createAction<any>(source.t, source.p as any);
     copied.i = source.i;
     copied.r = source.r;
-    return copied;
+    return copied as Action<unknown>;
   }
 
   /** change the "name" as previous specified in CoreOptions of constructor */
@@ -217,7 +217,7 @@ export class ControllerCore<I> {
     }
   }
   /** Insert action "interceptor" operator function */
-  prependInterceptor(interceptor: (up: rx.Observable<Action<I[keyof I]>>) => rx.Observable<Action<I[keyof I]>>) {
+  prependInterceptor(interceptor: (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>) {
     this.interceptor$.next(interceptor);
   }
 
@@ -270,7 +270,7 @@ export class ControllerCore<I> {
     };
   }
 
-  isType<K extends keyof I>(action: Action<I[keyof I]>, type: K): action is Action<I[K]> {
+  isType<K extends keyof I>(action: Action<unknown>, type: K): action is Action<I[K]> {
     return action.t === (type as string);
   }
 
@@ -288,6 +288,7 @@ export class ControllerCore<I> {
 }
 
 /**
+ * @deprecated use "action.t" instead
  * Get the "action name" from payload's "type" field,
  * `payload.type`` is actually consist of string like `${Prefix}/${actionName}`,
  * this function returns the `actionName` part
@@ -295,7 +296,7 @@ export class ControllerCore<I> {
  */
 // eslint-disable-next-line space-before-function-paren
 export function nameOfAction<I = ActionFunctions>(
-  action: Pick<Action<I[keyof I]>, 't'>
+  action: Pick<Action<unknown>, 't'>
 ): keyof I {
   // const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
   // return (match ? match[1] : action.t) as keyof I;

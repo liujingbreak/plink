@@ -36,12 +36,13 @@ export class RxController<I> {
   actionByType: ActionByType<I>;
   /** abbrevation of actionByType */
   at: ActionByType<I>;
+  opts: CoreOptions<unknown> & {debugTableAction?: boolean};
 
   interceptor$: ControllerCore<I>['interceptor$'];
 
-  constructor(public opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
+  constructor(opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
     const core = this.core = new ControllerCore(opts);
-
+    this.opts = opts as any;
     this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I[K]>}, {
       get(_target, key, _rec) {
         return core.dispatchFactory(key as keyof I);
@@ -119,7 +120,7 @@ export class RxController<I> {
           let a$ = actionsByType[type as keyof I];
           if (a$ == null) {
             const matchType = type as string;
-            a$ = actionsByType[type as keyof I] = core.action$.pipe(
+            a$ = actionsByType[type as keyof I] = (core.action$ as rx.Observable<Action<I[keyof I]>>).pipe(
               rx.filter(({t}) => t === matchType),
               rx.share()
             );
@@ -173,7 +174,7 @@ export class RxController<I> {
   }
 
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-  groupControllerBy<K>(keySelector: (action: Action<I[keyof I]>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
+  groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
   rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]> {
     return this.core.action$.pipe(
       rx.groupBy(keySelector),

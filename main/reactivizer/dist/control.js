@@ -36,8 +36,8 @@ const context_operators_1 = require("./context-operators");
 __exportStar(require("./stream-core"), exports);
 class RxController {
     constructor(opts) {
-        this.opts = opts;
         const core = this.core = new stream_core_1.ControllerCore(opts);
+        this.opts = opts;
         this.dispatcher = this.dp = new Proxy({}, {
             get(_target, key, _rec) {
                 return core.dispatchFactory(key);

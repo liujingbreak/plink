@@ -3,7 +3,7 @@ import { Action } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
 import { SimplexReactor } from './simplex-reactor';
 import { RxController2 } from './control2';
-type InferInterface<X> = X extends SimplexReactor<infer Y, any, any> ? Y : X extends RxController2<infer I> ? I : never;
+type InferInterface<X> = X extends SimplexReactor<infer Y, any> ? Y : X extends RxController2<infer I> ? I : never;
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.
@@ -17,7 +17,7 @@ export declare class ActionDispenser<I> {
     /** you need explicitly specify generic type parameter of this function, it won't inference proper type itself
      * X - SimplexReactor or RxController2
      * */
-    static ofAction$<X extends SimplexReactor<any, any, any> | RxController2<any> = never>(action$: rx.Observable<Action<any>>): ActionDispenser<InferInterface<X>>;
+    static ofAction$<X extends SimplexReactor<any, any> | RxController2<any> = never>(action$: rx.Observable<Action<any>>): ActionDispenser<InferInterface<X>>;
     /** Action observable streamby type */
     at: ActionByType<I>;
     /** Abbrevation of payloadByType */
@@ -26,8 +26,8 @@ export declare class ActionDispenser<I> {
     private countSubscriber;
     private ofOtherTypesDispenser;
     private ofOtherTypesStream;
-    constructor(source$: rx.Observable<Action<I[keyof I]>>);
+    constructor(source$: rx.Observable<Action<unknown>>);
     ofType<K extends keyof I & string>(type: K): rx.Observable<Action<I[K]>>;
-    ofOtherTypes(): rx.Observable<Action<I[keyof I]>>;
+    ofOtherTypes(): rx.Observable<Action<unknown>>;
 }
 export {};
