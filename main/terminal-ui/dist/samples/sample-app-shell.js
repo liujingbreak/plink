@@ -7,16 +7,19 @@ require("source-map-support/register");
 const fs_1 = __importDefault(require("fs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
-const debug = false;
+const debug = true;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, log });
-const border = (0, index_1.createBorderContainer)(panel.b.b, { name: 'contentPanelBorder', debug, log });
-const { canvas } = index_1.app.createApp(border.b.b, {
+const border = (0, index_1.createBorderContainer)(panel, { name: 'contentPanelBorder', debug, log });
+const { canvas } = index_1.app.createApp(border, {
     default: { debug, log },
+    elevator: {
+        default: { debug: true, log }
+    },
     // statusbar: {debug: false},
     // keyService: {debug: false},
-    // canvas: {debug: true},
+    canvas: { debug: false },
     // elevator: {default: {debug: true, log}},
     focusable: { debug: true },
     scrollable: {
@@ -31,7 +34,7 @@ process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
 });
 setTimeout(() => {
-    panel.s.ft.removeChild(welcome.asBaseType).dp();
+    panel.s.ft.removeChild(welcome).dp();
     panel.s.ft.setDirection('col').dp();
     const num = 20;
     const hueInterval = Math.round(360 / num);
@@ -39,12 +42,12 @@ setTimeout(() => {
         const label = (0, index_1.createTextWidget)('TEST LABEL ' + i, { name: 'LABEL ' + i, debug, log });
         label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
         label.s.ft.setFocusable(true).dp();
-        panel.s.ft.addChild(label.asBaseType).dp();
+        panel.s.ft.addChild(label).dp();
     }
 }, 1000);
 const welcome = (0, index_1.createTextWidget)('Hello...');
 welcome.s.ft.setStyle(['cyan']).dp();
-panel.s.ft.addChild(welcome.b).dp();
+panel.s.ft.addChild(welcome).dp();
 panel.s.ft.justifyContent('center').dp();
 panel.s.ft.alignItems('center').dp();
 //# sourceMappingURL=sample-app-shell.js.map

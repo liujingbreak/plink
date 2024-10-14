@@ -136,6 +136,17 @@ function createElevator(opts) {
             }), rx.take(1));
         })));
     })))));
+    r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.withLatestFrom(s.pt.allDisplayChildren), rx.mergeMap(([[m, ...rect], [, chdr]]) => {
+        const last = chdr[chdr.length - 1];
+        return last.table.l.isContainer.pipe(rx.concatMap(([, isContainer]) => {
+            if (!isContainer) {
+                s.ft.didFindOverlaps([last]).dp(m);
+                return rx.EMPTY;
+            }
+            const comp = last;
+            return comp.s.ft.findOverlaps(...rect).re(m).od(comp.s.pt.didFindOverlaps);
+        }), rx.take(1), rx.map(([, comps]) => s.ft.didFindOverlaps(comps).dp(m)));
+    })));
     service.s = prependCtl;
     return service;
 }

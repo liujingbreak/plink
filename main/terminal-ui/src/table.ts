@@ -8,6 +8,7 @@ import {RectangleOverlapTree} from './rectangle-overlap-tree';
 import {createPlaceHolder, LazyLoadPlaceHolder, LazyLoadPlaceHolderOpts} from './lazy-load-placeholder';
 import {createTextWidget, MultiLineTextWidgetOpts} from './text';
 import {TerminalContainerOpts} from './base';
+import {rectIntersection} from './canvas';
 import {FlexContainerOpts} from './flex-container';
 import {BaseWidget, createFlexContainer, createContainerBase, TerminalContainer,
   TextStyle, BackgroundStyle, Rectangle, TerminalCanvas} from './index';
@@ -859,7 +860,13 @@ export function createTable(opts?: TableOptions) {
     ))
   ));
   r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
-    rx.mergeMap(([m, ...rect]) => {
+    rx.withLatestFrom(table.l.onBoundingBox),
+    rx.mergeMap(([[m, ...r1], [, r2]]) => {
+      const rect = rectIntersection(r1, r2);
+      if (rect == null) {
+        s.ft.didFindOverlaps([]).dp(m);
+        return rx.EMPTY;
+      }
       const children = childBoundingTree.searchOverlaps(rect);
       return rx.from(children).pipe(
         rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(

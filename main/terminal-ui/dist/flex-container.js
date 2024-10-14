@@ -29,6 +29,7 @@ const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
 const base_1 = require("./base");
+const canvas_1 = require("./canvas");
 const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
 var FlexBorderSeparator;
 (function (FlexBorderSeparator) {
@@ -45,7 +46,7 @@ function createFlexContainer(opts = {}) {
     // intercept "onRender"
     base.s.prependInterceptor(action$ => {
         const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
-        return rx.merge(dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
+        return rx.merge(dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.at.findOverlaps.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
     });
     const prependCtl = listContainer.s.prependController();
     const childBoundingTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
@@ -315,6 +316,21 @@ function createFlexContainer(opts = {}) {
             const [idx, chr] = chrToRender[i];
             s.ft.renderChild(idx, chr, canvas, trans, clips, masks).dp(m);
         }
+    })));
+    r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(rx.withLatestFrom(table.l.onBoundingBox), rx.mergeMap(([[m, ...r1], [, r2]]) => {
+        const rect = (0, canvas_1.rectIntersection)(r1, r2);
+        if (rect == null) {
+            s.ft.didFindOverlaps([]).dp(m);
+            return rx.EMPTY;
+        }
+        const children = childBoundingTree.searchOverlaps(rect);
+        return rx.from(children).pipe(rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
+            chd.s.ft.findOverlaps(...rect)
+                .od(chd.s.pt.didFindOverlaps).pipe(rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chd])) :
+            rx.of([chd])))), rx.reduce((acc, it) => {
+            acc.push(...it);
+            return acc;
+        }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
     })));
     const reflowData = rx.combineLatest([
         table.l.onSize,

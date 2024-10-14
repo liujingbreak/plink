@@ -68,10 +68,10 @@ table.s.ft.setBorderType(index_1.TableBorderType.border, true).dp();
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
 const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
 table.s.ft.setCellBackground((col, row) => `bgHsl(${hueInterval * row},${30 + saturation * col},70)`).dp();
-root.s.ft.addChild(table.b.b).dp();
+root.s.ft.addChild(table).dp();
 root.s.ft.setDirection('col').dp();
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootComponent(root.b.b).dp();
+canvas.s.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);

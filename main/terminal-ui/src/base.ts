@@ -84,10 +84,10 @@ export function createBase(opts?: Partial<BaseWidgetOptions>) {
   const service = new SimplexReactor<BaseWidgetEvents, typeof tableForBase>({
     ...opts,
     tableFor: tableForBase,
-    debugExcludeTypes: ['ofCanvas', 'bgCleared', ...(opts?.debugExcludeTypes ?? [])]
+    debugExcludeTypes: ['ofCanvas', 'bgCleared', '_saveTransform', ...(opts?.debugExcludeTypes ?? [])]
   });
   const {s, r, table} = service;
-  r('transform signals', rx.merge(
+  r('_saveTransform -> onTransform', rx.merge(
     s.pt._saveTransform.pipe(
       rx.distinctUntilChanged(([, t1], [, t2]) => mat4.equals(t1, t2)),
       rx.map(([m, t]) => s.ft.onTransform(t).dp(m))
@@ -394,7 +394,7 @@ export interface TerminalContainerInput {
   addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
   latestReflowData(data$: rx.Observable<unknown>): SingleActionFactory;
 
-  /** Respond by didFindOverlaps */
+  /** Respond by didFindOverlaps, coordinate value should be relative to offsetParent */
   findOverlaps(...rect: Rectangle): SingleActionFactory;
 }
 
@@ -407,7 +407,8 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
   allChildren(children: Array<BaseWidget>): SingleActionFactory;
   /** all children whose "setDisplay" is not `none` */
   allDisplayChildren(children: Array<BaseWidget>): SingleActionFactory;
-  /** Under context of "relow" action
+  /** Under context of "relow" action.
+   * The coordinate value is relative to container component.
    * @param positions the length of this parameter must equals to "allDisplayChildren"'s length
    **/
   onChildPositions(positions: Map<BaseWidget, [number, number]>): SingleActionFactory;
@@ -636,15 +637,14 @@ export function createContainerBase(opts?: TerminalContainerOpts) {
     ) : rx.EMPTY)
   ));
   r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
-    rx.mergeMap(([m, x, y, w, h]) => {
+    rx.mergeMap(([m, ...rect]) => {
       return table.l.allDisplayChildren.pipe(
         rx.take(1),
         rx.mergeMap(([, chd]) => chd),
         rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(
           rx.take(1),
-          rx.filter(([, [cx, cy, cw, ch]]) => {
-            return !(cx > x + w || cx + cw < x ||
-                     cy > y + h || cy + ch < y);
+          rx.filter(([, bRect]) => {
+            return rectIntersection(rect, bRect) != null;
           }),
           rx.map(() => chr)
         )),
@@ -653,7 +653,7 @@ export function createContainerBase(opts?: TerminalContainerOpts) {
           rx.take(1),
           rx.mergeMap(isContainer => {
             if (isContainer) {
-              return (chr as TerminalContainer).s.ft.findOverlaps(x, y, w, h)
+              return (chr as TerminalContainer).s.ft.findOverlaps(...rect)
                 .re(m).od((chr as TerminalContainer).s.pt.didFindOverlaps).pipe(
                   rx.take(1),
                   rx.map(([, chdOfChd]) => chdOfChd),

@@ -49,7 +49,7 @@ function log(...args) {
 const canvas = (0, index_1.createTerminalCanvas)({ debug, log });
 canvas.s.ft.autoHideCursor().dp();
 const root = (0, index_2.createFlexContainer)({ name: 'root', debug, log });
-canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
@@ -64,12 +64,12 @@ root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
 root.s.ft.setDirection('col').dp();
 const layout1TitleLabel = (0, index_2.createTextWidget)('Demo dynamically updating text labels in a flex layout');
-const titleBorder = (0, index_2.createBorderContainer)(layout1TitleLabel.asBaseType);
+const titleBorder = (0, index_2.createBorderContainer)(layout1TitleLabel);
 titleBorder.config({ name: 'title-border', debug, log });
 layout1TitleLabel.config({ name: 'title', debug, log });
 titleBorder.s.ft.setBorderStyle(['green']).dp();
 layout1TitleLabel.s.ft.setStyle(['bold']).dp();
-root.s.ft.addChild(titleBorder.asBaseType.asBaseType).dp();
+root.s.ft.addChild(titleBorder).dp();
 const layoutDemoContainer = (0, index_2.createFlexContainer)({
     name: 'layoutDemo',
     debug,
@@ -77,11 +77,11 @@ const layoutDemoContainer = (0, index_2.createFlexContainer)({
 });
 layoutDemoContainer.s.ft.justifyContent('center').dp();
 layoutDemoContainer.s.ft.setBorderSpacing(2).dp();
-const layoutDemoBorder = (0, index_2.createBorderContainer)(layoutDemoContainer.asBaseType.asBaseType, { debug, name: 'layoutDemoBorder', log });
+const layoutDemoBorder = (0, index_2.createBorderContainer)(layoutDemoContainer, { debug, name: 'layoutDemoBorder', log });
 layoutDemoBorder.s.ft.setBorder('padding').dp();
 layoutDemoBorder.s.ft.setPadding(1, 1, 1, 1).dp();
 layoutDemoBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
-root.s.ft.addChild(layoutDemoBorder.asBaseType.asBaseType).dp();
+root.s.ft.addChild(layoutDemoBorder).dp();
 canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
 const scene = new reactivizer_1.SimplexReactor({
@@ -92,7 +92,7 @@ const scene = new reactivizer_1.SimplexReactor({
 const { r, s } = scene;
 r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(rx.switchMap(() => layoutDemoContainer.table.l.allChildren.pipe(rx.take(1))), rx.mergeMap(([, labels]) => rx.from(labels).pipe(rx.map((label, i) => {
     if (i === 0) {
-        (0, index_2.getBoundingOfCompTree)(root.asBaseType.asBaseType).pipe(rx.map(rects => {
+        (0, index_2.getBoundingOfCompTree)(root).pipe(rx.map(rects => {
             scene.log('>>>>>> Bounding boxies', rects.map(r => util_1.default.inspect(r)).join());
         }), rx.take(1)).subscribe();
     }
@@ -107,7 +107,7 @@ r('showLablesLeftToRight', s.pt.showLablesLeftToRight.pipe(rx.concatMap(([m, num
     return rx.timer(0, 1000).pipe(rx.map(i => {
         const text = (0, index_2.createTextWidget)('This is label ' + (i + 1), { name: 'text-' + i, debug, log });
         text.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp(m);
-        layoutDemoContainer.s.ft.addChild(text.asBaseType).dp(m);
+        layoutDemoContainer.s.ft.addChild(text).dp(m);
     }), rx.take(num), rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m)));
 })));
 r('changeStaticLabelToClock -> doneChangeStaticLabelToClock', s.pt.changeStaticLabelToClock.pipe(rx.mergeMap(([m, label, i, duration]) => rx.concat(rx.timer(16, 1000).pipe(rx.map(() => {

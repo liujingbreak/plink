@@ -41,14 +41,14 @@ var DisplayMode;
 exports.tableForBase = [
     'onSize', 'onTransform', 'offsetParent', 'isOffsetParent', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
     'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink',
-    'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'latestRenderData'
+    'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'latestRenderData', 'isContainer'
 ];
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 function createBase(opts) {
     var _a;
-    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({}, opts), { tableFor: exports.tableForBase, debugExcludeTypes: ['ofCanvas', 'bgCleared', ...((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : [])] }));
+    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({}, opts), { tableFor: exports.tableForBase, debugExcludeTypes: ['ofCanvas', 'bgCleared', '_saveTransform', ...((_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : [])] }));
     const { s, r, table } = service;
-    r('transform signals', rx.merge(s.pt._saveTransform.pipe(rx.distinctUntilChanged(([, t1], [, t2]) => gl_matrix_1.mat4.equals(t1, t2)), rx.map(([m, t]) => s.ft.onTransform(t).dp(m)))));
+    r('_saveTransform -> onTransform', rx.merge(s.pt._saveTransform.pipe(rx.distinctUntilChanged(([, t1], [, t2]) => gl_matrix_1.mat4.equals(t1, t2)), rx.map(([m, t]) => s.ft.onTransform(t).dp(m)))));
     r('setPreferredSize, onContentSizeChange -> preferredSize', rx.combineLatest([
         table.l.setPreferredSize, s.pt.onContentSizeChange
     ]).pipe(rx.map(([[, w, h], [, cW, cH]]) => {
@@ -245,6 +245,7 @@ function createBase(opts) {
         s.ft.setFocusable(false).dp();
         s.ft.onDettached(true).dp();
         s.ft.setBackground(null).dp();
+        s.ft.isContainer(false).dp();
         s.ft.latestRenderData(renderData).dp();
     }));
     return service;
@@ -383,6 +384,20 @@ function createContainerBase(opts) {
         s.ft.needRerender(true).dp();
         s.ft.bgCleared(false).dp();
     })) : rx.EMPTY)));
+    r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
+        return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chd]) => chd), rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(rx.take(1), rx.filter(([, bRect]) => {
+            return (0, canvas_1.rectIntersection)(rect, bRect) != null;
+        }), rx.map(() => chr))), rx.mergeMap(chr => chr.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(isContainer => {
+            if (isContainer) {
+                return chr.s.ft.findOverlaps(...rect)
+                    .re(m).od(chr.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chr]));
+            }
+            return rx.of([chr]);
+        }), rx.reduce((acc, it) => {
+            acc.push(...it);
+            return acc;
+        }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)))));
+    })));
     const reflowData = rx.combineLatest([
         table.l.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)),
         table.l.onChildPreferredSizeChange
@@ -392,7 +407,8 @@ function createContainerBase(opts) {
         // ft.addReflowAction(onSize$).dp();
         // ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
         ft.latestRenderData(reflowData).dp();
-        ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
+        ft.isContainer(true).dp();
+        // ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
         ft.allChildren(children).dp();
         ft.onSize(0, 0).dp();
         ft.onContentSizeChange(0, 0).dp();

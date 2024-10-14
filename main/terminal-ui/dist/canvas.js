@@ -29,6 +29,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTerminalCanvas = createTerminalCanvas;
 exports.getTextDisplayUnits = getTextDisplayUnits;
 exports.rectIntersection = rectIntersection;
+exports.rectUnion = rectUnion;
 const node_readline_1 = __importDefault(require("node:readline"));
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
@@ -132,9 +133,10 @@ function createTerminalCanvas(opts) {
             node_readline_1.default.clearLine(process.stdout, 0);
         }
     })));
-    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m], [, x, y], [, root]]) => {
+    const EMPTY = [];
+    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rect], [, x, y], [, root]]) => {
         if (root)
-            root.s.ft.render(canvas, gl_matrix_1.mat4.create()).dp(m);
+            root.s.ft.render(canvas, gl_matrix_1.mat4.create(), rect ? [rect] : EMPTY).dp(m);
         for (const [lineIdx, [left, right]] of dirtyLines) {
             const overlaps = [...lines[lineIdx].searchMultipleOverlaps(left, right - 1)];
             let offset = left;
@@ -441,17 +443,28 @@ function uniteDisplayUnits(overlap, existings) {
     choppedExistings.push([finalLow, finalHigh, oUnits, style]);
     return choppedExistings;
 }
-function rangeIntersection([low1, high1], [low2, high2]) {
+function rangeIntersection(low1, high1, low2, high2) {
     const overlap = [low1 > low2 ? low1 : low2, high1 > high2 ? high2 : high1];
     return overlap[0] <= overlap[1] ? overlap : null;
 }
 function rectIntersection([x1, y1, w1, h1], [x2, y2, w2, h2]) {
-    const hoz = rangeIntersection([x1, x1 + w1], [x2, x2 + w2]);
+    const hoz = rangeIntersection(x1, x1 + w1, x2, x2 + w2);
     if (hoz == null)
         return null;
-    const vert = rangeIntersection([y1, y1 + h1], [y2, y2 + h2]);
+    const vert = rangeIntersection(y1, y1 + h1, y2, y2 + h2);
     if (vert == null)
         return null;
     return [hoz[0], vert[0], hoz[1] - hoz[0], vert[1] - vert[0]];
+}
+function rectUnion([x1, y1, w1, h1], [x2, y2, w2, h2]) {
+    const x = x1 < x2 ? x1 : x2;
+    const y = y1 < y2 ? y1 : y2;
+    const r1 = x1 + w1;
+    const r2 = x2 + w2;
+    const w = r1 > r2 ? r1 - x : r2 - x;
+    const b1 = y1 + h1;
+    const b2 = y2 + h2;
+    const h = b1 > b2 ? b1 - y : b2 - y;
+    return [x, y, w, h];
 }
 //# sourceMappingURL=canvas.js.map

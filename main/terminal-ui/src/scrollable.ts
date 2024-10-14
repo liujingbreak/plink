@@ -2,7 +2,7 @@
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SimplexReactorExtendType, OptionsOfSmplxRctr, SingleActionFactory, ActionDispenser, CoreOptions} from '@wfh/reactivizer';
-import {BaseWidget, TerminalContainer, TerminalContainerOpts, createContainerBase, OffsetParent, OffsetParentMessages} from './base';
+import {BaseWidget, TerminalContainer, TerminalContainerOpts, createContainerBase, OffsetParent} from './base';
 import {createTerminalCanvas, TerminalCanvasOptions, TextStyle, rectIntersection} from './canvas';
 import {createFocusService, FocusService} from './focusable';
 
@@ -45,7 +45,10 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
   s.prependInterceptor(action$ => {
     const dispenser = ActionDispenser.ofAction$<typeof base.s>(action$);
     return rx.merge(
-      dispenser.at.onRender.pipe(
+      rx.merge(
+        dispenser.at.onRender,
+        dispenser.at.findOverlaps
+      ).pipe(
         rx.ignoreElements()
       ),
       dispenser.ofOtherTypes()
@@ -103,7 +106,7 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       comp.s.ft.render(canvas, mat4.create(), clipsOfView, masksOfView).dp(m);
       const orig = [0, 0] as vec2;
       vec2.transformMat4(orig, orig, trans);
-      focusService.s.ft.setRenderClips(clipsOfView).dp(m);
+      // focusService.s.ft.setRenderClips(clipsOfView).dp(m);
       focusService.s.ft.render(canvas).dp(m);
       return canvas.s.ft.copyRect(scLeft, scTop, width, height).re(m).od(
         canvas.s.pt.onCopyRect
@@ -230,25 +233,44 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
     })
   ));
   const service = scrollable as (Scrollable & OffsetParent);
-  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
+  service.focusService = focusService;
+  r('focusService.requestRerenderFor', focusService.s.pt.requestRerenderFor.pipe(
+    rx.switchMap(([m, rect]) => s.ft.findOverlaps(...rect).re(m).od(
+      s.pt.didFindOverlaps
+    ).pipe(
+      rx.take(1),
+      rx.map(([, comps]) => {
+        for (const c of comps) {
+          c.s.ft.needRerender(true).dp(m);
+        }
+      })
+    ))
+  ));
+  r('findOverlaps -> didFindOverlaps', prepended.pt.findOverlaps.pipe(
     rx.withLatestFrom(comp.table.l.isContainer,
-      table.l.onValidScroll,
-      table.l.onSize),
-    rx.mergeMap(([[m, x, y, w, h], [, isContainer], [, left, top], [, w2, h2]]) => {
+      table.l.onBoundingBox,
+      table.l.onValidScroll
+    ),
+    rx.mergeMap(([[m, ...rect0], [, isContainer], [, bounding], [, left, top]]) => {
       if (!isContainer) {
         s.ft.didFindOverlaps([comp]).dp(m);
         return rx.EMPTY;
       }
+      const rect = rectIntersection(rect0, bounding);
+      if (rect == null) {
+        s.ft.didFindOverlaps([]).dp(m);
+        return rx.EMPTY;
+      }
+      let [x, y] = rect;
       x += left;
       y += top;
-      return (comp as TerminalContainer).s.ft.findOverlaps(x, y, w, h)
+      return (comp as TerminalContainer).s.ft.findOverlaps(x, y, rect[2], rect[3])
         .re(m)
         .od((comp as TerminalContainer).s.pt.didFindOverlaps).pipe(
           rx.map(([m2, found]) => s.ft.didFindOverlaps(found).dp(m, m2))
         );
     })
   ));
-  service.focusService = focusService;
   r('init', new rx.Observable<never>(() => {
     s.ft.isOffsetParent(service).dp();
     s.ft.onContentSizeChange(2, 2).dp();

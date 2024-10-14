@@ -1,5 +1,5 @@
 import { SimplexReactorExtendType, OptionsOfSmplxRctr, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
-import { BaseWidget, TerminalContainer, OffsetParent } from './base';
+import { BaseWidget, TerminalContainer } from './base';
 import { TerminalCanvasOptions } from './canvas';
 import { FocusService } from './focusable';
 export interface ScrollActions {
@@ -27,5 +27,7 @@ export interface ScrollableOptions {
     canvas?: TerminalCanvasOptions;
     focusable?: Partial<OptionsOfSmplxRctr<FocusService>>;
 }
-export declare function createScrollable(comp: BaseWidget, opts?: ScrollableOptions): Scrollable & OffsetParent;
+export declare function createScrollable(comp: BaseWidget, opts?: ScrollableOptions): Scrollable & import("@wfh/reactivizer").SimplexReactor<import("./base").OffsetParentMessages, readonly []> & {
+    focusService: FocusService;
+};
 export {};

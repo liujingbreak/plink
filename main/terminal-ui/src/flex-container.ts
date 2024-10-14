@@ -3,7 +3,7 @@ import {vec2} from 'gl-matrix';
 import {CoreOptsOfExtSmplxRctr, SimplexReactorExtendType, SingleActionFactory, ActionDispenser,
   actionRelatedToAction} from '@wfh/reactivizer';
 import {TerminalContainer, createContainerBase, BaseWidget} from './base';
-import {TextStyle} from './canvas';
+import {TextStyle, rectIntersection} from './canvas';
 import {RectangleOverlapTree} from './rectangle-overlap-tree';
 
 export enum FlexBorderSeparator {
@@ -407,8 +407,14 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
       }
     })
   ));
-  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
-    rx.mergeMap(([m, ...rect]) => {
+  r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(
+    rx.withLatestFrom(table.l.onBoundingBox),
+    rx.mergeMap(([[m, ...r1], [, r2]]) => {
+      const rect = rectIntersection(r1, r2);
+      if (rect == null) {
+        s.ft.didFindOverlaps([]).dp(m);
+        return rx.EMPTY;
+      }
       const children = childBoundingTree.searchOverlaps(rect);
       return rx.from(children).pipe(
         rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(

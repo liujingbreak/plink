@@ -58,7 +58,8 @@ function createApp(mainComponent, opts) {
             coverLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp(m);
         }));
     })));
-    const elevator = (0, index_1.createElevator)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.elevator));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const elevator = (0, index_1.createElevator)(Object.assign({ default: opts === null || opts === void 0 ? void 0 : opts.default }, opts === null || opts === void 0 ? void 0 : opts.elevator));
     const coverLayer = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'coverLayer' }), opts === null || opts === void 0 ? void 0 : opts.cover));
     const focusable = (0, focusable_1.createRootService)(keyEventService, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
     focusable.s.ft.forRootComp(elevator).dp();

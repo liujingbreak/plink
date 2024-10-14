@@ -30,7 +30,7 @@ const tableFor = ['trackKeypressService', 'trackScrollable'];
 function createStatusbar(opts) {
     var _a, _b, _c, _d, _e;
     const container = (0, index_1.createFlexContainer)(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'statusbar') + '.container' }));
-    const containerWithBorder = (0, index_1.createBorderContainer)(container.asBaseType.asBaseType, Object.assign({ name: 'StatusBar' }, opts));
+    const containerWithBorder = (0, index_1.createBorderContainer)(container, Object.assign({ name: 'StatusBar' }, opts));
     const statusbar = containerWithBorder.config({
         tableFor
     });
@@ -45,7 +45,7 @@ function createStatusbar(opts) {
     const HELP_KEY_HINT = 'Press <Enter> for help';
     const labelKeypress = (0, index_1.createTextWidget)(HELP_KEY_HINT, Object.assign(Object.assign({}, opts), { name: ((_e = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _e !== void 0 ? _e : 'statusbar') + '.key' }));
     labelKeypress.s.ft.setFlexGrow(1).dp();
-    container.s.ft.addChild(labelKeypress.b, labelScrollText.b, labelScrollValue1.b, labelScrollValue2.b).dp();
+    container.s.ft.addChild(labelKeypress, labelScrollText, labelScrollValue1, labelScrollValue2).dp();
     r('trackScrollable, scrollable.onValidScroll -> onScrollStatus', table.l.trackScrollable.pipe(rx.switchMap(([, scrollable]) => {
         return rx.combineLatest([
             scrollable.table.l.onValidScroll,

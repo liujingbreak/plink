@@ -22,23 +22,22 @@ export interface FocusableMessages {
     didFocus(resultRect?: Rectangle, component?: BaseWidget): SingleActionFactory;
     /** In context of "focus" and handleKeyEvents */
     didFocusEnd(dir: SearchDirection, origKey: KeyEventEnum): SingleActionFactory;
-    isDirtyForRender(dirty: boolean): SingleActionFactory;
-    setBorderStyle(...styles: TextStyle): SingleActionFactory;
     render(canvas: TerminalCanvas): SingleActionFactory;
     handleKeyEvents(keyService: KeyEventServcie, currKey: KeyEventEnum | null): SingleActionFactory;
     controlHandleEvents(stop: boolean): SingleActionFactory;
     onFocusOutside(dir: SearchDirection): SingleActionFactory;
-    setRenderClips(clips: Rectangle[]): SingleActionFactory;
-    latestRenderedRect(...rect: Rectangle): SingleActionFactory;
+    requestRerenderFor(rect: Rectangle): SingleActionFactory;
 }
 export interface RootFocusableEvents {
-    onFocus(comp: BaseWidget): SingleActionFactory;
+    onFocus(comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
+    latestRenderedRect(rect: Rectangle): SingleActionFactory;
+    setBorderStyle(...styles: TextStyle): SingleActionFactory;
 }
-declare const tableFor: readonly ["didFocus", "isDirtyForRender", "handleKeyEvents", "setBorderStyle", "rootService", "controlHandleEvents", "setRenderClips", "latestRenderedRect"];
+declare const tableFor: readonly ["didFocus", "handleKeyEvents", "rootService", "controlHandleEvents"];
 export type FocusService = SimplexReactor<FocusableMessages, typeof tableFor>;
 export type FocusableOptions = Partial<SimplexReactorOptions<FocusableMessages, typeof tableFor>>;
-export declare function createFocusService(opts?: FocusableOptions): SimplexReactor<FocusableMessages, readonly ["didFocus", "isDirtyForRender", "handleKeyEvents", "setBorderStyle", "rootService", "controlHandleEvents", "setRenderClips", "latestRenderedRect"]>;
-declare const tableForRoot: readonly ["onFocus"];
-export declare function createRootService(keyEventService: KeyEventServcie, opts?: FocusableOptions): SimplexReactor<FocusableMessages & RootFocusableEvents, readonly ("didFocus" | "isDirtyForRender" | "handleKeyEvents" | "setBorderStyle" | "rootService" | "controlHandleEvents" | "setRenderClips" | "latestRenderedRect" | "onFocus")[]>;
+export declare function createFocusService(opts?: FocusableOptions): SimplexReactor<FocusableMessages, readonly ["didFocus", "handleKeyEvents", "rootService", "controlHandleEvents"]>;
+declare const tableForRoot: readonly ["setBorderStyle", "onFocus", "latestRenderedRect"];
+export declare function createRootService(keyEventService: KeyEventServcie, opts?: FocusableOptions): SimplexReactor<FocusableMessages & RootFocusableEvents, readonly ("didFocus" | "handleKeyEvents" | "rootService" | "controlHandleEvents" | "setBorderStyle" | "onFocus" | "latestRenderedRect")[]>;
 export type RootFocusService = SimplexReactorExtendType<FocusService, RootFocusableEvents, typeof tableForRoot>;
 export {};

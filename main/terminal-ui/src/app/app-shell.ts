@@ -88,7 +88,8 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
       );
     })
   ));
-  const elevator = createElevator({...opts?.default as any, ...opts?.elevator});
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const elevator = createElevator({default: opts?.default as any, ...opts?.elevator});
   const coverLayer = createFlexContainer({
     ...opts?.default as FlexContainerOpts,
     name: 'coverLayer',

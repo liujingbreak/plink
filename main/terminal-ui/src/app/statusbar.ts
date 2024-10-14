@@ -18,7 +18,7 @@ export function createStatusbar(opts?: StatusbarOptions) {
     ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.container'
   });
-  const containerWithBorder = createBorderContainer(container.asBaseType.asBaseType, {name: 'StatusBar', ...opts as any});
+  const containerWithBorder = createBorderContainer(container, {name: 'StatusBar', ...opts as any});
   const statusbar = containerWithBorder.config<StatusbarMessages, typeof tableFor>({
     tableFor
   });
@@ -46,10 +46,10 @@ export function createStatusbar(opts?: StatusbarOptions) {
   });
   labelKeypress.s.ft.setFlexGrow(1).dp();
 
-  container.s.ft.addChild(labelKeypress.b,
-    labelScrollText.b,
-    labelScrollValue1.b,
-    labelScrollValue2.b
+  container.s.ft.addChild(labelKeypress,
+    labelScrollText,
+    labelScrollValue1,
+    labelScrollValue2
   ).dp();
   r('trackScrollable, scrollable.onValidScroll -> onScrollStatus', table.l.trackScrollable.pipe(
     rx.switchMap(([, scrollable]) => {

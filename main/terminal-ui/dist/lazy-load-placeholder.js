@@ -235,8 +235,8 @@ function createPlaceHolder(opts) {
     after.s.ft.alignItems('start').dp();
     // before.s.ft.setBackground('bgGreen').dp();
     // after.s.ft.setBackground('bgBlue').dp();
-    before.s.ft.addChild(labelBefore.b).dp();
-    after.s.ft.addChild(labelAfter.b).dp();
+    before.s.ft.addChild(labelBefore).dp();
+    after.s.ft.addChild(labelAfter).dp();
     s.ft.beforePageRange(0, 0).dp();
     s.ft.afterPageRange(0, 1).dp();
     s.ft.setLabel('...').dp();

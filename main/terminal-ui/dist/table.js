@@ -32,6 +32,7 @@ const reactivizer_1 = require("@wfh/reactivizer");
 const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
 const lazy_load_placeholder_1 = require("./lazy-load-placeholder");
 const text_1 = require("./text");
+const canvas_1 = require("./canvas");
 const index_1 = require("./index");
 var TableBorderType;
 (function (TableBorderType) {
@@ -77,7 +78,7 @@ function createTable(opts) {
     const moreIndicator = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'table.more' }), opts === null || opts === void 0 ? void 0 : opts.moreIndicator));
     moreIndicator.s.ft.justifyContent('center').dp();
     const moreText = (0, text_1.createTextWidget)('More...', Object.assign(Object.assign({}, opts), { name: 'table.more.text' }));
-    moreIndicator.s.ft.addChild(moreText.b).dp();
+    moreIndicator.s.ft.addChild(moreText).dp();
     let lazyService;
     let beforePlaceHolder;
     let afterPlaceHolder;
@@ -87,8 +88,8 @@ function createTable(opts) {
         if (enabled && lazyService == null) {
             const { service: lazyService0, before, after } = (0, lazy_load_placeholder_1.createPlaceHolder)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.lazy), { default: Object.assign(Object.assign({ name: 'table.lazy' }, opts === null || opts === void 0 ? void 0 : opts.default), (_a = opts === null || opts === void 0 ? void 0 : opts.lazy) === null || _a === void 0 ? void 0 : _a.default) }));
             lazyService = lazyService0;
-            beforePlaceHolder = before.b.b;
-            afterPlaceHolder = after.b.b;
+            beforePlaceHolder = before;
+            afterPlaceHolder = after;
             // s.ft.insertChild(0, [beforePlaceHolder]).dp(m);
             s.ft.addChild(beforePlaceHolder, afterPlaceHolder).dp(m);
             if (handler) {
@@ -414,7 +415,7 @@ function createTable(opts) {
             let heightCon = tableH;
             if (moreH > 0) {
                 const moreTop = border.has(TableBorderType.border) ? tableH - moreH - 1 : tableH - moreH;
-                childPos.set(moreIndicator.b.b, [border.has(TableBorderType.border) ? 1 : 0, moreTop]);
+                childPos.set(moreIndicator, [border.has(TableBorderType.border) ? 1 : 0, moreTop]);
                 moreIndicator.s.ft.onSize(moreW, moreH).dp(m);
                 heightCon = moreTop;
             }
@@ -655,14 +656,14 @@ function createTable(opts) {
             }
             let i = 0;
             for (const [idx, chd] of childToRender) {
-                if (chd !== moreIndicator.b.b) {
+                if (chd !== moreIndicator) {
                     s.ft.renderChild(idx, chd, canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
                     i++;
                 }
             }
             return table.l.overflow.pipe(rx.take(1), rx.map(([, overflow]) => {
                 if (overflow) {
-                    s.ft.renderChild(i, moreIndicator.b.b, canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
+                    s.ft.renderChild(i, moreIndicator, canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
                 }
             }));
         }));
@@ -682,6 +683,21 @@ function createTable(opts) {
                 childComp.s.ft.setBackground(null).dp(m);
         }
     })))));
+    r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.withLatestFrom(table.l.onBoundingBox), rx.mergeMap(([[m, ...r1], [, r2]]) => {
+        const rect = (0, canvas_1.rectIntersection)(r1, r2);
+        if (rect == null) {
+            s.ft.didFindOverlaps([]).dp(m);
+            return rx.EMPTY;
+        }
+        const children = childBoundingTree.searchOverlaps(rect);
+        return rx.from(children).pipe(rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
+            chd.s.ft.findOverlaps(...rect)
+                .od(chd.s.pt.didFindOverlaps).pipe(rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chd])) :
+            rx.of([chd])))), rx.reduce((acc, it) => {
+            acc.push(...it);
+            return acc;
+        }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
+    })));
     r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(rx.mergeMap(([m, width, height]) => {
         if (width == null && height != null) {
             return s.ft.calcSize().re(m).od(s.pt.didCalcSize).pipe(rx.take(1), rx.map(([, _colWidths, _rowHeights, width, height]) => {
@@ -715,7 +731,7 @@ function createTable(opts) {
     s.ft.setRowSpacing(0).dp();
     s.ft.alignCell(TableHoriAlig.left, TableVertAlig.middle).dp();
     s.ft.setBorderPadding(1, 0).dp();
-    s.ft.addChild(moreIndicator.b.b).dp();
+    s.ft.addChild(moreIndicator).dp();
     s.ft.setCellBackground(() => { }).dp();
     s.ft.isOpaque(true).dp();
     s.ft.setLazyLoad(false).dp();
@@ -725,7 +741,7 @@ function createTable(opts) {
             var _a, _b, _c, _d, _e;
             const isValueString = typeof cell === 'string';
             const comp = isValueString ?
-                (0, text_1.createTextWidget)(cell, Object.assign({ name: ((_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'table') + '.cell' }, ((_c = (opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent)) !== null && _c !== void 0 ? _c : { debug: (_d = opts === null || opts === void 0 ? void 0 : opts.default) === null || _d === void 0 ? void 0 : _d.debug, log: (_e = opts === null || opts === void 0 ? void 0 : opts.default) === null || _e === void 0 ? void 0 : _e.log }))).b :
+                (0, text_1.createTextWidget)(cell, Object.assign({ name: ((_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'table') + '.cell' }, ((_c = (opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent)) !== null && _c !== void 0 ? _c : { debug: (_d = opts === null || opts === void 0 ? void 0 : opts.default) === null || _d === void 0 ? void 0 : _d.debug, log: (_e = opts === null || opts === void 0 ? void 0 : opts.default) === null || _e === void 0 ? void 0 : _e.log }))) :
                 cell;
             if (!isValueString && (opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent))
                 comp.config(opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent);

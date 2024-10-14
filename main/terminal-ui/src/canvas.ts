@@ -28,8 +28,9 @@ export interface TerminalCanvasInput {
    **/
   setRenderOnRequest(enabled: boolean): SingleActionFactory;
   /** request bundling rendering */
-  requestRender(): SingleActionFactory;
-  render(): SingleActionFactory;
+  requestRender(rect?: Rectangle): SingleActionFactory;
+  /** render immediately */
+  render(rect?: Rectangle): SingleActionFactory;
   fillRect(x: number, y: number, width: number, height: number, bg: BackgroundStyle): SingleActionFactory;
   copyRect(x: number, y: number, width: number, height: number): SingleActionFactory;
   /** Response: onCopyRect */
@@ -185,11 +186,12 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
       }
     })
   ));
+  const EMPTY = [] as any[];
   r('render -> onPrintText', s.pt.render.pipe(
     rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent),
-    rx.map(([[m], [, x, y], [, root]]) => {
+    rx.map(([[m, rect], [, x, y], [, root]]) => {
       if (root)
-        root.s.ft.render(canvas, mat4.create()).dp(m);
+        root.s.ft.render(canvas, mat4.create(), rect ? [rect] : EMPTY).dp(m);
       for (const [lineIdx, [left, right]] of dirtyLines) {
         const overlaps = [...lines[lineIdx]!.searchMultipleOverlaps(left, right - 1)];
         let offset = left;
@@ -506,7 +508,7 @@ function uniteDisplayUnits<T extends [low: number, high: number, units: number[]
   return choppedExistings;
 }
 
-function rangeIntersection([low1, high1]: Range, [low2, high2]: Range) {
+function rangeIntersection(low1: number, high1: number, low2: number, high2: number) {
   const overlap = [low1 > low2 ? low1 : low2, high1 > high2 ? high2 : high1];
   return overlap[0] <= overlap[1] ? overlap as [number, number] : null;
 }
@@ -514,11 +516,23 @@ export type Range = [low: number, high: number];
 export type Rectangle = [x: number, y: number, w: number, h: number];
 
 export function rectIntersection([x1, y1, w1, h1]: Rectangle, [x2, y2, w2, h2]: Rectangle): Rectangle | null {
-  const hoz = rangeIntersection([x1, x1 + w1], [x2, x2 + w2]);
+  const hoz = rangeIntersection(x1, x1 + w1, x2, x2 + w2);
   if (hoz == null)
     return null;
-  const vert = rangeIntersection([y1, y1 + h1], [y2, y2 + h2]);
+  const vert = rangeIntersection(y1, y1 + h1, y2, y2 + h2);
   if (vert == null)
     return null;
   return [hoz[0], vert[0], hoz[1] - hoz[0], vert[1] - vert[0]];
+}
+
+export function rectUnion([x1, y1, w1, h1]: Rectangle, [x2, y2, w2, h2]: Rectangle) {
+  const x = x1 < x2 ? x1 : x2;
+  const y = y1 < y2 ? y1 : y2;
+  const r1 = x1  + w1;
+  const r2 = x2  + w2;
+  const w = r1 > r2 ? r1 - x : r2 - x;
+  const b1 = y1  + h1;
+  const b2 = y2  + h2;
+  const h = b1 > b2 ? b1 - y : b2 - y;
+  return [x, y, w, h] as Rectangle;
 }

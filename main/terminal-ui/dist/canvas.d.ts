@@ -19,8 +19,9 @@ export interface TerminalCanvasInput {
      **/
     setRenderOnRequest(enabled: boolean): SingleActionFactory;
     /** request bundling rendering */
-    requestRender(): SingleActionFactory;
-    render(): SingleActionFactory;
+    requestRender(rect?: Rectangle): SingleActionFactory;
+    /** render immediately */
+    render(rect?: Rectangle): SingleActionFactory;
     fillRect(x: number, y: number, width: number, height: number, bg: BackgroundStyle): SingleActionFactory;
     copyRect(x: number, y: number, width: number, height: number): SingleActionFactory;
     /** Response: onCopyRect */
@@ -49,4 +50,5 @@ export declare function getTextDisplayUnits(text: string): Generator<number, num
 export type Range = [low: number, high: number];
 export type Rectangle = [x: number, y: number, w: number, h: number];
 export declare function rectIntersection([x1, y1, w1, h1]: Rectangle, [x2, y2, w2, h2]: Rectangle): Rectangle | null;
+export declare function rectUnion([x1, y1, w1, h1]: Rectangle, [x2, y2, w2, h2]: Rectangle): Rectangle;
 export {};

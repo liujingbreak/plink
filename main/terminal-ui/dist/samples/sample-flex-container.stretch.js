@@ -27,7 +27,7 @@ const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
 const root = (0, index_3.createFlexContainer)({ name: 'root', debug: true, log });
 root.s.ft.alignItems('start').dp();
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
@@ -36,9 +36,9 @@ canvas.error$.subscribe(([err, label]) => {
 });
 const thinLabel = (0, index_2.createTextWidget)('label A', { debug: true, log });
 const fatLabel = (0, index_2.createTextWidget)('Label B');
-const border = (0, index_4.createBorderContainer)(fatLabel.asBaseType, { debug: true, log });
+const border = (0, index_4.createBorderContainer)(fatLabel, { debug: true, log });
 border.s.ft.setFlexGrow(1).dp();
-root.s.ft.addChild(thinLabel.asBaseType, border.asBaseType.asBaseType).dp();
+root.s.ft.addChild(thinLabel, border).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();

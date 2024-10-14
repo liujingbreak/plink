@@ -26,7 +26,7 @@ function log(...args) {
 }
 const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
 const root = (0, index_3.createFlexContainer)({ name: 'root', debug: true, log });
-canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
@@ -40,8 +40,8 @@ canvas.error$.subscribe(([err, label]) => {
 root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
 const label = (0, index_2.createTextWidget)('8', { debug: true, log });
-const border = (0, index_4.createBorderContainer)(label.asBaseType, { debug: true, log });
-root.s.ft.addChild(border.asBaseType.asBaseType).dp();
+const border = (0, index_4.createBorderContainer)(label, { debug: true, log });
+root.s.ft.addChild(border).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 canvas.s.ft.render().dp();
 process.stdout.on('resize', () => {

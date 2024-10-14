@@ -53,10 +53,10 @@ canvas.error$.subscribe(([err, label]) => {
     process.exit(0);
 });
 const label = (0, index_2.createTextWidget)('Hello border container', { debug: true, log });
-const border = (0, index_3.createBorderContainer)(label.asBaseType, { debug: true, log });
-const scrollable = (0, index_4.createScrollable)(border.asBaseType.asBaseType, { default: { debug: true, log } });
+const border = (0, index_3.createBorderContainer)(label, { debug: true, log });
+const scrollable = (0, index_4.createScrollable)(border, { default: { debug: true, log } });
 scrollable.s.ft.setScrollable(false, true).dp();
-canvas.s.ft.setRootComponent(scrollable.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(scrollable).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows - 1).dp();
 const keyEventService = (0, index_5.createKeyEventService)(canvas, { debug: true, log });
 keyEventService.s.ft.bindToScrollable(scrollable).dp();

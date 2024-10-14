@@ -3,16 +3,19 @@ import fs from 'fs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {app, createFlexContainer, createTextWidget, createBorderContainer} from '../index';
 
-const debug = false;
+const debug = true;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
 const panel = createFlexContainer({name: 'contentPanel', debug, log});
 const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug, log});
 const {canvas} = app.createApp(border, {
   default: {debug, log},
+  elevator: {
+    default: {debug: true, log}
+  },
   // statusbar: {debug: false},
   // keyService: {debug: false},
-  // canvas: {debug: true},
+  canvas: {debug: false},
   // elevator: {default: {debug: true, log}},
   focusable: {debug: true},
   scrollable: {

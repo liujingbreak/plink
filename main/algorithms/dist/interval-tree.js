@@ -10,6 +10,7 @@ const rb_tree_1 = require("./rb-tree");
  */
 class IntervalTree extends rb_tree_1.RedBlackTree {
     /** Return tree node which could be either NonDuplicateNode or a node of DuplicateNode['highValuesTree'],
+     * the returned tree node could be the old one if there is already existing node with same "key" (low value)
      */
     insertInterval(low, high) {
         let valueContainer;

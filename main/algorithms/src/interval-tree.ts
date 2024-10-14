@@ -35,6 +35,7 @@ export type IntervalTreeNode<V = unknown> = NonDuplicateNode<V> | DuplicateNode<
  */
 export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalTreeNode<V>> {
   /** Return tree node which could be either NonDuplicateNode or a node of DuplicateNode['highValuesTree'],
+   * the returned tree node could be the old one if there is already existing node with same "key" (low value)
    */
   insertInterval(low: number, high: number):
   Omit<IntervalTreeNode<V>, 'value'> & {value?: V} | Omit<RbTreeNode<number, V>, 'value'> & {value?: V} {

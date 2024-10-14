@@ -24,7 +24,7 @@ const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
 const root = (0, index_3.createFlexContainer)({ name: 'root', debug: true, log });
 root.s.ft.alignItems('center').dp();
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootComponent(root.asBaseType.asBaseType).dp();
+canvas.s.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
@@ -35,9 +35,9 @@ const thinLabel = (0, index_2.createTextWidget)('~~~~label A~~~~', { debug: true
 thinLabel.s.ft.setStyle(['bgYellow', 'black']).dp();
 thinLabel.s.ft.setFlexShrink(1).dp();
 const fatLabel = (0, index_2.createTextWidget)('Label B');
-const border = (0, index_4.createBorderContainer)(fatLabel.asBaseType, { debug: true, log });
+const border = (0, index_4.createBorderContainer)(fatLabel, { debug: true, log });
 border.s.ft.setFlexShrink(0).dp();
-root.s.ft.addChild(thinLabel.asBaseType, border.asBaseType.asBaseType).dp();
+root.s.ft.addChild(thinLabel, border).dp();
 canvas.s.ft.setBounding(0, 0, 15, process.stdout.rows - 1).dp();
 canvas.s.ft.render().dp();
 canvas.dispose();

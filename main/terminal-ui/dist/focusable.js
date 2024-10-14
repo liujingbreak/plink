@@ -50,14 +50,14 @@ var SearchDirection;
     SearchDirection[SearchDirection["left"] = 3] = "left";
 })(SearchDirection || (exports.SearchDirection = SearchDirection = {}));
 const tableFor = [
-    'didFocus', 'isDirtyForRender', 'handleKeyEvents',
-    'setBorderStyle', 'rootService', 'controlHandleEvents',
-    'setRenderClips', 'latestRenderedRect'
+    'didFocus', 'handleKeyEvents',
+    'rootService', 'controlHandleEvents'
+    // 'setRenderClips'
 ];
 const COORD_ROUND_RATIO_X = 3;
 const COORD_ROUND_RATIO_Y = 2;
 function createFocusService(opts) {
-    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'focusSvc', debugExcludeTypes: ['removeFocusable', 'setRenderClips'] }, opts), { tableFor }));
+    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'focusSvc', debugExcludeTypes: ['removeFocusable'] }, opts), { tableFor }));
     const { s, r, table } = service;
     const rectByComponent = new Map();
     const xTree = new algorithms_1.RedBlackTree();
@@ -177,19 +177,20 @@ function createFocusService(opts) {
     // dispatch onFocus event according to didFocus result,
     // when the target component is a offsetParent,
     // designate it to handle key events
-    r('didFocus, handleKeyEvents... -> isDirtyForRender, c.onFocus, c.focus.handleKeyEvents, controlHandleEvents', s.pt.focus.pipe(rx.switchMap(([m, dir, key, handleKeyAct]) => {
+    r('didFocus, handleKeyEvents... -> isDirtyForRender, root.onFocus, c.onFocus, c.focus.handleKeyEvents, controlHandleEvents', s.pt.focus.pipe(rx.switchMap(([m, dir, key, handleKeyAct]) => {
         return s.pt.didFocus.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.takeUntil(s.pt.didFocusEnd.pipe((0, reactivizer_1.actionRelatedToAction)(m))), rx.take(1), rx.mergeMap(([, rect, c]) => {
             if (rect != null && c) {
                 return rx.merge(c.table.l.setFocusable.pipe(rx.filter(([, f]) => f !== false), rx.mergeMap(() => {
-                    s.ft.isDirtyForRender(true).dp(m);
+                    // s.ft.isDirtyForRender(true).dp(m);
                     c.s.ft.onFocus(dir).dp(m);
                     return table.l.rootService;
-                }), rx.map(([, root]) => root.s.ft.onFocus(c).dp(m)), rx.take(1), service.labelError('handle "focusable" component is found')), c.table.l.isOffsetParent.pipe(rx.take(1), rx.mergeMap(([, childOp]) => {
+                }), rx.map(([, root]) => root.s.ft.onFocus(c, service).dp(m)), rx.take(1), service.labelError('handle "focusable" component is found')), 
+                // pass keyEventService to child offsetParent's focus service,
+                // wait for its returning,
+                // and halt current key event handling process until child service
+                // returns
+                c.table.l.isOffsetParent.pipe(rx.take(1), rx.mergeMap(([, childOp]) => {
                     if (childOp) {
-                        // pass keyEventService to child offsetParent's focus service,
-                        // wait for its returning,
-                        // and halt current key event handling process until child service
-                        // returns
                         return table.l.handleKeyEvents.pipe(rx.take(1), rx.mergeMap(([m1, keySvc]) => {
                             s.ft.controlHandleEvents(true).dp(m, m1);
                             const c = childOp.focusService.s;
@@ -292,17 +293,54 @@ function createFocusService(opts) {
         else if (evt === keyEvent_1.KeyEventEnum.focusRight)
             s.ft.focus(SearchDirection.right, evt, m.i).dp(m, m1);
     })))));
-    r('render -> isDirtyForRender', s.pt.render.pipe(rx.withLatestFrom(table.l.isDirtyForRender, table.l.setBorderStyle), rx.exhaustMap(([[m, canvas], [, dirty], [, ...style]]) => {
-        if (!dirty) {
-            return rx.EMPTY;
-        }
-        s.ft.isDirtyForRender(false).dp(m);
+    // s.ft.isDirtyForRender(false).dp();
+    s.ft.controlHandleEvents(false).dp();
+    return service;
+}
+const tableForRoot = ['setBorderStyle', 'onFocus', 'latestRenderedRect'];
+function createRootService(keyEventService, opts) {
+    const base = createFocusService(Object.assign(Object.assign({}, opts), { name: (opts === null || opts === void 0 ? void 0 : opts.name) ? 'Root' + (opts === null || opts === void 0 ? void 0 : opts.name) : 'rootFocusSvc' }));
+    const extended = base.config({ tableFor: tableForRoot });
+    const { r, s, table } = extended;
+    r('forRootComp, render -> render, isOffsetParent|destory$ -> dispose | requestRerenderFor -> c.needRerender', s.pt.forRootComp.pipe(rx.switchMap(([m, root]) => {
+        root.focusService = base;
+        root.s.ft.isOffsetParent(root).dp(m);
+        s.ft.rootService(extended).dp(m);
+        return rx.merge(root.s.pt.render.pipe(rx.map(([m, canvas]) => {
+            s.ft.render(canvas).dp(m);
+        })), root.destory$.pipe(rx.map(() => extended.dispose())), s.pt.requestRerenderFor.pipe(rx.switchMap(([m, rect]) => root
+            .s.ft.findOverlaps(...rect).re(m).od(root.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, comps]) => {
+            for (const c of comps) {
+                c.s.ft.needRerender(true).dp(m);
+            }
+        })))));
+    })));
+    // r('latestRenderedRect -> requestRerenderFor', s.pt.latestRenderedRect.pipe(
+    //   rx.distinctUntilChanged(([, [x, y, w, h]], [, [x2, y2, w2, h2]]) => {
+    //     return x === x2 && y === y2 && w === w2 && h === h2;
+    //   }),
+    //   rx.scan((r1, r2) => {
+    //     const [, rect, focusService] = r1 as typeof r2;
+    //     focusService.s.ft.requestRerenderFor(rect).dp(r2[0]);
+    //     return r2;
+    //   })
+    // ));
+    r('onFocus', table.l.onFocus.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.filter(([, c, svc]) => c != null && svc != null), rx.mergeMap(([m]) => {
+        return table.l.latestRenderedRect.pipe(rx.take(1), rx.map(([, lastRect]) => {
+            s.ft.requestRerenderFor(lastRect).dp(m);
+        }));
+    })));
+    r('render -> root.latestRenderedRect', s.pt.render.pipe(rx.withLatestFrom(table.l.setBorderStyle), rx.exhaustMap(([[m, canvas], [, ...style]]) => {
+        // if (!dirty) {
+        //   return rx.EMPTY;
+        // }
+        // s.ft.isDirtyForRender(false).dp(m);
         return rx.combineLatest([
             table.l.didFocus,
             canvas.table.l.setBounding
-        ]).pipe(rx.take(1), rx.map(([[, rect, comp], [, , , canvasWidth, canvasHeight]]) => {
+        ]).pipe(rx.take(1), rx.switchMap(([[, rect, comp], [, , , canvasWidth, canvasHeight]]) => {
             if (rect == null || comp == null)
-                return;
+                return rx.EMPTY;
             let [x, y, w, h] = rect;
             if (x > 0) {
                 x--;
@@ -316,32 +354,17 @@ function createFocusService(opts) {
                 w++;
             if (h < canvasHeight)
                 h++;
-            s.ft.latestRenderedRect(x, y, w, h).dp(m);
-            (0, border_1.renderLineBorder)(m, canvas, x, y, w, h, style);
+            return table.l.rootService.pipe(rx.take(1), rx.map(([, root]) => {
+                const [prevRect] = root.table.getData().latestRenderedRect;
+                if (prevRect)
+                    canvas.s.ft.clearRect(...prevRect).dp(m);
+                root.s.ft.latestRenderedRect([x, y, w, h]).dp(m);
+                (0, border_1.renderLineBorder)(m, canvas, x, y, w, h, style);
+            }));
         }));
     })));
-    r('latestRenderedRect', s.pt.latestRenderedRect.pipe(rx.distinctUntilChanged(([, x, y, w, h], [, x2, y2, w2, h2]) => {
-        return x === x2 && y === y2 && w === w2 && h === h2;
-    })));
-    s.ft.isDirtyForRender(false).dp();
-    s.ft.controlHandleEvents(false).dp();
-    s.ft.setRenderClips([]).dp();
     s.ft.setBorderStyle('yellowBright').dp();
-    return service;
-}
-const tableForRoot = ['onFocus'];
-function createRootService(keyEventService, opts) {
-    const base = createFocusService(Object.assign(Object.assign({}, opts), { name: (opts === null || opts === void 0 ? void 0 : opts.name) ? 'Root' + (opts === null || opts === void 0 ? void 0 : opts.name) : 'rootFocusSvc' }));
-    const extended = base.config({ tableFor: tableForRoot });
-    const { r, s } = extended;
-    r('forRootComp -> root.isOffsetParent|root.destory$ -> dispose', s.pt.forRootComp.pipe(rx.switchMap(([m, root]) => {
-        root.focusService = base;
-        root.s.ft.isOffsetParent(root).dp(m);
-        s.ft.rootService(extended).dp(m);
-        return rx.merge(root.s.pt.onRender.pipe(rx.map(([m, canvas]) => {
-            s.ft.render(canvas).dp(m);
-        })), root.destory$.pipe(rx.map(() => extended.dispose())));
-    })));
+    s.ft.onFocus(null, null).dp();
     s.ft.handleKeyEvents(keyEventService, null).dp();
     return extended;
 }

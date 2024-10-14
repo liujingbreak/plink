@@ -84,7 +84,7 @@ table.s.ft.setBorderType(index_1.TableBorderType.border, true).dp();
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
 root.s.ft.alignItems('center').dp();
 root.s.ft.justifyContent('center').dp();
-root.s.ft.addChild(table.b.b).dp();
+root.s.ft.addChild(table).dp();
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
 const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
 table.s.ft.setCellBackground((col, row) => {
@@ -100,7 +100,7 @@ table.s.ft.setCellBackground((col, row) => {
         sat = saturation * col;
     return `bgHsl(${hue},${30 + sat},70)`;
 }).dp();
-const { canvas } = index_1.app.createApp(root.b.b, {
+const { canvas } = index_1.app.createApp(root, {
     default: {
         debug, log
     },

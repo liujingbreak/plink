@@ -39,7 +39,7 @@ function createScrollable(comp, opts) {
     const { r, s, table } = scrollable;
     s.prependInterceptor(action$ => {
         const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
-        return rx.merge(dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
+        return rx.merge(rx.merge(dispenser.at.onRender, dispenser.at.findOverlaps).pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
     });
     const prepended = s.prependController();
     const canvas = (0, canvas_1.createTerminalCanvas)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
@@ -70,7 +70,7 @@ function createScrollable(comp, opts) {
         comp.s.ft.render(canvas, gl_matrix_1.mat4.create(), clipsOfView, masksOfView).dp(m);
         const orig = [0, 0];
         gl_matrix_1.vec2.transformMat4(orig, orig, trans);
-        focusService.s.ft.setRenderClips(clipsOfView).dp(m);
+        // focusService.s.ft.setRenderClips(clipsOfView).dp(m);
         focusService.s.ft.render(canvas).dp(m);
         return canvas.s.ft.copyRect(scLeft, scTop, width, height).re(m).od(canvas.s.pt.onCopyRect).pipe(rx.take(1), rx.map(([, paintables]) => {
             for (const [x, , y, units, style] of paintables) {
@@ -162,7 +162,28 @@ function createScrollable(comp, opts) {
     })));
     const service = scrollable;
     service.focusService = focusService;
-    service.container = service.config({});
+    r('focusService.requestRerenderFor', focusService.s.pt.requestRerenderFor.pipe(rx.switchMap(([m, rect]) => s.ft.findOverlaps(...rect).re(m).od(s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, comps]) => {
+        for (const c of comps) {
+            c.s.ft.needRerender(true).dp(m);
+        }
+    })))));
+    r('findOverlaps -> didFindOverlaps', prepended.pt.findOverlaps.pipe(rx.withLatestFrom(comp.table.l.isContainer, table.l.onBoundingBox, table.l.onValidScroll), rx.mergeMap(([[m, ...rect0], [, isContainer], [, bounding], [, left, top]]) => {
+        if (!isContainer) {
+            s.ft.didFindOverlaps([comp]).dp(m);
+            return rx.EMPTY;
+        }
+        const rect = (0, canvas_1.rectIntersection)(rect0, bounding);
+        if (rect == null) {
+            s.ft.didFindOverlaps([]).dp(m);
+            return rx.EMPTY;
+        }
+        let [x, y] = rect;
+        x += left;
+        y += top;
+        return comp.s.ft.findOverlaps(x, y, rect[2], rect[3])
+            .re(m)
+            .od(comp.s.pt.didFindOverlaps).pipe(rx.map(([m2, found]) => s.ft.didFindOverlaps(found).dp(m, m2)));
+    })));
     r('init', new rx.Observable(() => {
         s.ft.isOffsetParent(service).dp();
         s.ft.onContentSizeChange(2, 2).dp();
