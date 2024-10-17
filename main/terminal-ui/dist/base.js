@@ -39,7 +39,7 @@ var DisplayMode;
     DisplayMode[DisplayMode["hidden"] = 2] = "hidden"; // it does take space in layout, but with empty content 
 })(DisplayMode || (exports.DisplayMode = DisplayMode = {}));
 exports.tableForBase = [
-    'onSize', 'onTransform', 'offsetParent', 'isOffsetParent', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
+    'onSize', 'onTransform', 'onPosition', 'offsetParent', 'isOffsetParent', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
     'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink',
     'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'latestRenderData', 'isContainer'
 ];
@@ -179,27 +179,26 @@ function createBase(opts) {
                 // service.log('dispatch onRectChange for', focusable, 'isOffsetParent', isOffsetParent);
                 if (focusable) {
                     if (focusable === true) {
-                        return rx.combineLatest([table.l.onTransform, table.l.onSize]).pipe(rx.map(([[, trans], [, w, h]]) => {
-                            const point = [0, 0];
-                            gl_matrix_1.vec2.transformMat4(point, point, trans);
-                            const rect = [...point, w, h];
-                            op.focusService.s.ft.onRectChange(rect, service).dp(m2);
+                        return rx.combineLatest([
+                            table.l.onPosition.pipe(rx.filter(([, x]) => x != null)),
+                            table.l.onSize
+                        ]).pipe(rx.map(([[, x, y], [, w, h]]) => {
+                            op.focusService.s.ft.onRectChange([x, y, w, h], service).dp(m1);
                         }));
                     }
                     else {
-                        return table.l.onTransform.pipe(rx.map(([, trans]) => {
+                        return table.l.onPosition.pipe(rx.filter(([, x]) => x != null), rx.map(([, x, y]) => {
                             const rect = focusable;
-                            const point = [rect[0], rect[1]];
-                            gl_matrix_1.vec2.transformMat4(point, point, trans);
-                            op.focusService.s.ft.onRectChange([...point, rect[2], rect[3]], service).dp(m2);
+                            op.focusService.s.ft.onRectChange([rect[0] + x, rect[1] + y, rect[2], rect[3]], service).dp(m2);
                         }));
                     }
                 }
                 else if (isOffsetParent) {
-                    return rx.combineLatest([table.l.onTransform, table.l.onSize]).pipe(rx.map(([[, trans], [, w, h]]) => {
-                        const pos = [0, 0];
-                        gl_matrix_1.vec2.transformMat4(pos, pos, trans);
-                        op.focusService.s.ft.onRectChange([...pos, w, h], service).dp(m1);
+                    return rx.combineLatest([
+                        table.l.onPosition.pipe(rx.filter(([, x]) => x != null)),
+                        table.l.onSize
+                    ]).pipe(rx.map(([[, x, y], [, w, h]]) => {
+                        op.focusService.s.ft.onRectChange([x, y, w, h], service).dp(m1);
                     }));
                 }
                 else {
@@ -221,6 +220,40 @@ function createBase(opts) {
             ? op.focusService.table.l.rootService.pipe(rx.map(([m, rootFocus]) => isOffsetParent.focusService.s.ft.rootService(rootFocus).dp(m)))
             : rx.EMPTY;
     })));
+    r('queryAbsBounding -> didQueryAbsBounding', s.pt.queryAbsBounding.pipe(rx.mergeMap(([m]) => rx.combineLatest([
+        table.l.setParent,
+        table.l.onPosition,
+        table.l.onSize
+    ]).pipe(rx.take(1), rx.mergeMap(([[, op], [, x, y], [, w, h]]) => {
+        if (x == null || y == null) {
+            s.ft.didQueryAbsBounding(null).dp(m);
+            return rx.EMPTY;
+        }
+        if (op == null) {
+            s.ft.didQueryAbsBounding([x, y, w, h]).dp(m);
+            return rx.EMPTY;
+        }
+        let left = x;
+        let top = y;
+        const p = op;
+        return p.s.ft.queryAbsBounding().re(m).od(p.s.pt.didQueryAbsBounding).pipe(rx.take(1), rx.map(([m2, r]) => {
+            if (r == null) {
+                s.ft.didQueryAbsBounding([x, y, w, h]).dp(m);
+                return rx.EMPTY;
+            }
+            const [px, py] = r;
+            const scrollData = p.table.getData().onValidScroll;
+            // service.log('queryAbsBounding()', s.logPrefix, 'has scrollData', scrollData);
+            // eslint-disable-next-line prefer-const
+            if ((scrollData === null || scrollData === void 0 ? void 0 : scrollData[0]) != null) {
+                const [sx, sy] = scrollData;
+                left -= sx;
+                top -= sy;
+            }
+            const res = [left + px, top + py, w, h];
+            s.ft.didQueryAbsBounding(res).dp(m, m2);
+        }));
+    })))));
     r('onDettached -> focusService.removeFocusable', s.pt.onDettached.pipe(rx.withLatestFrom(table.l.offsetParent), rx.map(([[m], [m2, op]]) => {
         if (op)
             op.focusService.s.ft.removeFocusable(service).dp(m, m2);
@@ -232,6 +265,7 @@ function createBase(opts) {
     ]);
     r('init', new rx.Observable(() => {
         s.ft.bgCleared(false).dp();
+        s.ft.onPosition(null, null).dp();
         s.ft.isOffsetParent(false).dp();
         s.ft.offsetParent(null).dp();
         s.ft.setFlexGrow(0).dp();
@@ -326,6 +360,16 @@ function createContainerBase(opts) {
             s.ft.bgCleared(true).dp(m);
         }
     })));
+    r('onChildPositions... -> children.onPosition', rx.combineLatest([
+        table.l.onChildPositions,
+        table.l.allDisplayChildren
+    ]).pipe(rx.map(([[m, posMap], [m2, chrd]]) => {
+        for (const c of chrd) {
+            const pos = posMap.get(c);
+            if (pos)
+                c.s.ft.onPosition(...pos).dp(m, m2);
+        }
+    })));
     r('renderSelf -> reflow, setLayoutValid, child.needRerender', s.pt.renderSelf.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.mergeMap(([[m, , , clips, masks], [, valid]]) => {
         if (!valid) {
             return table.l.allDisplayChildren.pipe(rx.take(1), rx.map(([, allChildren]) => {
@@ -385,18 +429,35 @@ function createContainerBase(opts) {
         s.ft.bgCleared(false).dp();
     })) : rx.EMPTY)));
     r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
-        return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chd]) => chd), rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(rx.take(1), rx.filter(([, bRect]) => {
-            return (0, canvas_1.rectIntersection)(rect, bRect) != null;
-        }), rx.map(() => chr))), rx.mergeMap(chr => chr.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(isContainer => {
-            if (isContainer) {
-                return chr.s.ft.findOverlaps(...rect)
-                    .re(m).od(chr.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chr]));
+        return rx.combineLatest([
+            table.l.isOffsetParent,
+            table.l.onSize
+        ]).pipe(rx.take(1), rx.switchMap(([[, asOp], [, w, h]]) => {
+            if (asOp) {
+                return table.l.onPosition.pipe(rx.filter(([, x]) => x != null), rx.take(1), rx.map(([, x, y]) => (0, canvas_1.rectIntersection)([x, y, w, h], [rect[0] - x, rect[1] - y, rect[2], rect[3]])));
             }
-            return rx.of([chr]);
-        }), rx.reduce((acc, it) => {
-            acc.push(...it);
-            return acc;
-        }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)))));
+            else {
+                return rx.of((0, canvas_1.rectIntersection)([0, 0, w, h], rect));
+            }
+        }), rx.mergeMap(rect => {
+            if (rect != null)
+                return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chd]) => chd), rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(rx.take(1), rx.filter(([, bRect]) => {
+                    return (0, canvas_1.rectIntersection)(rect, bRect) != null;
+                }), rx.map(() => chr))), rx.mergeMap(chr => chr.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(isContainer => {
+                    if (isContainer) {
+                        return chr.s.ft.findOverlaps(...rect)
+                            .re(m).od(chr.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chr]));
+                    }
+                    return rx.of([chr]);
+                }))), rx.reduce((acc, it) => {
+                    acc.push(...it);
+                    return acc;
+                }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
+            else {
+                s.ft.didFindOverlaps([]).dp(m);
+                return rx.EMPTY;
+            }
+        }));
     })));
     const reflowData = rx.combineLatest([
         table.l.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)),
@@ -404,11 +465,7 @@ function createContainerBase(opts) {
     ]);
     r('init', new rx.Observable(() => {
         ft.latestReflowData(reflowData).dp();
-        // ft.addReflowAction(onSize$).dp();
-        // ft.addReflowAction(s.pt.onChildPreferredSizeChange).dp();
-        ft.latestRenderData(reflowData).dp();
         ft.isContainer(true).dp();
-        // ft.addRerenderAction(s.pt.onBgChangeWithParent).dp();
         ft.allChildren(children).dp();
         ft.onSize(0, 0).dp();
         ft.onContentSizeChange(0, 0).dp();

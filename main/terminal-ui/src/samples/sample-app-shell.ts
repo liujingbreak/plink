@@ -10,17 +10,16 @@ const panel = createFlexContainer({name: 'contentPanel', debug, log});
 const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug, log});
 const {canvas} = app.createApp(border, {
   default: {debug, log},
-  elevator: {
-    default: {debug: true, log}
-  },
-  // statusbar: {debug: false},
-  // keyService: {debug: false},
+  // elevator: {
+  //   default: {debug: true, log}
+  // },
+  statusbar: {debug: false},
+  keyService: {debug: false},
   canvas: {debug: false},
-  // elevator: {default: {debug: true, log}},
   focusable: {debug: true},
   scrollable: {
-    // default: {debug: true},
-    focusable: {debug: true}
+    default: {debug: true}
+    // focusable: {debug: true}
   }
 });
 
@@ -33,6 +32,7 @@ process.stdout.on('resize', () => {
 });
 
 setTimeout(() => {
+  log('>>>>>>>>>>>>>>>>>>>>>> load data');
   panel.s.ft.removeChild(welcome).dp();
   panel.s.ft.setDirection('col').dp();
   const num = 20;

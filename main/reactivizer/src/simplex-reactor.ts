@@ -56,7 +56,7 @@ export class SimplexReactor<
   constructor(opts?: SimplexReactorOptions<I, LI>) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.opts = opts as any;
-    this.s = new RxController2<I & BaseActions<I>>({...opts, name: (opts?.name ?? '') + `#${this.id}`});
+    this.s = new RxController2<I & BaseActions<I>>({...opts, name: (opts?.name ?? '') + `@${this.id}`});
     const internalMsg$ = this.s as unknown as RxController2<BaseActions>;
 
     const doOperator = <A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.merge(
@@ -137,7 +137,7 @@ export class SimplexReactor<
     this.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
       if (p !== 'tableFor') {
         if (p === 'name')
-          obj.name = opts.name + '#' + this.id;
+          obj.name = opts.name + '@' + this.id;
         else {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           obj[p as keyof RxControlConfigType<I>] = v;

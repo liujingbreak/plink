@@ -41,7 +41,7 @@ const tableForFlexContainer = [
     'setBorderSeparatorStyle'
 ];
 function createFlexContainer(opts = {}) {
-    const base = (0, base_1.createContainerBase)(Object.assign({ name: 'listContainer' }, opts));
+    const base = (0, base_1.createContainerBase)(Object.assign({ name: 'flexContainer' }, opts));
     const listContainer = base.config({ tableFor: tableForFlexContainer });
     // intercept "onRender"
     base.s.prependInterceptor(action$ => {
@@ -296,7 +296,7 @@ function createFlexContainer(opts = {}) {
             ft.onContentSizeChange(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
         }
     })));
-    r('onRender -> renderSelf, renderChild', prependCtl.pt.onRender.pipe(rx.withLatestFrom(table.l.allDisplayChildren, table.l.setDirection, table.l.onSize, table.l.setBorderSeparator, table.l.setBorderSeparatorStyle), rx.map(([[m, canvas, trans, renderSelf, clips, masks], [, children], [, dir], [, , h], [, borderSep], [, sepStyle]]) => {
+    r('onRender -> renderSelf, renderChild', prependCtl.pt.onRender.pipe(rx.withLatestFrom(table.l.setDirection, table.l.onSize, table.l.setBorderSeparator, table.l.setBorderSeparatorStyle), rx.map(([[m, canvas, trans, renderSelf, clips, masks], [, dir], [, , h], [, borderSep], [, sepStyle]]) => {
         if (masks == null)
             masks = [];
         if (renderSelf)
@@ -309,7 +309,8 @@ function createFlexContainer(opts = {}) {
                     canvas.s.ft.addString(orig[0] + sepPos, orig[1] + i, '│', sepStyle).dp(m);
             }
         }
-        let chrToRender = clips.flatMap(clip => childBoundingTree.searchOverlaps(clip));
+        let chrToRender = clips.flatMap(clip => [...childBoundingTree.searchOverlaps(clip)])
+            .map(([, c]) => c);
         const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, w]) => w)).flat() : []);
         chrToRender = chrToRender.filter(([, c]) => !excluded.has(c));
         for (let i = 0, l = chrToRender.length; i < l; i++) {
@@ -317,20 +318,32 @@ function createFlexContainer(opts = {}) {
             s.ft.renderChild(idx, chr, canvas, trans, clips, masks).dp(m);
         }
     })));
-    r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(rx.withLatestFrom(table.l.onBoundingBox), rx.mergeMap(([[m, ...r1], [, r2]]) => {
-        const rect = (0, canvas_1.rectIntersection)(r1, r2);
-        if (rect == null) {
-            s.ft.didFindOverlaps([]).dp(m);
-            return rx.EMPTY;
-        }
-        const children = childBoundingTree.searchOverlaps(rect);
-        return rx.from(children).pipe(rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
-            chd.s.ft.findOverlaps(...rect)
-                .od(chd.s.pt.didFindOverlaps).pipe(rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chd])) :
-            rx.of([chd])))), rx.reduce((acc, it) => {
-            acc.push(...it);
-            return acc;
-        }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
+    r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
+        return rx.combineLatest([
+            table.l.onPosition,
+            table.l.onSize
+        ]).pipe(rx.take(1), rx.switchMap(([[, x, y], [, w, h]]) => {
+            if (x == null) {
+                s.ft.didFindOverlaps([]).dp(m);
+                return rx.EMPTY;
+            }
+            const r = (0, canvas_1.rectIntersection)([x, y, w, h], rect);
+            if (r == null) {
+                s.ft.didFindOverlaps([]).dp(m);
+                return rx.EMPTY;
+            }
+            return rx.of([r[0] - x, r[1] - y, r[2], r[3]]);
+        }), rx.mergeMap(relativeR => {
+            // listContainer.log('childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
+            const children = childBoundingTree.searchOverlaps(relativeR);
+            return rx.from(children).pipe(rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
+                chd.s.ft.findOverlaps(...rect)
+                    .re(m).od(chd.s.pt.didFindOverlaps).pipe(rx.map(([, chdOfChd]) => chdOfChd), rx.take(1), rx.endWith([chd])) :
+                rx.of([chd])))), rx.reduce((acc, it) => {
+                acc.push(...it);
+                return acc;
+            }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
+        }));
     })));
     const reflowData = rx.combineLatest([
         table.l.onSize,
@@ -341,7 +354,7 @@ function createFlexContainer(opts = {}) {
             ]).pipe(rx.map(([grows, shrinks]) => [chdn, grows, shrinks]));
         })),
         table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
-        table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator,
+        table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator
     ]);
     r('init', new rx.Observable(() => {
         ft.setDirection('row').dp();

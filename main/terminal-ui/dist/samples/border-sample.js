@@ -9,8 +9,6 @@ const fs_1 = __importDefault(require("fs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
 const index_2 = require("../index");
-// import {createScrollable} from '../index';
-// import {createFlexContainer} from '../index';
 const index_3 = require("../index");
 const index_4 = require("../index");
 const screenWidth = process.argv[2];

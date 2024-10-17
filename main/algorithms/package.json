@@ -24,7 +24,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsc -b tsconfig-all.json",
-    "watch": "tsc w -b tsconfig-all.json",
+    "watch": "tsc -b -w tsconfig-all.json",
     "test": "echo \"Error: test is performed in project @wfh/plink \" && exit 1"
   },
   "repository": {

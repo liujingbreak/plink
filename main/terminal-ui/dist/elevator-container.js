@@ -39,7 +39,7 @@ function createElevator(opts) {
     // intercept "onRender"
     base.s.interceptor$.next(action$ => {
         const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
-        return rx.merge(dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
+        return rx.merge(rx.merge(dispenser.at.onRender, dispenser.at.findOverlaps).pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
     });
     const prependCtl = service.s.prependController();
     r('addChild, removeChild -> "canvasMap"', rx.merge(s.pt.addChild.pipe(rx.map(([m, ...chdn]) => [m, chdn])), s.pt.insertChild.pipe(rx.map(([m, , chdn]) => [m, chdn]))).pipe(rx.mergeMap(([m, chd]) => rx.from(chd).pipe(rx.mergeMap(chd => {
@@ -136,7 +136,7 @@ function createElevator(opts) {
             }), rx.take(1));
         })));
     })))));
-    r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.withLatestFrom(s.pt.allDisplayChildren), rx.mergeMap(([[m, ...rect], [, chdr]]) => {
+    r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(rx.withLatestFrom(s.pt.allDisplayChildren), rx.mergeMap(([[m, ...rect], [, chdr]]) => {
         const last = chdr[chdr.length - 1];
         return last.table.l.isContainer.pipe(rx.concatMap(([, isContainer]) => {
             if (!isContainer) {
@@ -144,8 +144,8 @@ function createElevator(opts) {
                 return rx.EMPTY;
             }
             const comp = last;
-            return comp.s.ft.findOverlaps(...rect).re(m).od(comp.s.pt.didFindOverlaps);
-        }), rx.take(1), rx.map(([, comps]) => s.ft.didFindOverlaps(comps).dp(m)));
+            return comp.s.ft.findOverlaps(...rect).re(m).od(comp.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([m2, comps]) => s.ft.didFindOverlaps(comps.concat(comp)).dp(m, m2)));
+        }));
     })));
     service.s = prependCtl;
     return service;

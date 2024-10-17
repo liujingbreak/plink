@@ -67,7 +67,7 @@ function createTable(opts) {
     // intercept onRender
     s.prependInterceptor(action$ => {
         const ad = reactivizer_1.ActionDispenser.ofAction$(action$);
-        return rx.merge(ad.pt.onRender.pipe(rx.ignoreElements()), ad.ofOtherTypes());
+        return rx.merge(rx.merge(ad.pt.onRender, ad.pt.findOverlaps).pipe(rx.ignoreElements()), ad.ofOtherTypes());
     });
     const prependCtrl = service.s.prependController();
     const rows = new Map();
@@ -488,11 +488,14 @@ function createTable(opts) {
         table.l.setRowSpacing, table.l.setColumnSpacing,
         table.l.setBorderPadding, table.l.onSize
     ]);
+    r('extend latestRenderData', table.l.latestRenderData.pipe(rx.take(1), rx.map(([m, origData$]) => {
+        s.ft.latestRenderData(rx.combineLatest([renderData, origData$])).dp(m);
+    })));
     r('onRender', prependCtrl.pt.onRender.pipe(rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks]) => {
         return renderData.pipe(rx.take(1), rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height]]) => {
             if (renderSelf) {
                 s.ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
-                let cellsToRender = clips.flatMap(clip => cellBoundingTree.searchOverlaps(clip));
+                let cellsToRender = clips.flatMap(clip => [...cellBoundingTree.searchOverlaps(clip).map(([, c]) => c)]);
                 // service.log('masks', masks?.join('\n'));
                 const excludedCells = new Set(masks ? masks.map(c => cellBoundingTree.searchForCovered(c).map(([col, row]) => col + ',' + row)).flat() : []);
                 cellsToRender = cellsToRender.filter(([col, row]) => !excludedCells.has(col + ',' + row));
@@ -502,7 +505,7 @@ function createTable(opts) {
                     s.ft.onCellBgRender(col, row, canvas, [...pos, rect[2], rect[3]]).dp(m);
                 }
             }
-            let childToRender = clips.flatMap(clip => childBoundingTree.searchOverlaps(clip));
+            let childToRender = clips.flatMap(clip => [...childBoundingTree.searchOverlaps(clip)].map(([, c]) => c));
             // service.log('>>>>> childToRender', childToRender.length);
             const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, w]) => w)).flat() : []);
             childToRender = childToRender.filter(([, c]) => !excluded.has(c));
@@ -683,16 +686,17 @@ function createTable(opts) {
                 childComp.s.ft.setBackground(null).dp(m);
         }
     })))));
-    r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.withLatestFrom(table.l.onBoundingBox), rx.mergeMap(([[m, ...r1], [, r2]]) => {
+    r('findOverlaps -> didFindOverlaps', prependCtrl.pt.findOverlaps.pipe(rx.withLatestFrom(table.l.onBoundingBox), rx.mergeMap(([[m, ...r1], [, r2]]) => {
         const rect = (0, canvas_1.rectIntersection)(r1, r2);
         if (rect == null) {
             s.ft.didFindOverlaps([]).dp(m);
             return rx.EMPTY;
         }
-        const children = childBoundingTree.searchOverlaps(rect);
-        return rx.from(children).pipe(rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
+        const relativeR = [rect[0] - r2[0], rect[1] - r2[1], rect[2], rect[3]];
+        const children = childBoundingTree.searchOverlaps(relativeR).map(([, c]) => c);
+        return rx.from(children).pipe(rx.mergeMap(([, chd]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
             chd.s.ft.findOverlaps(...rect)
-                .od(chd.s.pt.didFindOverlaps).pipe(rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chd])) :
+                .od(chd.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chd])) :
             rx.of([chd])))), rx.reduce((acc, it) => {
             acc.push(...it);
             return acc;

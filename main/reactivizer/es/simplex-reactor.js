@@ -24,7 +24,7 @@ export class SimplexReactor {
         this.errorSubject = new rx.ReplaySubject(20);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.opts = opts;
-        this.s = new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `#${this.id}` }));
+        this.s = new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `@${this.id}` }));
         const internalMsg$ = this.s;
         const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsg$.pt.__onError.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
             throw err;
@@ -79,7 +79,7 @@ export class SimplexReactor {
         this.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
             if (p !== 'tableFor') {
                 if (p === 'name')
-                    obj.name = opts.name + '#' + this.id;
+                    obj.name = opts.name + '@' + this.id;
                 else {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     obj[p] = v;

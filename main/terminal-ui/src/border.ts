@@ -21,6 +21,7 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
   });
   const {r, table, s} = service;
   const childPos = [0, 0] as [number, number];
+  const positions = new Map<BaseWidget, [number, number]>([[child, childPos]]);
   r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(
     rx.withLatestFrom(table.l.allChildren, table.l.setBorder, table.l.setPadding),
     rx.mergeMap(([[m, w, h], [, children], [, border], [, top, right, bottom, left]]) => {
@@ -81,6 +82,7 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
       const cHeight = h - top - bottom - borderLine;
       if (cWidth > 0 && cHeight > 0) {
         children[0].s.ft.onSize(cWidth, cHeight).dp(m);
+        s.ft.onChildPositions(positions).dp(m);
       }
     })
   ));
@@ -110,7 +112,7 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
     s.ft.setBorder('line').dp();
     s.ft.addChild(child).dp();
     s.ft.setBorderStyle([]).dp();
-    s.ft.onChildPositions(new Map<BaseWidget, [number, number]>([[child, childPos]])).dp();
+    s.ft.onChildPositions(positions).dp();
   }));
   return service;
 }

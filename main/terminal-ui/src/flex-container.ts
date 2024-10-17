@@ -3,7 +3,7 @@ import {vec2} from 'gl-matrix';
 import {CoreOptsOfExtSmplxRctr, SimplexReactorExtendType, SingleActionFactory, ActionDispenser,
   actionRelatedToAction} from '@wfh/reactivizer';
 import {TerminalContainer, createContainerBase, BaseWidget} from './base';
-import {TextStyle, rectIntersection} from './canvas';
+import {TextStyle, rectIntersection, Rectangle} from './canvas';
 import {RectangleOverlapTree} from './rectangle-overlap-tree';
 
 export enum FlexBorderSeparator {
@@ -32,7 +32,7 @@ const tableForFlexContainer = [
 export type FlexContainer = SimplexReactorExtendType<TerminalContainer, FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>;
 export type FlexContainerOpts = CoreOptsOfExtSmplxRctr<TerminalContainer, FlexContainerInput & FlexContainerEvents>;
 export function createFlexContainer(opts: FlexContainerOpts = {}) {
-  const base = createContainerBase({name: 'listContainer', ...opts as any});
+  const base = createContainerBase({name: 'flexContainer', ...opts as any});
   const listContainer = base.config<FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>({tableFor: tableForFlexContainer});
   // intercept "onRender"
   base.s.prependInterceptor(action$ => {
@@ -384,8 +384,8 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
     })
   ));
   r('onRender -> renderSelf, renderChild', prependCtl.pt.onRender.pipe(
-    rx.withLatestFrom(table.l.allDisplayChildren, table.l.setDirection, table.l.onSize, table.l.setBorderSeparator, table.l.setBorderSeparatorStyle),
-    rx.map(([[m, canvas, trans, renderSelf, clips, masks], [, children], [, dir], [, , h], [, borderSep], [, sepStyle]]) => {
+    rx.withLatestFrom(table.l.setDirection, table.l.onSize, table.l.setBorderSeparator, table.l.setBorderSeparatorStyle),
+    rx.map(([[m, canvas, trans, renderSelf, clips, masks], [, dir], [, , h], [, borderSep], [, sepStyle]]) => {
       if (masks == null)
         masks = [];
       if (renderSelf)
@@ -398,7 +398,8 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
             canvas.s.ft.addString(orig[0] + sepPos, orig[1] + i, '│', sepStyle).dp(m);
         }
       }
-      let chrToRender = clips.flatMap(clip => childBoundingTree.searchOverlaps(clip));
+      let chrToRender = clips.flatMap(clip => [...childBoundingTree.searchOverlaps(clip)])
+        .map(([, c]) => c);
       const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, w]) => w)).flat() : []);
       chrToRender = chrToRender.filter(([, c]) => !excluded.has(c));
       for (let i = 0, l = chrToRender.length; i < l; i++) {
@@ -408,31 +409,47 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
     })
   ));
   r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(
-    rx.withLatestFrom(table.l.onBoundingBox),
-    rx.mergeMap(([[m, ...r1], [, r2]]) => {
-      const rect = rectIntersection(r1, r2);
-      if (rect == null) {
-        s.ft.didFindOverlaps([]).dp(m);
-        return rx.EMPTY;
-      }
-      const children = childBoundingTree.searchOverlaps(rect);
-      return rx.from(children).pipe(
-        rx.mergeMap(([i, chd]) => chd.table.l.isContainer.pipe(
-          rx.take(1),
-          rx.mergeMap(([, isContainer]) => isContainer ?
-            (chd as TerminalContainer).s.ft.findOverlaps(...rect)
-              .od((chd as TerminalContainer).s.pt.didFindOverlaps).pipe(
-                rx.map(([, chdOfChd]) => chdOfChd),
-                rx.endWith([chd])
-              ) :
-            rx.of([chd])
-          )
-        )),
-        rx.reduce((acc, it) => {
-          acc.push(...it);
-          return acc;
-        }, [] as BaseWidget[]),
-        rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+    rx.mergeMap(([m, ...rect]) => {
+      return rx.combineLatest([
+        table.l.onPosition,
+        table.l.onSize
+      ]).pipe(
+        rx.take(1),
+        rx.switchMap(([[, x, y], [, w, h]]) => {
+          if (x == null) {
+            s.ft.didFindOverlaps([]).dp(m);
+            return rx.EMPTY;
+          }
+          const r = rectIntersection([x, y!, w, h], rect);
+          if (r == null) {
+            s.ft.didFindOverlaps([]).dp(m);
+            return rx.EMPTY;
+          }
+          return rx.of([r[0] - x, r[1] - y!, r[2], r[3]] as Rectangle);
+        }),
+        rx.mergeMap(relativeR => {
+          // listContainer.log('childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
+          const children = childBoundingTree.searchOverlaps(relativeR);
+          return rx.from(children).pipe(
+            rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(
+              rx.take(1),
+              rx.mergeMap(([, isContainer]) => isContainer ?
+                (chd as TerminalContainer).s.ft.findOverlaps(...rect)
+                  .re(m).od((chd as TerminalContainer).s.pt.didFindOverlaps).pipe(
+                    rx.map(([, chdOfChd]) => chdOfChd),
+                    rx.take(1),
+                    rx.endWith([chd])
+                  ) :
+                rx.of([chd])
+              )
+            )),
+            rx.reduce((acc, it) => {
+              acc.push(...it);
+              return acc;
+            }, [] as BaseWidget[]),
+            rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+          );
+        })
       );
     })
   ));
@@ -450,7 +467,7 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
       })
     ),
     table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
-    table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator,
+    table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator
   ]);
   r('init', new rx.Observable<never>(() => {
     ft.setDirection('row').dp();

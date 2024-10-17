@@ -28,6 +28,13 @@ export interface DuplicateNode<V = unknown> extends IntervalTreeBaseNode<V> {
 
 export type IntervalTreeNode<V = unknown> = NonDuplicateNode<V> | DuplicateNode<V>;
 
+export type OverlapSearchResult<V> = readonly [
+  low: number,
+  high: number,
+  data: V,
+  highValueNode: null | RbTreeNode<number, V>,
+  intervalNode: IntervalTreeNode<V>
+];
 /**
  * Maintaining:
  *  node.max = max(node.int[1], node.left.max, node.right.max)
@@ -83,7 +90,7 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
     const node = this.search(low);
     if (node == null || node === this.nil)
       return false;
-    if (node.int && node.int[1] === high) {
+    if (node.int?.[1] === high) {
       this.deleteNode(node);
       return true;
     } else if (isDuplicateNode(node)) {
@@ -127,7 +134,7 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
   }
 
   /** @param high is considered as an included endpoint value */
-  searchSingleOverlap(low: number, high: number) {
+  searchSingleOverlap(low: number, high: number): OverlapSearchResult<V> | null {
     if (this.root === this.nil)
       return null;
     let node = this.root as IntervalTreeNode<V>;
@@ -138,23 +145,34 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
         node = node.right;
       }
     }
-    return node;
+    return [
+      node.key,
+      node.maxHighOfMulti,
+      node.highValuesTree && node.highValuesTree.size() > 0 ?
+        node.highValuesTree.maximum()!.value :
+        node.value,
+      node.highValuesTree?.maximum() ?? null,
+      node
+    ] as const;
   }
   /** @param high is considered as an included endpoint value */
-  *searchMultipleOverlaps(low: number, high: number): Generator<[low: number, high: number, data: V, node: IntervalTreeNode<V>]> {
-    const foundNodes = [] as IntervalTreeNode<V>[];
+  searchMultipleOverlaps(low: number, high: number): OverlapSearchResult<V>[] {
+    const foundNodes = [] as [number, number, null | RbTreeNode<number, V>, IntervalTreeNode<V>][];
     if (this.root === this.nil)
-      return null;
-
+      return [];
     this._searchMultipleOverlaps(foundNodes, low, high, this.root as IntervalTreeNode<V>);
-    for (const node of foundNodes) {
-      if (node.int) {
-        yield [...node.int, node.value, node];
-      } else if (isDuplicateNode(node)) {
-        for (const highTreeNode of node.highValuesTree.keysSmallerThan(high, true)) {
-          yield [node.key, highTreeNode.key, highTreeNode.value, node];
+    return foundNodes.map(([l, h, hNode, n]) => {
+      return [l, h, hNode ? hNode.value : n.value, hNode, n];
+    });
+  }
+  *allIntervals(): Generator<readonly [number, number, V], void, unknown> {
+    for (const [node] of this.allChildNodeInorder()) {
+      if (node.highValuesTree)
+        for (const [hvNode] of node.highValuesTree.allChildNodeInorder()) {
+          yield [node.key, hvNode.key, hvNode.value] as const;
         }
-      }
+      else
+        yield [...node.int, node.value] as const;
     }
   }
 
@@ -182,15 +200,37 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
   }
 
   protected _searchMultipleOverlaps<V>(
-    overlaps: IntervalTreeNode<V>[], low: number, high: number, node: IntervalTreeNode<V> | null | undefined
+    overlaps: (readonly [
+      low: number,
+      high: number,
+      highValueNode: null | RbTreeNode<number, V>,
+      intervalNode: IntervalTreeNode<V>
+    ])[],
+    low: number,
+    high: number,
+    node: IntervalTreeNode<V> | null | undefined
   ): number {
     if (node == null || (node as any) === this.nil) {
       return 0;
     }
     let numOverlaps = 0;
     if (doesIntervalOverlap([node.key, node.maxHighOfMulti], [low, high])) {
-      overlaps.push(node);
-      numOverlaps = 1;
+      if (node.int) {
+        overlaps.push([...node.int, null, node]);
+        numOverlaps = 1;
+      } else if (node.highValuesTree) {
+        if (low < node.key) {
+          for (const [n] of node.highValuesTree.allChildNodeInorder()) {
+            overlaps.push([node.key, n.key, n, node]);
+          }
+          numOverlaps = node.highValuesTree.size();
+        } else {
+          const beforeLen = overlaps.length;
+          for (const hNode of node.highValuesTree.keysGreaterThan(low, true))
+            overlaps.push([node.key, hNode.key, hNode, node] as const);
+          numOverlaps = overlaps.length - beforeLen;
+        }
+      }
     }
     if ((node.left as unknown) !== this.nil && low <= node.left.max) {
       const numOverlapsLeft = this._searchMultipleOverlaps(overlaps, low, high, node.left);

@@ -39,6 +39,7 @@ function createBorderContainer(child, opts) {
     });
     const { r, table, s } = service;
     const childPos = [0, 0];
+    const positions = new Map([[child, childPos]]);
     r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.allChildren, table.l.setBorder, table.l.setPadding), rx.mergeMap(([[m, w, h], [, children], [, border], [, top, right, bottom, left]]) => {
         if (w == null && h != null) {
             return children[0].s.ft.querySizeOf(null, h - top - bottom - (border === 'line' ? 2 : 0)).re(m).od(children[0].s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, childWidth]) => {
@@ -80,6 +81,7 @@ function createBorderContainer(child, opts) {
         const cHeight = h - top - bottom - borderLine;
         if (cWidth > 0 && cHeight > 0) {
             children[0].s.ft.onSize(cWidth, cHeight).dp(m);
+            s.ft.onChildPositions(positions).dp(m);
         }
     })));
     const renderData = rx.combineLatest([
@@ -102,7 +104,7 @@ function createBorderContainer(child, opts) {
         s.ft.setBorder('line').dp();
         s.ft.addChild(child).dp();
         s.ft.setBorderStyle([]).dp();
-        s.ft.onChildPositions(new Map([[child, childPos]])).dp();
+        s.ft.onChildPositions(positions).dp();
     }));
     return service;
 }

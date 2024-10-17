@@ -23,10 +23,16 @@ export interface BaseWidgetInput {
     /** to override automatical "preferredSize" in layout calculation */
     setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
     setFocusable(focusable: boolean | Rectangle): SingleActionFactory;
+    queryAbsBounding(): SingleActionFactory;
 }
-export interface BaseWidgetEvents extends BaseWidgetInput {
+export interface BaseWidgetEvents<S = BaseWidgetRenderData> extends BaseWidgetInput {
     isContainer(yes: boolean): SingleActionFactory;
     onSize(width: number, height: number): SingleActionFactory;
+    /** The coordinate value is relative to parent container,
+     * avaible after parent container's "reflow"
+     **/
+    onPosition(x: number | null, y: number | null): SingleActionFactory;
+    /** available after "render" */
     onTransform(trans: mat4): SingleActionFactory;
     _saveTransform(trans: mat4): SingleActionFactory;
     offsetParent(p: OffsetParent | null): SingleActionFactory;
@@ -53,12 +59,18 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     /** Implementation needed to handle this event */
     onRender(canvas: TerminalCanvas, absTransform: mat4, renderSelf: boolean, clipArea: Rectangle[], maskArea?: Rectangle[]): SingleActionFactory;
     needRerender(need: boolean): SingleActionFactory;
-    latestRenderData(renderData$: rx.Observable<unknown>): SingleActionFactory;
-    /** @deprecated use latestRenderData instead
+    /** Set rendering state data.
+     * When this observable state data changes, a "needRerender" message will be triggered and followed by "render", "onRender" messages,
+     * the observable should be derived from table properties or any other observable in form BehaviorSubject, which provides "current state" without any
+     * asynchrouse waiting.
+     */
+    latestRenderData(renderData$: rx.Observable<S>): SingleActionFactory;
+    /** @deprecated use addRenderData or latestRenderData instead
      * If following action is dispatched, the next render message must not be skipped on current widget */
     addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
     /** Get bouding rectangle that is calculated when the lastest "render" message is handled,
-     * the coordinate of rectangle is relative to canvas, in case of child component of "scrollable" container,
+     * the coordinate of rectangle is relative to canvas which is attached with closest offset parent,
+     * in case of child component of "scrollable" container,
      * the effect canvas is an offline canvas whose coordinate is different from containing canvas.
      * Also see `TermainlContainerEvents["hasOfflineCanvas"]`
      */
@@ -67,12 +79,18 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
     bgCleared(hasCleared: boolean): SingleActionFactory;
     onFocus(direction: SearchDirection): SingleActionFactory;
+    didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
 }
-export declare const tableForBase: readonly ["onSize", "onTransform", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "latestRenderData", "isContainer"];
-export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
+export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "latestRenderData", "isContainer"];
+export type BaseWidgetRenderData = readonly [
+    InferMapParam<BaseWidgetInput['setDisplay']>,
+    InferMapParam<BaseWidgetEvents['onSize']>,
+    InferMapParam<BaseWidgetEvents['setBackground']>
+];
+export type BaseWidget<S = unknown> = SimplexReactor<BaseWidgetEvents<S>, typeof tableForBase>;
 export type BaseWidgetOptions = SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare function createBase(opts?: Partial<BaseWidgetOptions>): SimplexReactor<BaseWidgetEvents, readonly ["onSize", "onTransform", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "latestRenderData", "isContainer"]>;
+export declare function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOptions>): SimplexReactor<BaseWidgetEvents<S>, readonly ["onSize", "onTransform", "onPosition", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "latestRenderData", "isContainer"]>;
 export interface TerminalContainerInput {
     addChild(...children: BaseWidget[]): SingleActionFactory;
     insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
@@ -81,7 +99,7 @@ export interface TerminalContainerInput {
      * If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
     addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
     latestReflowData(data$: rx.Observable<unknown>): SingleActionFactory;
-    /** Respond by didFindOverlaps, coordinate value should be relative to offsetParent */
+    /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent */
     findOverlaps(...rect: Rectangle): SingleActionFactory;
 }
 export interface TermainlContainerEvents extends TerminalContainerInput {
@@ -125,7 +143,7 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
 declare const tableFor: readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque", "latestReflowData"];
 export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<TermainlContainerEvents, typeof tableFor>>;
 export type TerminalContainerOpts = Partial<OptionsOfSmplxRctr<TerminalContainer>>;
-export declare function createContainerBase(opts?: TerminalContainerOpts): SimplexReactor<BaseWidgetEvents & TermainlContainerEvents, readonly ("onSize" | "onTransform" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData")[]>;
+export declare function createContainerBase<S = BaseWidgetRenderData>(opts?: TerminalContainerOpts): SimplexReactor<BaseWidgetEvents<S> & TermainlContainerEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData")[]>;
 export interface OffsetParentMessages {
     findOverlapComponent(...rect: Rectangle): SingleActionFactory;
 }

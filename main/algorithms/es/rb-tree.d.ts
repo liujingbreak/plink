@@ -16,7 +16,7 @@ export type RbTreeNode<T, V = unknown> = {
     * size = left child's size + right child size + weight
     */
     size: number;
-    /** weight of current node, not includingg childlren'ss */
+    /** tree's size() returns sum of all nodes's weight */
     weight: number;
 };
 export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNode<T, V>> {
@@ -55,6 +55,7 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = 
      */
     keysSmallerThan(key: T, includeEqual?: boolean): Generator<RbTreeNode<T, V>, void, unknown>;
     inorderWalk(callback: (node: ND, level: number) => void, node?: ND | RbTreeNode<T, V>, level?: number): void;
+    allChildNodeInorder(node?: ND | RbTreeNode<T, V>, level?: number): Generator<[node: ND, level: number]>;
     minimum(node?: ND | RbTreeNode<T, V>): ND | null;
     maximum(node?: ND | RbTreeNode<T, V>): ND | null;
     size(): number;

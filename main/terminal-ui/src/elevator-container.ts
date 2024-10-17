@@ -34,7 +34,10 @@ export function createElevator(opts?: ElevatorOptions) {
   base.s.interceptor$.next(action$ => {
     const dispenser = ActionDispenser.ofAction$<typeof base.s>(action$);
     return rx.merge(
-      dispenser.at.onRender.pipe(
+      rx.merge(
+        dispenser.at.onRender,
+        dispenser.at.findOverlaps
+      ).pipe(
         rx.ignoreElements()
       ),
       dispenser.ofOtherTypes()
@@ -222,7 +225,7 @@ export function createElevator(opts?: ElevatorOptions) {
       })
     ))
   ));
-  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
+  r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(
     rx.withLatestFrom(s.pt.allDisplayChildren),
     rx.mergeMap(([[m, ...rect], [, chdr]]) => {
       const last = chdr[chdr.length - 1];
@@ -235,10 +238,11 @@ export function createElevator(opts?: ElevatorOptions) {
           const comp = last as TerminalContainer;
           return comp.s.ft.findOverlaps(...rect).re(m).od(
             comp.s.pt.didFindOverlaps
+          ).pipe(
+            rx.take(1),
+            rx.map(([m2, comps]) => s.ft.didFindOverlaps(comps.concat(comp)).dp(m, m2))
           );
-        }),
-        rx.take(1),
-        rx.map(([, comps]) => s.ft.didFindOverlaps(comps).dp(m))
+        })
       );
     })
   ));

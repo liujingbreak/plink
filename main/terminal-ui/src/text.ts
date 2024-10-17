@@ -24,9 +24,10 @@ BaseWidget, MultiLineTextActions, typeof tableForMultiLineText
 
 export type MultiLineTextWidgetOpts = Omit<NonNullable<OptionsOfSmplxRctr<MultiLineTextWidget>>, 'tableFor'>;
 export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpts) {
-  const service = createBase(opts as OptionsOfSmplxRctr<BaseWidget>).config<MultiLineTextActions, typeof tableForMultiLineText>({
+  const service = createBase({
     name: 'text',
-    ...opts,
+    ...opts
+  } as OptionsOfSmplxRctr<BaseWidget>).config<MultiLineTextActions, typeof tableForMultiLineText>({
     tableFor: tableForMultiLineText
   });
   const spliter = createWordSplitter({debug: false, log: opts?.log});

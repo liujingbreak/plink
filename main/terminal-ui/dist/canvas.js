@@ -29,7 +29,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTerminalCanvas = createTerminalCanvas;
 exports.getTextDisplayUnits = getTextDisplayUnits;
 exports.rectIntersection = rectIntersection;
-exports.rectUnion = rectUnion;
 const node_readline_1 = __importDefault(require("node:readline"));
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
@@ -38,11 +37,12 @@ const reactivizer_1 = require("@wfh/reactivizer");
 const algorithms_1 = require("@wfh/algorithms");
 // import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 const text_split_1 = require("./text-split");
+const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
 const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl']);
 const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange'];
 function createTerminalCanvas(opts) {
     const canvas = new reactivizer_1.SimplexReactor(Object.assign({ name: 'Canvas', 
-        // debugExcludeTypes: ['onPrintText'],
+        // debugExcludeTypes: ['requestRender'],
         tableFor }, opts));
     const { r, s, table } = canvas;
     const dirtyLines = new Map();
@@ -77,8 +77,10 @@ function createTerminalCanvas(opts) {
     })));
     r('setBounding -> rootComponent.onSize', s.pt.setBounding.pipe(rx.switchMap(([m, , , w, h]) => {
         return table.l.setRootComponent.pipe(rx.map(([, root]) => {
-            if (root)
+            if (root) {
                 root.s.ft.onSize(w, h).dp(m);
+                root.s.ft.onPosition(0, 0).dp(m);
+            }
         }));
     })));
     r('setBounding -> "lines"', s.pt.setBounding.pipe(rx.map(([, , , , h]) => h), rx.scan((prev, curr) => {
@@ -133,10 +135,9 @@ function createTerminalCanvas(opts) {
             node_readline_1.default.clearLine(process.stdout, 0);
         }
     })));
-    const EMPTY = [];
-    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rect], [, x, y], [, root]]) => {
+    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rects], [, x, y, w, h], [, root]]) => {
         if (root)
-            root.s.ft.render(canvas, gl_matrix_1.mat4.create(), rect ? [rect] : EMPTY).dp(m);
+            root.s.ft.render(canvas, gl_matrix_1.mat4.create(), rects !== null && rects !== void 0 ? rects : [[0, 0, w, h]]).dp(m);
         for (const [lineIdx, [left, right]] of dirtyLines) {
             const overlaps = [...lines[lineIdx].searchMultipleOverlaps(left, right - 1)];
             let offset = left;
@@ -236,16 +237,32 @@ function createTerminalCanvas(opts) {
     })));
     r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(rx.switchMap(([, enabled]) => {
         let suspended = false; // Has recursive render request?
+        const rectTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
         // eslint-disable-next-line multiline-ternary
-        return enabled ? s.pt.requestRender.pipe(rx.tap(() => suspended = true), rx.exhaustMap(([m]) => new rx.Observable(sub => {
-            suspended = false;
+        return enabled ? s.pt.requestRender.pipe(rx.mergeMap(([m, rect]) => {
+            return table.l.setBounding.pipe(rx.take(1), rx.map(([, ...bounding]) => {
+                suspended = m;
+                rectTree.addOrUnionRectOnOverlap(rect !== null && rect !== void 0 ? rect : bounding, null);
+                // canvas.log('rectTree', [...rectTree.allRectangles()].length);
+                return m;
+            }));
+        }), rx.exhaustMap(m => new rx.Observable(sub => {
             setTimeout(() => {
-                s.ft.render().dp(m);
+                suspended = false;
+                const rects = [...rectTree.allRectangles()];
+                rectTree.clear();
+                // canvas.log('rectTree before render', rects.length);
+                s.ft.render(rects.map(([r]) => r)).dp(m);
+                // canvas.log('rectTree clear for', m);
                 sub.complete();
-                canvas.log('has suspended:', suspended);
+                // canvas.log('has suspended:', suspended);
                 if (suspended) {
+                    const rects = [...rectTree.allRectangles()];
+                    rectTree.clear();
                     // to process possible request which is recursively issued during "exhaustMap"
-                    s.ft.render().dp(m);
+                    // canvas.log('rectTree for suspended', rects.length);
+                    s.ft.render(rects.map(([r]) => r)).dp(suspended);
+                    // canvas.log('rectTree clear after', suspended);
                     suspended = false;
                 }
             }, 20);
@@ -455,16 +472,5 @@ function rectIntersection([x1, y1, w1, h1], [x2, y2, w2, h2]) {
     if (vert == null)
         return null;
     return [hoz[0], vert[0], hoz[1] - hoz[0], vert[1] - vert[0]];
-}
-function rectUnion([x1, y1, w1, h1], [x2, y2, w2, h2]) {
-    const x = x1 < x2 ? x1 : x2;
-    const y = y1 < y2 ? y1 : y2;
-    const r1 = x1 + w1;
-    const r2 = x2 + w2;
-    const w = r1 > r2 ? r1 - x : r2 - x;
-    const b1 = y1 + h1;
-    const b2 = y2 + h2;
-    const h = b1 > b2 ? b1 - y : b2 - y;
-    return [x, y, w, h];
 }
 //# sourceMappingURL=canvas.js.map

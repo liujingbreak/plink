@@ -31,7 +31,9 @@ const base_1 = require("./base");
 const text_split_1 = require("./text-split");
 const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'];
 function createTextWidget(initialText = '', opts) {
-    const service = (0, base_1.createBase)(opts).config(Object.assign(Object.assign({ name: 'text' }, opts), { tableFor: tableForMultiLineText }));
+    const service = (0, base_1.createBase)(Object.assign({ name: 'text' }, opts)).config({
+        tableFor: tableForMultiLineText
+    });
     const spliter = (0, text_split_1.createWordSplitter)({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });
     const { r, s, table } = service;
     r('onRender', s.pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(table.l.onDisplayLines, table.l.onStyleWithParentBg, table.l.onSize, table.l.overflow), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow]]) => {

@@ -14,17 +14,16 @@ const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, lo
 const border = (0, index_1.createBorderContainer)(panel, { name: 'contentPanelBorder', debug, log });
 const { canvas } = index_1.app.createApp(border, {
     default: { debug, log },
-    elevator: {
-        default: { debug: true, log }
-    },
-    // statusbar: {debug: false},
-    // keyService: {debug: false},
+    // elevator: {
+    //   default: {debug: true, log}
+    // },
+    statusbar: { debug: false },
+    keyService: { debug: false },
     canvas: { debug: false },
-    // elevator: {default: {debug: true, log}},
     focusable: { debug: true },
     scrollable: {
-        // default: {debug: true},
-        focusable: { debug: true }
+        default: { debug: true }
+        // focusable: {debug: true}
     }
 });
 const screenWidth = process.argv[2];
@@ -34,6 +33,7 @@ process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
 });
 setTimeout(() => {
+    log('>>>>>>>>>>>>>>>>>>>>>> load data');
     panel.s.ft.removeChild(welcome).dp();
     panel.s.ft.setDirection('col').dp();
     const num = 20;

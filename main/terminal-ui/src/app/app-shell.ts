@@ -32,12 +32,12 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
     ...opts?.default as SimplexReactorOptions<AppSignals>,
     name: opts?.default?.name ?? 'App'
   });
-  const root = createFlexContainer({
+  const main = createFlexContainer({
     ...opts?.default as FlexContainerOpts,
-    name: 'root',
+    name: 'main',
     ...opts?.root
   });
-  root.s.ft.setDirection('col').dp();
+  main.s.ft.setDirection('col').dp();
   const statusbar = createStatusbar({
     ...opts?.default as StatusbarOptions,
     name: 'Statusbar',
@@ -52,7 +52,7 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
     }
   });
   scrollable.s.ft.setFlexGrow(1).dp();
-  root.s.ft.addChild(scrollable, statusbar).dp();
+  main.s.ft.addChild(scrollable, statusbar).dp();
   const canvas = createTerminalCanvas({
     ...opts?.default as TerminalCanvasOptions,
     ...opts?.canvas
@@ -66,10 +66,10 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
   keyEventService.s.ft.bindToScrollable(scrollable).dp();
   statusbar.s.ft.trackKeypressService(keyEventService).dp();
   statusbar.s.ft.trackScrollable(scrollable).dp();
-  root.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(
+  main.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(
     rx.concatMap(() => rx.timer(32)),
     rx.map(() => {
-      root.dispose();
+      main.dispose();
       canvas.dispose();
       keyEventService.dispose();
       process.exit();
@@ -108,12 +108,12 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
   coverLayerBorder.s.ft.setBorder('padding').dp();
   coverLayer.s.ft.addChild(coverLayerBorder).dp();
   elevator.s.ft.addChild(
-    root,
+    main,
     coverLayer
   ).dp();
   coverLayer.s.ft.setDisplay(DisplayMode.none).dp();
   canvas.s.ft.setRootComponent(elevator).dp();
   canvas.s.ft.setRenderOnRequest(true).dp();
   canvas.s.ft.requestRender().dp();
-  return {canvas, root, app: appService};
+  return {canvas, main, app: appService};
 }

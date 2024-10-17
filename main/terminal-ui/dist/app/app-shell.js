@@ -32,12 +32,12 @@ const statusbar_1 = require("./statusbar");
 function createApp(mainComponent, opts) {
     var _a, _b, _c;
     const appService = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: (_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'App' }));
-    const root = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'root' }), opts === null || opts === void 0 ? void 0 : opts.root));
-    root.s.ft.setDirection('col').dp();
+    const main = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'main' }), opts === null || opts === void 0 ? void 0 : opts.root));
+    main.s.ft.setDirection('col').dp();
     const statusbar = (0, statusbar_1.createStatusbar)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Statusbar' }), opts === null || opts === void 0 ? void 0 : opts.statusbar));
     const scrollable = (0, index_1.createScrollable)(mainComponent, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.scrollable), { default: Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'AppScrollable' }), (_c = opts === null || opts === void 0 ? void 0 : opts.scrollable) === null || _c === void 0 ? void 0 : _c.default) }));
     scrollable.s.ft.setFlexGrow(1).dp();
-    root.s.ft.addChild(scrollable, statusbar).dp();
+    main.s.ft.addChild(scrollable, statusbar).dp();
     const canvas = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.canvas));
     canvas.s.ft.autoHideCursor().dp();
     const keyEventService = (0, index_1.createKeyEventService)(canvas, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.keyService));
@@ -45,8 +45,8 @@ function createApp(mainComponent, opts) {
     keyEventService.s.ft.bindToScrollable(scrollable).dp();
     statusbar.s.ft.trackKeypressService(keyEventService).dp();
     statusbar.s.ft.trackScrollable(scrollable).dp();
-    root.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(rx.concatMap(() => rx.timer(32)), rx.map(() => {
-        root.dispose();
+    main.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(rx.concatMap(() => rx.timer(32)), rx.map(() => {
+        main.dispose();
         canvas.dispose();
         keyEventService.dispose();
         process.exit();
@@ -72,11 +72,11 @@ function createApp(mainComponent, opts) {
     coverLayerBorder.s.ft.setBackground('bgGrey').dp();
     coverLayerBorder.s.ft.setBorder('padding').dp();
     coverLayer.s.ft.addChild(coverLayerBorder).dp();
-    elevator.s.ft.addChild(root, coverLayer).dp();
+    elevator.s.ft.addChild(main, coverLayer).dp();
     coverLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp();
     canvas.s.ft.setRootComponent(elevator).dp();
     canvas.s.ft.setRenderOnRequest(true).dp();
     canvas.s.ft.requestRender().dp();
-    return { canvas, root, app: appService };
+    return { canvas, main, app: appService };
 }
 //# sourceMappingURL=app-shell.js.map

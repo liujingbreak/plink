@@ -50,6 +50,7 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
         return valueContainer;
     }
     deleteInterval(low, high) {
+        var _a;
         if (low > high) {
             const temp = high = low;
             low = temp;
@@ -57,7 +58,7 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
         const node = this.search(low);
         if (node == null || node === this.nil)
             return false;
-        if (node.int && node.int[1] === high) {
+        if (((_a = node.int) === null || _a === void 0 ? void 0 : _a[1]) === high) {
             this.deleteNode(node);
             return true;
         }
@@ -103,6 +104,7 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
     }
     /** @param high is considered as an included endpoint value */
     searchSingleOverlap(low, high) {
+        var _a, _b;
         if (this.root === this.nil)
             return null;
         let node = this.root;
@@ -114,23 +116,34 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
                 node = node.right;
             }
         }
-        return node;
+        return [
+            node.key,
+            node.maxHighOfMulti,
+            node.highValuesTree && node.highValuesTree.size() > 0 ?
+                node.highValuesTree.maximum().value :
+                node.value,
+            (_b = (_a = node.highValuesTree) === null || _a === void 0 ? void 0 : _a.maximum()) !== null && _b !== void 0 ? _b : null,
+            node
+        ];
     }
     /** @param high is considered as an included endpoint value */
-    *searchMultipleOverlaps(low, high) {
+    searchMultipleOverlaps(low, high) {
         const foundNodes = [];
         if (this.root === this.nil)
-            return null;
+            return [];
         this._searchMultipleOverlaps(foundNodes, low, high, this.root);
-        for (const node of foundNodes) {
-            if (node.int) {
-                yield [...node.int, node.value, node];
-            }
-            else if (isDuplicateNode(node)) {
-                for (const highTreeNode of node.highValuesTree.keysSmallerThan(high, true)) {
-                    yield [node.key, highTreeNode.key, highTreeNode.value, node];
+        return foundNodes.map(([l, h, hNode, n]) => {
+            return [l, h, hNode ? hNode.value : n.value, hNode, n];
+        });
+    }
+    *allIntervals() {
+        for (const [node] of this.allChildNodeInorder()) {
+            if (node.highValuesTree)
+                for (const [hvNode] of node.highValuesTree.allChildNodeInorder()) {
+                    yield [node.key, hvNode.key, hvNode.value];
                 }
-            }
+            else
+                yield [...node.int, node.value];
         }
     }
     /** @Override
@@ -158,8 +171,24 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
         }
         let numOverlaps = 0;
         if (doesIntervalOverlap([node.key, node.maxHighOfMulti], [low, high])) {
-            overlaps.push(node);
-            numOverlaps = 1;
+            if (node.int) {
+                overlaps.push([...node.int, null, node]);
+                numOverlaps = 1;
+            }
+            else if (node.highValuesTree) {
+                if (low < node.key) {
+                    for (const [n] of node.highValuesTree.allChildNodeInorder()) {
+                        overlaps.push([node.key, n.key, n, node]);
+                    }
+                    numOverlaps = node.highValuesTree.size();
+                }
+                else {
+                    const beforeLen = overlaps.length;
+                    for (const hNode of node.highValuesTree.keysGreaterThan(low, true))
+                        overlaps.push([node.key, hNode.key, hNode, node]);
+                    numOverlaps = overlaps.length - beforeLen;
+                }
+            }
         }
         if (node.left !== this.nil && low <= node.left.max) {
             const numOverlapsLeft = this._searchMultipleOverlaps(overlaps, low, high, node.left);

@@ -17,7 +17,7 @@ export type RbTreeNode<T, V = unknown> = {
   * size = left child's size + right child size + weight
   */
   size: number;
-  /** weight of current node, not includingg childlren'ss */
+  /** tree's size() returns sum of all nodes's weight */
   weight: number;
 };
 
@@ -306,6 +306,15 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
       callback(node as ND, level);
     if (!this.isNil(node.right))
       this.inorderWalk(callback, node.right, nextLevel);
+  }
+  *allChildNodeInorder(node = this.root, level = 0): Generator<[node: ND, level: number]> {
+    const nextLevel = level + 1;
+    if (!this.isNil(node.left))
+      yield *this.allChildNodeInorder(node.left, nextLevel);
+    if (!this.isNil(node))
+      yield [node as ND, level] as const;
+    if (!this.isNil(node.right))
+      yield *this.allChildNodeInorder(node.right, nextLevel);
   }
 
   minimum(node = this.root) {

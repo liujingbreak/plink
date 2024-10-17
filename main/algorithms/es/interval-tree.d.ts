@@ -23,6 +23,13 @@ export interface DuplicateNode<V = unknown> extends IntervalTreeBaseNode<V> {
     highValuesTree: RedBlackTree<number, V>;
 }
 export type IntervalTreeNode<V = unknown> = NonDuplicateNode<V> | DuplicateNode<V>;
+export type OverlapSearchResult<V> = readonly [
+    low: number,
+    high: number,
+    data: V,
+    highValueNode: null | RbTreeNode<number, V>,
+    intervalNode: IntervalTreeNode<V>
+];
 /**
  * Maintaining:
  *  node.max = max(node.int[1], node.left.max, node.right.max)
@@ -30,6 +37,7 @@ export type IntervalTreeNode<V = unknown> = NonDuplicateNode<V> | DuplicateNode<
  */
 export declare class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalTreeNode<V>> {
     /** Return tree node which could be either NonDuplicateNode or a node of DuplicateNode['highValuesTree'],
+     * the returned tree node could be the old one if there is already existing node with same "key" (low value)
      */
     insertInterval(low: number, high: number): Omit<IntervalTreeNode<V>, 'value'> & {
         value?: V;
@@ -39,9 +47,10 @@ export declare class IntervalTree<V = unknown> extends RedBlackTree<number, V, I
     deleteInterval(low: number, high: number): boolean;
     searchIntervalNode(low: number, high: number): IntervalTreeNode<V> | RbTreeNode<number, V> | null;
     /** @param high is considered as an included endpoint value */
-    searchSingleOverlap(low: number, high: number): IntervalTreeNode<V> | null;
+    searchSingleOverlap(low: number, high: number): OverlapSearchResult<V> | null;
     /** @param high is considered as an included endpoint value */
-    searchMultipleOverlaps(low: number, high: number): Generator<[low: number, high: number, data: V, node: IntervalTreeNode<V>]>;
+    searchMultipleOverlaps(low: number, high: number): OverlapSearchResult<V>[];
+    allIntervals(): Generator<readonly [number, number, V], void, unknown>;
     /** @Override
      */
     protected onLeftChildChange(parent: IntervalTreeNode<V>, _child: IntervalTreeNode<V> | null | undefined): void;
@@ -49,7 +58,12 @@ export declare class IntervalTree<V = unknown> extends RedBlackTree<number, V, I
      */
     protected onRightChildChange(parent: IntervalTreeNode<V>, _child: IntervalTreeNode<V> | null | undefined): void;
     protected maintainNodeMaxValue<V>(node: IntervalTreeNode<V>): void;
-    protected _searchMultipleOverlaps<V>(overlaps: IntervalTreeNode<V>[], low: number, high: number, node: IntervalTreeNode<V> | null | undefined): number;
+    protected _searchMultipleOverlaps<V>(overlaps: (readonly [
+        low: number,
+        high: number,
+        highValueNode: null | RbTreeNode<number, V>,
+        intervalNode: IntervalTreeNode<V>
+    ])[], low: number, high: number, node: IntervalTreeNode<V> | null | undefined): number;
 }
 /** A multi-value tree node can contain multiple intervals, in this case the tree node is assignable to type "DuplicateNode" */
 export declare function isDuplicateNode<V>(node: IntervalTreeNode<V>): node is DuplicateNode<V>;

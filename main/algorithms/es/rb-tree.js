@@ -282,6 +282,15 @@ export class RedBlackTree {
         if (!this.isNil(node.right))
             this.inorderWalk(callback, node.right, nextLevel);
     }
+    *allChildNodeInorder(node = this.root, level = 0) {
+        const nextLevel = level + 1;
+        if (!this.isNil(node.left))
+            yield* this.allChildNodeInorder(node.left, nextLevel);
+        if (!this.isNil(node))
+            yield [node, level];
+        if (!this.isNil(node.right))
+            yield* this.allChildNodeInorder(node.right, nextLevel);
+    }
     minimum(node = this.root) {
         while (!this.isNil(node.left)) {
             node = node.left;

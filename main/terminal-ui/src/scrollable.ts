@@ -34,7 +34,7 @@ export interface ScrollableOptions {
 }
 
 export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
-  const base = createContainerBase({
+  const base = createContainerBase<unknown>({
     ...opts?.default as TerminalContainerOpts,
     name: 'scrollable',
     ...opts?.core as TerminalContainerOpts
@@ -89,9 +89,10 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       return rx.EMPTY;
     })
   ));
+  const renderData = rx.combineLatest([table.l.onValidScroll, table.l.onSize]);
   r('onRender -> comp.render,...', prepended.pt.onRender.pipe(
-    rx.withLatestFrom(table.l.onValidScroll, table.l.onSize),
-    rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height]]) => {
+    rx.withLatestFrom(renderData),
+    rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [[, scLeft, scTop], [, width, height]]]) => {
       if (renderSelf)
         s.ft.renderSelf(outerCanvas, trans, clips, masks ?? []).dp(m);
       const clipsOfView = clips.map(c => {
@@ -106,8 +107,6 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       comp.s.ft.render(canvas, mat4.create(), clipsOfView, masksOfView).dp(m);
       const orig = [0, 0] as vec2;
       vec2.transformMat4(orig, orig, trans);
-      // focusService.s.ft.setRenderClips(clipsOfView).dp(m);
-      focusService.s.ft.render(canvas).dp(m);
       return canvas.s.ft.copyRect(scLeft, scTop, width, height).re(m).od(
         canvas.s.pt.onCopyRect
       ).pipe(
@@ -234,14 +233,41 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
   ));
   const service = scrollable as (Scrollable & OffsetParent);
   service.focusService = focusService;
-  r('focusService.requestRerenderFor', focusService.s.pt.requestRerenderFor.pipe(
-    rx.switchMap(([m, rect]) => s.ft.findOverlaps(...rect).re(m).od(
-      s.pt.didFindOverlaps
-    ).pipe(
-      rx.take(1),
-      rx.map(([, comps]) => {
-        for (const c of comps) {
-          c.s.ft.needRerender(true).dp(m);
+  r('rootService, rootService.onFocus', focusService.table.l.rootService.pipe(
+    rx.switchMap(([, root]) => root.table.l.onFocus.pipe(
+      rx.distinctUntilChanged(([, a], [, b]) => a === b),
+      rx.filter(([, , c]) => c != null),
+      rx.mergeMap(([m, , c]) => rx.combineLatest([
+        c!.s.ft.queryAbsBounding().re(m).od(
+          c!.s.pt.didQueryAbsBounding
+        ),
+        scrollable.s.ft.queryAbsBounding().re(m).od(
+          scrollable.s.pt.didQueryAbsBounding
+        )
+      ]).pipe(
+        rx.take(1),
+        rx.filter(([[, cb], [, sb]]) => cb != null && sb != null),
+        rx.map(([[, cb], [, sb]]) => [m, cb, sb] as const)
+      )),
+      rx.map(([m, cb, sb]) => {
+        const [x, y] = cb!;
+        const [px, py, pw, ph] = sb!;
+        service.log('<<< abs of scrollable', x, y, px, py, pw, ph);
+        if (x < px || y < py) {
+          const scrollX = x < px ? x - px : 0;
+          const scrollY = y < px ? y - py : 0;
+          s.ft.scroll(scrollX, scrollY).dp(m);
+        } else {
+          let toX = 0;
+          let toY = 0;
+          if (x >= px + pw) {
+            toX = x - (px + pw) + 1;
+          }
+          if (y >= py + ph) {
+            toY = y - (py + ph) + 1;
+          }
+          if (toX !== 0 || toY !== 0)
+            s.ft.scroll(toX, toY).dp(m);
         }
       })
     ))
@@ -262,12 +288,12 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
         return rx.EMPTY;
       }
       let [x, y] = rect;
-      x += left;
-      y += top;
+      x = x - bounding[0] + left;
+      y = y - bounding[1] + top;
       return (comp as TerminalContainer).s.ft.findOverlaps(x, y, rect[2], rect[3])
-        .re(m)
-        .od((comp as TerminalContainer).s.pt.didFindOverlaps).pipe(
-          rx.map(([m2, found]) => s.ft.didFindOverlaps(found).dp(m, m2))
+        .re(m).od((comp as TerminalContainer).s.pt.didFindOverlaps).pipe(
+          rx.take(1),
+          rx.map(([m2, found]) => s.ft.didFindOverlaps(found.concat(comp)).dp(m, m2))
         );
     })
   ));
@@ -280,6 +306,7 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
     s.ft.onOverflow(false, false).dp();
     s.ft.addChild(comp).dp();
     s.ft.onContent(comp).dp();
+    s.ft.latestRenderData(renderData).dp();
     s.ft.addReflowAction(s.at.onValidScroll).dp();
     s.ft.addReflowAction(s.at.setScrollable).dp();
     s.ft.hasOfflineCanvas(true).dp();

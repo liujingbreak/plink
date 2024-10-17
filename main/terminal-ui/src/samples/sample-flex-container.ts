@@ -2,8 +2,8 @@ import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import * as rx from 'rxjs';
-import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
 import {SimplexReactor, SingleActionFactory} from '@wfh/reactivizer';
+import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas} from '../index';
 import {createFlexContainer, createBorderContainer, createTextWidget, MultiLineTextWidget, getBoundingOfCompTree} from '../index';
 
@@ -11,15 +11,7 @@ const screenWidth = process.argv[2];
 const debug = true;
 
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
-function log(...args: any[]) {
-  const date = new Date();
-  fout.write(date.toLocaleTimeString());
-  // console.log(formatToConciseNoColor(...args));
-  fout.write('.');
-  fout.write(date.getMilliseconds() + ' - ');
-  fout.write(formatToConciseNoColor(...args));
-  fout.write('\n');
-}
+const log = createSimpleIndentLogger(false, false, fout);
 
 const canvas = createTerminalCanvas({debug, log});
 canvas.s.ft.autoHideCursor().dp();

@@ -30,22 +30,14 @@ require("source-map-support/register");
 const util_1 = __importDefault(require("util"));
 const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const reactivizer_1 = require("@wfh/reactivizer");
+const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
 const index_2 = require("../index");
 const screenWidth = process.argv[2];
 const debug = true;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
-function log(...args) {
-    const date = new Date();
-    fout.write(date.toLocaleTimeString());
-    // console.log(formatToConciseNoColor(...args));
-    fout.write('.');
-    fout.write(date.getMilliseconds() + ' - ');
-    fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
-    fout.write('\n');
-}
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const canvas = (0, index_1.createTerminalCanvas)({ debug, log });
 canvas.s.ft.autoHideCursor().dp();
 const root = (0, index_2.createFlexContainer)({ name: 'root', debug, log });

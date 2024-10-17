@@ -4,8 +4,6 @@ import fs from 'fs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas} from '../index';
 import {createTextWidget} from '../index';
-// import {createScrollable} from '../index';
-// import {createFlexContainer} from '../index';
 import {createFlexContainer} from '../index';
 import {createBorderContainer} from '../index';
 
