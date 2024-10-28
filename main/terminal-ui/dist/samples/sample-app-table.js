@@ -39,8 +39,9 @@ const table = (0, index_1.createTable)({
         debug, log
     },
     core: {
-    // debug: true
+        debug: true
     }
+    // optsForCellComponent: {debug: true}
     // lazy: {
     //   core: {debug: true},
     //   headPlaceHolder: {debug: true, debugIncludeTypes: ['onRender']},
@@ -77,6 +78,7 @@ table.s.ft.setLazyLoad(true, page => {
 table.s.pt.onRowAdded.pipe(rx.map(([, _idx, _id, cells]) => {
     cells.map(cell => {
         cell.s.ft.setStyle(['black']).dp();
+        cell.s.ft.setFocusable(true).dp();
     });
 })).subscribe();
 table.s.ft.setBorderType(index_1.TableBorderType.rowSeparator, true).dp();
@@ -104,15 +106,23 @@ const { canvas } = index_1.app.createApp(root, {
     default: {
         debug, log
     },
-    canvas: {
+    focusable: {
         debug: true,
-        debugIncludeTypes: ['clearRect']
+        debugExcludeTypes: ['onRectChange', 'removeFocusable']
     },
+    // canvas: {
+    //   debug: true,
+    //   debugIncludeTypes: ['clearRect']
+    // },
     scrollable: {
-        default: { debug },
-        core: { debug: true },
-        canvas: {
+        // default: {debug},
+        // core: {debug},
+        focusable: {
             debug: true,
+            debugExcludeTypes: ['onRectChange', 'removeFocusable']
+        },
+        canvas: {
+            debug: false,
             debugIncludeTypes: ['clearRect']
         }
     }

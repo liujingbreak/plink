@@ -12,8 +12,9 @@ const table = createTable({
     debug, log
   },
   core: {
-    // debug: true
+    debug: true
   }
+  // optsForCellComponent: {debug: true}
   // lazy: {
   //   core: {debug: true},
   //   headPlaceHolder: {debug: true, debugIncludeTypes: ['onRender']},
@@ -51,6 +52,7 @@ table.s.pt.onRowAdded.pipe(
   rx.map(([, _idx, _id, cells]) => {
     cells.map(cell => {
       (cell as MultiLineTextWidget).s.ft.setStyle(['black']).dp();
+      cell.s.ft.setFocusable(true).dp();
     });
   })
 ).subscribe();
@@ -82,15 +84,23 @@ const {canvas} = app.createApp(root, {
   default: {
     debug, log
   },
-  canvas: {
+  focusable: {
     debug: true,
-    debugIncludeTypes: ['clearRect']
+    debugExcludeTypes: ['onRectChange', 'removeFocusable']
   },
+  // canvas: {
+  //   debug: true,
+  //   debugIncludeTypes: ['clearRect']
+  // },
   scrollable: {
-    default: {debug},
-    core: {debug: true},
-    canvas: {
+    // default: {debug},
+    // core: {debug},
+    focusable: {
       debug: true,
+      debugExcludeTypes: ['onRectChange', 'removeFocusable']
+    },
+    canvas: {
+      debug: false,
       debugIncludeTypes: ['clearRect']
     }
   }

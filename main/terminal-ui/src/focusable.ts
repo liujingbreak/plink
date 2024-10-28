@@ -64,11 +64,10 @@ export function createFocusService(opts?: FocusableOptions) {
     rx.map(([m, c]) => {
       const rect = rectByComponent.get(c);
       if (rect) {
-        service.log('remove focusable', c.id);
+        // service.log('>>> remove focusable for', c.s.logPrefix, rect);
         rectByComponent.delete(c);
         s.ft.onRectRemoved(rect, c).dp(m);
-        const oldCol = rect[0];
-        const oldRow = rect[1];
+        const [oldCol, oldRow] = rect;
         const xNode = xTree.search(oldCol);
         if (xNode) {
           const yNode = xNode.value.search(oldRow);
@@ -76,8 +75,13 @@ export function createFocusService(opts?: FocusableOptions) {
             const i = yNode.value.findIndex(it => it === c);
             if (i >= 0) {
               yNode.value.splice(i, 1);
-              if (yNode.value.length === 0)
-                xTree.deleteNode(xNode);
+              if (yNode.value.length === 0) {
+                xNode.value.deleteNode(yNode);
+                if (xNode.value.size() === 0) {
+                  // service.log('>>> delete xTree node', xNode.key, 'for', c.s.logPrefix);
+                  xTree.deleteNode(xNode);
+                }
+              }
             }
           }
         }
@@ -88,11 +92,17 @@ export function createFocusService(opts?: FocusableOptions) {
             const i = xNode.value.findIndex(it => it === c);
             if (i >= 0) {
               xNode.value.splice(i, 1);
-              if (xNode.value.length === 0)
-                yTree.deleteNode(yNode);
+              if (xNode.value.length === 0) {
+                yNode.value.deleteNode(xNode);
+                if (yNode.value.size() === 0) {
+                  // service.log('>>> delete yTree node', yNode.key, 'for', c.s.logPrefix);
+                  yTree.deleteNode(yNode);
+                }
+              }
             }
           }
         }
+        // service.log('>>> count xTree', xTree.size(), 'yTree', yTree.size());
       }
     })
   ));
@@ -113,6 +123,7 @@ export function createFocusService(opts?: FocusableOptions) {
       const newRow = rect[1];
       // remove old node from xTree and yTree
       if (oldCol != null && oldRow != null) {
+        // service.log('>>> delete exiting rect for', c.s.logPrefix, oldCol, oldRow);
         const xNode = xTree.search(oldCol);
         if (xNode) {
           const yNode = xNode.value.search(oldRow);
@@ -120,19 +131,26 @@ export function createFocusService(opts?: FocusableOptions) {
             const idx = yNode.value.findIndex(it => it === c);
             if (idx >= 0)
               yNode.value.splice(idx, 1);
-            if (yNode.value.length === 0)
-              xTree.deleteNode(xNode);
+            if (yNode.value.length === 0) {
+              xNode.value.deleteNode(yNode);
+              if (xNode.value.size() === 0) {
+                xTree.deleteNode(xNode);
+              }
+            }
           }
         }
-        const yNode = yTree.search(oldCol);
+        const yNode = yTree.search(oldRow);
         if (yNode) {
           const xNode = yNode.value.search(oldCol);
           if (xNode) {
             const idx = xNode.value.findIndex(it => it === c);
             if (idx >= 0)
               xNode.value.splice(idx, 1);
-            if (xNode.value.length === 0)
-              yTree.deleteNode(yNode);
+            if (xNode.value.length === 0) {
+              yNode.value.deleteNode(xNode);
+              if (yNode.value.size() === 0)
+                yTree.deleteNode(yNode);
+            }
           }
         }
       }
@@ -169,13 +187,14 @@ export function createFocusService(opts?: FocusableOptions) {
         const newXNode = newYNode.value.insert(newCol);
         newXNode.value = [c];
       }
+      // service.log('>>> add rect for', c.s.logPrefix, rect);
       rectByComponent.set(c, rect);
     })
   ));
   // dispatch onFocus event according to didFocus result,
   // when the target component is a offsetParent,
   // designate it to handle key events
-  r('didFocus, handleKeyEvents... -> isDirtyForRender, root.onFocus, c.onFocus, c.focus.handleKeyEvents, controlHandleEvents',
+  r('focus,didFocus,handleKeyEvents... -> isDirtyForRender, root.onFocus, c.onFocus, c.focus.handleKeyEvents, controlHandleEvents',
     s.pt.focus.pipe(
       rx.switchMap(([m, dir, key, handleKeyAct]) => {
         return s.pt.didFocus.pipe(
@@ -187,10 +206,10 @@ export function createFocusService(opts?: FocusableOptions) {
           rx.mergeMap(([, rect, c]) => {
             if (rect != null && c) {
               return rx.merge(
+                // -> root.onFocus
                 c.table.l.setFocusable.pipe(
                   rx.filter(([, f]) => f !== false),
                   rx.mergeMap(() => {
-                    // s.ft.isDirtyForRender(true).dp(m);
                     c.s.ft.onFocus(dir).dp(m);
                     return table.l.rootService;
                   }),
@@ -231,7 +250,7 @@ export function createFocusService(opts?: FocusableOptions) {
         );
       })
     ));
-  r('focus -> didFocus, didFocusEnd', s.pt.focus.pipe(
+  r('focus,didFocus -> didFocus, didFocusEnd', s.pt.focus.pipe(
     rx.map(([m, dir, key, handleEventAct]) => {
       let [lastRect, lastComp] = table.getData().didFocus;
       if (dir === SearchDirection.down) {
@@ -243,6 +262,11 @@ export function createFocusService(opts?: FocusableOptions) {
           }
           lastComp = nodeY.value.minimum()!.value[0];
           lastRect = rectByComponent.get(lastComp);
+          if (lastRect == null) {
+            // service.log('All yTree nodes', [...yTree.allChildNodeInorder()].map(([n]) => n.key));
+            service.log('>>> yNode key:', nodeY);
+            throw new Error(`Inconsistent rectByComponent of missing entry for ${lastComp.s.logPrefix}`);
+          }
           s.ft.didFocus(lastRect, lastComp).dp(m, handleEventAct);
           return;
         }
@@ -285,6 +309,10 @@ export function createFocusService(opts?: FocusableOptions) {
           }
           lastComp = nodeY.value.minimum()!.value[0];
           lastRect = rectByComponent.get(lastComp);
+          if (lastRect == null) {
+            service.log('All yTree nodes', [...yTree.allChildNodeInorder()].map(([n]) => n.key));
+            throw new Error(`Inconsistent rectByComponent of missing entry for ${lastComp.s.logPrefix}`);
+          }
           s.ft.didFocus(lastRect, lastComp).dp(m, handleEventAct);
           return;
         }
@@ -325,6 +353,10 @@ export function createFocusService(opts?: FocusableOptions) {
           }
           lastComp = nodeX.value.minimum()!.value[0];
           lastRect = rectByComponent.get(lastComp);
+          if (lastRect == null) {
+            service.log('All xTree nodes', [...xTree.allChildNodeInorder()].map(([n]) => n.key));
+            throw new Error(`Inconsistent rectByComponent of missing entry for ${lastComp.s.logPrefix}`);
+          }
           s.ft.didFocus(lastRect, lastComp).dp(m, handleEventAct);
           return;
         }
@@ -365,6 +397,10 @@ export function createFocusService(opts?: FocusableOptions) {
           }
           lastComp = nodeX.value.minimum()!.value[0];
           lastRect = rectByComponent.get(lastComp);
+          if (lastRect == null) {
+            service.log('All xTree nodes', [...xTree.allChildNodeInorder()].map(([n]) => n.key));
+            throw new Error(`Inconsistent rectByComponent of missing entry for ${lastComp.s.logPrefix}`);
+          }
           s.ft.didFocus(lastRect, lastComp).dp(m, handleEventAct);
           return;
         }
@@ -467,7 +503,7 @@ export function createRootService(keyEventService: KeyEventServcie, opts?: Focus
             ).pipe(
               rx.take(1),
               rx.map(([, comps]) => {
-                extended.log('>>> request rerender for', m.i, comps.map(c => c.s.logPrefix));
+                // extended.log('>>> request rerender for', m.i, comps.map(c => c.s.logPrefix));
                 for (const c of comps) {
                   c.s.ft.needRerender(true).dp(m);
                 }
@@ -536,40 +572,6 @@ export function createRootService(keyEventService: KeyEventServcie, opts?: Focus
   return extended;
 }
 export type RootFocusService = SimplexReactorExtendType<FocusService, RootFocusableEvents, typeof tableForRoot>;
-
-// export function getAbsoluteBounding(c: BaseWidget): rx.Observable<Rectangle> {
-//   return rx.combineLatest([
-//     c.table.l.offsetParent,
-//     c.table.l.onPosition.pipe(
-//       rx.filter(([, x]) => x != null)
-//     ),
-//     c.table.l.onSize
-//   ]).pipe(
-//     rx.take(1),
-//     rx.mergeMap(([[, p], [, x, y], [, w, h]]) => {
-//       // if (x == null || y == null)
-//       //   return rx.of(null);
-//       if (p == null)
-//         return rx.of([x!, y!, w, h] as Rectangle);
-//       let left = x!;
-//       let top = y!;
-//       return getAbsoluteBounding(p as (BaseWidget & OffsetParent)).pipe(
-//         rx.take(1),
-//         rx.map(r => {
-//           const [px, py] = r;
-//           const scrollData = (p as Scrollable & OffsetParent).table.getData().onValidScroll;
-//           // eslint-disable-next-line prefer-const
-//           if (scrollData?.[0] != null) {
-//             const [sx, sy] = scrollData;
-//             left -= sx;
-//             top -= sy!;
-//           }
-//           return [x! + px, y! + py, w, h] as Rectangle;
-//         })
-//       );
-//     })
-//   );
-// }
 
 function chooseClosestLeftOrRight<N extends {key: number}>(x: number, node1: N | null | undefined, node2: N | null | undefined) {
   if (node1 != null && node2 == null)

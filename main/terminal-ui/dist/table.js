@@ -686,21 +686,32 @@ function createTable(opts) {
                 childComp.s.ft.setBackground(null).dp(m);
         }
     })))));
-    r('findOverlaps -> didFindOverlaps', prependCtrl.pt.findOverlaps.pipe(rx.withLatestFrom(table.l.onBoundingBox), rx.mergeMap(([[m, ...r1], [, r2]]) => {
-        const rect = (0, canvas_1.rectIntersection)(r1, r2);
-        if (rect == null) {
-            s.ft.didFindOverlaps([]).dp(m);
-            return rx.EMPTY;
-        }
-        const relativeR = [rect[0] - r2[0], rect[1] - r2[1], rect[2], rect[3]];
-        const children = childBoundingTree.searchOverlaps(relativeR).map(([, c]) => c);
-        return rx.from(children).pipe(rx.mergeMap(([, chd]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
-            chd.s.ft.findOverlaps(...rect)
-                .od(chd.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chd])) :
-            rx.of([chd])))), rx.reduce((acc, it) => {
-            acc.push(...it);
-            return acc;
-        }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
+    r('findOverlaps -> didFindOverlaps', prependCtrl.pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
+        return rx.combineLatest([
+            table.l.onPosition,
+            table.l.onSize
+        ]).pipe(rx.take(1), rx.switchMap(([[, x, y], [, w, h]]) => {
+            if (x == null) {
+                s.ft.didFindOverlaps([]).dp(m);
+                return rx.EMPTY;
+            }
+            const r = (0, canvas_1.rectIntersection)([x, y, w, h], rect);
+            if (r == null) {
+                s.ft.didFindOverlaps([]).dp(m);
+                return rx.EMPTY;
+            }
+            return rx.of([r[0] - x, r[1] - y, r[2], r[3]]);
+        }), rx.mergeMap(relativeR => {
+            // listContainer.log('childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
+            const children = childBoundingTree.searchOverlaps(relativeR);
+            return rx.from(children).pipe(rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
+                chd.s.ft.findOverlaps(...rect)
+                    .re(m).od(chd.s.pt.didFindOverlaps).pipe(rx.map(([, chdOfChd]) => chdOfChd), rx.take(1), rx.endWith([chd])) :
+                rx.of([chd])))), rx.reduce((acc, it) => {
+                acc.push(...it);
+                return acc;
+            }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
+        }));
     })));
     r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(rx.mergeMap(([m, width, height]) => {
         if (width == null && height != null) {
@@ -742,10 +753,11 @@ function createTable(opts) {
     s = service.s = prependCtrl;
     function createRow(cells) {
         return cells.map(cell => {
-            var _a, _b, _c, _d, _e;
+            var _a, _b, _c, _d, _e, _f;
             const isValueString = typeof cell === 'string';
             const comp = isValueString ?
-                (0, text_1.createTextWidget)(cell, Object.assign({ name: ((_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'table') + '.cell' }, ((_c = (opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent)) !== null && _c !== void 0 ? _c : { debug: (_d = opts === null || opts === void 0 ? void 0 : opts.default) === null || _d === void 0 ? void 0 : _d.debug, log: (_e = opts === null || opts === void 0 ? void 0 : opts.default) === null || _e === void 0 ? void 0 : _e.log }))) :
+                (0, text_1.createTextWidget)(cell, Object.assign({ name: ((_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'table') + '.cell' }, ((opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent) ? Object.assign({ debug: (_c = opts === null || opts === void 0 ? void 0 : opts.default) === null || _c === void 0 ? void 0 : _c.debug, log: (_d = opts === null || opts === void 0 ? void 0 : opts.default) === null || _d === void 0 ? void 0 : _d.log }, opts.optsForCellComponent) :
+                    { debug: (_e = opts === null || opts === void 0 ? void 0 : opts.default) === null || _e === void 0 ? void 0 : _e.debug, log: (_f = opts === null || opts === void 0 ? void 0 : opts.default) === null || _f === void 0 ? void 0 : _f.log }))) :
                 cell;
             if (!isValueString && (opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent))
                 comp.config(opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent);

@@ -103,7 +103,7 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
   const service = new SimplexReactor<BaseWidgetEvents<S>, typeof tableForBase>({
     ...opts,
     tableFor: tableForBase,
-    debugExcludeTypes: ['ofCanvas', 'bgCleared', '_saveTransform', ...(opts?.debugExcludeTypes ?? [])]
+    debugExcludeTypes: ['ofCanvas', 'bgCleared', '_saveTransform', 'needRerender', ...(opts?.debugExcludeTypes ?? [])]
   });
   const {s, r, table} = service;
   r('_saveTransform -> onTransform', rx.merge(

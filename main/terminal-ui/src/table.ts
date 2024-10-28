@@ -869,35 +869,50 @@ export function createTable(opts?: TableOptions) {
     ))
   ));
   r('findOverlaps -> didFindOverlaps', prependCtrl.pt.findOverlaps.pipe(
-    rx.withLatestFrom(table.l.onBoundingBox),
-    rx.mergeMap(([[m, ...r1], [, r2]]) => {
-      const rect = rectIntersection(r1, r2);
-      if (rect == null) {
-        s.ft.didFindOverlaps([]).dp(m);
-        return rx.EMPTY;
-      }
-      const relativeR = [rect[0] - r2[0], rect[1] - r2[1], rect[2], rect[3]] as Rectangle;
-      const children = childBoundingTree.searchOverlaps(relativeR).map(([, c]) => c);
-      return rx.from(children).pipe(
-        rx.mergeMap(([, chd]) => chd.table.l.isContainer.pipe(
-          rx.take(1),
-          rx.mergeMap(([, isContainer]) => isContainer ?
-            (chd as TerminalContainer).s.ft.findOverlaps(...rect)
-              .od((chd as TerminalContainer).s.pt.didFindOverlaps).pipe(
-                rx.take(1),
-                rx.map(([, chdOfChd]) => chdOfChd),
-                rx.endWith([chd])
-              ) :
-            rx.of([chd])
-          )
-        )),
-        rx.reduce((acc, it) => {
-          acc.push(...it);
-          return acc;
-        }, [] as BaseWidget[]),
-        rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+    rx.mergeMap(([m, ...rect]) => {
+      return rx.combineLatest([
+        table.l.onPosition,
+        table.l.onSize
+      ]).pipe(
+        rx.take(1),
+        rx.switchMap(([[, x, y], [, w, h]]) => {
+          if (x == null) {
+            s.ft.didFindOverlaps([]).dp(m);
+            return rx.EMPTY;
+          }
+          const r = rectIntersection([x, y!, w, h], rect);
+          if (r == null) {
+            s.ft.didFindOverlaps([]).dp(m);
+            return rx.EMPTY;
+          }
+          return rx.of([r[0] - x, r[1] - y!, r[2], r[3]] as Rectangle);
+        }),
+        rx.mergeMap(relativeR => {
+          // listContainer.log('childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
+          const children = childBoundingTree.searchOverlaps(relativeR);
+          return rx.from(children).pipe(
+            rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(
+              rx.take(1),
+              rx.mergeMap(([, isContainer]) => isContainer ?
+                (chd as TerminalContainer).s.ft.findOverlaps(...rect)
+                  .re(m).od((chd as TerminalContainer).s.pt.didFindOverlaps).pipe(
+                    rx.map(([, chdOfChd]) => chdOfChd),
+                    rx.take(1),
+                    rx.endWith([chd])
+                  ) :
+                rx.of([chd])
+              )
+            )),
+            rx.reduce((acc, it) => {
+              acc.push(...it);
+              return acc;
+            }, [] as BaseWidget[]),
+            rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+          );
+        })
       );
     })
+
   ));
   r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(
     rx.mergeMap(([m, width, height]) => {
@@ -954,7 +969,12 @@ export function createTable(opts?: TableOptions) {
       const comp = isValueString ?
         createTextWidget(cell, {
           name: (opts?.default?.name ?? 'table') + '.cell',
-          ...((opts?.optsForCellComponent) ?? {debug: opts?.default?.debug, log: opts?.default?.log})
+          ...(opts?.optsForCellComponent ?
+            {
+              debug: opts?.default?.debug, log: opts?.default?.log,
+              ...opts.optsForCellComponent
+            } :
+            {debug: opts?.default?.debug, log: opts?.default?.log})
         }) :
         cell;
       if (!isValueString && opts?.optsForCellComponent)
