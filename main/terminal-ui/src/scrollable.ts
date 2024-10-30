@@ -2,7 +2,8 @@
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SimplexReactorExtendType, OptionsOfSmplxRctr, SingleActionFactory, ActionDispenser, CoreOptions} from '@wfh/reactivizer';
-import {BaseWidget, TerminalContainer, TerminalContainerOpts, createContainerBase, OffsetParent} from './base';
+import {BaseWidget, OffsetParent} from './base';
+import {TerminalContainer, TerminalContainerOpts, createContainerBase} from './container';
 import {createTerminalCanvas, TerminalCanvasOptions, TextStyle, rectIntersection} from './canvas';
 import {createFocusService, FocusService} from './focusable';
 

@@ -1,5 +1,6 @@
 import { SimplexReactorExtendType, OptionsOfSmplxRctr, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
-import { BaseWidget, TerminalContainer } from './base';
+import { BaseWidget } from './base';
+import { TerminalContainer } from './container';
 import { TerminalCanvasOptions } from './canvas';
 import { FocusService } from './focusable';
 export interface ScrollActions {

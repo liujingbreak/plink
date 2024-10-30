@@ -36,6 +36,7 @@ export interface SingleActionFactory {
      * there is only one parameter.
      * - The action message will not be dispatched until all of returned response streams are subscribed.
      * - The action message will be dispatched only once, even any of the returned response streams are re-subscribe
+     * - A "__cancel" message will be sent with relavent action meta when all the response streams are unsubscribed
      * */
     od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(response$: rx.Observable<T>, ...moreResponses: [...{
         [K in keyof TA]: rx.Observable<TA[K]>;

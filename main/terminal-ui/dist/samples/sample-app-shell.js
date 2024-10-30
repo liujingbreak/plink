@@ -7,7 +7,7 @@ require("source-map-support/register");
 const fs_1 = __importDefault(require("fs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
-const debug = true;
+const debug = false;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, log });
@@ -22,8 +22,9 @@ const { canvas } = index_1.app.createApp(border, {
     canvas: { debug: false },
     focusable: { debug: true },
     scrollable: {
-        default: { debug: true }
-        // focusable: {debug: true}
+        core: { debug: true },
+        // default: {debug: true}
+        focusable: { debug: true }
     }
 });
 const screenWidth = process.argv[2];
@@ -39,7 +40,7 @@ setTimeout(() => {
     const num = 20;
     const hueInterval = Math.round(360 / num);
     for (let i = 0; i < num; i++) {
-        const label = (0, index_1.createTextWidget)('TEST LABEL ' + i, { name: 'LABEL ' + i, debug, log });
+        const label = (0, index_1.createTextWidget)('TEST LABEL ' + i, { name: 'LABEL ' + i, debug: true, log });
         label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
         label.s.ft.setFocusable(true).dp();
         panel.s.ft.addChild(label).dp();

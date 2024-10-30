@@ -32,14 +32,14 @@ const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
 const debug = false;
-const fout = fs_1.default.createWriteStream('terminal-table-sample.log');
+const fout = fs_1.default.createWriteStream('terminal-table-complex.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const table = (0, index_1.createTable)({
     default: {
         debug, log
     },
     core: {
-        debug: true
+        debug
     }
     // optsForCellComponent: {debug: true}
     // lazy: {
@@ -83,10 +83,24 @@ table.s.pt.onRowAdded.pipe(rx.map(([, _idx, _id, cells]) => {
 })).subscribe();
 table.s.ft.setBorderType(index_1.TableBorderType.rowSeparator, true).dp();
 table.s.ft.setBorderType(index_1.TableBorderType.border, true).dp();
-const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
+const root = (0, index_1.createFlexContainer)({
+    name: 'root', debug, log
+    // debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender', 'renderBackgroundFor']
+});
 root.s.ft.alignItems('center').dp();
 root.s.ft.justifyContent('center').dp();
 root.s.ft.addChild(table).dp();
+const rp = (0, index_1.createFlexContainer)({
+    name: 'rightPanel', debug, log
+});
+rp.s.ft.alignItems('start').dp();
+rp.s.ft.justifyContent('center').dp();
+root.s.ft.addChild(rp).dp();
+const rLabel = (0, index_1.createTextWidget)('choose one item from the table', {
+    name: 'rightLabel', debug: true, log
+});
+rLabel.s.ft.setFocusable(true).dp();
+rp.s.ft.addChild(rLabel).dp();
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
 const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
 table.s.ft.setCellBackground((col, row) => {
@@ -106,9 +120,15 @@ const { canvas } = index_1.app.createApp(root, {
     default: {
         debug, log
     },
+    elevator: {
+        focusable: {
+            debug: true,
+            debugExcludeTypes: ['onRectChange', 'removeFocusable']
+        }
+    },
     focusable: {
         debug: true,
-        debugExcludeTypes: ['removeFocusable']
+        debugExcludeTypes: ['onRectChange', 'removeFocusable']
     },
     // canvas: {
     //   debug: true,
@@ -116,7 +136,9 @@ const { canvas } = index_1.app.createApp(root, {
     // },
     scrollable: {
         // default: {debug},
-        // core: {debug},
+        core: {
+            debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender', 'renderBackgroundFor']
+        },
         focusable: {
             debug: true,
             debugExcludeTypes: ['removeFocusable']
@@ -133,4 +155,4 @@ canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout
 process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
 });
-//# sourceMappingURL=sample-app-table.js.map
+//# sourceMappingURL=sample-app-complex.js.map

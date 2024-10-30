@@ -7,7 +7,7 @@ import {ActionDispenser, SingleActionFactory, actionRelatedToAction,
 import {RectangleOverlapTree} from './rectangle-overlap-tree';
 import {createPlaceHolder, LazyLoadPlaceHolder, LazyLoadPlaceHolderOpts} from './lazy-load-placeholder';
 import {createTextWidget, MultiLineTextWidgetOpts} from './text';
-import {TerminalContainerOpts} from './base';
+import {TerminalContainerOpts} from './container';
 import {rectIntersection} from './canvas';
 import {FlexContainerOpts} from './flex-container';
 import {BaseWidget, createFlexContainer, createContainerBase, TerminalContainer,

@@ -31,7 +31,7 @@ export type DispatchFor<F> =
 
 export type CoreOptions<I = Record<string, never>> = {
   name?: string;
-  /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not 
+  /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
   * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
   * otherwise, any actions that is dispatched to `actionUpstream` will not be observed and emitted by `action$`,
   * Refer to [https://rxjs.dev/api/index/function/connectable](https://rxjs.dev/api/index/function/connectable)
@@ -274,16 +274,10 @@ export class ControllerCore<I> {
     return action.t === (type as string);
   }
 
+  /** see CoreOption['autoConnect']
+   */
   connect() {
     this.connectableAction$.connect();
-    // rx.concat(
-    //   rx.of(this.connectableAction$),
-    //   this.configChange
-    // ).pipe(
-    //   rx.filter(() => this.connectableAction$ != null),
-    //   rx.map(() => this.connectableAction$),
-    //   rx.take(1)
-    // ).subscribe(() => this.connectableAction$!.connect());
   }
 }
 

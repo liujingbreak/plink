@@ -2,7 +2,8 @@ import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {SingleActionFactory, CoreOptsOfExtSmplxRctr, ActionMeta} from '@wfh/reactivizer';
 // import {TerminalCanvas} from './terminal-canvas';
-import {createContainerBase, BaseWidget, TerminalContainer} from './base';
+import {BaseWidget} from './base';
+import {createContainerBase, TerminalContainer} from './container';
 import {TextStyle, TerminalCanvas} from './canvas';
 
 export interface BorderContainerActions {

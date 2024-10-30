@@ -27,13 +27,12 @@ exports.createBorderContainer = createBorderContainer;
 exports.renderLineBorder = renderLineBorder;
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
-// import {TerminalCanvas} from './terminal-canvas';
-const base_1 = require("./base");
+const container_1 = require("./container");
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'];
 // https://symbl.cc/en/unicode/blocks/box-drawing/
 const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
 function createBorderContainer(child, opts) {
-    const container = (0, base_1.createContainerBase)(Object.assign({ name: 'borderContainer' }, opts));
+    const container = (0, container_1.createContainerBase)(Object.assign({ name: 'borderContainer' }, opts));
     const service = container.config({
         tableFor: tableForBorderContainer
     });

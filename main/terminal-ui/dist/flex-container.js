@@ -28,7 +28,7 @@ exports.createFlexContainer = createFlexContainer;
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
-const base_1 = require("./base");
+const container_1 = require("./container");
 const canvas_1 = require("./canvas");
 const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
 var FlexBorderSeparator;
@@ -41,7 +41,7 @@ const tableForFlexContainer = [
     'setBorderSeparatorStyle'
 ];
 function createFlexContainer(opts = {}) {
-    const base = (0, base_1.createContainerBase)(Object.assign({ name: 'flexContainer' }, opts));
+    const base = (0, container_1.createContainerBase)(Object.assign({ name: 'flexContainer' }, opts));
     const listContainer = base.config({ tableFor: tableForFlexContainer });
     // intercept "onRender"
     base.s.prependInterceptor(action$ => {

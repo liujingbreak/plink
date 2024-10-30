@@ -28,13 +28,13 @@ exports.createScrollable = createScrollable;
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const reactivizer_1 = require("@wfh/reactivizer");
-const base_1 = require("./base");
+const container_1 = require("./container");
 const canvas_1 = require("./canvas");
 const focusable_1 = require("./focusable");
 const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded'];
 function createScrollable(comp, opts) {
     var _a, _b;
-    const base = (0, base_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable' }), opts === null || opts === void 0 ? void 0 : opts.core));
+    const base = (0, container_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable' }), opts === null || opts === void 0 ? void 0 : opts.core));
     const scrollable = base.config({ tableFor });
     const { r, s, table } = scrollable;
     s.prependInterceptor(action$ => {

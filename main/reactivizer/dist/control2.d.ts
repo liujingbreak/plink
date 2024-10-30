@@ -7,13 +7,16 @@ export { SingleActionFactory };
 export type ActionFactory = {
     [k: string]: (...args: any[]) => SingleActionFactory;
 };
+export interface ControllerBaseActions {
+    __cancel(origActionType: string): SingleActionFactory;
+}
 export declare class RxController2<I> extends ControllerCore<I> {
     /** Abbrevation of payloadByType */
-    pt: PayloadByType<I>;
+    pt: PayloadByType<I & ControllerBaseActions>;
     /** Action observable streamby type */
-    at: ActionByType<I>;
+    at: ActionByType<I & ControllerBaseActions>;
     /** Action factory by type */
-    get ft(): I;
+    get ft(): I & ControllerBaseActions;
     private ftProxy;
     private factories;
     /**
@@ -25,6 +28,29 @@ export declare class RxController2<I> extends ControllerCore<I> {
     constructor(opts?: CoreOptions<I> & {
         debugTableAction?: boolean;
     });
+    /**
+     * This function return the same message observable of `pt.__cancel.pipe(actionRelatedToAction(actionMeta))`.
+     * Regarding "__cancel" message:
+     * it is dispatched when an or multiple action observables of `ft.<action>().od(<response$>)` are ALL unsubscribed,
+     *
+     * e.g.
+     * ```
+     * interface Messages {
+     *    searchAndKeepUpdate(keyword: string): SingleActionFactory;
+     *    updateResult(resultUpdates: string[]): SingleActionFactory;
+     * }
+     * const s = new RxController2<Messages>();
+     * s.pt.searchAndKeepUpdate.pipe(
+     *    rx.mergeMap(([m, keyword]) => {
+     *      return aysncObtainOtherResource(keyword).pipe(
+     *        rx.takeUntil(s.onCancelOf(m)), // This is where you need "onCancelOf()" to tell when to stop relevant service for certain original action
+     *        rx.map(result => s.ft.updateResult(result).dp(m))
+     *      );
+     *    )
+     * ).subscribe();
+     * ```
+     */
+    onCancelOf(actionMeta: ActionMeta): rx.Observable<[ActionMeta, ...InferPayload<(I & ControllerBaseActions)["__cancel"]>]>;
     /**
      * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
      * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "prepend" controller always
@@ -50,7 +76,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
     /**
      * create a new RxController, pipe actions whose tyoes are specofied in parameter `actionTypes` from this controller to the new controller
      */
-    subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]>>;
+    subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]> & ControllerBaseActions>;
     /**
      * Create an very simple and naive version Apache Kafka KTable like "observable Map<K, Action>",
      * a table which retains latest action by "key"
@@ -59,7 +85,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
     /**
      * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
      */
-    subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>): RxController2<Omit<I, KS[number]>>;
+    subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>): RxController2<Omit<I, KS[number]> & ControllerBaseActions>;
     /**
      * Create a variant of calling .ft(...).dp(...)`
      **/

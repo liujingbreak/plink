@@ -54,7 +54,7 @@ const tableFor = [
     'rootService', 'controlHandleEvents'
 ];
 function createFocusService(opts) {
-    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'focusSvc', debugExcludeTypes: ['removeFocusable'] }, opts), { tableFor }));
+    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'focusSvc' }, opts), { tableFor }));
     const { s, r, table } = service;
     const rectByComponent = new Map();
     const xTree = new algorithms_1.RedBlackTree();
@@ -410,7 +410,8 @@ function createFocusService(opts) {
             }
         }
     })));
-    r('handleKeyEvents... -> focus', s.pt.handleKeyEvents.pipe(rx.switchMap(([m, keySvc, currKey]) => rx.concat(currKey != null ? rx.of([m, currKey]) : rx.EMPTY, keySvc.s.pt.onFocusChange).pipe(rx.windowToggle(table.l.controlHandleEvents.pipe(rx.filter(([, stop]) => !stop)), () => table.l.controlHandleEvents.pipe(rx.filter(([, stop]) => stop))), rx.switchMap(change$ => change$), rx.map(([m1, evt]) => {
+    r('handleKeyEvents... -> focus', s.pt.handleKeyEvents.pipe(rx.switchMap(([m, keySvc, currKey]) => rx.concat(currKey != null ? rx.of([m, currKey, 1]) : rx.EMPTY, keySvc.s.pt.onFocusChange).pipe(rx.windowToggle(table.l.controlHandleEvents.pipe(rx.filter(([, stop]) => !stop)), () => table.l.controlHandleEvents.pipe(rx.filter(([, stop]) => stop))), rx.switchMap(change$ => change$), rx.map(([m1, evt, count]) => {
+        // TODO: "count": repeately events
         if (evt === keyEvent_1.KeyEventEnum.focusUp)
             s.ft.focus(SearchDirection.up, evt, m.i).dp(m, m1);
         else if (evt === keyEvent_1.KeyEventEnum.focusDown ||
@@ -470,7 +471,10 @@ function createRootService(keyEventService, opts) {
         return c.table.l.onBoundingBox.pipe(rx.take(1), rx.mergeMap(([, rect]) => can.s.ft.copyRect(...rect).re(m)
             .od(can.s.pt.onCopyRect).pipe(rx.take(1), rx.mergeMap(([, lines]) => {
             for (const [l, , y, units, style] of lines) {
-                can.s.ft.addDisplayUnits(l + rect[0], y + rect[1], units, [...style.split(';'), 'inverse']).dp(m);
+                const styleList = style.split(';').filter(tx => tx);
+                if (!styleList.some(s => s === 'inverse'))
+                    styleList.push('inverse');
+                can.s.ft.addDisplayUnits(l + rect[0], y + rect[1], units, styleList).dp(m);
             }
             return c.s.ft.queryAbsBounding().re(m).od(c.s.pt.didQueryAbsBounding);
         }), rx.take(1))), rx.take(1), rx.map(([, r]) => s.ft.latestRenderedRect(r).dp(m)));

@@ -1,8 +1,9 @@
 import * as rx from 'rxjs';
 import {CoreOptsOfExtSmplxRctr, CoreOptions, SingleActionFactory, ActionDispenser} from '@wfh/reactivizer';
-import {OffsetParent, TerminalContainerOpts} from './base';
+import {OffsetParent} from './base';
+import {TerminalContainerOpts, createContainerBase, TerminalContainer} from './container';
 import {createFocusService, FocusableOptions, FocusService} from './focusable';
-import {createContainerBase, BaseWidget, TerminalContainer, Rectangle, TerminalCanvas,
+import {BaseWidget, Rectangle, TerminalCanvas,
   createTerminalCanvas, TerminalCanvasOptions, DisplayMode, TextStyle} from './index';
 
 interface ElevatorActions {
@@ -17,7 +18,7 @@ export interface ElevatorOptions {
   core?: CoreOptsOfExtSmplxRctr<TerminalContainer, ElevatorActions>;
   /** Internal canvas */
   canvas?: TerminalCanvasOptions;
-  focus?: FocusableOptions;
+  focusable?: FocusableOptions;
 }
 
 export function createElevator(opts?: ElevatorOptions) {
@@ -71,7 +72,7 @@ export function createElevator(opts?: ElevatorOptions) {
               const o = chd as BaseWidget & OffsetParent;
               o.focusService = createFocusService({
                 ...opts?.default as any,
-                ...opts?.focus
+                ...opts?.focusable
               });
               o.destory$.subscribe(() => o.focusService.dispose());
               s.ft.onFocusServieReady(o, o.focusService).dp(m);
@@ -246,6 +247,7 @@ export function createElevator(opts?: ElevatorOptions) {
       );
     })
   ));
+  s.ft.hasOfflineCanvas(true).dp();
   service.s = prependCtl;
   return service;
 }

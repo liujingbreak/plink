@@ -46,6 +46,7 @@ export interface SingleActionFactory {
    * there is only one parameter.
    * - The action message will not be dispatched until all of returned response streams are subscribed.
    * - The action message will be dispatched only once, even any of the returned response streams are re-subscribe
+   * - A "__cancel" message will be sent with relavent action meta when all the response streams are unsubscribed
    * */
   od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(
     response$: rx.Observable<T>, ...moreResponses: [...{[K in keyof TA]: rx.Observable<TA[K]>}]
@@ -103,13 +104,13 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
     response$: rx.Observable<A>,
     referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>
   ): rx.Observable<A> {
+    const action = this.control.createAction(this.type, this.payload);
+    if (referAction) {
+      assignActionReferParam(action, referAction);
+    } else if (this.relateToAction && this.relateToAction.length > 0) {
+      assignActionReferParam(action, this.relateToAction);
+    }
     return new rx.Observable<Action<I[K]>>(sub => {
-      const action = this.control.createAction(this.type, this.payload);
-      if (referAction) {
-        assignActionReferParam(action, referAction);
-      } else if (this.relateToAction && this.relateToAction.length > 0) {
-        assignActionReferParam(action, this.relateToAction);
-      }
       sub.next(action);
       sub.complete();
     }).pipe(
@@ -128,9 +129,13 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
             this.opts.slowLog ? () => this.opts.slowLog!(action) : () => console.log('Slow observable action detected')
           )
         ),
-        new rx.Observable<never>(sub => {
+        new rx.Observable<never>(() => {
           this.control.actionUpstream.next(action);
-          sub.complete();
+          return () => {
+            const cancel = this.control.createAction('__cancel' as keyof I, [action.t] as any);
+            assignActionReferParam(cancel, action);
+            this.control.actionUpstream.next(cancel);
+          };
         })
       ))
     );
@@ -148,7 +153,7 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
       if (this.relateToAction && this.relateToAction.length > 0) {
         assignActionReferParam(action, this.relateToAction);
       }
-      // when all the returned streams are subscribed, dispatch the new action
+      // when all (counted) the returned streams are subscribed, dispatch the new action
       const onSubscribe$ = new rx.Subject<number>();
       onSubscribe$.pipe(
         rx.distinct(),
@@ -156,6 +161,18 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
       ).subscribe({
         complete: () => {
           this.control.actionUpstream.next(action);
+        }
+      });
+
+      const onUnsubscribe$ = new rx.Subject<number>();
+      onUnsubscribe$.pipe(
+        rx.distinct(),
+        rx.take(responses.length)
+      ).subscribe({
+        complete: () => {
+          const cancel = this.control.createAction('__cancel' as keyof I, [action.t] as any);
+          assignActionReferParam(cancel, action);
+          this.control.actionUpstream.next(cancel);
         }
       });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -174,9 +191,8 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
             this.opts.slowLog ? () => this.opts.slowLog!(action) : () => console.log('Slow observable action detected')
           )
         ),
-        new rx.Observable<never>(sink => {
+        new rx.Observable<never>(() => {
           onSubscribe$.next(idx);
-          sink.complete();
         })
       )) as any;
     }

@@ -2,17 +2,17 @@ import 'source-map-support/register';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {app, createFlexContainer, MultiLineTextWidget, TableBorderType, createTable} from '../index';
+import {app, createFlexContainer, MultiLineTextWidget, TableBorderType, createTable, createTextWidget} from '../index';
 
 const debug = false;
-const fout = fs.createWriteStream('terminal-table-sample.log');
+const fout = fs.createWriteStream('terminal-table-complex.log');
 const log = createSimpleIndentLogger(false, false, fout);
 const table = createTable({
   default: {
     debug, log
   },
   core: {
-    debug: true
+    debug
   }
   // optsForCellComponent: {debug: true}
   // lazy: {
@@ -59,10 +59,24 @@ table.s.pt.onRowAdded.pipe(
 table.s.ft.setBorderType(TableBorderType.rowSeparator, true).dp();
 table.s.ft.setBorderType(TableBorderType.border, true).dp();
 
-const root = createFlexContainer({name: 'root', debug, log});
+const root = createFlexContainer({
+  name: 'root', debug, log
+  // debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender', 'renderBackgroundFor']
+});
 root.s.ft.alignItems('center').dp();
 root.s.ft.justifyContent('center').dp();
 root.s.ft.addChild(table).dp();
+const rp = createFlexContainer({
+  name: 'rightPanel', debug, log
+});
+rp.s.ft.alignItems('start').dp();
+rp.s.ft.justifyContent('center').dp();
+root.s.ft.addChild(rp).dp();
+const rLabel = createTextWidget('choose one item from the table', {
+  name: 'rightLabel', debug: true, log
+});
+rLabel.s.ft.setFocusable(true).dp();
+rp.s.ft.addChild(rLabel).dp();
 
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
 const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
@@ -84,9 +98,15 @@ const {canvas} = app.createApp(root, {
   default: {
     debug, log
   },
+  elevator: {
+    focusable: {
+      debug: true,
+      debugExcludeTypes: ['onRectChange', 'removeFocusable']
+    }
+  },
   focusable: {
     debug: true,
-    debugExcludeTypes: ['removeFocusable']
+    debugExcludeTypes: ['onRectChange', 'removeFocusable']
   },
   // canvas: {
   //   debug: true,
@@ -94,7 +114,9 @@ const {canvas} = app.createApp(root, {
   // },
   scrollable: {
     // default: {debug},
-    // core: {debug},
+    core: {
+      debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender', 'renderBackgroundFor']
+    },
     focusable: {
       debug: true,
       debugExcludeTypes: ['removeFocusable']

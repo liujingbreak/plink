@@ -13,7 +13,8 @@ import * as rx from 'rxjs';
 import {SimplexReactor, SingleActionFactory, SimplexReactorExtendType, actionRelatedToAction, ActionMeta,
   SimplexReactorOptions} from '@wfh/reactivizer';
 import {RedBlackTree} from '@wfh/algorithms';
-import {BaseWidget, OffsetParent, TerminalContainer} from './base';
+import {BaseWidget, OffsetParent} from './base';
+import {TerminalContainer} from './container';
 import {Rectangle, TerminalCanvas, TextStyle} from './canvas';
 // import {Scrollable} from './scrollable';
 import {KeyEventServcie, KeyEventEnum} from './keyEvent';
@@ -52,7 +53,7 @@ export type FocusableOptions = Partial<SimplexReactorOptions<FocusableMessages, 
 export function createFocusService(opts?: FocusableOptions) {
   const service = new SimplexReactor<FocusableMessages, typeof tableFor>({
     name: 'focusSvc',
-    debugExcludeTypes: ['removeFocusable'],
+    // debugExcludeTypes: ['removeFocusable'],
     ...opts,
     tableFor
   });
@@ -437,7 +438,7 @@ export function createFocusService(opts?: FocusableOptions) {
   ));
   r('handleKeyEvents... -> focus', s.pt.handleKeyEvents.pipe(
     rx.switchMap(([m, keySvc, currKey]) => rx.concat(
-      currKey != null ? rx.of([m, currKey]) : rx.EMPTY,
+      currKey != null ? rx.of([m, currKey, 1 as number] as const) : rx.EMPTY,
       keySvc.s.pt.onFocusChange
     ).pipe(
       rx.windowToggle(
@@ -449,7 +450,8 @@ export function createFocusService(opts?: FocusableOptions) {
         )
       ),
       rx.switchMap(change$ => change$),
-      rx.map(([m1, evt]) => {
+      rx.map(([m1, evt, count]) => {
+        // TODO: "count": repeately events
         if (evt === KeyEventEnum.focusUp)
           s.ft.focus(SearchDirection.up, evt, m.i).dp(m, m1);
         else if (evt === KeyEventEnum.focusDown ||
@@ -551,8 +553,11 @@ export function createRootService(keyEventService: KeyEventServcie, opts?: Focus
             rx.take(1),
             rx.mergeMap(([, lines]) => {
               for (const [l, , y, units, style] of lines) {
+                const styleList = style.split(';').filter(tx => tx) as TextStyle;
+                if (!styleList.some(s => s === 'inverse'))
+                  styleList.push('inverse');
                 can.s.ft.addDisplayUnits(
-                  l + rect[0], y + rect[1], units, [...style.split(';') as TextStyle, 'inverse']).dp(m);
+                  l + rect[0], y + rect[1], units, styleList).dp(m);
               }
               return c.s.ft.queryAbsBounding().re(m).od(
                 c.s.pt.didQueryAbsBounding

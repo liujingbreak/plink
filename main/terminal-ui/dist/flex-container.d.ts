@@ -1,5 +1,5 @@
 import { CoreOptsOfExtSmplxRctr, SimplexReactorExtendType, SingleActionFactory } from '@wfh/reactivizer';
-import { TerminalContainer } from './base';
+import { TerminalContainer } from './container';
 import { TextStyle } from './canvas';
 export declare enum FlexBorderSeparator {
     none = 0,
@@ -21,5 +21,5 @@ export interface FlexContainerEvents {
 declare const tableForFlexContainer: readonly ["setDirection", "alignItems", "justifyContent", "setBorderSpacing", "setBorderSeparator", "setBorderSeparatorStyle"];
 export type FlexContainer = SimplexReactorExtendType<TerminalContainer, FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>;
 export type FlexContainerOpts = CoreOptsOfExtSmplxRctr<TerminalContainer, FlexContainerInput & FlexContainerEvents>;
-export declare function createFlexContainer(opts?: FlexContainerOpts): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents<import("./base").BaseWidgetRenderData> & import("./base").TermainlContainerEvents & FlexContainerInput & FlexContainerEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "setDirection" | "alignItems" | "justifyContent" | "setBorderSpacing" | "setBorderSeparator" | "setBorderSeparatorStyle")[]>;
+export declare function createFlexContainer(opts?: FlexContainerOpts): import("@wfh/reactivizer").SimplexReactor<import("./base").BaseWidgetEvents<import("./base").BaseWidgetRenderData> & import("./container").TermainlContainerEvents & FlexContainerInput & FlexContainerEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "setDirection" | "alignItems" | "justifyContent" | "setBorderSpacing" | "setBorderSeparator" | "setBorderSeparatorStyle")[]>;
 export {};

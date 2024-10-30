@@ -27,11 +27,12 @@ exports.createElevator = createElevator;
 exports.getBoundingOfCompTree = getBoundingOfCompTree;
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
+const container_1 = require("./container");
 const focusable_1 = require("./focusable");
 const index_1 = require("./index");
 function createElevator(opts) {
     var _a, _b;
-    const base = (0, index_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: (_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'Elevator' }), opts === null || opts === void 0 ? void 0 : opts.core));
+    const base = (0, container_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: (_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'Elevator' }), opts === null || opts === void 0 ? void 0 : opts.core));
     const service = base.config({});
     const { s, r, table } = service;
     /** Canvas by root component */
@@ -50,7 +51,7 @@ function createElevator(opts) {
         // Set chd as an "offsetParent" if it was not already an offset parent
         chd.table.l.isOffsetParent.pipe(rx.take(1), rx.map(([, isOffsetP]) => isOffsetP ? false : true), rx.filter(notOffsetParent => notOffsetParent), rx.map(() => {
             const o = chd;
-            o.focusService = (0, focusable_1.createFocusService)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focus));
+            o.focusService = (0, focusable_1.createFocusService)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
             o.destory$.subscribe(() => o.focusService.dispose());
             s.ft.onFocusServieReady(o, o.focusService).dp(m);
         })), 
@@ -147,6 +148,7 @@ function createElevator(opts) {
             return comp.s.ft.findOverlaps(...rect).re(m).od(comp.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([m2, comps]) => s.ft.didFindOverlaps(comps.concat(comp)).dp(m, m2)));
         }));
     })));
+    s.ft.hasOfflineCanvas(true).dp();
     service.s = prependCtl;
     return service;
 }

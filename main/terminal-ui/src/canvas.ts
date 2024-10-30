@@ -346,6 +346,8 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
     if (style) {
       const chalkFn = style.split(';').reduce((chalkInst, keyword) => {
         if (keyword.indexOf('(') < 0) {
+          if (chalkInst == null)
+            throw new Error(`Chalk is null for keyword "${keyword}" of ` + style);
           return chalkInst[keyword as keyof chalk.Chalk] as chalk.Chalk;
         } else {
           const match = /([^()]+)\(([^)]+)\)/.exec(keyword);

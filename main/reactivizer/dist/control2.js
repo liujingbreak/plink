@@ -28,6 +28,7 @@ exports.deserializeAction2 = deserializeAction2;
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
+const context_operators_1 = require("./context-operators");
 const action_table_1 = require("./action-table");
 const stream_dispense_1 = require("./stream-dispense");
 const action_factory_1 = require("./action-factory");
@@ -72,7 +73,9 @@ class RxController2 extends stream_core_1.ControllerCore {
         return this.ftProxy;
     }
     constructor(opts) {
-        super(opts);
+        super(Object.assign(Object.assign({}, opts), { debugExcludeTypes: (opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) ?
+                ['__cancel', ...opts.debugExcludeTypes] :
+                ['__cancel'] }));
         this.factories = new Map();
         /**
          * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
@@ -82,6 +85,31 @@ class RxController2 extends stream_core_1.ControllerCore {
         const actionDispenseByType = stream_dispense_1.ActionDispenser.ofRxController(this);
         this.at = actionDispenseByType.at;
         this.pt = actionDispenseByType.pt;
+    }
+    /**
+     * This function return the same message observable of `pt.__cancel.pipe(actionRelatedToAction(actionMeta))`.
+     * Regarding "__cancel" message:
+     * it is dispatched when an or multiple action observables of `ft.<action>().od(<response$>)` are ALL unsubscribed,
+     *
+     * e.g.
+     * ```
+     * interface Messages {
+     *    searchAndKeepUpdate(keyword: string): SingleActionFactory;
+     *    updateResult(resultUpdates: string[]): SingleActionFactory;
+     * }
+     * const s = new RxController2<Messages>();
+     * s.pt.searchAndKeepUpdate.pipe(
+     *    rx.mergeMap(([m, keyword]) => {
+     *      return aysncObtainOtherResource(keyword).pipe(
+     *        rx.takeUntil(s.onCancelOf(m)), // This is where you need "onCancelOf()" to tell when to stop relevant service for certain original action
+     *        rx.map(result => s.ft.updateResult(result).dp(m))
+     *      );
+     *    )
+     * ).subscribe();
+     * ```
+     */
+    onCancelOf(actionMeta) {
+        return this.pt.__cancel.pipe((0, context_operators_1.actionRelatedToAction)(actionMeta));
     }
     /**
      * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
@@ -161,7 +189,7 @@ class RxController2 extends stream_core_1.ControllerCore {
     subForTypes(actionTypes, opts) {
         const sub = new RxController2(opts);
         const typeSet = new Set(actionTypes);
-        this.action$.pipe(rx.filter(a => typeSet.has((0, stream_core_1.nameOfAction)(a))), rx.tap(value => {
+        this.action$.pipe(rx.filter(a => typeSet.has(a.t) || a.t === '__cancel'), rx.tap(value => {
             sub.actionUpstream.next(value);
         })).subscribe();
         return sub;
@@ -179,7 +207,7 @@ class RxController2 extends stream_core_1.ControllerCore {
     subForExcludeTypes(excludeActionTypes, opts) {
         const sub = new RxController2(opts);
         const typeSet = new Set(excludeActionTypes);
-        this.action$.pipe(rx.filter(a => !typeSet.has((0, stream_core_1.nameOfAction)(a))), rx.tap(value => {
+        this.action$.pipe(rx.filter(a => !typeSet.has(a.t) || a.t === '__cancel'), rx.tap(value => {
             sub.actionUpstream.next(value);
         })).subscribe();
         return sub;

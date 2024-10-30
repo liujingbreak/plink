@@ -2,7 +2,8 @@ import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {CoreOptsOfExtSmplxRctr, SimplexReactorExtendType, SingleActionFactory, ActionDispenser,
   actionRelatedToAction} from '@wfh/reactivizer';
-import {TerminalContainer, createContainerBase, BaseWidget} from './base';
+import {BaseWidget} from './base';
+import {TerminalContainer, createContainerBase} from './container';
 import {TextStyle, rectIntersection, Rectangle} from './canvas';
 import {RectangleOverlapTree} from './rectangle-overlap-tree';
 

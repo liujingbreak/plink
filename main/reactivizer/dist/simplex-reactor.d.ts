@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import { Action, ActionMeta, ActionFunctions } from './stream-core';
-import { RxController2 } from './control2';
+import { RxController2, ControllerBaseActions } from './control2';
 import { SingleActionFactory } from './action-factory';
 import { SimplexReactorOptions, SimplexReactorCfgOpts } from './reactor-base';
 import { ActionTable } from './action-table';
@@ -10,6 +10,8 @@ export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly
     __onError(err: any): SingleActionFactory;
     __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
     __onDisposed(): SingleActionFactory;
+    /** extends ControllerBaseActions */
+    __cancel: ControllerBaseActions['__cancel'];
 }
 declare const baseTableFor: readonly ["__onError", "__onDisposed"];
 type LE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;

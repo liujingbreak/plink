@@ -29,6 +29,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.app = void 0;
 __exportStar(require("./canvas"), exports);
 __exportStar(require("./base"), exports);
+__exportStar(require("./container"), exports);
 __exportStar(require("./border"), exports);
 __exportStar(require("./flex-container"), exports);
 __exportStar(require("./text"), exports);

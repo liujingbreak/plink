@@ -1,5 +1,6 @@
 export * from './canvas';
 export * from './base';
+export * from './container';
 export * from './border';
 export * from './flex-container';
 export * from './text';

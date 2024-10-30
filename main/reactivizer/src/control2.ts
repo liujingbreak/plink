@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
 import {Action, InferPayload, ActionMeta,
-  ArrayOrTuple, ControllerCore, CoreOptions,
-  nameOfAction, InferMapParam} from './stream-core';
+  ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam} from './stream-core';
 import {PayloadByType, ActionByType} from './inferred-types';
+import {actionRelatedToAction} from './context-operators';
 import {ActionDataTable} from './action-table';
 import {ActionDispenser} from './stream-dispense';
 import {SingleActionFactory, SingleActionFactoryImpl} from './action-factory';
@@ -13,13 +13,17 @@ export type ActionFactory = {
   [k: string]: (...args: any[]) => SingleActionFactory;
 };
 
+export interface ControllerBaseActions {
+  __cancel(origActionType: string): SingleActionFactory;
+}
+
 export class RxController2<I> extends ControllerCore<I> {
   /** Abbrevation of payloadByType */
-  pt: PayloadByType<I>;
+  pt: PayloadByType<I & ControllerBaseActions>;
   /** Action observable streamby type */
-  at: ActionByType<I>;
+  at: ActionByType<I & ControllerBaseActions>;
   /** Action factory by type */
-  get ft(): I {
+  get ft(): I & ControllerBaseActions {
     if (this.ftProxy)
       return this.ftProxy;
     const factories = this.factories;
@@ -54,10 +58,10 @@ export class RxController2<I> extends ControllerCore<I> {
       ownKeys() {
         return Object.keys(control.at);
       }
-    }) as I;
+    }) as I & ControllerBaseActions;
     return this.ftProxy;
   }
-  private ftProxy: I | undefined;
+  private ftProxy: I & ControllerBaseActions | undefined;
   private factories = new Map<string | symbol, (...args: any[]) => any>();
   /**
    * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
@@ -65,15 +69,45 @@ export class RxController2<I> extends ControllerCore<I> {
   doOperator$ = new rx.BehaviorSubject<<A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.Observable<A>>(
     (_dispatchingAction) => input => input
   );
-
   constructor(opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
-    super(opts);
+    super({
+      ...opts,
+      debugExcludeTypes: opts?.debugExcludeTypes ?
+        ['__cancel', ...opts.debugExcludeTypes] as (keyof I)[]:
+        ['__cancel'] as (keyof I)[]
+    });
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const actionDispenseByType = ActionDispenser.ofRxController(this);
+    const actionDispenseByType = ActionDispenser.ofRxController(this as RxController2<I & ControllerBaseActions>);
     this.at = actionDispenseByType.at;
     this.pt = actionDispenseByType.pt;
   }
-
+  /**
+   * This function return the same message observable of `pt.__cancel.pipe(actionRelatedToAction(actionMeta))`.
+   * Regarding "__cancel" message:
+   * it is dispatched when an or multiple action observables of `ft.<action>().od(<response$>)` are ALL unsubscribed,
+   *
+   * e.g.
+   * ```
+   * interface Messages {
+   *    searchAndKeepUpdate(keyword: string): SingleActionFactory;
+   *    updateResult(resultUpdates: string[]): SingleActionFactory;
+   * }
+   * const s = new RxController2<Messages>();
+   * s.pt.searchAndKeepUpdate.pipe(
+   *    rx.mergeMap(([m, keyword]) => {
+   *      return aysncObtainOtherResource(keyword).pipe(
+   *        rx.takeUntil(s.onCancelOf(m)), // This is where you need "onCancelOf()" to tell when to stop relevant service for certain original action
+   *        rx.map(result => s.ft.updateResult(result).dp(m))
+   *      );
+   *    )
+   * ).subscribe();
+   * ```
+   */
+  onCancelOf(actionMeta: ActionMeta) {
+    return this.pt.__cancel.pipe(
+      actionRelatedToAction(actionMeta)
+    );
+  }
   /**
    * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
    * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "prepend" controller always
@@ -185,11 +219,14 @@ export class RxController2<I> extends ControllerCore<I> {
   /**
    * create a new RxController, pipe actions whose tyoes are specofied in parameter `actionTypes` from this controller to the new controller
    */
-  subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]>> {
-    const sub = new RxController2<Pick<I, KS[number]>>(opts);
+  subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(
+    actionTypes: KS,
+    opts?: CoreOptions<Pick<I, KS[number]>>
+  ): RxController2<Pick<I, KS[number]> & ControllerBaseActions> {
+    const sub = new RxController2<Pick<I, KS[number]> & ControllerBaseActions>(opts);
     const typeSet = new Set(actionTypes);
     this.action$.pipe(
-      rx.filter(a => typeSet.has(nameOfAction(a))),
+      rx.filter(a => typeSet.has(a.t as keyof I) || a.t === '__cancel'),
       rx.tap(value => {
         sub.actionUpstream.next(value);
       })
@@ -208,11 +245,13 @@ export class RxController2<I> extends ControllerCore<I> {
   /**
    * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
    */
-  subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>): RxController2<Omit<I, KS[number]>> {
-    const sub = new RxController2<Omit<I, KS[number]>>(opts);
+  subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(
+    excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>
+  ): RxController2<Omit<I, KS[number]> & ControllerBaseActions> {
+    const sub = new RxController2<Omit<I, KS[number]> & ControllerBaseActions>(opts);
     const typeSet = new Set(excludeActionTypes);
     this.action$.pipe(
-      rx.filter(a => !typeSet.has(nameOfAction(a))),
+      rx.filter(a => !typeSet.has(a.t as keyof I) || a.t === '__cancel'),
       rx.tap(value => {
         sub.actionUpstream.next(value);
       })
