@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
-import { ControllerCore, nameOfAction } from './stream-core';
+import { ControllerCore } from './stream-core';
+import { actionRelatedToAction } from './context-operators';
 import { ActionDataTable } from './action-table';
 import { ActionDispenser } from './stream-dispense';
 import { SingleActionFactoryImpl } from './action-factory';
@@ -45,7 +46,9 @@ export class RxController2 extends ControllerCore {
         return this.ftProxy;
     }
     constructor(opts) {
-        super(opts);
+        super(Object.assign(Object.assign({}, opts), { debugExcludeTypes: (opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) ?
+                ['__cancel', ...opts.debugExcludeTypes] :
+                ['__cancel'] }));
         this.factories = new Map();
         /**
          * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
@@ -57,45 +60,55 @@ export class RxController2 extends ControllerCore {
         this.pt = actionDispenseByType.pt;
     }
     /**
-     * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
-     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "prepend" controller always
-     * recieves earlier than any subscribers of this controller.
-     * It helps to conquer recursive message emitting problem when add more reactors to existing message stream.
+     * This function return the same message observable of `pt.__cancel.pipe(actionRelatedToAction(actionMeta))`.
+     * Regarding "__cancel" message:
+     * it is dispatched when an or multiple action observables of `ft.<action>().od(<response$>)` are ALL unsubscribed,
      *
-     * 1. current dispatches --message--> current.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> current.action$, this.action$
-     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> current.action$, this.action$
-     *
-     * The "prepend" controller will always recieve a copy of each action message from current controller, and awlays recieves earlier than this controller's subscribers,
-     * Any action dispatched by current controller will always be piped to prepended controller's actionUpstream instead of its owns, so that again, both
-     * current and prepend controller will recieves them.
-     *
-     * Notice the order of prependController and interceptors set by `interceptor$.next()`, it behaves differetly as below:
-     * - prependController should recieve message dispatched by both controllers, but base controller can not recieve message from either controller,
-     *   **when interceptor of base controller is added before prependController() invocation** (interceptor is appended after prependController to pipeline as reverse order)
-     * - prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor
-     *   when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)
+     * e.g.
+     * ```
+     * interface Messages {
+     *    searchAndKeepUpdate(keyword: string): SingleActionFactory;
+     *    updateResult(resultUpdates: string[]): SingleActionFactory;
+     * }
+     * const s = new RxController2<Messages>();
+     * s.pt.searchAndKeepUpdate.pipe(
+     *    rx.mergeMap(([m, keyword]) => {
+     *      return aysncObtainOtherResource(keyword).pipe(
+     *        rx.takeUntil(s.onCancelOf(m)), // This is where you need "onCancelOf()" to tell when to stop relevant service for certain original action
+     *        rx.map(result => s.ft.updateResult(result).dp(m))
+     *      );
+     *    )
+     * ).subscribe();
+     * ```
      */
-    prependController(name) {
-        const targetCtl = new RxController2();
-        targetCtl.config(Object.assign(Object.assign({}, this.opts), name ? { name } : {}));
-        this.configChange.subscribe(targetCtl.configChange);
-        // unlike actionUpstream, thisUpStream is posterior to interceptors
-        const thisUpStream = new rx.Subject();
-        const targetUpstream = new rx.Subject();
-        targetCtl.prependInterceptor(a$ => {
-            return rx.merge(targetUpstream, a$.pipe(rx.map(a => {
-                targetUpstream.next(a);
-                // emit to current controller as well but later than other subscribers
-                thisUpStream.next(a);
-            }), rx.ignoreElements()));
+    onCancelOf(actionMeta) {
+        return this.pt.__cancel.pipe(actionRelatedToAction(actionMeta));
+    }
+    appendInterceptorByType(interceptor) {
+        this.appendInterceptor(a$ => {
+            const ac = ActionDispenser.ofAction$(a$);
+            return interceptor(ac);
         });
-        this.prependInterceptor(a$ => rx.merge(thisUpStream, a$.pipe(rx.map(a => {
-            // Ensure prependController recieve earlier than current controller
-            targetUpstream.next(a);
-            // Ensure action emitted later than prependController
-            thisUpStream.next(a);
-        }), rx.ignoreElements())));
-        return targetCtl;
+    }
+    prependInterceptorByType(interceptor) {
+        this.prependInterceptor(a$ => {
+            const ac = ActionDispenser.ofAction$(a$);
+            return interceptor(ac);
+        });
+    }
+    /**
+     * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
+     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always
+     * recieves earlier than any subscribers of this controller.
+     * It helps to conquer recursive message emitting problem when adding more reactors to existing message stream.
+     */
+    forkController() {
+        const { ForkedRxController } = require('./forked-control'); // avoid cyclic import
+        return new ForkedRxController(this);
+    }
+    /** alias of forkController() */
+    prependController() {
+        return this.forkController();
     }
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy(keySelector, groupedCtlOptionsFn) {
@@ -134,7 +147,7 @@ export class RxController2 extends ControllerCore {
     subForTypes(actionTypes, opts) {
         const sub = new RxController2(opts);
         const typeSet = new Set(actionTypes);
-        this.action$.pipe(rx.filter(a => typeSet.has(nameOfAction(a))), rx.tap(value => {
+        this.action$.pipe(rx.filter(a => typeSet.has(a.t) || a.t === '__cancel'), rx.tap(value => {
             sub.actionUpstream.next(value);
         })).subscribe();
         return sub;
@@ -152,7 +165,7 @@ export class RxController2 extends ControllerCore {
     subForExcludeTypes(excludeActionTypes, opts) {
         const sub = new RxController2(opts);
         const typeSet = new Set(excludeActionTypes);
-        this.action$.pipe(rx.filter(a => !typeSet.has(nameOfAction(a))), rx.tap(value => {
+        this.action$.pipe(rx.filter(a => !typeSet.has(a.t) || a.t === '__cancel'), rx.tap(value => {
             sub.actionUpstream.next(value);
         })).subscribe();
         return sub;

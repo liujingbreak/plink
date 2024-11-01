@@ -4,6 +4,7 @@ import { PayloadByType, ActionByType } from './inferred-types';
 export * from './stream-core';
 export type DispatchAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
 export type DispatchForAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
+type Interceptor = (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>;
 export declare class RxController<I> {
     core: ControllerCore<I>;
     dispatcher: {
@@ -43,7 +44,7 @@ export declare class RxController<I> {
     opts: CoreOptions<unknown> & {
         debugTableAction?: boolean;
     };
-    interceptor$: ControllerCore<I>['interceptor$'];
+    interceptorList$: rx.Observable<Interceptor[]>;
     constructor(opts?: CoreOptions<I> & {
         debugTableAction?: boolean;
     });

@@ -1,15 +1,18 @@
 import * as rx from 'rxjs';
 import { Action, ActionMeta, ActionFunctions } from './stream-core';
-import { RxController2 } from './control2';
+import { RxController2, ControllerBaseActions } from './control2';
 import { SingleActionFactory } from './action-factory';
 import { SimplexReactorOptions, SimplexReactorCfgOpts } from './reactor-base';
 import { ActionTable } from './action-table';
+import { ForkedRxController } from './forked-control';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
     /** This event is when we can dispatch actions for initializing "action table" */
     __onError(err: any): SingleActionFactory;
     __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
     __onDisposed(): SingleActionFactory;
+    /** extends ControllerBaseActions */
+    __cancel: ControllerBaseActions['__cancel'];
 }
 declare const baseTableFor: readonly ["__onError", "__onDisposed"];
 type LE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;
@@ -36,6 +39,11 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
      * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
      */
     config<I2 = Record<string, never>, L2 extends (Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
+    /** Turn current reactors to extend mode,
+     * fork a stream RxController2 to ForkedRxController, so that we can create new reactors by subscribing to
+     * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
+     **/
+    forExtend(): DerivedSimplexReactor<I, LI>;
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
@@ -67,5 +75,11 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     destory(): void;
     protected logError(label: string, err: any): void;
     protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;
+}
+/** You should never create instance by constructor of this class,
+ **/
+export declare class DerivedSimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> extends SimplexReactor<I, LI> {
+    s: ForkedRxController<I & BaseActions>;
+    private constructor();
 }
 export {};

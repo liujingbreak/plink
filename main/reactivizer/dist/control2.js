@@ -111,46 +111,31 @@ class RxController2 extends stream_core_1.ControllerCore {
     onCancelOf(actionMeta) {
         return this.pt.__cancel.pipe((0, context_operators_1.actionRelatedToAction)(actionMeta));
     }
+    appendInterceptorByType(interceptor) {
+        this.appendInterceptor(a$ => {
+            const ac = stream_dispense_1.ActionDispenser.ofAction$(a$);
+            return interceptor(ac);
+        });
+    }
+    prependInterceptorByType(interceptor) {
+        this.prependInterceptor(a$ => {
+            const ac = stream_dispense_1.ActionDispenser.ofAction$(a$);
+            return interceptor(ac);
+        });
+    }
     /**
      * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
-     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "prepend" controller always
+     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always
      * recieves earlier than any subscribers of this controller.
-     * It helps to conquer recursive message emitting problem when add more reactors to existing message stream.
-     *
-     * 1. current dispatches --message--> current.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> current.action$, this.action$
-     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> current.action$, this.action$
-     *
-     * The "prepend" controller will always recieve a copy of each action message from current controller, and awlays recieves earlier than this controller's subscribers,
-     * Any action dispatched by current controller will always be piped to prepended controller's actionUpstream instead of its owns, so that again, both
-     * current and prepend controller will recieves them.
-     *
-     * Notice the order of prependController and interceptors set by `interceptor$.next()`, it behaves differetly as below:
-     * - prependController should recieve message dispatched by both controllers, but base controller can not recieve message from either controller,
-     *   **when interceptor of base controller is added before prependController() invocation** (interceptor is appended after prependController to pipeline as reverse order)
-     * - prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor
-     *   when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)
+     * It helps to conquer recursive message emitting problem when adding more reactors to existing message stream.
      */
-    prependController(name) {
-        const targetCtl = new RxController2();
-        targetCtl.config(Object.assign(Object.assign({}, this.opts), name ? { name } : {}));
-        this.configChange.subscribe(targetCtl.configChange);
-        // unlike actionUpstream, thisUpStream is posterior to interceptors
-        const thisUpStream = new rx.Subject();
-        const targetUpstream = new rx.Subject();
-        targetCtl.prependInterceptor(a$ => {
-            return rx.merge(targetUpstream, a$.pipe(rx.map(a => {
-                targetUpstream.next(a);
-                // emit to current controller as well but later than other subscribers
-                thisUpStream.next(a);
-            }), rx.ignoreElements()));
-        });
-        this.prependInterceptor(a$ => rx.merge(thisUpStream, a$.pipe(rx.map(a => {
-            // Ensure prependController recieve earlier than current controller
-            targetUpstream.next(a);
-            // Ensure action emitted later than prependController
-            thisUpStream.next(a);
-        }), rx.ignoreElements())));
-        return targetCtl;
+    forkController() {
+        const { ForkedRxController } = require('./forked-control'); // avoid cyclic import
+        return new ForkedRxController(this);
+    }
+    /** alias of forkController() */
+    prependController() {
+        return this.forkController();
     }
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy(keySelector, groupedCtlOptionsFn) {

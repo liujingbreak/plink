@@ -1,7 +1,6 @@
 import * as rx from 'rxjs';
 import {Action, InferPayload, ActionMeta, InferMapParam,
-  ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions,
-  nameOfAction} from './stream-core';
+  ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions} from './stream-core';
 import {PayloadByType, ActionByType} from './inferred-types';
 import {actionRelatedToAction} from './context-operators';
 
@@ -15,6 +14,7 @@ export type DispatchForAndObserveRes<I, K extends keyof I> = <F>(
   waitForAction$: rx.Observable<Action<F>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<F>>;
 
+type Interceptor = (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>;
 
 export class RxController<I> {
   core: ControllerCore<I>;
@@ -38,7 +38,7 @@ export class RxController<I> {
   at: ActionByType<I>;
   opts: CoreOptions<unknown> & {debugTableAction?: boolean};
 
-  interceptor$: ControllerCore<I>['interceptor$'];
+  interceptorList$: rx.Observable<Interceptor[]>;
 
   constructor(opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
     const core = this.core = new ControllerCore(opts);
@@ -159,7 +159,7 @@ export class RxController<I> {
           return Object.keys(actionByTypeProxy);
         }
       });
-    this.interceptor$ = core.interceptor$;
+    this.interceptorList$ = core.interceptorList$;
   }
 
   /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
@@ -219,7 +219,7 @@ export class RxController<I> {
     const sub = new RxController<Pick<I, KS[number]>>(opts);
     const typeSet = new Set(actionTypes);
     this.core.action$.pipe(
-      rx.filter(a => typeSet.has(nameOfAction(a))),
+      rx.filter(a => typeSet.has(a.t as keyof I)),
       rx.tap(value => {
         sub.core.actionUpstream.next(value);
       })
@@ -234,7 +234,7 @@ export class RxController<I> {
     const sub = new RxController<Pick<I, KS[number]>>(opts);
     const typeSet = new Set(excludeActionTypes);
     this.core.action$.pipe(
-      rx.filter(a => !typeSet.has(nameOfAction(a))),
+      rx.filter(a => !typeSet.has(a.t as keyof I)),
       rx.tap(value => {
         sub.core.actionUpstream.next(value);
       })
@@ -262,7 +262,7 @@ export class GroupedRxController<I, K> extends RxController<I> {
 }
 
 export function serializeAction<I = any, K extends keyof I = any>(action: Action<I[K]>) {
-  const a = {...action, t: nameOfAction(action)};
+  const a = {...action, t: action.t};
   // if (a.r instanceof Set) {
   //   a.r = [...a.r.values()];
   // }
@@ -275,7 +275,7 @@ export function serializeAction<I = any, K extends keyof I = any>(action: Action
  * @return that dispatched new action object
  */
 export function deserializeAction<I>(actionObj: any, toController: RxController<I>) {
-  const newAction = toController.core.createAction(nameOfAction(actionObj) as unknown as keyof I, (actionObj as Action<I[keyof I]>).p);
+  const newAction = toController.core.createAction(actionObj.t as unknown as keyof I, (actionObj as Action<I[keyof I]>).p);
   newAction.i = (actionObj as Action<any>).i;
   if ((actionObj as Action<any>).r)
     newAction.r = (actionObj as Action<any>).r;

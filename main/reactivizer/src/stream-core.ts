@@ -57,13 +57,12 @@ let SEQ = 0;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 
 export const has = Object.prototype.hasOwnProperty;
-type Interceptor<I> = (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>;
+export type Interceptor = (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>;
 
 export class ControllerCore<I> {
   actionUpstream = new rx.Subject<Action<unknown>>();
   /** Insert action "interceptor" operator function
    */
-  interceptor$ = new rx.Subject<(up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>>();
   logPrefix = '';
   action$: rx.Observable<Action<unknown>>;
   debugIncludeSet: Set<string | number | symbol> | null | undefined;
@@ -75,20 +74,15 @@ export class ControllerCore<I> {
   actionUnsubscribed$: rx.Observable<void>;
   configChange = new rx.ReplaySubject<Set<keyof RxControlConfigType<I>>>(1); // using ReplaySubject here, because this controll might be created with "autoConnect" of false, a deferred "connect" results in later describing on this observable
   opts: CoreOptions<any> = {}; // Using CoreOption<I> here will results in non-assignable issue of entire controller type, always use <any> instead
+  interceptorList$ = new rx.BehaviorSubject<Array<Interceptor>>([]);
   protected dispatcher = {} as {[K in keyof I]: Dispatch<I[K]>};
   protected dispatcherFor = {} as {[K in keyof I]: DispatchFor<I[K]>};
   private connectableAction$: rx.Connectable<Action<unknown>>;
 
   constructor(opts: CoreOptions<I> = {}) {
     this.setName(opts?.name);
-    const interceptorList$ = this.interceptor$.pipe(
-      rx.startWith(a$ => a$),
-      rx.scan((arr, it) => {
-        arr.unshift(it);
-        return arr;
-      }, [] as Interceptor<I>[])
-    );
     // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
+    const upstream = this.actionUpstream;
     this.connectableAction$ = rx.connectable(
       this.configChange.pipe(
         rx.map((props, i) => {
@@ -116,20 +110,19 @@ export class ControllerCore<I> {
           return switchActionStream;
         }),
         rx.filter(needSwitch => needSwitch),
-        rx.combineLatestWith(interceptorList$),
-        rx.switchMap(([, interceptors]) => {
+        rx.switchMap(() => {
           const debuggableAction$ = this.opts.debug ?
-            this.actionUpstream.pipe(
+            upstream.pipe(
               this.opts.log ?
                 rx.tap(action => {
-                  const type = nameOfAction(action);
+                  const type = action.t;
                   if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                     this.opts.log!(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                   }
                 }) :
                 (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
                   rx.tap(action => {
-                    const type = nameOfAction(action);
+                    const type = action.t;
                     if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                       // eslint-disable-next-line no-console
                       console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;',
@@ -137,18 +130,21 @@ export class ControllerCore<I> {
                     }
                   }) :
                   rx.tap(action => {
-                    const type = nameOfAction(action);
+                    const type = action.t;
                     if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                       // eslint-disable-next-line no-console
                       console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                     }
                   })
             )
-            : this.actionUpstream;
-
-          return interceptors ?
-            debuggableAction$.pipe(...(interceptors as [Interceptor<I>])) :
-            debuggableAction$;
+            : upstream;
+          return this.interceptorList$.pipe(
+            rx.switchMap(interceptors => {
+              return interceptors ?
+                debuggableAction$.pipe(...(interceptors as [Interceptor])) :
+                debuggableAction$;
+            })
+          );
         })
       ));
 
@@ -196,7 +192,7 @@ export class ControllerCore<I> {
     return copied as Action<unknown>;
   }
 
-  /** change the "name" as previous specified in CoreOptions of constructor */
+  /** change a debug convenient "name" as previous specified in CoreOptions of constructor */
   setName(name: string | null | undefined) {
     this.logPrefix = name ?? ++SEQ + '';
   }
@@ -217,8 +213,15 @@ export class ControllerCore<I> {
     }
   }
   /** Insert action "interceptor" operator function */
-  prependInterceptor(interceptor: (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>) {
-    this.interceptor$.next(interceptor);
+  prependInterceptor(interceptor: Interceptor) {
+    const list = this.interceptorList$.getValue();
+    list.unshift(interceptor);
+    this.interceptorList$.next(list);
+  }
+  appendInterceptor(interceptor: Interceptor) {
+    const list = this.interceptorList$.getValue();
+    list.push(interceptor);
+    this.interceptorList$.next(list);
   }
 
   /** This method is not meant to be used directly */
@@ -250,6 +253,7 @@ export class ControllerCore<I> {
     return dispatch;
   }
 
+  /** A filter operator function which only allow action with specific types */
   // eslint-disable-next-line space-before-function-paren
   ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[T[number]]>> {
     return (up: rx.Observable<Action<any>>) => {

@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { ControllerCore, nameOfAction } from './stream-core';
+import { ControllerCore } from './stream-core';
 import { actionRelatedToAction } from './context-operators';
 export * from './stream-core';
 export class RxController {
@@ -99,7 +99,7 @@ export class RxController {
                 return Object.keys(actionByTypeProxy);
             }
         });
-        this.interceptor$ = core.interceptor$;
+        this.interceptorList$ = core.interceptorList$;
     }
     /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
     * belongs to
@@ -134,7 +134,7 @@ export class RxController {
     subForTypes(actionTypes, opts) {
         const sub = new RxController(opts);
         const typeSet = new Set(actionTypes);
-        this.core.action$.pipe(rx.filter(a => typeSet.has(nameOfAction(a))), rx.tap(value => {
+        this.core.action$.pipe(rx.filter(a => typeSet.has(a.t)), rx.tap(value => {
             sub.core.actionUpstream.next(value);
         })).subscribe();
         return sub;
@@ -145,7 +145,7 @@ export class RxController {
     subForExcludeTypes(excludeActionTypes, opts) {
         const sub = new RxController(opts);
         const typeSet = new Set(excludeActionTypes);
-        this.core.action$.pipe(rx.filter(a => !typeSet.has(nameOfAction(a))), rx.tap(value => {
+        this.core.action$.pipe(rx.filter(a => !typeSet.has(a.t)), rx.tap(value => {
             sub.core.actionUpstream.next(value);
         })).subscribe();
         return sub;
@@ -170,7 +170,7 @@ export class GroupedRxController extends RxController {
     }
 }
 export function serializeAction(action) {
-    const a = Object.assign(Object.assign({}, action), { t: nameOfAction(action) });
+    const a = Object.assign(Object.assign({}, action), { t: action.t });
     // if (a.r instanceof Set) {
     //   a.r = [...a.r.values()];
     // }
@@ -182,7 +182,7 @@ export function serializeAction(action) {
  * @return that dispatched new action object
  */
 export function deserializeAction(actionObj, toController) {
-    const newAction = toController.core.createAction(nameOfAction(actionObj), actionObj.p);
+    const newAction = toController.core.createAction(actionObj.t, actionObj.p);
     newAction.i = actionObj.i;
     if (actionObj.r)
         newAction.r = actionObj.r;

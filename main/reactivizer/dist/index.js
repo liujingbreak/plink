@@ -26,5 +26,6 @@ __exportStar(require("./reactor-composite"), exports);
 __exportStar(require("./stream-dispense"), exports);
 __exportStar(require("./simplex-reactor"), exports);
 __exportStar(require("./reactor-base"), exports);
+__exportStar(require("./forked-control"), exports);
 // export * from './action-factory'; duplicate exports from control2
 //# sourceMappingURL=index.js.map

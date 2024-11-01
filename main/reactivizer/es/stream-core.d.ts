@@ -43,11 +43,11 @@ export type CoreOptions<I = Record<string, never>> = {
     log?: null | ((msg: string, ...objs: any[]) => unknown);
 };
 export declare const has: (v: PropertyKey) => boolean;
+export type Interceptor = (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>;
 export declare class ControllerCore<I> {
     actionUpstream: rx.Subject<Action<unknown>>;
     /** Insert action "interceptor" operator function
      */
-    interceptor$: rx.Subject<(up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>>;
     logPrefix: string;
     action$: rx.Observable<Action<unknown>>;
     debugIncludeSet: Set<string | number | symbol> | null | undefined;
@@ -56,8 +56,9 @@ export declare class ControllerCore<I> {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.ReplaySubject<Set<"log" | "name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle">>;
+    configChange: rx.ReplaySubject<Set<"name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
     opts: CoreOptions<any>;
+    interceptorList$: rx.BehaviorSubject<Interceptor[]>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
     private connectableAction$;
@@ -65,20 +66,24 @@ export declare class ControllerCore<I> {
     createAction<J = I, K extends keyof J = keyof J>(name: K, params?: InferPayload<J[K]>): Action<J[K]>;
     /** action id is also copied */
     copyActionFrom(source: Action<any>): Action<unknown>;
-    /** change the "name" as previous specified in CoreOptions of constructor */
+    /** change a debug convenient "name" as previous specified in CoreOptions of constructor */
     setName(name: string | null | undefined): void;
     /** This method is used to change `this.opts` which is initially provided in constructor.
      * Only changed properties are merged to current options */
     config(opts: RxControlConfigType<I>): void;
     /** Insert action "interceptor" operator function */
-    prependInterceptor(interceptor: (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>): void;
+    prependInterceptor(interceptor: Interceptor): void;
+    appendInterceptor(interceptor: Interceptor): void;
     /** This method is not meant to be used directly */
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]>;
     /** This method is not meant to be used directly */
     dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I[K]>;
+    /** A filter operator function which only allow action with specific types */
     ofType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[T[number]]>>;
     notOfType<T extends (keyof I)[]>(...types: T): (up: rx.Observable<Action<any>>) => rx.Observable<Action<I[Exclude<keyof I, T[number]>]>>;
     isType<K extends keyof I>(action: Action<unknown>, type: K): action is Action<I[K]>;
+    /** see CoreOption['autoConnect']
+     */
     connect(): void;
 }
 /**

@@ -2,7 +2,7 @@
 import * as rx from 'rxjs';
 import {Action, ActionFunctions, serializeAction} from '../control';
 import {SimplexReactor} from '../simplex-reactor';
-import {deserializeAction2, actionRelatedToAction, nameOfAction} from '..';
+import {deserializeAction2, actionRelatedToAction} from '..';
 import {InferFuncReturnEvents, ActionFactoryOfPlainType} from '../inferred-types';
 import {SimplexReactorCfgOpts} from '../reactor-base';
 import {ForkWorkerInput, ForkWorkerOutput, WorkerControl, workerActionTableFor} from './types';
@@ -97,7 +97,7 @@ export function createWorkerControl<
           actionRelatedToAction(wrappedAct),
           rx.tap(retAction => {
             const replyFork = s.createAction(
-              nameOfAction(retAction) as keyof ForkWorkerInput,
+              retAction.t as keyof ForkWorkerInput,
               retAction.p as any
             );
             replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action

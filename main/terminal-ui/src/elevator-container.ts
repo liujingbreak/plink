@@ -27,12 +27,12 @@ export function createElevator(opts?: ElevatorOptions) {
     name: opts?.default?.name ?? 'Elevator',
     ...opts?.core as TerminalContainerOpts
   });
-  const service = base.config<ElevatorEvents>({});
+  const service = base.config<ElevatorEvents>({}).forExtend();
   const {s, r, table} = service;
   /** Canvas by root component */
   const canvasMap = new Map<BaseWidget, TerminalCanvas>();
   // intercept "onRender"
-  base.s.interceptor$.next(action$ => {
+  s.appendInterceptorToSrc(action$ => {
     const dispenser = ActionDispenser.ofAction$<typeof base.s>(action$);
     return rx.merge(
       rx.merge(
@@ -44,7 +44,6 @@ export function createElevator(opts?: ElevatorOptions) {
       dispenser.ofOtherTypes()
     );
   });
-  const prependCtl = service.s.prependController();
   r('addChild, removeChild -> "canvasMap"', rx.merge(
     s.pt.addChild.pipe(
       rx.map(([m, ...chdn]) => [m, chdn] as const)
@@ -173,7 +172,7 @@ export function createElevator(opts?: ElevatorOptions) {
       );
     })
   ));
-  r('onRender', prependCtl.pt.onRender.pipe(
+  r('onRender', s.pt.onRender.pipe(
     rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(
       rx.take(1),
       rx.mergeMap(([, chrd]) => chrd),
@@ -226,7 +225,7 @@ export function createElevator(opts?: ElevatorOptions) {
       })
     ))
   ));
-  r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(
+  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
     rx.withLatestFrom(s.pt.allDisplayChildren),
     rx.mergeMap(([[m, ...rect], [, chdr]]) => {
       const last = chdr[chdr.length - 1];
@@ -248,7 +247,6 @@ export function createElevator(opts?: ElevatorOptions) {
     })
   ));
   s.ft.hasOfflineCanvas(true).dp();
-  service.s = prependCtl;
   return service;
 }
 export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]> {

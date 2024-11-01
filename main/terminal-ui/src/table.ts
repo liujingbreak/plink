@@ -79,11 +79,11 @@ export function createTable(opts?: TableOptions) {
   const service = base.config<TableEvents, typeof tableFor>({
     debugExcludeTypes: ['renderChild', 'onCellBgRender', ...(base.opts!.debugExcludeTypes ?? [])],
     tableFor
-  });
+  }).forExtend();
   // eslint-disable-next-line prefer-const
   let {s, r, table} = service;
   // intercept onRender
-  s.prependInterceptor(action$ => {
+  s.appendInterceptorToSrc(action$ => {
     const ad = ActionDispenser.ofAction$<typeof service>(action$);
     return rx.merge(
       rx.merge(

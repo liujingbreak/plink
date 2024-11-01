@@ -35,13 +35,12 @@ const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', '
 function createScrollable(comp, opts) {
     var _a, _b;
     const base = (0, container_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable' }), opts === null || opts === void 0 ? void 0 : opts.core));
-    const scrollable = base.config({ tableFor });
+    const scrollable = base.config({ tableFor }).forExtend();
     const { r, s, table } = scrollable;
-    s.prependInterceptor(action$ => {
+    s.appendInterceptorToSrc(action$ => {
         const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
         return rx.merge(rx.merge(dispenser.at.onRender, dispenser.at.findOverlaps).pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
     });
-    const prepended = s.prependController();
     const canvas = (0, canvas_1.createTerminalCanvas)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
     const cTable = canvas.table.addActions('requestRender');
     canvas.s.ft.setRootComponent(comp).dp();
@@ -56,7 +55,7 @@ function createScrollable(comp, opts) {
         return rx.EMPTY;
     })));
     const renderData = rx.combineLatest([table.l.onValidScroll, table.l.onSize]);
-    r('onRender -> comp.render,...', prepended.pt.onRender.pipe(rx.withLatestFrom(renderData), rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [[, scLeft, scTop], [, width, height]]]) => {
+    r('onRender -> comp.render,...', s.pt.onRender.pipe(rx.withLatestFrom(renderData), rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [[, scLeft, scTop], [, width, height]]]) => {
         if (renderSelf)
             s.ft.renderSelf(outerCanvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         const clipsOfView = clips.map(c => {
@@ -186,7 +185,7 @@ function createScrollable(comp, opts) {
                 s.ft.scroll(toX, toY).dp(m);
         }
     })))));
-    r('findOverlaps -> didFindOverlaps', prepended.pt.findOverlaps.pipe(rx.withLatestFrom(comp.table.l.isContainer, table.l.onBoundingBox, table.l.onValidScroll), rx.mergeMap(([[m, ...rect0], [, isContainer], [, bounding], [, left, top]]) => {
+    r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.withLatestFrom(comp.table.l.isContainer, table.l.onBoundingBox, table.l.onValidScroll), rx.mergeMap(([[m, ...rect0], [, isContainer], [, bounding], [, left, top]]) => {
         if (!isContainer) {
             s.ft.didFindOverlaps([comp]).dp(m);
             return rx.EMPTY;

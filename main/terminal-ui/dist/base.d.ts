@@ -88,13 +88,10 @@ export type BaseWidgetRenderData = readonly [
     InferMapParam<BaseWidgetEvents['onSize']>,
     InferMapParam<BaseWidgetEvents['setBackground']>
 ];
-export type BaseWidget<S = unknown> = SimplexReactor<BaseWidgetEvents<S>, typeof tableForBase>;
+export type BaseWidget<S = any> = SimplexReactor<BaseWidgetEvents<S>, typeof tableForBase>;
 export type BaseWidgetOptions = SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 export declare function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOptions>): SimplexReactor<BaseWidgetEvents<S>, readonly ["onSize", "onTransform", "onPosition", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDettached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "latestRenderData", "isContainer"]>;
-export interface OffsetParentMessages {
-    findOverlapComponent(...rect: Rectangle): SingleActionFactory;
-}
-export type OffsetParent = SimplexReactor<OffsetParentMessages> & {
+export interface OffsetParent {
     focusService: FocusService;
-};
+}

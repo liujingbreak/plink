@@ -8,19 +8,16 @@ export class ControllerCore {
         this.actionUpstream = new rx.Subject();
         /** Insert action "interceptor" operator function
          */
-        this.interceptor$ = new rx.Subject();
         this.logPrefix = '';
         this.debugExcludeSet = new Set();
         this.configChange = new rx.ReplaySubject(1); // using ReplaySubject here, because this controll might be created with "autoConnect" of false, a deferred "connect" results in later describing on this observable
         this.opts = {}; // Using CoreOption<I> here will results in non-assignable issue of entire controller type, always use <any> instead
+        this.interceptorList$ = new rx.BehaviorSubject([]);
         this.dispatcher = {};
         this.dispatcherFor = {};
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
-        const interceptorList$ = this.interceptor$.pipe(rx.startWith(a$ => a$), rx.scan((arr, it) => {
-            arr.unshift(it);
-            return arr;
-        }, []));
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
+        const upstream = this.actionUpstream;
         this.connectableAction$ = rx.connectable(this.configChange.pipe(rx.map((props, i) => {
             var _a, _b, _c;
             let switchActionStream = i === 0; // always create action stream at first time
@@ -45,34 +42,36 @@ export class ControllerCore {
                 switchActionStream = true;
             }
             return switchActionStream;
-        }), rx.filter(needSwitch => needSwitch), rx.combineLatestWith(interceptorList$), rx.switchMap(([, interceptors]) => {
+        }), rx.filter(needSwitch => needSwitch), rx.switchMap(() => {
             const debuggableAction$ = this.opts.debug ?
-                this.actionUpstream.pipe(this.opts.log ?
+                upstream.pipe(this.opts.log ?
                     rx.tap(action => {
-                        const type = nameOfAction(action);
+                        const type = action.t;
                         if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                             this.opts.log(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                         }
                     }) :
                     (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
                         rx.tap(action => {
-                            const type = nameOfAction(action);
+                            const type = action.t;
                             if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                                 // eslint-disable-next-line no-console
                                 console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                             }
                         }) :
                         rx.tap(action => {
-                            const type = nameOfAction(action);
+                            const type = action.t;
                             if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                                 // eslint-disable-next-line no-console
                                 console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                             }
                         }))
-                : this.actionUpstream;
-            return interceptors ?
-                debuggableAction$.pipe(...interceptors) :
-                debuggableAction$;
+                : upstream;
+            return this.interceptorList$.pipe(rx.switchMap(interceptors => {
+                return interceptors ?
+                    debuggableAction$.pipe(...interceptors) :
+                    debuggableAction$;
+            }));
         })));
         const actionSubDispatcher = new rx.ReplaySubject();
         const actionUnsubDispatcher = new rx.ReplaySubject();
@@ -109,7 +108,7 @@ export class ControllerCore {
         copied.r = source.r;
         return copied;
     }
-    /** change the "name" as previous specified in CoreOptions of constructor */
+    /** change a debug convenient "name" as previous specified in CoreOptions of constructor */
     setName(name) {
         this.logPrefix = name !== null && name !== void 0 ? name : ++SEQ + '';
     }
@@ -130,7 +129,14 @@ export class ControllerCore {
     }
     /** Insert action "interceptor" operator function */
     prependInterceptor(interceptor) {
-        this.interceptor$.next(interceptor);
+        const list = this.interceptorList$.getValue();
+        list.unshift(interceptor);
+        this.interceptorList$.next(list);
+    }
+    appendInterceptor(interceptor) {
+        const list = this.interceptorList$.getValue();
+        list.push(interceptor);
+        this.interceptorList$.next(list);
     }
     /** This method is not meant to be used directly */
     dispatchFactory(type) {
@@ -159,6 +165,7 @@ export class ControllerCore {
         this.dispatcherFor[type] = dispatch;
         return dispatch;
     }
+    /** A filter operator function which only allow action with specific types */
     // eslint-disable-next-line space-before-function-paren
     ofType(...types) {
         return (up) => {
@@ -176,16 +183,10 @@ export class ControllerCore {
     isType(action, type) {
         return action.t === type;
     }
+    /** see CoreOption['autoConnect']
+     */
     connect() {
         this.connectableAction$.connect();
-        // rx.concat(
-        //   rx.of(this.connectableAction$),
-        //   this.configChange
-        // ).pipe(
-        //   rx.filter(() => this.connectableAction$ != null),
-        //   rx.map(() => this.connectableAction$),
-        //   rx.take(1)
-        // ).subscribe(() => this.connectableAction$!.connect());
     }
 }
 /**

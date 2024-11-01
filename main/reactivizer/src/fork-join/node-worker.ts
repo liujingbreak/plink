@@ -5,7 +5,7 @@ import type {Blob} from 'node:buffer';
 import {parentPort, MessageChannel, threadId, isMainThread, MessagePort} from 'worker_threads';
 import * as rx from 'rxjs';
 import {Action, serializeAction, ActionFunctions} from '../control';
-import {deserializeAction2, actionRelatedToAction, nameOfAction} from '..';
+import {deserializeAction2, actionRelatedToAction} from '..';
 import {SimplexReactor} from '../simplex-reactor';
 import {InferFuncReturnEvents, ActionFactoryOfPlainType} from '../inferred-types';
 import {SimplexReactorCfgOpts} from '../reactor-base';
@@ -120,7 +120,7 @@ export function createWorkerControl<
           actionRelatedToAction(wrappedAct),
           rx.tap(retAction => {
             const replyFork = s.createAction(
-              nameOfAction(retAction) as keyof ForkWorkerInput,
+              retAction.t as keyof ForkWorkerInput,
               retAction.p as any
             );
             replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action

@@ -5,6 +5,7 @@ import {SingleActionFactory} from './action-factory';
 import {SimplexReactorOptions, SimplexReactorCfgOpts} from './reactor-base';
 import {ActionTable} from './action-table';
 import {RxControlConfigType} from './global-config';
+import {ForkedRxController} from './forked-control';
 import {actionRelatedToAction} from './context-operators';
 import {InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement} from './inferred-types';
 
@@ -27,7 +28,6 @@ let SEQ = new Date().getUTCMilliseconds();
 export class SimplexReactor<
   I = Record<never, never>,
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly []
-  // BaseType = unknown
 > {
   /** All catched error goes here, including those from "dispatchErrorFor" */
   error$: rx.Observable<readonly [error: any, label: string | null]>;
@@ -148,6 +148,15 @@ export class SimplexReactor<
       return obj;
     }, {} as RxControlConfigType<I>));
     return this as unknown as SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
+  }
+
+  /** Turn current reactors to extend mode,
+   * fork a stream RxController2 to ForkedRxController, so that we can create new reactors by subscribing to
+   * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
+   **/
+  forExtend() {
+    this.s = new ForkedRxController(this.s);
+    return this as unknown as DerivedSimplexReactor<I, LI>;
   }
   /**
    * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
@@ -290,3 +299,17 @@ export class SimplexReactor<
   }
 }
 
+/** You should never create instance by constructor of this class,
+ **/
+export class DerivedSimplexReactor<
+  I = Record<never, never>,
+  LI extends readonly (keyof I)[] | (keyof I)[] = readonly []
+> extends SimplexReactor<I, LI> {
+  s: ForkedRxController<I & BaseActions>;
+
+  private constructor(ancestor: SimplexReactor<I, LI>) {
+    super();
+    this.s = new ForkedRxController(ancestor.s);
+    this.table = ancestor.table;
+  }
+}

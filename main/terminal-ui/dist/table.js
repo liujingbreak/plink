@@ -61,11 +61,11 @@ function createTable(opts) {
     const service = base.config({
         debugExcludeTypes: ['renderChild', 'onCellBgRender', ...((_a = base.opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : [])],
         tableFor
-    });
+    }).forExtend();
     // eslint-disable-next-line prefer-const
     let { s, r, table } = service;
     // intercept onRender
-    s.prependInterceptor(action$ => {
+    s.appendInterceptorToSrc(action$ => {
         const ad = reactivizer_1.ActionDispenser.ofAction$(action$);
         return rx.merge(rx.merge(ad.pt.onRender, ad.pt.findOverlaps).pipe(rx.ignoreElements()), ad.ofOtherTypes());
     });

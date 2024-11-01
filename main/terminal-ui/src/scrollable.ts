@@ -40,10 +40,10 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
     name: 'scrollable',
     ...opts?.core as TerminalContainerOpts
   });
-  const scrollable = base.config<ScrollSignals, typeof tableFor>({tableFor});
+  const scrollable = base.config<ScrollSignals, typeof tableFor>({tableFor}).forExtend();
   const {r, s, table} = scrollable;
 
-  s.prependInterceptor(action$ => {
+  s.appendInterceptorToSrc(action$ => {
     const dispenser = ActionDispenser.ofAction$<typeof base.s>(action$);
     return rx.merge(
       rx.merge(
@@ -55,7 +55,6 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       dispenser.ofOtherTypes()
     );
   });
-  const prepended = s.prependController();
 
   const canvas = createTerminalCanvas({
     ...opts?.default as TerminalCanvasOptions,
@@ -91,7 +90,7 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
     })
   ));
   const renderData = rx.combineLatest([table.l.onValidScroll, table.l.onSize]);
-  r('onRender -> comp.render,...', prepended.pt.onRender.pipe(
+  r('onRender -> comp.render,...', s.pt.onRender.pipe(
     rx.withLatestFrom(renderData),
     rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [[, scLeft, scTop], [, width, height]]]) => {
       if (renderSelf)
@@ -232,7 +231,7 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       canvas.dispose();
     })
   ));
-  const service = scrollable as (Scrollable & OffsetParent);
+  const service = scrollable as unknown as (Scrollable & OffsetParent);
   service.focusService = focusService;
   r('rootService, rootService.onFocus', focusService.table.l.rootService.pipe(
     rx.switchMap(([, root]) => root.table.l.onFocus.pipe(
@@ -273,7 +272,7 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       })
     ))
   ));
-  r('findOverlaps -> didFindOverlaps', prepended.pt.findOverlaps.pipe(
+  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
     rx.withLatestFrom(comp.table.l.isContainer,
       table.l.onBoundingBox,
       table.l.onValidScroll

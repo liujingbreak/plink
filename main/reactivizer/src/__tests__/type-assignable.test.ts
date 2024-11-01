@@ -3,7 +3,7 @@
   * has no error report to parsing the file content.
  **/
 import {describe, it}  from '@jest/globals';
-import {SingleActionFactory, SimplexReactor} from '../src';
+import {SingleActionFactory, SimplexReactor} from '../index';
 
 interface TestResponse {
   action1(...backMsg: string[]): SingleActionFactory;
@@ -47,8 +47,8 @@ describe('Typescript compiler', () => {
     acceptDerivedTypeForBaseType(extendedService);
     acceptFeatureService(extendedService);
 
-    acceptBaseType(extendedService.b);
-    acceptBaseType(extendedWithoutTable.b);
+    acceptBaseType(extendedService);
+    acceptBaseType(extendedWithoutTable);
 
     function acceptDerivedTypeForBaseType2(accepted: SimplexReactor<ExtendActions, typeof tableFor1>) {
       accepted.table.l.message5.subscribe();

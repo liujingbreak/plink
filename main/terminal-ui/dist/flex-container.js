@@ -42,13 +42,13 @@ const tableForFlexContainer = [
 ];
 function createFlexContainer(opts = {}) {
     const base = (0, container_1.createContainerBase)(Object.assign({ name: 'flexContainer' }, opts));
-    const listContainer = base.config({ tableFor: tableForFlexContainer });
+    const listContainer = base.config({ tableFor: tableForFlexContainer }).forExtend();
+    const prependCtl = listContainer.s;
     // intercept "onRender"
-    base.s.prependInterceptor(action$ => {
+    prependCtl.appendInterceptorToSrc(action$ => {
         const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
         return rx.merge(dispenser.at.onRender.pipe(rx.ignoreElements()), dispenser.at.findOverlaps.pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
     });
-    const prependCtl = listContainer.s.prependController();
     const childBoundingTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
     const { r, table, s } = listContainer;
     const { ft } = s;
@@ -371,7 +371,6 @@ function createFlexContainer(opts = {}) {
         //   ft.addReflowAction(a$).dp();
         // }
     }));
-    listContainer.s = prependCtl;
     return listContainer;
 }
 function shrinkEachSize(individualPrefSizes, shrinkOfEach, availableSpace) {

@@ -2,11 +2,14 @@ import * as rx from 'rxjs';
 import { Action, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
 import { ActionDataTable } from './action-table';
+import { ActionDispenser } from './stream-dispense';
+import type { ForkedRxController as ForkedRxControllerConst } from './forked-control';
 import { SingleActionFactory } from './action-factory';
 export { SingleActionFactory };
 export type ActionFactory = {
     [k: string]: (...args: any[]) => SingleActionFactory;
 };
+export type ActionInterceptor<I> = (ac: ActionDispenser<I>) => rx.Observable<Action<unknown>>;
 export interface ControllerBaseActions {
     __cancel(origActionType: string): SingleActionFactory;
 }
@@ -51,26 +54,17 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * ```
      */
     onCancelOf(actionMeta: ActionMeta): rx.Observable<[ActionMeta, ...InferPayload<(I & ControllerBaseActions)["__cancel"]>]>;
+    appendInterceptorByType(interceptor: ActionInterceptor<I>): void;
+    prependInterceptorByType(interceptor: ActionInterceptor<I>): void;
     /**
      * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
-     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "prepend" controller always
+     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always
      * recieves earlier than any subscribers of this controller.
-     * It helps to conquer recursive message emitting problem when add more reactors to existing message stream.
-     *
-     * 1. current dispatches --message--> current.actionUpstream(intercepted) --> this.actionUpstream (intercepted) --> current.action$, this.action$
-     * 2. This dispatches --message--> this.actionUpstream (intercepted) --> current.action$, this.action$
-     *
-     * The "prepend" controller will always recieve a copy of each action message from current controller, and awlays recieves earlier than this controller's subscribers,
-     * Any action dispatched by current controller will always be piped to prepended controller's actionUpstream instead of its owns, so that again, both
-     * current and prepend controller will recieves them.
-     *
-     * Notice the order of prependController and interceptors set by `interceptor$.next()`, it behaves differetly as below:
-     * - prependController should recieve message dispatched by both controllers, but base controller can not recieve message from either controller,
-     *   **when interceptor of base controller is added before prependController() invocation** (interceptor is appended after prependController to pipeline as reverse order)
-     * - prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor
-     *   when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)
+     * It helps to conquer recursive message emitting problem when adding more reactors to existing message stream.
      */
-    prependController(name?: string): RxController2<I>;
+    forkController(): ForkedRxControllerConst<I>;
+    /** alias of forkController() */
+    prependController(): ForkedRxControllerConst<I>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**

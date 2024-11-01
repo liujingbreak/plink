@@ -104,7 +104,7 @@ function createWorkerControl(opts) {
         }).pipe(rx.map(event => {
             s.ft.onForkReturn(event).dp();
         }), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), error$.pipe(rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))), s.pt.onForkReturn.pipe(rx.map(([, retAction]) => retAction), (0, __1.actionRelatedToAction)(wrappedAct), rx.tap(retAction => {
-            const replyFork = s.createAction((0, __1.nameOfAction)(retAction), retAction.p);
+            const replyFork = s.createAction(retAction.t, retAction.p);
             replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
             s.actionUpstream.next(replyFork);
         }), rx.take(1)), new rx.Observable(_sub => {

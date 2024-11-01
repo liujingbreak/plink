@@ -131,7 +131,7 @@ class RxController {
                 return Object.keys(actionByTypeProxy);
             }
         });
-        this.interceptor$ = core.interceptor$;
+        this.interceptorList$ = core.interceptorList$;
     }
     /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
     * belongs to
@@ -166,7 +166,7 @@ class RxController {
     subForTypes(actionTypes, opts) {
         const sub = new RxController(opts);
         const typeSet = new Set(actionTypes);
-        this.core.action$.pipe(rx.filter(a => typeSet.has((0, stream_core_1.nameOfAction)(a))), rx.tap(value => {
+        this.core.action$.pipe(rx.filter(a => typeSet.has(a.t)), rx.tap(value => {
             sub.core.actionUpstream.next(value);
         })).subscribe();
         return sub;
@@ -177,7 +177,7 @@ class RxController {
     subForExcludeTypes(excludeActionTypes, opts) {
         const sub = new RxController(opts);
         const typeSet = new Set(excludeActionTypes);
-        this.core.action$.pipe(rx.filter(a => !typeSet.has((0, stream_core_1.nameOfAction)(a))), rx.tap(value => {
+        this.core.action$.pipe(rx.filter(a => !typeSet.has(a.t)), rx.tap(value => {
             sub.core.actionUpstream.next(value);
         })).subscribe();
         return sub;
@@ -204,7 +204,7 @@ class GroupedRxController extends RxController {
 }
 exports.GroupedRxController = GroupedRxController;
 function serializeAction(action) {
-    const a = Object.assign(Object.assign({}, action), { t: (0, stream_core_1.nameOfAction)(action) });
+    const a = Object.assign(Object.assign({}, action), { t: action.t });
     // if (a.r instanceof Set) {
     //   a.r = [...a.r.values()];
     // }
@@ -216,7 +216,7 @@ function serializeAction(action) {
  * @return that dispatched new action object
  */
 function deserializeAction(actionObj, toController) {
-    const newAction = toController.core.createAction((0, stream_core_1.nameOfAction)(actionObj), actionObj.p);
+    const newAction = toController.core.createAction(actionObj.t, actionObj.p);
     newAction.i = actionObj.i;
     if (actionObj.r)
         newAction.r = actionObj.r;

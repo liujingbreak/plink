@@ -23,10 +23,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SimplexReactor = void 0;
+exports.DerivedSimplexReactor = exports.SimplexReactor = void 0;
 const rx = __importStar(require("rxjs"));
 const control2_1 = require("./control2");
 const action_table_1 = require("./action-table");
+const forked_control_1 = require("./forked-control");
 const context_operators_1 = require("./context-operators");
 const baseTableFor = ['__onError', '__onDisposed'];
 let SEQ = new Date().getUTCMilliseconds();
@@ -113,6 +114,14 @@ class SimplexReactor {
             }
             return obj;
         }, {}));
+        return this;
+    }
+    /** Turn current reactors to extend mode,
+     * fork a stream RxController2 to ForkedRxController, so that we can create new reactors by subscribing to
+     * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
+     **/
+    forExtend() {
+        this.s = new forked_control_1.ForkedRxController(this.s);
         return this;
     }
     /**
@@ -233,4 +242,14 @@ class SimplexReactor {
     }
 }
 exports.SimplexReactor = SimplexReactor;
+/** You should never create instance by constructor of this class,
+ **/
+class DerivedSimplexReactor extends SimplexReactor {
+    constructor(ancestor) {
+        super();
+        this.s = new forked_control_1.ForkedRxController(ancestor.s);
+        this.table = ancestor.table;
+    }
+}
+exports.DerivedSimplexReactor = DerivedSimplexReactor;
 //# sourceMappingURL=simplex-reactor.js.map

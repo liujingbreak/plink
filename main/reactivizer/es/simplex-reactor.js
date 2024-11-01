@@ -1,6 +1,7 @@
 import * as rx from 'rxjs';
 import { RxController2 } from './control2';
 import { ActionTable } from './action-table';
+import { ForkedRxController } from './forked-control';
 import { actionRelatedToAction } from './context-operators';
 const baseTableFor = ['__onError', '__onDisposed'];
 let SEQ = new Date().getUTCMilliseconds();
@@ -87,6 +88,14 @@ export class SimplexReactor {
             }
             return obj;
         }, {}));
+        return this;
+    }
+    /** Turn current reactors to extend mode,
+     * fork a stream RxController2 to ForkedRxController, so that we can create new reactors by subscribing to
+     * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
+     **/
+    forExtend() {
+        this.s = new ForkedRxController(this.s);
         return this;
     }
     /**
@@ -204,6 +213,15 @@ export class SimplexReactor {
                 return rx.throwError(() => err instanceof Error ? err : new Error(err));
             return hehavior === 'continue' ? src : rx.EMPTY;
         }));
+    }
+}
+/** You should never create instance by constructor of this class,
+ **/
+export class DerivedSimplexReactor extends SimplexReactor {
+    constructor(ancestor) {
+        super();
+        this.s = new ForkedRxController(ancestor.s);
+        this.table = ancestor.table;
     }
 }
 //# sourceMappingURL=simplex-reactor.js.map

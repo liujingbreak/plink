@@ -46,6 +46,11 @@ function createBase(opts) {
     var _a;
     const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({}, opts), { tableFor: exports.tableForBase, debugExcludeTypes: (_a = opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) !== null && _a !== void 0 ? _a : ['ofCanvas', 'bgCleared', '_saveTransform', 'needRerender'] }));
     const { s, r, table } = service;
+    s.prependInterceptorByType(ad => {
+        return rx.merge(ad.at.onPosition.pipe(rx.distinctUntilChanged(({ p: [ax, ay] }, { p: [bx, by] }) => {
+            return ax === bx && ay === by;
+        })), ad.ofOtherTypes());
+    });
     r('_saveTransform -> onTransform', rx.merge(s.pt._saveTransform.pipe(rx.distinctUntilChanged(([, t1], [, t2]) => gl_matrix_1.mat4.equals(t1, t2)), rx.map(([m, t]) => s.ft.onTransform(t).dp(m)))));
     r('setPreferredSize, onContentSizeChange -> preferredSize', rx.combineLatest([
         table.l.setPreferredSize, s.pt.onContentSizeChange
@@ -65,7 +70,7 @@ function createBase(opts) {
         const m = Array.isArray(actionOrPayload) ? actionOrPayload[0] : actionOrPayload;
         s.ft.needRerender(true).dp(m);
     })));
-    r('setSize', s.pt.setSize.pipe(rx.switchMap(([m, w, h]) => {
+    r('setSize,onSize,setParent -> setPreferredSize', s.pt.setSize.pipe(rx.switchMap(([m, w, h]) => {
         if (typeof w === 'string' && typeof h === 'string') {
             const percW = /(\d+)%/.exec(w)[0];
             const percH = /(\d+)%/.exec(h)[0];
@@ -183,8 +188,7 @@ function createBase(opts) {
                         return s.ft.queryAbsBounding(op)
                             .re(m, m2, m1)
                             .od(s.pt.didQueryAbsBounding).pipe(rx.filter(([, r]) => r != null), rx.map(([, r]) => {
-                            var _a;
-                            service.log('>>> onRectChange', r, (_a = service.opts) === null || _a === void 0 ? void 0 : _a.name);
+                            // service.log('>>> onRectChange', r, service.opts?.name);
                             op.focusService.s.ft.onRectChange(r, service).dp(m1, m2, m);
                         }));
                     }
@@ -223,9 +227,7 @@ function createBase(opts) {
     })));
     r('queryAbsBounding -> didQueryAbsBounding', s.pt.queryAbsBounding.pipe(rx.mergeMap(([m, topParent]) => rx.combineLatest([
         table.l.setParent,
-        table.l.onPosition.pipe(rx.distinctUntilChanged(([, ax, ay], [, bx, by]) => {
-            return ax === bx && ay === by;
-        })),
+        table.l.onPosition,
         table.l.onSize.pipe(rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh))
     ]).pipe(rx.takeUntil(s.onCancelOf(m)), rx.switchMap(([[, p], [, x, y], [, w, h]]) => {
         if (x == null || y == null) {

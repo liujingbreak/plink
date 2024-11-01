@@ -97,7 +97,7 @@ export type BaseWidgetRenderData = readonly [
   InferMapParam<BaseWidgetEvents['onSize']>,
   InferMapParam<BaseWidgetEvents['setBackground']>
 ];
-export type BaseWidget<S = unknown> = SimplexReactor<BaseWidgetEvents<S>, typeof tableForBase>;
+export type BaseWidget<S = any> = SimplexReactor<BaseWidgetEvents<S>, typeof tableForBase>;
 export type BaseWidgetOptions = SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOptions>) {
@@ -107,6 +107,16 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
     debugExcludeTypes: opts?.debugExcludeTypes ?? ['ofCanvas', 'bgCleared', '_saveTransform', 'needRerender']
   });
   const {s, r, table} = service;
+  s.prependInterceptorByType(ad => {
+    return rx.merge(
+      ad.at.onPosition.pipe(
+        rx.distinctUntilChanged(({p: [ax, ay]}, {p: [bx, by]}) => {
+          return ax === bx && ay === by;
+        })
+      ),
+      ad.ofOtherTypes()
+    );
+  });
   r('_saveTransform -> onTransform', rx.merge(
     s.pt._saveTransform.pipe(
       rx.distinctUntilChanged(([, t1], [, t2]) => mat4.equals(t1, t2)),
@@ -383,11 +393,7 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
   r('queryAbsBounding -> didQueryAbsBounding', s.pt.queryAbsBounding.pipe(
     rx.mergeMap(([m, topParent]) => rx.combineLatest([
       table.l.setParent,
-      table.l.onPosition.pipe(
-        rx.distinctUntilChanged(([, ax, ay], [, bx, by]) => {
-          return ax === bx && ay === by;
-        })
-      ),
+      table.l.onPosition,
       table.l.onSize.pipe(
         rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh)
       )
@@ -472,9 +478,6 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
   return service;
 }
 
-export interface OffsetParentMessages {
-  findOverlapComponent(...rect: Rectangle): SingleActionFactory;
-}
-export type OffsetParent = SimplexReactor<OffsetParentMessages> & {
+export interface OffsetParent {
   focusService: FocusService;
-};
+}

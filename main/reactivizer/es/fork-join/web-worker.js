@@ -2,7 +2,7 @@
 import * as rx from 'rxjs';
 import { serializeAction } from '../control';
 import { SimplexReactor } from '../simplex-reactor';
-import { deserializeAction2, actionRelatedToAction, nameOfAction } from '..';
+import { deserializeAction2, actionRelatedToAction } from '..';
 import { workerActionTableFor } from './types';
 import { applySharedReactors } from './worker-common';
 export { setIdleDuring } from './common';
@@ -62,7 +62,7 @@ export function createWorkerControl(isInWorker, opts) {
         }).pipe(rx.map(event => {
             s.ft.onForkReturn(event).dp();
         }), rx.take(1), rx.takeUntil(error$)), error$.pipe(rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))), s.pt.onForkReturn.pipe(rx.map(([, retAction]) => retAction), actionRelatedToAction(wrappedAct), rx.tap(retAction => {
-            const replyFork = s.createAction(nameOfAction(retAction), retAction.p);
+            const replyFork = s.createAction(retAction.t, retAction.p);
             replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
             s.actionUpstream.next(replyFork);
         }), rx.take(1)), new rx.Observable(_sub => {

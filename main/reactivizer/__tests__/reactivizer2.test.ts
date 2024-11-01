@@ -1,11 +1,12 @@
+/* eslint-disable array-bracket-newline */
 /* eslint-disable no-console */
 // import util from 'node:util';
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {ActionDispenser, SimplexReactorOptions} from '../src/index';
-import {formatToConcise} from '../src/nodejs-utils';
+import {ActionDispenser, SimplexReactorOptions} from '../dist/index';
+import {formatToConcise} from '../dist/nodejs-utils';
 import {SingleActionFactory, RxController2, ReactorComposite2, actionRelatedToActionRelatives, SimplexReactor,
-  pairActionToActionStream} from '../src';
+  pairActionToActionStream} from '../dist';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
@@ -358,118 +359,217 @@ describe('reactivizer2', () => {
       await new Promise(resolve => setImmediate(resolve));
     }, 9000);
   });
+  describe('forkController', () => {
+    it('forked controller\'s reactor should recieve message earlier, base controller can recieve action from prependController later', () => {
+      const service = new SimplexReactor<TestActions & TestResponse>({
+        name: 'prepend',
+        debug: true,
+        log: stdoutLogger
+      });
+      const {s, r} = service;
+      const mockfn = jest.fn();
+      const pre = s.forkController();
+      const pre2 = pre.forkController();
+      r('base got message1', s.pt.message1.pipe(
+        rx.map(() => mockfn('base->base'))
+      ));
+      r('base got message2', s.pt.message2.pipe(
+        rx.map(() => mockfn('pre->base'))
+      ));
+      r('base got message3', s.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->base'))
+      ));
+      r('pre.message1', pre.pt.message1.pipe(
+        rx.map(() => mockfn('base->pre'))
+      ));
+      r('pre.message2', pre.pt.message2.pipe(
+        rx.map(() => mockfn('pre->pre'))
+      ));
+      r('pre.message3', pre.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->pre'))
+      ));
+      r('pre2.message1', pre2.pt.message1.pipe(
+        rx.map(() => mockfn('base->pre2'))
+      ));
+      r('pre2.message2', pre2.pt.message2.pipe(
+        rx.map(() => mockfn('pre->pre2'))
+      ));
+      r('pre2 got message3', pre2.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->pre2'))
+      ));
+      s.ft.message1().dp();
+      pre.ft.message2('').dp();
+      pre2.ft.message3('hello', 1).dp();
+      expect(mockfn.mock.calls.length).toBe(9);
+      expect(mockfn.mock.calls.map(args => args[0])).toEqual([
+        'base->pre2', 'base->pre', 'base->base',
+        'pre->pre2', 'pre->pre', 'pre->base',
+        'pre2->pre2', 'pre2->pre', 'pre2->base',
+      ]);
+      service.dispose();
+    });
 
-  it('prependController should recieve message earlier, base controller can recieve action from prependController', () => {
-    const service = new SimplexReactor<TestActions & TestResponse>({
-      name: 'prepend',
-      debug: true,
-      log: stdoutLogger
+    it('both controllers should recieve messages through base\'s interceptors', () => {
+      const service = new SimplexReactor<TestActions & TestResponse>({
+        name: 'prepend',
+        debug: true,
+        log: stdoutLogger
+      });
+      const {s, r} = service;
+      // base controller has a interceptor which only allows message2 to go through
+      s.prependInterceptor(a$ => {
+        return a$.pipe(
+          s.ofType('message2')
+        );
+      });
+      const mockfn = jest.fn();
+      const pre = s.prependController();
+      r('base.message1', s.pt.message1.pipe(
+        rx.map(([, by]) => mockfn(by + '-message1->base'))
+      ));
+      r('base.message2', s.pt.message2.pipe(
+        rx.map(([, , by]) => mockfn(by + '-message2->base'))
+      ));
+      r('pre.message1', pre.pt.message1.pipe(
+        rx.map(([, by]) => mockfn(by + '-message1->pre'))
+      ));
+      r('pre.message2', pre.pt.message2.pipe(
+        rx.map(([, , by]) => mockfn(by + '-message2->pre'))
+      ));
+      s.ft.message1('base').dp();
+      s.ft.message2('', 'base').dp();
+      pre.ft.message1('pre').dp();
+      pre.ft.message2('', 'pre').dp();
+      expect(mockfn.mock.calls.length).toBe(4);
+      expect(mockfn.mock.calls.map(args => args[0])).toEqual([
+        'base-message2->pre', 'base-message2->base', 'pre-message2->pre', 'pre-message2->base'
+      ]);
+      service.dispose();
     });
-    const {s, r} = service;
-    const mockfn = jest.fn();
-    const pre = s.prependController();
-    r('base.message1', s.pt.message1.pipe(
-      rx.map(() => mockfn('base->base'))
-    ));
-    r('base.message2', s.pt.message2.pipe(
-      rx.map(() => mockfn('pre->base'))
-    ));
-    r('prependController.message1', pre.pt.message1.pipe(
-      rx.map(() => mockfn('base->pre'))
-    ));
-    r('prependController.message2', pre.pt.message2.pipe(
-      rx.map(() => mockfn('pre->pre'))
-    ));
-    s.ft.message1().dp();
-    pre.ft.message2('').dp();
-    expect(mockfn.mock.calls.length).toBe(4);
-    expect(mockfn.mock.calls.map(args => args[0])).toEqual(['base->pre', 'base->base', 'pre->pre', 'pre->base']);
-  });
 
-  it('prependController emitted recieve message can be recieved by both controllers, but messages dispatched from the base controller are all blocked by interceptor' +
-  ' when interceptor is added later than prependController() happens (in which case interceptor is prior to prependController in pipe line)', () => {
-    const service = new SimplexReactor<TestActions & TestResponse>({
-      name: 'prepend-intercepted',
-      debug: true,
-      log: stdoutLogger
-    });
-    const {s, r} = service;
-    const mockfn = jest.fn();
-    const pre = s.prependController();
-    // A later added interceptor will be inserted before prependController in pipe line, which will block action emitted from
-    s.interceptor$.next(a$ => {
-      const dispenser = ActionDispenser.ofAction$<typeof service.s>(a$);
-      return rx.merge(
-        rx.merge(dispenser.at.message1, dispenser.at.message2).pipe(
-          rx.map(a => console.log('action is blocked', a.t)),
-          rx.ignoreElements()),
-        dispenser.ofOtherTypes()
-      );
-    });
-    r('base.message1', s.pt.message1.pipe(
-      rx.map(() => mockfn('base->base'))
-    ));
-    r('base.message2', s.pt.message2.pipe(
-      rx.map(() => mockfn('pre->base'))
-    ));
-    r('prependController.message1', pre.pt.message1.pipe(
-      rx.map(() => mockfn('base->pre'))
-    ));
-    r('prependController.message2', pre.pt.message2.pipe(
-      rx.map(() => mockfn('pre->pre'))
-    ));
-    s.ft.message1().dp();
-    pre.ft.message2('').dp();
-    const calls = mockfn.mock.calls.map(args => args[0]);
-    console.log('mock called', calls);
-    expect(mockfn.mock.calls.length).toBe(2);
-    expect(calls).toEqual(['pre->pre', 'pre->base']);
-  });
+    it('appendInterceptorToSrc() only impacts source controllers\' reactor,', () => {
+      const service = new SimplexReactor<TestActions & TestResponse>({
+        name: 'forked-intercepted',
+        debug: true,
+        log: stdoutLogger
+      });
+      const {s, r} = service;
+      const mockfn = jest.fn();
+      const pre = s.forkController();
+      const pre2 = pre.forkController();
+      // A later added interceptor will be inserted before prependController in pipe line, which will block action emitted from
+      pre2.appendInterceptorToSrc(a$ => {
+        const dispenser = ActionDispenser.ofAction$<typeof pre>(a$);
+        return rx.merge(
+          rx.merge(dispenser.at.message1, dispenser.at.message2).pipe(
+            rx.map(a => console.log('action is blocked', a.t)),
+            rx.ignoreElements()),
+          dispenser.ofOtherTypes()
+        );
+      });
+      r('base got message1', s.pt.message1.pipe(
+        rx.map(() => mockfn('base->base'))
+      ));
+      r('base got message2', s.pt.message2.pipe(
+        rx.map(() => mockfn('pre->base'))
+      ));
+      r('base got message3', s.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->base'))
+      ));
+      r('pre got message1', pre.pt.message1.pipe(
+        rx.map(() => mockfn('base->pre'))
+      ));
+      r('pre got message2', pre.pt.message2.pipe(
+        rx.map(() => mockfn('pre->pre'))
+      ));
+      r('pre got message3', pre.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->pre'))
+      ));
+      r('pre2 got message1', pre2.pt.message1.pipe(
+        rx.map(() => mockfn('base->pre2'))
+      ));
+      r('pre2 got message2', pre2.pt.message2.pipe(
+        rx.map(() => mockfn('pre->pre2'))
+      ));
+      r('pre2 got message3', pre2.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->pre2'))
+      ));
 
-  it('prependController should recieve message dispatched by both controllers, but base controller can not recieve message from either controller' +
-  ' when interceptor of base controller is added before prependController() invocation (interceptor is appended after prependController to pipeline as reverse order)', () => {
-    const service = new SimplexReactor<TestActions & TestResponse>({
-      name: 'prepend-intercepted',
-      debug: true,
-      log: stdoutLogger
+      s.ft.message1().dp();
+      pre.ft.message2('').dp();
+      pre2.ft.message3('hello', 1).dp();
+      const calls = mockfn.mock.calls.map(args => args[0]);
+      console.log('mock called', calls);
+      expect(mockfn.mock.calls.length).toBe(5);
+      expect(calls).toEqual(['base->pre2', 'pre->pre2', 'pre2->pre2',
+        'pre2->pre', 'pre2->base']);
+      service.dispose();
     });
-    const {s, r} = service;
-    const mockfn = jest.fn();
-    s.interceptor$.next(a$ => {
-      const dispenser = ActionDispenser.ofAction$<typeof service.s>(a$);
-      return rx.merge(
-        rx.merge(dispenser.at.message1, dispenser.at.message2).pipe(
-          rx.map(a => console.log('action is blocked', a.t)),
-          rx.ignoreElements()),
-        dispenser.ofOtherTypes()
-      );
+
+    it('preendInterceptor() impacts all controllers including source controllers', () => {
+      const service = new SimplexReactor<TestActions & TestResponse>({
+        name: 'forked-intercepted',
+        debug: true,
+        log: stdoutLogger
+      });
+      const {s, r} = service;
+      const mockfn = jest.fn();
+      const pre = s.forkController();
+      const pre2 = pre.forkController();
+      // A later added interceptor will be inserted before prependController in pipe line, which will block action emitted from
+      pre2.prependInterceptor(a$ => {
+        const dispenser = ActionDispenser.ofAction$<typeof pre>(a$);
+        return rx.merge(
+          rx.merge(dispenser.at.message1, dispenser.at.message2).pipe(
+            rx.map(a => console.log('action is blocked', a.t)),
+            rx.ignoreElements()),
+          dispenser.ofOtherTypes()
+        );
+      });
+      r('base got message1', s.pt.message1.pipe(
+        rx.map(() => mockfn('base->base'))
+      ));
+      r('base got message2', s.pt.message2.pipe(
+        rx.map(() => mockfn('pre->base'))
+      ));
+      r('base got message3', s.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->base'))
+      ));
+      r('pre got message1', pre.pt.message1.pipe(
+        rx.map(() => mockfn('base->pre'))
+      ));
+      r('pre got message2', pre.pt.message2.pipe(
+        rx.map(() => mockfn('pre->pre'))
+      ));
+      r('pre got message3', pre.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->pre'))
+      ));
+      r('pre2 got message1', pre2.pt.message1.pipe(
+        rx.map(() => mockfn('base->pre2'))
+      ));
+      r('pre2 got message2', pre2.pt.message2.pipe(
+        rx.map(() => mockfn('pre->pre2'))
+      ));
+      r('pre2 got message3', pre2.pt.message3.pipe(
+        rx.map(() => mockfn('pre2->pre2'))
+      ));
+
+      s.ft.message1().dp();
+      pre.ft.message2('').dp();
+      pre2.ft.message3('hello', 1).dp();
+      const calls = mockfn.mock.calls.map(args => args[0]);
+      console.log('mock called', calls);
+      expect(mockfn.mock.calls.length).toBe(3);
+      expect(calls).toEqual(['pre2->pre2', 'pre2->pre',
+        'pre2->base']);
+      service.dispose();
     });
-    // A later added prependController will be inserted before other interceptor in pipeline, which will block action emitted from
-    const pre = s.prependController();
-    r('base.message1', s.pt.message1.pipe(
-      rx.map(() => mockfn('base->base'))
-    ));
-    r('base.message2', s.pt.message2.pipe(
-      rx.map(() => mockfn('pre->base'))
-    ));
-    r('prependController.message1', pre.pt.message1.pipe(
-      rx.map(() => mockfn('base->pre'))
-    ));
-    r('prependController.message2', pre.pt.message2.pipe(
-      rx.map(() => mockfn('pre->pre'))
-    ));
-    s.ft.message1().dp();
-    pre.ft.message2('').dp();
-    const calls = mockfn.mock.calls.map(args => args[0]);
-    console.log('mock called', calls);
-    expect(mockfn.mock.calls.length).toBe(2);
-    expect(calls).toEqual(['base->pre', 'pre->pre']);
   });
 });
 
 interface TestActions {
-  message1(): SingleActionFactory;
-  message2(greeting: string): SingleActionFactory;
+  message1(byWhom?: string): SingleActionFactory;
+  message2(greeting: string, byWhom?: string): SingleActionFactory;
   message3<T>(greeting: string, foobar: T): SingleActionFactory;
   message4(a: string, b: number, c: boolean): SingleActionFactory;
 }

@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { deserializeAction2, serializeAction, actionRelatedToAction, nameOfAction } from '..';
+import { deserializeAction2, serializeAction, actionRelatedToAction } from '..';
 export function applySharedReactors(isMainWorker, comp, log) {
     const { r, s, table } = comp;
     const lo = comp.table.l;
@@ -46,7 +46,7 @@ export function applySharedReactors(isMainWorker, comp, log) {
     })));
     r('setLiftUpActions -> "postMessage to main thread"', table.l.setLiftUpActions.pipe(rx.mergeMap(([, action$]) => action$), rx.withLatestFrom(table.l.inited), rx.tap(([action, [, , , port]]) => {
         if (port) {
-            s.ft.log(`pass action ${nameOfAction(action)} to main thread`).dp();
+            s.ft.log(`pass action ${action.t} to main thread`).dp();
             port.postMessage(serializeAction(action));
         }
     })));

@@ -34,9 +34,10 @@ export type FlexContainer = SimplexReactorExtendType<TerminalContainer, FlexCont
 export type FlexContainerOpts = CoreOptsOfExtSmplxRctr<TerminalContainer, FlexContainerInput & FlexContainerEvents>;
 export function createFlexContainer(opts: FlexContainerOpts = {}) {
   const base = createContainerBase({name: 'flexContainer', ...opts as any});
-  const listContainer = base.config<FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>({tableFor: tableForFlexContainer});
+  const listContainer = base.config<FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>({tableFor: tableForFlexContainer}).forExtend();
+  const prependCtl = listContainer.s;
   // intercept "onRender"
-  base.s.prependInterceptor(action$ => {
+  prependCtl.appendInterceptorToSrc(action$ => {
     const dispenser = ActionDispenser.ofAction$<typeof base>(action$);
     return rx.merge(
       dispenser.at.onRender.pipe(
@@ -48,8 +49,6 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
       dispenser.ofOtherTypes()
     );
   });
-
-  const prependCtl = listContainer.s.prependController();
   const childBoundingTree = new RectangleOverlapTree<[number, BaseWidget]>();
   const {r, table, s} = listContainer;
   const {ft} = s;
@@ -485,7 +484,6 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
     //   ft.addReflowAction(a$).dp();
     // }
   }));
-  listContainer.s = prependCtl;
   return listContainer;
 }
 

@@ -72,7 +72,7 @@ function applySharedReactors(isMainWorker, comp, log) {
     })));
     r('setLiftUpActions -> "postMessage to main thread"', table.l.setLiftUpActions.pipe(rx.mergeMap(([, action$]) => action$), rx.withLatestFrom(table.l.inited), rx.tap(([action, [, , , port]]) => {
         if (port) {
-            s.ft.log(`pass action ${(0, __1.nameOfAction)(action)} to main thread`).dp();
+            s.ft.log(`pass action ${action.t} to main thread`).dp();
             port.postMessage((0, __1.serializeAction)(action));
         }
     })));

@@ -3,7 +3,7 @@ import type {promises as fsPromises} from 'node:fs';
 import type {X509Certificate} from 'node:crypto';
 import type {Blob} from 'node:buffer';
 import * as rx from 'rxjs';
-import {deserializeAction2, Action, serializeAction, actionRelatedToAction, nameOfAction} from '..';
+import {deserializeAction2, Action, serializeAction, actionRelatedToAction} from '..';
 import {SimplexReactor} from '../simplex-reactor';
 import {ForkWorkerInput, ForkWorkerOutput, workerActionTableFor} from './types';
 
@@ -104,7 +104,7 @@ export function applySharedReactors(isMainWorker: boolean,
       rx.withLatestFrom(table.l.inited),
       rx.tap(([action, [, , , port]]) => {
         if (port) {
-          s.ft.log(`pass action ${nameOfAction(action) as string} to main thread`).dp();
+          s.ft.log(`pass action ${action.t} to main thread`).dp();
           port.postMessage(serializeAction(action));
         }
       })

@@ -5,8 +5,12 @@ import {PayloadByType, ActionByType} from './inferred-types';
 import {InferMapParam} from './stream-core';
 import {SimplexReactor} from './simplex-reactor';
 import {RxController2} from './control2';
+import {ForkedRxController} from './forked-control';
 
-type InferInterface<X> = X extends SimplexReactor<infer Y, any> ? Y : X extends RxController2<infer I> ? I : never;
+type InferInterface<X> = X extends SimplexReactor<infer Y, any> ?
+  Y :
+  X extends RxController2<infer I> ?
+    I : X extends ForkedRxController<infer I> ? I : never;
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.
@@ -22,14 +26,14 @@ export class ActionDispenser<I> {
   /** you need explicitly specify generic type parameter of this function, it won't inference proper type itself
    * X - SimplexReactor or RxController2
    * */
-  static ofAction$<X extends SimplexReactor<any, any> | RxController2<any> = never>(action$: rx.Observable<Action<any>>) {
+  static ofAction$<X>(action$: rx.Observable<Action<any>>) {
     return new ActionDispenser<InferInterface<X>>(action$ as rx.Observable<Action<InferInterface<X>[keyof InferInterface<X>]>>);
   }
   /** Action observable streamby type */
   at: ActionByType<I>;
   /** Abbrevation of payloadByType */
   pt: PayloadByType<I>;
-  private actionByType: Map<string, [rx.Subject<Action<I[keyof I]>>, rx.Observable<Action<I[keyof I]>>]> = new Map();
+  private actionByType: Map<string, [dispener: rx.Subject<Action<(...a: any[]) => any>>, outStream: rx.Observable<Action<(...a: any[]) => any>>]> = new Map();
   private countSubscriber = new rx.BehaviorSubject<number>(0);
   private ofOtherTypesDispenser: rx.Subject<Action<unknown>> | undefined;
   private ofOtherTypesStream: rx.Observable<Action<unknown>> | undefined;
@@ -120,7 +124,7 @@ export class ActionDispenser<I> {
         this.countSubscriber.next(this.countSubscriber.getValue() - 1);
       })
     );
-    this.actionByType.set(type, [dispenser$, stream] as const);
+    this.actionByType.set(type, [dispenser$ as any, stream] as const);
     return stream;
   }
 

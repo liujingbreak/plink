@@ -23,21 +23,21 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defineParialSimplexReactor = defineParialSimplexReactor;
 exports.timeoutLog = timeoutLog;
 exports.str2ArrayBuffer = str2ArrayBuffer;
 exports.arrayBuffer2str = arrayBuffer2str;
 exports.ascii2ArrayBuffer = ascii2ArrayBuffer;
 exports.arrayBuffer2ascii = arrayBuffer2ascii;
 const rx = __importStar(require("rxjs"));
+// import {SimplexReactor} from './simplex-reactor';
 /** This function must be invoked by providing all generic type parameters, otherwise type inference won't work */
-function defineParialSimplexReactor(tableFor) {
-    return function applyTo(targetService) {
-        if (tableFor)
-            targetService.table.addActions(...tableFor);
-        return targetService;
-    };
-}
+// export function defineParialSimplexReactor<I, LI extends ReadonlyArray<keyof I> = never[]>(tableFor?: LI) {
+//   return function applyTo<I2, LI2 extends ReadonlyArray<keyof I2>>(targetService: SimplexReactor<I2, LI2>) {
+//     if (tableFor)
+//       targetService.table.addActions(...(tableFor as any));
+//     return targetService as SimplexReactor<I & I2, (LI[number] | LI2[number])[]>;
+//   };
+// }
 function timeoutLog(millseconds, callbackOnTimeout) {
     return function (up) {
         let hasValue = false;
