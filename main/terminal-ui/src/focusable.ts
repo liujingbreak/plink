@@ -450,17 +450,27 @@ export function createFocusService(opts?: FocusableOptions) {
         )
       ),
       rx.switchMap(change$ => change$),
-      rx.map(([m1, evt, count]) => {
+      rx.mergeMap(([m1, evt, count]) => {
         // TODO: "count": repeately events
-        if (evt === KeyEventEnum.focusUp)
-          s.ft.focus(SearchDirection.up, evt, m.i).dp(m, m1);
-        else if (evt === KeyEventEnum.focusDown ||
-                evt === KeyEventEnum.focusNext)
-          s.ft.focus(SearchDirection.down, evt, m.i).dp(m, m1);
-        else if (evt === KeyEventEnum.focusLeft)
-          s.ft.focus(SearchDirection.left, evt, m.i).dp(m, m1);
-        else if (evt === KeyEventEnum.focusRight)
-          s.ft.focus(SearchDirection.right, evt, m.i).dp(m, m1);
+        if (evt === KeyEventEnum.focusUp) {
+          return rx.range(0, count).pipe(
+            rx.map(() => s.ft.focus(SearchDirection.up, evt, m.i).dp(m, m1))
+          );
+        } else if (evt === KeyEventEnum.focusDown ||
+                evt === KeyEventEnum.focusNext) {
+          return rx.range(0, count).pipe(
+            rx.map(() => s.ft.focus(SearchDirection.down, evt, m.i).dp(m, m1))
+          );
+        } else if (evt === KeyEventEnum.focusLeft) {
+          return rx.range(0, count).pipe(
+            rx.map(() => s.ft.focus(SearchDirection.left, evt, m.i).dp(m, m1))
+          );
+        } else if (evt === KeyEventEnum.focusRight) {
+          return rx.range(0, count).pipe(
+            rx.map(() => s.ft.focus(SearchDirection.right, evt, m.i).dp(m, m1))
+          );
+        }
+        return rx.EMPTY;
       })
     ))
   ));

@@ -345,6 +345,25 @@ function createFlexContainer(opts = {}) {
             }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
         }));
     })));
+    // r('enableLazy', s.pt.setLazyLoad.pipe(
+    //   rx.switchMap(([m, enabled, handler]) => {
+    //     return enabled ?
+    //       new rx.Observable(() => {
+    //         const moreIndicator = createFlexContainer({
+    //           ...opts?.default as any,
+    //           name: 'table.more',
+    //           ...opts?.moreIndicator
+    //         });
+    //         moreIndicator.s.ft.justifyContent('center').dp();
+    //         const moreText = createTextWidget('More...', {
+    //           ...opts as any,
+    //           name: 'table.more.text'
+    //         });
+    //         moreIndicator.s.ft.addChild(moreText).dp();
+    //       }) :
+    //       rx.EMPTY;
+    //   })
+    // ));
     const reflowData = rx.combineLatest([
         table.l.onSize,
         table.l.allDisplayChildren.pipe(rx.switchMap(([, chdn]) => {

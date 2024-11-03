@@ -1,4 +1,6 @@
+import * as rx from 'rxjs';
 import { CoreOptsOfExtSmplxRctr, SimplexReactorExtendType, SingleActionFactory } from '@wfh/reactivizer';
+import { BaseWidget } from './base';
 import { TerminalContainer } from './container';
 import { TextStyle } from './canvas';
 export declare enum FlexBorderSeparator {
@@ -14,6 +16,7 @@ export interface FlexContainerInput {
     /** Effective only when "setDirection" is `"row"` */
     setBorderSeparator(separator: FlexBorderSeparator): SingleActionFactory;
     setBorderSeparatorStyle(style: TextStyle): SingleActionFactory;
+    setLazyLoad(enableLazy: boolean, handler?: (pageIndex: number) => rx.Observable<[key: unknown, comp: (BaseWidget | string)]>): SingleActionFactory;
 }
 export interface FlexContainerEvents {
     onChangeChildrenSize(mainAxisSize: number[], crossAxisSize: number[]): SingleActionFactory;

@@ -163,9 +163,11 @@ function createScrollable(comp, opts) {
     r('rootService, rootService.onFocus', focusService.table.l.rootService.pipe(rx.switchMap(([, root]) => root.table.l.onFocus.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.filter(([, , c]) => c != null), rx.mergeMap(([m, , c]) => rx.combineLatest([
         c.s.ft.queryAbsBounding().re(m).od(c.s.pt.didQueryAbsBounding),
         scrollable.s.ft.queryAbsBounding().re(m).od(scrollable.s.pt.didQueryAbsBounding)
-    ]).pipe(rx.take(1), rx.filter(([[, cb], [, sb]]) => cb != null && sb != null), rx.map(([[, cb], [, sb]]) => [m, cb, sb]))), rx.map(([m, cb, sb]) => {
+    ]).pipe(rx.take(1), rx.filter(([[, cb], [, sb]]) => cb != null && sb != null), rx.map(([[, cb], [, sb]]) => {
+        const [x, y, w, h] = sb;
+        return [m, cb, [x - 1, y - 1, w - 2, h - 2]];
+    }))), rx.filter(([, , [, , w, h]]) => w > 2 && h > 2), rx.map(([m, cb, [px, py, pw, ph]]) => {
         const [x, y] = cb;
-        const [px, py, pw, ph] = sb;
         service.log('<<< abs of scrollable', x, y, px, py, pw, ph);
         if (x < px || y < py) {
             const scrollX = x < px ? x - px : 0;

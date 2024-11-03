@@ -410,17 +410,22 @@ function createFocusService(opts) {
             }
         }
     })));
-    r('handleKeyEvents... -> focus', s.pt.handleKeyEvents.pipe(rx.switchMap(([m, keySvc, currKey]) => rx.concat(currKey != null ? rx.of([m, currKey, 1]) : rx.EMPTY, keySvc.s.pt.onFocusChange).pipe(rx.windowToggle(table.l.controlHandleEvents.pipe(rx.filter(([, stop]) => !stop)), () => table.l.controlHandleEvents.pipe(rx.filter(([, stop]) => stop))), rx.switchMap(change$ => change$), rx.map(([m1, evt, count]) => {
+    r('handleKeyEvents... -> focus', s.pt.handleKeyEvents.pipe(rx.switchMap(([m, keySvc, currKey]) => rx.concat(currKey != null ? rx.of([m, currKey, 1]) : rx.EMPTY, keySvc.s.pt.onFocusChange).pipe(rx.windowToggle(table.l.controlHandleEvents.pipe(rx.filter(([, stop]) => !stop)), () => table.l.controlHandleEvents.pipe(rx.filter(([, stop]) => stop))), rx.switchMap(change$ => change$), rx.mergeMap(([m1, evt, count]) => {
         // TODO: "count": repeately events
-        if (evt === keyEvent_1.KeyEventEnum.focusUp)
-            s.ft.focus(SearchDirection.up, evt, m.i).dp(m, m1);
+        if (evt === keyEvent_1.KeyEventEnum.focusUp) {
+            return rx.range(0, count).pipe(rx.map(() => s.ft.focus(SearchDirection.up, evt, m.i).dp(m, m1)));
+        }
         else if (evt === keyEvent_1.KeyEventEnum.focusDown ||
-            evt === keyEvent_1.KeyEventEnum.focusNext)
-            s.ft.focus(SearchDirection.down, evt, m.i).dp(m, m1);
-        else if (evt === keyEvent_1.KeyEventEnum.focusLeft)
-            s.ft.focus(SearchDirection.left, evt, m.i).dp(m, m1);
-        else if (evt === keyEvent_1.KeyEventEnum.focusRight)
-            s.ft.focus(SearchDirection.right, evt, m.i).dp(m, m1);
+            evt === keyEvent_1.KeyEventEnum.focusNext) {
+            return rx.range(0, count).pipe(rx.map(() => s.ft.focus(SearchDirection.down, evt, m.i).dp(m, m1)));
+        }
+        else if (evt === keyEvent_1.KeyEventEnum.focusLeft) {
+            return rx.range(0, count).pipe(rx.map(() => s.ft.focus(SearchDirection.left, evt, m.i).dp(m, m1)));
+        }
+        else if (evt === keyEvent_1.KeyEventEnum.focusRight) {
+            return rx.range(0, count).pipe(rx.map(() => s.ft.focus(SearchDirection.right, evt, m.i).dp(m, m1)));
+        }
+        return rx.EMPTY;
     })))));
     // s.ft.isDirtyForRender(false).dp();
     s.ft.controlHandleEvents(false).dp();

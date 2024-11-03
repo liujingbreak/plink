@@ -16,6 +16,7 @@ export interface KeyScrollingMsg {
   setInputStream(stream: NodeJS.ReadableStream, isTTY: boolean): SingleActionFactory;
 }
 interface KeyEvents {
+  onMouseEvent(evt: MouseEventOpts, x: number, y: number, evtSequence: string): SingleActionFactory;
   onFocusChange(
     dir: KeyEventEnum.focusLeft | KeyEventEnum.focusRight | KeyEventEnum.focusUp | KeyEventEnum.focusDown | KeyEventEnum.focusNext,
     amount: number): SingleActionFactory;
@@ -59,7 +60,7 @@ interface RawKeyEvent {
   code?: string;
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
-export type KeyEventOptions = CoreOptions<KeyScrollingMsg>;
+export type KeyEventOptions = CoreOptions<keypressSignals>;
 export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions) {
   const service = new SimplexReactor<keypressSignals, typeof tableFor>({
     name: 'keyEvent',
@@ -68,7 +69,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
   });
   const {r, s, table} = service;
   const {ft} = s;
-  r('setInputStream', s.pt.setInputStream.pipe(
+  r('setInputStream -> onRawKeyInput', s.pt.setInputStream.pipe(
     rx.switchMap(([m, stdin, tty]) => {
       if (tty) {
         rl.emitKeypressEvents(stdin);
@@ -78,9 +79,15 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
         function h(_chr: unknown, data: RawKeyEvent) {
           ft.onRawKeyInput(data).dp(m);
         }
+        function handleData(chunk: Buffer) {
+          // TODO
+          // service.log('>>> stdin data', chunk);
+        }
         stdin.on('keypress', h);
+        stdin.on('data', handleData);
         return () => {
           stdin.off('keypress', h);
+          stdin.off('data', handleData);
           if (tty) {
             (stdin as tty.ReadStream).setRawMode(false);
           }
@@ -330,7 +337,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
       );
     })
   ));
-  r('onRawKeyInput -> onKeypress', s.pt.onRawKeyInput.pipe(
+  r('onRawKeyInput -> onKeypress,onMouseEvent', s.pt.onRawKeyInput.pipe(
     rx.exhaustMap(([m1, evt]) => {
       if (evt.sequence) {
         const m = /^\x1B\[(\d+);(\d+)R?/.exec(evt.sequence);
@@ -361,23 +368,32 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
           }
         } else {
           // keys of SGR extended mouse
-          const m = /^\x1B\[<(.*?)[mM]?$/.exec(evt.sequence);
+          const m = /^\x1B\[<(.*?)[mM]?$/i.exec(evt.sequence);
           if (m) {
             let buf = m[1] ?? '';
             if (m[0].endsWith('c')) {
-              service.log('mouse code:', evt, m[1]);
+              service.log('>> mouse code c:', evt, m[1]);
               return rx.EMPTY;
             } else {
               return s.pt.onRawKeyInput.pipe(
                 rx.tap(([, evt]) => buf += evt.sequence),
                 rx.takeWhile(([, evt]) => !/[mM]$/.test(evt.sequence)),
                 rx.finalize(() => {
-                  service.log('mouse code:', evt, buf.slice(0, -1), (buf.slice(buf.length - 1) === 'm' ? 'mouseup' : ''));
+                  const conjSequence = buf.slice(0, -1);
+                  const [b, x, y] = conjSequence.split(';').map(it => Number(it));
+                  if (buf.charAt(buf.length - 1) === 'm') {
+                    const evt = parseMouseButton(b, true);
+                    s.ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
+                  } else {
+                    const evt = parseMouseButton(b, false);
+                    s.ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
+
+                  }
                 })
               );
             }
           } else {
-            const m = /^\x1b\[\?(.*?)c?$/.exec(evt.sequence);
+            const m = /^\x1b\[\?(.*?)c?$/i.exec(evt.sequence);
             if (m) {
               let buf = m[1] ?? '';
               if (m[0].endsWith('c')) {
@@ -402,13 +418,14 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
   ));
 
   // Enable and disable Mouse device
-  const reset = () => process.stdout.write('\x1b[?1002l\x1b[?1005l\x1b[?1003l\x1b[?1006l');
+  const reset = () => process.stdout.write('\x1b[?1000;1003;1006hl');
   process.on('exit', reset);
   process.on('SIGINT', () => {
     reset();
     process.exit(0);
   });
-  process.stdout.write('\x1b[?1002h\x1b[?1005h\x1B[?1003h\x1b[?1006h');
+  // enable mouse event and SGR mode, refer to tty-events.js
+  process.stdout.write('\x1b[?1000;1003;1006h');
 
   // Query device attributes
   process.stdout.write('\x1b[0c');
@@ -418,3 +435,58 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
   return service;
 }
 
+interface MouseEventOpts {
+  type: 'mousemove' | 'mouseup' | 'mousedown' | 'wheel';
+  direction?: number;
+  shift?: boolean;
+  alt?: boolean;
+  ctrl?: boolean;
+}
+
+function parseMouseButton(b: number, mouseup: boolean) {
+  let button: number | undefined = b & 3;
+  let evType: MouseEventOpts['type'] | undefined;
+  const evOpts = {} as MouseEventOpts;
+  // > Additional buttons are encoded like the wheel mice,
+  // >   • by adding 64 (for buttons 4 through 7), or
+  // >   • by adding 128 (for buttons 8 through 11).
+  if (b & 64 || b & 128) {
+    if (b & 64)
+      button |= 4;
+    if (b & 128)
+      button |= 8;
+
+  } else if (button === 3)
+    button = undefined;
+  else
+    button += 1; // Only increment button if in the range 0-2.
+  if (b & 32) {
+    evType = 'mousemove';
+
+  } else if (button === undefined || mouseup) {
+    evType = 'mouseup';
+
+  } else if (button === 4) {
+    evType = 'wheel';
+    evOpts.direction = -1;
+
+  } else if (button === 5) {
+    evType = 'wheel';
+    evOpts.direction = 1;
+
+  } else {
+    evType = 'mousedown';
+  }
+
+
+  // > The next three bits encode the modifiers which were down when the button was pressed
+  // > and are added together: 4=Shift, 8=Alt, 16=Control.
+  // > Note however that the shift and control bits are normally unavailable because xterm uses the control modifier
+  // > with mouse for popup menus, and the shift modifier is used in the default translations for button events.
+  evOpts.shift = Boolean(b & 4);
+  evOpts.alt = Boolean(b & 8);
+  evOpts.ctrl = Boolean(b & 16);
+
+  evOpts.type = evType;
+  return evOpts;
+}

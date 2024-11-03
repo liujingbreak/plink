@@ -69,7 +69,6 @@ function createTable(opts) {
         const ad = reactivizer_1.ActionDispenser.ofAction$(action$);
         return rx.merge(rx.merge(ad.pt.onRender, ad.pt.findOverlaps).pipe(rx.ignoreElements()), ad.ofOtherTypes());
     });
-    const prependCtrl = service.s.prependController();
     const rows = new Map();
     const rowIds = [];
     const childBoundingTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
@@ -151,7 +150,7 @@ function createTable(opts) {
                     idx++;
                 }
                 s.ft.removeRow(toDel, true).dp(m);
-            })), prependCtrl.pt.onRender.pipe(rx.mergeMap(a => rx.combineLatest([
+            })), s.pt.onRender.pipe(rx.mergeMap(a => rx.combineLatest([
                 table.l.onSize,
                 table.l.setBorderPadding,
                 table.l.onBorderTypeSet,
@@ -337,7 +336,7 @@ function createTable(opts) {
             service.log('>> after remove row, not matched rowIds: ', rowIds, 'with rows', [...rows.keys()]);
     })));
     r('getRowByIndex -> didGetRowByIndex', s.pt.getRowByIndex.pipe(rx.map(([m, idx]) => { var _a; return s.ft.didGetRowByIndex((_a = rows.get(rowIds[idx])) !== null && _a !== void 0 ? _a : []).dp(m); })));
-    r('reflow,...->"cellBoundingTree"', s.pt.reflow.pipe(rx.switchMap(([m]) => prependCtrl.pt.calcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.mergeMap(([m2]) => prependCtrl.pt.didCalcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m2))), rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet), rx.map(([[, colWidths, rowHeights, , , beforePhHeight], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, border]]) => {
+    r('reflow,...->"cellBoundingTree"', s.pt.reflow.pipe(rx.switchMap(([m]) => s.pt.calcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.mergeMap(([m2]) => s.pt.didCalcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m2))), rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet), rx.map(([[, colWidths, rowHeights, , , beforePhHeight], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, border]]) => {
         // service.log('>>>> table cell sizes:', colWidths, rowHeights);
         cellBoundingTree.clear();
         let rowIdx = 0;
@@ -491,7 +490,7 @@ function createTable(opts) {
     r('extend latestRenderData', table.l.latestRenderData.pipe(rx.take(1), rx.map(([m, origData$]) => {
         s.ft.latestRenderData(rx.combineLatest([renderData, origData$])).dp(m);
     })));
-    r('onRender', prependCtrl.pt.onRender.pipe(rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks]) => {
+    r('onRender', s.pt.onRender.pipe(rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks]) => {
         return renderData.pipe(rx.take(1), rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height]]) => {
             if (renderSelf) {
                 s.ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
@@ -686,7 +685,7 @@ function createTable(opts) {
                 childComp.s.ft.setBackground(null).dp(m);
         }
     })))));
-    r('findOverlaps -> didFindOverlaps', prependCtrl.pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
+    r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
         return rx.combineLatest([
             table.l.onPosition,
             table.l.onSize
@@ -750,7 +749,6 @@ function createTable(opts) {
     s.ft.setCellBackground(() => { }).dp();
     s.ft.isOpaque(true).dp();
     s.ft.setLazyLoad(false).dp();
-    s = service.s = prependCtrl;
     function createRow(cells) {
         return cells.map(cell => {
             var _a, _b, _c, _d, _e, _f;

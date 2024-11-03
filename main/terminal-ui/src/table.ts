@@ -93,7 +93,6 @@ export function createTable(opts?: TableOptions) {
       ad.ofOtherTypes()
     );
   });
-  const prependCtrl = service.s.prependController();
   const rows = new Map<unknown, BaseWidget[]>();
   const rowIds = [] as unknown[];
   const childBoundingTree = new RectangleOverlapTree<[number, BaseWidget]>();
@@ -209,7 +208,7 @@ export function createTable(opts?: TableOptions) {
               s.ft.removeRow(toDel, true).dp(m);
             })
           ),
-          prependCtrl.pt.onRender.pipe(
+          s.pt.onRender.pipe(
             rx.mergeMap(a => rx.combineLatest([
               table.l.onSize,
               table.l.setBorderPadding,
@@ -448,9 +447,9 @@ export function createTable(opts?: TableOptions) {
     rx.map(([m, idx]) => s.ft.didGetRowByIndex(rows.get(rowIds[idx]) ?? []).dp(m))
   ));
   r('reflow,...->"cellBoundingTree"', s.pt.reflow.pipe(
-    rx.switchMap(([m]) => prependCtrl.pt.calcSize.pipe(
+    rx.switchMap(([m]) => s.pt.calcSize.pipe(
       actionRelatedToAction(m),
-      rx.mergeMap(([m2]) => prependCtrl.pt.didCalcSize.pipe(
+      rx.mergeMap(([m2]) => s.pt.didCalcSize.pipe(
         actionRelatedToAction(m2)
       )),
       rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet),
@@ -658,7 +657,7 @@ export function createTable(opts?: TableOptions) {
       s.ft.latestRenderData(rx.combineLatest([renderData, origData$])).dp(m);
     })
   ));
-  r('onRender', prependCtrl.pt.onRender.pipe(
+  r('onRender', s.pt.onRender.pipe(
     rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks]) => {
       return renderData.pipe(
         rx.take(1),
@@ -868,7 +867,7 @@ export function createTable(opts?: TableOptions) {
       })
     ))
   ));
-  r('findOverlaps -> didFindOverlaps', prependCtrl.pt.findOverlaps.pipe(
+  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
     rx.mergeMap(([m, ...rect]) => {
       return rx.combineLatest([
         table.l.onPosition,
@@ -962,7 +961,6 @@ export function createTable(opts?: TableOptions) {
   s.ft.setCellBackground(() => {}).dp();
   s.ft.isOpaque(true).dp();
   s.ft.setLazyLoad(false).dp();
-  s = service.s = prependCtrl;
   function createRow(cells: Array<string | BaseWidget>) {
     return cells.map(cell => {
       const isValueString = typeof cell === 'string';

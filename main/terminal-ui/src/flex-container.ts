@@ -19,6 +19,7 @@ export interface FlexContainerInput {
   /** Effective only when "setDirection" is `"row"` */
   setBorderSeparator(separator: FlexBorderSeparator): SingleActionFactory;
   setBorderSeparatorStyle(style: TextStyle): SingleActionFactory;
+  setLazyLoad(enableLazy: boolean, handler?: (pageIndex: number) => rx.Observable<[key: unknown, comp: (BaseWidget | string)]>): SingleActionFactory;
 }
 
 export interface FlexContainerEvents {
@@ -453,7 +454,25 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
       );
     })
   ));
-
+  // r('enableLazy', s.pt.setLazyLoad.pipe(
+  //   rx.switchMap(([m, enabled, handler]) => {
+  //     return enabled ?
+  //       new rx.Observable(() => {
+  //         const moreIndicator = createFlexContainer({
+  //           ...opts?.default as any,
+  //           name: 'table.more',
+  //           ...opts?.moreIndicator
+  //         });
+  //         moreIndicator.s.ft.justifyContent('center').dp();
+  //         const moreText = createTextWidget('More...', {
+  //           ...opts as any,
+  //           name: 'table.more.text'
+  //         });
+  //         moreIndicator.s.ft.addChild(moreText).dp();
+  //       }) :
+  //       rx.EMPTY;
+  //   })
+  // ));
   const reflowData = rx.combineLatest([
     table.l.onSize,
     table.l.allDisplayChildren.pipe(

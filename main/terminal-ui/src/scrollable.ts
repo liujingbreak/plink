@@ -247,11 +247,14 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       ]).pipe(
         rx.take(1),
         rx.filter(([[, cb], [, sb]]) => cb != null && sb != null),
-        rx.map(([[, cb], [, sb]]) => [m, cb, sb] as const)
+        rx.map(([[, cb], [, sb]]) => {
+          const [x, y, w, h] = sb!;
+          return [m, cb, [x - 1, y - 1, w - 2, h - 2]] as const;
+        })
       )),
-      rx.map(([m, cb, sb]) => {
+      rx.filter(([, , [, , w, h]]) => w > 2 && h > 2),
+      rx.map(([m, cb, [px, py, pw, ph]]) => {
         const [x, y] = cb!;
-        const [px, py, pw, ph] = sb!;
         service.log('<<< abs of scrollable', x, y, px, py, pw, ph);
         if (x < px || y < py) {
           const scrollX = x < px ? x - px : 0;

@@ -11,6 +11,7 @@ export interface KeyScrollingMsg {
     setInputStream(stream: NodeJS.ReadableStream, isTTY: boolean): SingleActionFactory;
 }
 interface KeyEvents {
+    onMouseEvent(evt: MouseEventOpts, x: number, y: number, evtSequence: string): SingleActionFactory;
     onFocusChange(dir: KeyEventEnum.focusLeft | KeyEventEnum.focusRight | KeyEventEnum.focusUp | KeyEventEnum.focusDown | KeyEventEnum.focusNext, amount: number): SingleActionFactory;
     onRight(amount: number): SingleActionFactory;
     onLeft(amount: number): SingleActionFactory;
@@ -62,6 +63,13 @@ interface RawKeyEvent {
     code?: string;
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
-export type KeyEventOptions = CoreOptions<KeyScrollingMsg>;
+export type KeyEventOptions = CoreOptions<keypressSignals>;
 export declare function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"]>;
+interface MouseEventOpts {
+    type: 'mousemove' | 'mouseup' | 'mousedown' | 'wheel';
+    direction?: number;
+    shift?: boolean;
+    alt?: boolean;
+    ctrl?: boolean;
+}
 export {};

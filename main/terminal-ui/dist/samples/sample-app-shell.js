@@ -18,13 +18,16 @@ const { canvas } = index_1.app.createApp(border, {
     //   default: {debug: true, log}
     // },
     statusbar: { debug: false },
-    keyService: { debug: false },
+    keyService: {
+        debug: true
+        // debugExcludeTypes: ['onRawKeyInput']
+    },
     canvas: { debug: false },
-    focusable: { debug: true },
+    focusable: { debug },
     scrollable: {
-        core: { debug: true },
+        core: { debug },
         // default: {debug: true}
-        focusable: { debug: true }
+        focusable: { debug }
     }
 });
 const screenWidth = process.argv[2];
@@ -40,7 +43,7 @@ setTimeout(() => {
     const num = 20;
     const hueInterval = Math.round(360 / num);
     for (let i = 0; i < num; i++) {
-        const label = (0, index_1.createTextWidget)('TEST LABEL ' + i, { name: 'LABEL ' + i, debug: true, log });
+        const label = (0, index_1.createTextWidget)('TEST LABEL ' + i, { name: 'LABEL ' + i, debug, log });
         label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
         label.s.ft.setFocusable(true).dp();
         panel.s.ft.addChild(label).dp();

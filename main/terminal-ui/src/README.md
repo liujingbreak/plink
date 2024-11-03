@@ -11,3 +11,6 @@ Environment prerequisition: Terminal (emulator) must support TTY.
  - Dynamicall repaint content changes, including component hierarchical structure changes, text content changes
  - Support colorful font in ANSI escope code
  - Support long text wrap in constrained size
+
+## Reference
+[Xterm Control Sequences](https://www.xfree86.org/current/ctlseqs.html)
