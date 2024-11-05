@@ -54,8 +54,6 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * ```
      */
     onCancelOf(actionMeta: ActionMeta): rx.Observable<[ActionMeta, ...InferPayload<(I & ControllerBaseActions)["__cancel"]>]>;
-    appendInterceptorByType(interceptor: ActionInterceptor<I>): void;
-    prependInterceptorByType(interceptor: ActionInterceptor<I>): void;
     /**
      * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
      * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always

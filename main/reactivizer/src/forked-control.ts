@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {Action, Interceptor} from './stream-core';
-import {ActionInterceptor, RxController2} from './control2';
+import {RxController2} from './control2';
 
 /**
  * Use a forked RxController to extend functionality of existing reactors of another RxController or ForkedRxController.
@@ -39,29 +39,18 @@ export class ForkedRxController<I> extends RxController2<I> {
   }
 
   /* @override */
-  prependInterceptor(interceptor: Interceptor): void {
-    this.src.prependInterceptor(interceptor);
-  }
-
-  /* @override */
-  prependInterceptorByType(interceptor: ActionInterceptor<I>): void {
-    this.src.prependInterceptorByType(interceptor);
+  prependInterceptor(...interceptor: Interceptor[]): void {
+    this.src.prependInterceptor(...interceptor);
   }
 
   /** append interceptor to all source controllers */
-  appendInterceptorToSrc(interceptor: Interceptor): void {
+  appendInterceptorToSrc(...interceptors: Interceptor[]): void {
     if (isForked(this.src))
-      this.src.appendInterceptorToSrc(interceptor);
-    this.src.appendInterceptor(interceptor);
-  }
-
-  appendInterceptorToSrcByType(interceptor: ActionInterceptor<I>): void {
-    if (isForked(this.src))
-      this.src.appendInterceptorToSrcByType(interceptor);
-    this.src.appendInterceptorByType(interceptor);
+      this.src.appendInterceptorToSrc(...interceptors);
+    this.src.appendInterceptor(...interceptors);
   }
 }
 
-function isForked<I>(t: RxController2<I>): t is ForkedRxController<I> {
+export function isForked<I>(t: RxController2<I>): t is ForkedRxController<I> {
   return (t as unknown as ForkedRxController<any>).appendInterceptorToSrc != null;
 }

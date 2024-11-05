@@ -72,8 +72,8 @@ export declare class ControllerCore<I> {
      * Only changed properties are merged to current options */
     config(opts: RxControlConfigType<I>): void;
     /** Insert action "interceptor" operator function */
-    prependInterceptor(interceptor: Interceptor): void;
-    appendInterceptor(interceptor: Interceptor): void;
+    prependInterceptor(...interceptor: Interceptor[]): void;
+    appendInterceptor(...interceptor: Interceptor[]): void;
     /** This method is not meant to be used directly */
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]>;
     /** This method is not meant to be used directly */

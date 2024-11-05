@@ -157,14 +157,14 @@ class ControllerCore {
         }
     }
     /** Insert action "interceptor" operator function */
-    prependInterceptor(interceptor) {
+    prependInterceptor(...interceptor) {
         const list = this.interceptorList$.getValue();
-        list.unshift(interceptor);
+        list.unshift(...interceptor);
         this.interceptorList$.next(list);
     }
-    appendInterceptor(interceptor) {
+    appendInterceptor(...interceptor) {
         const list = this.interceptorList$.getValue();
-        list.push(interceptor);
+        list.push(...interceptor);
         this.interceptorList$.next(list);
     }
     /** This method is not meant to be used directly */

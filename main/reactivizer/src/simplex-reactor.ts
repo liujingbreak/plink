@@ -59,11 +59,11 @@ export class SimplexReactor<
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.opts = opts as any;
     this.s = new RxController2<I & BaseActions<I>>({...opts, name: (opts?.name ?? '') + `@${this.id}`});
-    const internalMsg$ = this.s as unknown as RxController2<BaseActions>;
+    const internalMsgCtl = this.s as unknown as RxController2<BaseActions>;
 
     const doOperator = <A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.merge(
       response$,
-      internalMsg$.pt.__onError.pipe(
+      internalMsgCtl.pt.__onError.pipe(
         actionRelatedToAction(dispatchingAction),
         rx.map(([, err]) => {
           throw err;
@@ -73,7 +73,7 @@ export class SimplexReactor<
     this.s.doOperator$.next(doOperator);
     // Everthing internally observables should goes here
     rx.merge(
-      internalMsg$.pt.__onError.pipe(
+      internalMsgCtl.pt.__onError.pipe(
         rx.map(([, err]) => {
           if (this.opts?.log)
             this.opts.log(err);
@@ -90,7 +90,7 @@ export class SimplexReactor<
         })
       )
     ).pipe(
-      rx.takeUntil(internalMsg$.pt.__onDisposed),
+      rx.takeUntil(internalMsgCtl.pt.__onDisposed),
       rx.catchError((err, src) => {
         if (this.opts?.log)
           this.opts.log(err);
@@ -113,11 +113,11 @@ export class SimplexReactor<
     ).pipe(
       rx.share()
     );
-    this.destory$ = internalMsg$.pt.__onDisposed;
+    this.destory$ = internalMsgCtl.pt.__onDisposed;
     this.dispose = () => {
-      internalMsg$.ft.__onDisposed().dp();
+      internalMsgCtl.ft.__onDisposed().dp();
     };
-    this.r('__config', internalMsg$.pt.__config.pipe(
+    this.r('__config', internalMsgCtl.pt.__config.pipe(
       rx.map(([, opts]) => this.config(opts as any))
     ));
   }

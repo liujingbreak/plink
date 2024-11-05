@@ -1,6 +1,5 @@
 /* eslint-disable array-bracket-newline */
 /* eslint-disable no-console */
-// import util from 'node:util';
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
 import {ActionDispenser, SimplexReactorOptions} from '../dist/index';

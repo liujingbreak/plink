@@ -213,14 +213,14 @@ export class ControllerCore<I> {
     }
   }
   /** Insert action "interceptor" operator function */
-  prependInterceptor(interceptor: Interceptor) {
+  prependInterceptor(...interceptor: Interceptor[]) {
     const list = this.interceptorList$.getValue();
-    list.unshift(interceptor);
+    list.unshift(...interceptor);
     this.interceptorList$.next(list);
   }
-  appendInterceptor(interceptor: Interceptor) {
+  appendInterceptor(...interceptor: Interceptor[]) {
     const list = this.interceptorList$.getValue();
-    list.push(interceptor);
+    list.push(...interceptor);
     this.interceptorList$.next(list);
   }
 

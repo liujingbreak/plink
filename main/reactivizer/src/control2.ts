@@ -111,18 +111,6 @@ export class RxController2<I> extends ControllerCore<I> {
       actionRelatedToAction(actionMeta)
     );
   }
-  appendInterceptorByType(interceptor: ActionInterceptor<I>): void {
-    this.appendInterceptor(a$ => {
-      const ac = ActionDispenser.ofAction$<RxController2<I>>(a$);
-      return interceptor(ac);
-    });
-  }
-  prependInterceptorByType(interceptor: ActionInterceptor<I>): void {
-    this.prependInterceptor(a$ => {
-      const ac = ActionDispenser.ofAction$<RxController2<I>>(a$);
-      return interceptor(ac);
-    });
-  }
   /**
    * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
    * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always

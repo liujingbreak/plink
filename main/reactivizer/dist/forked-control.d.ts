@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import { Action, Interceptor } from './stream-core';
-import { ActionInterceptor, RxController2 } from './control2';
+import { RxController2 } from './control2';
 /**
  * Use a forked RxController to extend functionality of existing reactors of another RxController or ForkedRxController.
  *
@@ -16,9 +16,8 @@ export declare class ForkedRxController<I> extends RxController2<I> {
     protected src: RxController2<I>;
     forkedUpStream: rx.Subject<Action<unknown>>;
     constructor(src: RxController2<I>);
-    prependInterceptor(interceptor: Interceptor): void;
-    prependInterceptorByType(interceptor: ActionInterceptor<I>): void;
+    prependInterceptor(...interceptor: Interceptor[]): void;
     /** append interceptor to all source controllers */
-    appendInterceptorToSrc(interceptor: Interceptor): void;
-    appendInterceptorToSrcByType(interceptor: ActionInterceptor<I>): void;
+    appendInterceptorToSrc(...interceptors: Interceptor[]): void;
 }
+export declare function isForked<I>(t: RxController2<I>): t is ForkedRxController<I>;

@@ -111,18 +111,6 @@ class RxController2 extends stream_core_1.ControllerCore {
     onCancelOf(actionMeta) {
         return this.pt.__cancel.pipe((0, context_operators_1.actionRelatedToAction)(actionMeta));
     }
-    appendInterceptorByType(interceptor) {
-        this.appendInterceptor(a$ => {
-            const ac = stream_dispense_1.ActionDispenser.ofAction$(a$);
-            return interceptor(ac);
-        });
-    }
-    prependInterceptorByType(interceptor) {
-        this.prependInterceptor(a$ => {
-            const ac = stream_dispense_1.ActionDispenser.ofAction$(a$);
-            return interceptor(ac);
-        });
-    }
     /**
      * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
      * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always

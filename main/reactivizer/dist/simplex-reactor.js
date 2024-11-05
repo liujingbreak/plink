@@ -52,13 +52,13 @@ class SimplexReactor {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.opts = opts;
         this.s = new control2_1.RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `@${this.id}` }));
-        const internalMsg$ = this.s;
-        const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsg$.pt.__onError.pipe((0, context_operators_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
+        const internalMsgCtl = this.s;
+        const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsgCtl.pt.__onError.pipe((0, context_operators_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
         this.s.doOperator$.next(doOperator);
         // Everthing internally observables should goes here
-        rx.merge(internalMsg$.pt.__onError.pipe(rx.map(([, err]) => {
+        rx.merge(internalMsgCtl.pt.__onError.pipe(rx.map(([, err]) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
@@ -69,7 +69,7 @@ class SimplexReactor {
                 downStream = this.handleError(downStream, label);
             }
             return downStream;
-        }))).pipe(rx.takeUntil(internalMsg$.pt.__onDisposed), rx.catchError((err, src) => {
+        }))).pipe(rx.takeUntil(internalMsgCtl.pt.__onDisposed), rx.catchError((err, src) => {
             var _a;
             if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.log)
                 this.opts.log(err);
@@ -82,11 +82,11 @@ class SimplexReactor {
         this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), internalTable.l.__onError.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         rx.map(([, err]) => [err, null]))).pipe(rx.share());
-        this.destory$ = internalMsg$.pt.__onDisposed;
+        this.destory$ = internalMsgCtl.pt.__onDisposed;
         this.dispose = () => {
-            internalMsg$.ft.__onDisposed().dp();
+            internalMsgCtl.ft.__onDisposed().dp();
         };
-        this.r('__config', internalMsg$.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
+        this.r('__config', internalMsgCtl.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
     }
     /**
      * This method can be used to change "options" after SimplexReactor instanciation, e.g. `.change({debug: true})` to enable action tracing log for debug.

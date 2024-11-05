@@ -24,6 +24,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ForkedRxController = void 0;
+exports.isForked = isForked;
 const rx = __importStar(require("rxjs"));
 const control2_1 = require("./control2");
 /**
@@ -58,23 +59,14 @@ class ForkedRxController extends control2_1.RxController2 {
         });
     }
     /* @override */
-    prependInterceptor(interceptor) {
-        this.src.prependInterceptor(interceptor);
-    }
-    /* @override */
-    prependInterceptorByType(interceptor) {
-        this.src.prependInterceptorByType(interceptor);
+    prependInterceptor(...interceptor) {
+        this.src.prependInterceptor(...interceptor);
     }
     /** append interceptor to all source controllers */
-    appendInterceptorToSrc(interceptor) {
+    appendInterceptorToSrc(...interceptors) {
         if (isForked(this.src))
-            this.src.appendInterceptorToSrc(interceptor);
-        this.src.appendInterceptor(interceptor);
-    }
-    appendInterceptorToSrcByType(interceptor) {
-        if (isForked(this.src))
-            this.src.appendInterceptorToSrcByType(interceptor);
-        this.src.appendInterceptorByType(interceptor);
+            this.src.appendInterceptorToSrc(...interceptors);
+        this.src.appendInterceptor(...interceptors);
     }
 }
 exports.ForkedRxController = ForkedRxController;
