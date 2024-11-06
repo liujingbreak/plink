@@ -2,32 +2,36 @@ import 'source-map-support/register';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {app, createFlexContainer, MultiLineTextWidget, TableBorderType, createTable} from '../index';
+import {app, createFlexContainer, TableBorderType, createTable} from '../index';
 
-const debug = false;
+const debug = true;
 const fout = fs.createWriteStream('terminal-table-sample.log');
-const log = createSimpleIndentLogger(false, false, fout);
+const log = createSimpleIndentLogger(false, true, fout);
 const table = createTable({
   default: {
     debug, log
   },
   core: {
     debug: true
+  },
+  optsForCellComponent: {
+    debug
+  },
+  lazy: {
+    // default: {debug},
+    core: {debug, log}
+    // headPlaceHolder: {debug: true},
+    // tailPlaceHolder: {debug: true}
+    // headPlaceHolderLabel: {
+    //   debug: false
+    // },
+    // tailPlaceHolderLabel: {
+    //   debug: false
+    // }
   }
-  // optsForCellComponent: {debug: true}
-  // lazy: {
-  //   core: {debug: true},
-  //   headPlaceHolder: {debug: true, debugIncludeTypes: ['onRender']},
-  //   headPlaceHolderLabel: {
-  //     debug: false
-  //   },
-  //   tailPlaceHolderLabel: {
-  //     debug: false
-  //   }
-  // }
 });
 const SAMPLE_ROW_COUNT = 10;
-const SAMPLE_COLUMN_CNT = 3;
+const SAMPLE_COLUMN_CNT = 1;
 table.s.ft.setLazyLoad(true, page => {
   table.log('*** handle onLoadPage', page);
   const out$ = new rx.Observable<[string, string[]]>(sub => {
@@ -44,14 +48,14 @@ table.s.ft.setLazyLoad(true, page => {
         sub.next([page + ':' + r, cells]);
       }
       sub.complete();
-    }, Math.round(Math.random() * 700));
+    }, Math.round(Math.random() * 300));
   });
   return out$;
 }).dp();
 table.s.pt.onRowAdded.pipe(
   rx.map(([, _idx, _id, cells]) => {
     cells.map(cell => {
-      (cell as MultiLineTextWidget).s.ft.setStyle(['black']).dp();
+      // (cell as MultiLineTextWidget).s.ft.setStyle(['black']).dp();
       cell.s.ft.setFocusable(true).dp();
     });
   })
@@ -85,24 +89,24 @@ const {canvas} = app.createApp(root, {
     debug, log
   },
   focusable: {
-    debug: true,
+    debug,
     debugExcludeTypes: ['removeFocusable']
   },
-  // canvas: {
-  //   debug: true,
-  //   debugIncludeTypes: ['clearRect']
-  // },
+  // statusbar: {debug: false},
+  canvas: {
+    debug: true,
+    debugIncludeTypes: ['render']
+  },
   scrollable: {
-    // default: {debug},
-    // core: {debug},
-    focusable: {
-      debug: true,
-      debugExcludeTypes: ['removeFocusable']
-    },
-    canvas: {
-      debug: false,
-      debugIncludeTypes: ['clearRect']
-    }
+    // default: {debug: true, log}
+    core: {debug}
+    // focusable: {
+    //   debug: false,
+    //   debugExcludeTypes: ['removeFocusable']
+    // },
+    // canvas: {
+    //   debug
+    // }
   }
 });
 

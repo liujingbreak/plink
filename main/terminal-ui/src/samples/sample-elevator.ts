@@ -1,30 +1,22 @@
 import 'source-map-support/register';
 import fs from 'fs';
 // import * as rx from 'rxjs';
-import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
+import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas, createFlexContainer, createTextWidget, createElevator, DisplayMode} from '../index';
 
 const debug = true;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
-function log(...args: any[]) {
-  const date = new Date();
-  fout.write(date.toLocaleTimeString());
-  fout.write('.');
-  fout.write(date.getMilliseconds() + ' - ');
-  fout.write(formatToConciseNoColor(...args));
-  fout.write('\n');
-}
+const log = createSimpleIndentLogger(false, true, fout);
 
 const canvas = createTerminalCanvas({debug, log});
 const root = createFlexContainer({name: 'root', debug, log});
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRenderOnRequest(true).dp();
 
 const ev = createElevator({default: {debug, log}});
 const popupLayer = createFlexContainer({name: 'popup', debug, log});
 ev.s.ft.addChild(root, popupLayer).dp();
 
-const popupMsg = createTextWidget('POPUP MESSAGE', {name: 'popupMsg', debug, log});
+const popupMsg = createTextWidget('POPUP MESSAGE!', {name: 'popupMsg', debug, log});
 popupLayer.s.ft.justifyContent('center').dp();
 popupLayer.s.ft.alignItems('center').dp();
 popupLayer.s.ft.addChild(popupMsg).dp();
@@ -44,14 +36,16 @@ process.stdout.on('resize', () => {
 
 root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
-const label = createTextWidget('ok', {debug, log});
+const label = createTextWidget('~~~ The bottom layer ~~~', {debug, log});
 root.s.ft.addChild(label).dp();
 
+canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
 setTimeout(() => {
+  popupLayer.log('--------------- change display ----');
   popupLayer.s.ft.setDisplay(DisplayMode.none).dp();
 }, 1000);
-setTimeout(() => {
-  popupLayer.s.ft.setDisplay(DisplayMode.visible).dp();
-}, 2000);
+// setTimeout(() => {
+//   popupLayer.s.ft.setDisplay(DisplayMode.visible).dp();
+// }, 2000);
 

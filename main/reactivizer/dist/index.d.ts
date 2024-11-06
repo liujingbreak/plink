@@ -11,3 +11,4 @@ export * from './stream-dispense';
 export * from './simplex-reactor';
 export * from './reactor-base';
 export * from './forked-control';
+export * from './reactor-factory';

@@ -19,11 +19,11 @@ export interface AppOptions {
     elevator?: ElevatorOptions;
     canvas?: TerminalCanvasOptions;
     cover?: FlexContainerOpts;
-    root?: FlexContainerOpts;
+    main?: FlexContainerOpts;
     focusable?: FocusableOptions;
 }
 export declare function createApp(mainComponent: BaseWidget, opts?: AppOptions): {
     canvas: SimplexReactor<import("../canvas").TerminalCanvasEvents, readonly ["setBounding", "setRootComponent", "onDirtyLineChange"]>;
-    main: import("@wfh/reactivizer").DerivedSimplexReactor<import("../base").BaseWidgetEvents<import("../base").BaseWidgetRenderData> & import("../container").TermainlContainerEvents & import("../flex-container").FlexContainerInput & import("../flex-container").FlexContainerEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "setDirection" | "alignItems" | "justifyContent" | "setBorderSpacing" | "setBorderSeparator" | "setBorderSeparatorStyle")[]>;
+    main: import("@wfh/reactivizer").DerivedSimplexReactor<import("../flex-container").FlexContainerInput & import("../flex-container").FlexContainerEvents & import("../container").TermainlContainerEvents & import("../base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setDirection" | "alignItems" | "justifyContent" | "setBorderSpacing" | "setBorderSeparator" | "setBorderSeparatorStyle")[]>;
     app: SimplexReactor<AppSignals, readonly []>;
 };

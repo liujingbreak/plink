@@ -1,34 +1,38 @@
 import {SimplexReactorOptions, SimplexReactorCfgOpts} from './reactor-base';
 import {CoreOptions, Interceptor} from './stream-core';
 import {ActionInterceptor, RxController2} from './control2';
-import {SimplexReactor} from './simplex-reactor';
+import {SimplexReactor, DerivedSimplexReactor} from './simplex-reactor';
 import {ActionDispenser} from './stream-dispense';
 
 export interface ReactorFactory<
   I = Record<never, never>,
-  LI extends readonly (keyof I)[] | (keyof I)[] = readonly []
+  LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
+  P extends readonly [...any[]] = [...any[]]
 > {
-  create(instanceOpts?: CoreOptions<I>): SimplexReactor<I, LI>;
+  create(...params: P): SimplexReactor<I, LI>;
+  _create(overrideOpts: (currOpts: SimplexReactorOptions<I, LI>) => SimplexReactorOptions<I, LI>, params: P): SimplexReactor<I, LI>;
 }
 
 export class BaseReactorFactory<
   I = Record<never, never>,
-  LI extends readonly (keyof I)[] | (keyof I)[] = readonly []
-> implements ReactorFactory<I, LI> {
-  private reactorsFac: (service: SimplexReactor<I, LI>) => void = () => {};
+  LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
+  P extends [...any[]] = [...any[]]
+> implements ReactorFactory<I, LI, P> {
+  private reactorsFac: (service: (opts?: CoreOptions<I>) => SimplexReactor<I, LI>, ...params: P) => void = () => {};
   private _interceptors: Interceptor[] | undefined;
 
   constructor(public protoOptions: SimplexReactorOptions<I, LI>) {
   }
-  defineReactor(fac: (service: SimplexReactor<I, LI>) => void) {
-    this.reactorsFac = fac;
-    return this;
+  defineReactor<PA extends P = P>(fac: (init: (overrideOpts?: CoreOptions<I>) => SimplexReactor<I, LI>, ...params: PA) => void) {
+    this.reactorsFac = fac as typeof this.reactorsFac;
+    return this as unknown as BaseReactorFactory<I, LI, PA>;
   }
   forExtend<
     I2 = Record<never, never>,
-    LI2 extends readonly(keyof I2)[] | (keyof I2)[] = readonly []
-  >(newOpts: SimplexReactorCfgOpts<I, I2, LI2>): DerivedReactorFactory<I2, LI2, I, LI > {
-    return new DerivedReactorFactory<I2, LI2, I, LI>(this, newOpts);
+    LI2 extends readonly(keyof I2)[] | (keyof I2)[] = readonly [],
+    P2 extends readonly [...any[]] = [...any[]]
+  >(newOpts: SimplexReactorCfgOpts<I, I2, LI2>) {
+    return new DerivedReactorFactory<I2, LI2, P2, I, LI, P>(this, newOpts);
   }
 
   interceptor(...interc: Interceptor[]) {
@@ -44,38 +48,60 @@ export class BaseReactorFactory<
     });
     return this;
   }
-  create(instanceOpts?: CoreOptions<I>): SimplexReactor<I, LI> {
-    const service = new SimplexReactor<I, LI>(this.protoOptions ?
-      {...this.protoOptions, ...instanceOpts} :
-      instanceOpts as any);
-    if (this._interceptors)
-      service.s.interceptorList$.next(this._interceptors);
-    this.reactorsFac(service);
-    return service;
+  create(...params: P): SimplexReactor<I, LI> {
+    return this._create(a => a, params);
+  }
+  /** do not call this method directly, use create() instead */
+  _create(overrideOpts: (currOpts: SimplexReactorOptions<I, LI>) => SimplexReactorOptions<I, LI>, param: P): SimplexReactor<I, LI> {
+    let service: SimplexReactor<I, LI>;
+    this.reactorsFac(instanceOpts => {
+      const mergedOpts = this.protoOptions ?
+        {...this.protoOptions, ...instanceOpts} :
+        instanceOpts as typeof this.protoOptions;
+      service = new SimplexReactor<I, LI>(overrideOpts(mergedOpts));
+      if (this._interceptors)
+        service.s.prependInterceptor(...this._interceptors);
+      return service;
+    }, ...param);
+    return service!;
   }
 }
 
 export class DerivedReactorFactory<
   I = Record<never, never>,
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
+  P extends readonly [...any[]] = [...any[]],
   Ib = Record<never, never>,
-  LIb extends readonly (keyof Ib)[] | (keyof Ib)[] = readonly []
-> implements ReactorFactory<I & Ib, readonly (LI[number] | LIb[number])[]> {
-  private reactorsFac: (service: SimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>) => void = () => {};
+  LIb extends readonly (keyof Ib)[] | (keyof Ib)[] = readonly [],
+  Pb extends readonly [...any[]] = [...any[]]
+> implements ReactorFactory<I & Ib, readonly (LI[number] | LIb[number])[], P> {
+  private reactorsFac: (
+    getService: (
+      overrideOpts: CoreOptions<I & Ib> | undefined,
+      ...superParam: Pb
+    ) => DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>,
+    ...params: P
+  ) => void = () => {};
   private _interceptors: Interceptor[] | undefined;
   private baseInterceptors: Interceptor[] | undefined;
   private featTableForList: LI;
-  private otherFeatOpts: CoreOptions<I & Ib> | undefined;
-  constructor(public baseFactory: ReactorFactory<Ib, LIb>, featOptions?: SimplexReactorCfgOpts<Ib, I, LI>) {
+  private featOpts: CoreOptions<I & Ib> | undefined;
+  constructor(public baseFactory: ReactorFactory<Ib, LIb, Pb>, featOptions?: SimplexReactorCfgOpts<Ib, I, LI>) {
     this.featTableForList = featOptions?.tableFor as LI;
     if (featOptions) {
-      this.otherFeatOpts = {...featOptions} as CoreOptions<I & Ib>;
-      delete (this.otherFeatOpts as typeof featOptions).tableFor;
+      this.featOpts = {...featOptions} as CoreOptions<I & Ib>;
+      delete (this.featOpts as typeof featOptions).tableFor;
     }
   }
-  defineReactor(fac: (service: SimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>) => void) {
-    this.reactorsFac = fac;
-    return this;
+  defineReactor<PA extends P = P>( fac: (
+    init: (
+      createOpts?: CoreOptions<I & Ib> | undefined | null,
+      ...superParam: Pb
+    ) => DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>,
+    ...params: PA
+  ) => void) {
+    this.reactorsFac = fac as typeof this.reactorsFac;
+    return this as DerivedReactorFactory<I, LI, PA, Ib, LIb, Pb>;
   }
 
   /** New interceptors are appended to existing interceptors which is inherited from base factory */
@@ -83,11 +109,11 @@ export class DerivedReactorFactory<
     this._interceptors = interc;
     return this;
   }
-  interceptorByType(inter: ActionInterceptor<I>) {
+  interceptorByType(inter: ActionInterceptor<I & Ib>) {
     if (this._interceptors == null)
       this._interceptors = [];
     this._interceptors.push(a$ => {
-      const ac = ActionDispenser.ofAction$<RxController2<I>>(a$);
+      const ac = ActionDispenser.ofAction$<RxController2<I & Ib>>(a$);
       return inter(ac);
     });
     return this;
@@ -107,31 +133,52 @@ export class DerivedReactorFactory<
   }
   forExtend<
     I2 = Record<never, never>,
-    LI2 extends readonly(keyof I2)[] | (keyof I2)[] = readonly []
-  >(newOpts: SimplexReactorCfgOpts<I & Ib, I2, LI2>): DerivedReactorFactory<I2, LI2, I & Ib, readonly (LI[number] | LIb[number])[]> {
+    LI2 extends readonly(keyof I2)[] | (keyof I2)[] = readonly [],
+    P2 extends readonly [...any[]] = [...any[]]
+  >(newOpts: SimplexReactorCfgOpts<I & Ib, I2, LI2>): DerivedReactorFactory<I2, LI2, P2, I & Ib, readonly (LI[number] | LIb[number])[], P> {
     return new DerivedReactorFactory<
-    I2, LI2, I & Ib, readonly (LI[number] | LIb[number])[]
+    I2, LI2, P2,
+    I & Ib, readonly (LI[number] | LIb[number])[], P
     >(this, newOpts);
   }
-  create(instanceOpts?: CoreOptions<I & Ib>): SimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const mixedOpts = {
-      ...this.otherFeatOpts,
-      ...instanceOpts
-    } as any;
-    const service = this.baseFactory.create(mixedOpts).config<I, LI>({
-      tableFor: this.featTableForList
-    } as any).forExtend();
-
-    const {s} = service;
-    if (this._interceptors) {
-      s.prependInterceptor(...this._interceptors);
-    }
-    if (this.baseInterceptors) {
-      s.appendInterceptorToSrc(...this.baseInterceptors);
-    }
-
-    this.reactorsFac(service);
-    return service;
+  /** do not call this method directly, use create() instead */
+  _create(overrideOpts: (
+    currOpts: SimplexReactorOptions<I & Ib, readonly (LI[number] | LIb[number])[]>
+  ) => SimplexReactorOptions<I & Ib, readonly (LI[number] | LIb[number])[]>,
+  params: P): DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]> {
+    let service: DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>;
+    this.reactorsFac((instanceOpts, ...superParam) => {
+      const mixed = {
+        ...this.featOpts,
+        ...instanceOpts
+      };
+      service = this.baseFactory._create(
+        baseOpts => overrideOpts(Object.assign(baseOpts, mixed) as any) as any, superParam
+      ).config<I, LI>({
+        tableFor: this.featTableForList
+      } as any).forExtend();
+      if (this._interceptors)
+        service.s.prependInterceptor(...this._interceptors);
+      if (this.baseInterceptors)
+        service.s.appendInterceptorToSrc(...this.baseInterceptors);
+      return service;
+    }, ...params);
+    return service!;
+  }
+  create(...params: P) {
+    return this._create(a => a, params);
   }
 }
+
+/** Used in paramter type definition of ReactorFactory["defineReactor"] to avoid cyclic reference problem `CreateOptsOfFac` */
+export type CreateOptsInDef<I, BaseFactory = never> = CoreOptions<
+BaseFactory extends ReactorFactory<infer Ib, any, any> ?
+  Ib & I :
+  I
+>;
+export type CreateOptsOfFac<F> = F extends ReactorFactory<infer I, any, any> ?
+  CoreOptions<I> : unknown;
+export type SimplexReactorOfFac<F> = F extends DerivedReactorFactory<any, any, any, any, any, any> ?
+  ReturnType<F['_create']> :
+  F extends BaseReactorFactory<any, any, any> ? ReturnType<F['_create']> : unknown;
+

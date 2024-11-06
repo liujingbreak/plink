@@ -23,24 +23,26 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.scrollableFac = void 0;
 exports.createScrollable = createScrollable;
 /* eslint-disable array-bracket-newline */
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
-const reactivizer_1 = require("@wfh/reactivizer");
 const container_1 = require("./container");
 const canvas_1 = require("./canvas");
 const focusable_1 = require("./focusable");
 const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded'];
-function createScrollable(comp, opts) {
+/** Scrollable is a TerminalContainer which has an offline canvas, child components will only be "render"ed
+ * when they are scrolled to become visible, and they are firstly rendered to the offline canvas then will be copied
+ * to outsider canvas afterward
+ */
+exports.scrollableFac = container_1.baseContainerFac.forExtend({
+    name: 'scrollable',
+    tableFor
+}).defineReactor((init, comp, opts) => {
     var _a, _b;
-    const base = (0, container_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable' }), opts === null || opts === void 0 ? void 0 : opts.core));
-    const scrollable = base.config({ tableFor }).forExtend();
+    const scrollable = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
     const { r, s, table } = scrollable;
-    s.appendInterceptorToSrc(action$ => {
-        const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
-        return rx.merge(rx.merge(dispenser.at.onRender, dispenser.at.findOverlaps).pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
-    });
     const canvas = (0, canvas_1.createTerminalCanvas)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
     const cTable = canvas.table.addActions('requestRender');
     canvas.s.ft.setRootComponent(comp).dp();
@@ -54,8 +56,8 @@ function createScrollable(comp, opts) {
         }
         return rx.EMPTY;
     })));
-    const renderData = rx.combineLatest([table.l.onValidScroll, table.l.onSize]);
-    r('onRender -> comp.render,...', s.pt.onRender.pipe(rx.withLatestFrom(renderData), rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [[, scLeft, scTop], [, width, height]]]) => {
+    const renderData = [table.l.onValidScroll, table.l.onSize];
+    r('onRender -> comp.render,...', s.pt.onRender.pipe(rx.withLatestFrom(...renderData), rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height]]) => {
         if (renderSelf)
             s.ft.renderSelf(outerCanvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         const clipsOfView = clips.map(c => {
@@ -67,9 +69,8 @@ function createScrollable(comp, opts) {
             }).filter(c => c != null) :
             [];
         // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
+        s.ft.clear(outerCanvas, trans).dp(m);
         comp.s.ft.render(canvas, gl_matrix_1.mat4.create(), clipsOfView, masksOfView).dp(m);
-        const orig = [0, 0];
-        gl_matrix_1.vec2.transformMat4(orig, orig, trans);
         return canvas.s.ft.copyRect(scLeft, scTop, width, height).re(m).od(canvas.s.pt.onCopyRect).pipe(rx.take(1), rx.map(([, paintables]) => {
             for (const [x, , y, units, style] of paintables) {
                 const point = [x, y];
@@ -165,7 +166,7 @@ function createScrollable(comp, opts) {
         scrollable.s.ft.queryAbsBounding().re(m).od(scrollable.s.pt.didQueryAbsBounding)
     ]).pipe(rx.take(1), rx.filter(([[, cb], [, sb]]) => cb != null && sb != null), rx.map(([[, cb], [, sb]]) => {
         const [x, y, w, h] = sb;
-        return [m, cb, [x - 1, y - 1, w - 2, h - 2]];
+        return [m, cb, [x + 1, y + 1, w - 2, h - 2]];
     }))), rx.filter(([, , [, , w, h]]) => w > 2 && h > 2), rx.map(([m, cb, [px, py, pw, ph]]) => {
         const [x, y] = cb;
         service.log('<<< abs of scrollable', x, y, px, py, pw, ph);
@@ -212,11 +213,15 @@ function createScrollable(comp, opts) {
         s.ft.onOverflow(false, false).dp();
         s.ft.addChild(comp).dp();
         s.ft.onContent(comp).dp();
-        s.ft.latestRenderData(renderData).dp();
-        s.ft.addReflowAction(s.at.onValidScroll).dp();
-        s.ft.addReflowAction(s.at.setScrollable).dp();
+        s.ft.setRenderChanges(renderData).dp();
+        // s.ft.addReflowAction(s.at.onValidScroll).dp();
+        // s.ft.addReflowAction(s.at.setScrollable).dp();
         s.ft.hasOfflineCanvas(true).dp();
     }));
-    return service;
+}).interceptorForBaseByType(dispenser => {
+    return rx.merge(rx.merge(dispenser.at.onRender, dispenser.at.findOverlaps).pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
+});
+function createScrollable(comp, opts) {
+    return exports.scrollableFac.create(comp, opts);
 }
 //# sourceMappingURL=scrollable.js.map

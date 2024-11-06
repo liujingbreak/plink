@@ -23,28 +23,43 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.statusbarFac = void 0;
 exports.createStatusbar = createStatusbar;
 const rx = __importStar(require("rxjs"));
 const index_1 = require("../index");
 const tableFor = ['trackKeypressService', 'trackScrollable'];
-function createStatusbar(opts) {
+exports.statusbarFac = index_1.borderFac.forExtend({
+    name: 'statusbar',
+    tableFor
+}).defineReactor((init, opts) => {
     var _a, _b, _c, _d, _e;
     const container = (0, index_1.createFlexContainer)(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'statusbar') + '.container' }));
-    const containerWithBorder = (0, index_1.createBorderContainer)(container, Object.assign({ name: 'StatusBar' }, opts));
-    const statusbar = containerWithBorder.config({
-        tableFor
-    });
-    // containerWithBorder.s.ft.setBackground('bgBlue').dp();
+    const statusbar = init(opts, container);
     statusbar.s.ft.setPadding(0, 1, 0, 1).dp();
     statusbar.s.ft.setBorder('padding').dp();
     statusbar.s.ft.setFlexShrink(0).dp();
     const { r, s, table } = statusbar;
-    const labelScrollText = (0, index_1.createTextWidget)('scroll', Object.assign(Object.assign({}, opts), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _b !== void 0 ? _b : 'statusbar') + '.container' }));
-    const labelScrollValue1 = (0, index_1.createTextWidget)('0%', Object.assign(Object.assign({}, opts), { name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : 'statusbar') + '.v1' }));
-    const labelScrollValue2 = (0, index_1.createTextWidget)('0%', Object.assign(Object.assign({}, opts), { name: ((_d = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _d !== void 0 ? _d : 'statusbar') + '.v2' }));
+    const labelScrollText = (0, index_1.createTextWidget)('scroll', {
+        // ...opts as any,
+        name: ((_b = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _b !== void 0 ? _b : 'statusbar') + '.container'
+    });
+    const labelScrollValue1 = (0, index_1.createTextWidget)('0%', {
+        // ...opts as any,
+        name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : 'statusbar') + '.v1'
+    });
+    const labelScrollValue2 = (0, index_1.createTextWidget)('0%', {
+        // ...opts as any,
+        name: ((_d = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _d !== void 0 ? _d : 'statusbar') + '.v2'
+    });
     const HELP_KEY_HINT = 'Press <Enter> for help';
     const labelKeypress = (0, index_1.createTextWidget)(HELP_KEY_HINT, Object.assign(Object.assign({}, opts), { name: ((_e = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _e !== void 0 ? _e : 'statusbar') + '.key' }));
     labelKeypress.s.ft.setFlexGrow(1).dp();
+    statusbar.s.ft.setBackground('bgHsl(120,50,80)').dp();
+    labelKeypress.s.ft.setStyle(['hex(#000000)']).dp();
+    // labelKeypress.s.ft.setBackground('bgHsl(90,50,80)').dp();
+    labelScrollText.s.ft.setStyle(['hex(#000000)']).dp();
+    labelScrollValue1.s.ft.setStyle(['hex(#000000)']).dp();
+    labelScrollValue2.s.ft.setStyle(['hex(#000000)']).dp();
     container.s.ft.addChild(labelKeypress, labelScrollText, labelScrollValue1, labelScrollValue2).dp();
     r('trackScrollable, scrollable.onValidScroll -> onScrollStatus', table.l.trackScrollable.pipe(rx.switchMap(([, scrollable]) => {
         return rx.combineLatest([
@@ -77,8 +92,10 @@ function createStatusbar(opts) {
         labelKeypress.s.ft.setContent(text.length === 0 ? HELP_KEY_HINT : text).dp(m);
         return valid;
     }), rx.distinctUntilChanged(), rx.map(valid => {
-        labelKeypress.s.ft.setStyle(valid ? ['green'] : []).dp();
+        labelKeypress.s.ft.setStyle(valid ? ['green'] : ['hex(#000000)']).dp();
     })));
-    return statusbar;
+});
+function createStatusbar(opts) {
+    return exports.statusbarFac.create(opts);
 }
 //# sourceMappingURL=statusbar.js.map

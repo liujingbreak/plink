@@ -2,7 +2,8 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
-import {SingleActionFactory, SimplexReactor, ActionMeta, Action, InferMapParam, SimplexReactorOptions} from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactor, ActionMeta, Action, InferMapParam,
+  BaseReactorFactory, CoreOptions} from '@wfh/reactivizer';
 import {TerminalCanvas, Rectangle, BackgroundStyle} from './canvas';
 import {SearchDirection, FocusService} from './focusable';
 import {TerminalContainer} from './container';
@@ -30,7 +31,7 @@ export interface BaseWidgetInput {
   setFocusable(focusable: boolean | Rectangle): SingleActionFactory;
   queryAbsBounding(untilParent?: TerminalContainer): SingleActionFactory;
 }
-export interface BaseWidgetEvents<S = BaseWidgetRenderData> extends BaseWidgetInput {
+export interface BaseWidgetEvents extends BaseWidgetInput {
   isContainer(yes: boolean): SingleActionFactory;
   onSize(width: number, height: number): SingleActionFactory;
   /** The coordinate value is relative to parent container,
@@ -50,7 +51,9 @@ export interface BaseWidgetEvents<S = BaseWidgetRenderData> extends BaseWidgetIn
   prefWidthFor(width: number, constrainHeight: number): SingleActionFactory;
   /** As response to "querySizeOf" */
   prefHeightFor(constrainWidth: number, height: number): SingleActionFactory;
-  /** Implementation should dispatch this message after calculating size based on child components or content */
+  /** Implementation should dispatch this message after calculating size based on child components or content,
+   * unlike "onSize" which is set by user/caller or layout calculation logic.
+   * Along with "setPreferredSize" are used to calculate "preferredSize"*/
   onContentSizeChange(width: number, height: number): SingleActionFactory;
   overflow(yes: boolean): SingleActionFactory;
 
@@ -62,15 +65,17 @@ export interface BaseWidgetEvents<S = BaseWidgetRenderData> extends BaseWidgetIn
    * @param masks - Rectangle indicates the space being masked by any elevator component, may not render masks area to improve performance
    */
   render(canvas: TerminalCanvas, absTransform: mat4, clips?: Rectangle[], masks?: Rectangle[]): SingleActionFactory;
+  beforeRender(canvas: TerminalCanvas, transform: mat4, clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
+  clear(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
   /** Implementation needed to handle this event */
   onRender(canvas: TerminalCanvas, absTransform: mat4, renderSelf: boolean, clipArea: Rectangle[], maskArea?: Rectangle[]): SingleActionFactory;
   needRerender(need: boolean): SingleActionFactory;
   /** Set rendering state data.
    * When this observable state data changes, a "needRerender" message will be triggered and followed by "render", "onRender" messages,
-   * the observable should be derived from table properties or any other observable in form BehaviorSubject, which provides "current state" without any
+   * the observable value should be derived from table properties or any other observable in form of BehaviorSubject, which provides "current state" without any
    * asynchrouse waiting.
    */
-  latestRenderData(renderData$: rx.Observable<S>): SingleActionFactory;
+  setRenderChanges(renderDataList: readonly rx.Observable<InferMapParam<any>>[]): SingleActionFactory;
   /** @deprecated use addRenderData or latestRenderData instead
    * If following action is dispatched, the next render message must not be skipped on current widget */
   addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
@@ -81,42 +86,72 @@ export interface BaseWidgetEvents<S = BaseWidgetRenderData> extends BaseWidgetIn
    * Also see `TermainlContainerEvents["hasOfflineCanvas"]`
    */
   onBoundingBox(rect: Rectangle): SingleActionFactory;
-  onDettached(isDettached: boolean): SingleActionFactory;
+  onDetached(isDettached: boolean): SingleActionFactory;
   onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
+  /** track whether current component has its background being cleared or rerendered by its parents */
   bgCleared(hasCleared: boolean): SingleActionFactory;
   onFocus(direction: SearchDirection): SingleActionFactory;
   didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
 }
 export const tableForBase = [
   'onSize', 'onTransform', 'onPosition', 'offsetParent', 'isOffsetParent', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-  'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDettached', 'setFlexShrink',
-  'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'latestRenderData', 'isContainer'
+  'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink',
+  'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer'
 ] as const;
 export type BaseWidgetRenderData = readonly [
   InferMapParam<BaseWidgetInput['setDisplay']>,
   InferMapParam<BaseWidgetEvents['onSize']>,
   InferMapParam<BaseWidgetEvents['setBackground']>
 ];
-export type BaseWidget<S = any> = SimplexReactor<BaseWidgetEvents<S>, typeof tableForBase>;
-export type BaseWidgetOptions = SimplexReactorOptions<BaseWidgetEvents, typeof tableForBase>;
+export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
+export type BaseWidgetOptions = CoreOptions<BaseWidgetEvents>;
+
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOptions>) {
-  const service = new SimplexReactor<BaseWidgetEvents<S>, typeof tableForBase>({
-    ...opts,
-    tableFor: tableForBase,
-    debugExcludeTypes: opts?.debugExcludeTypes ?? ['ofCanvas', 'bgCleared', '_saveTransform', 'needRerender']
-  });
+export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof tableForBase>({
+  debugExcludeTypes: [
+    'ofCanvas', '_saveTransform',
+    'queryAbsBounding', 'didQueryAbsBounding'
+  ],
+  tableFor: tableForBase
+}).interceptorByType(ad => {
+  return rx.merge(
+    ad.at.onPosition.pipe(
+      rx.distinctUntilChanged(({p: [ax, ay]}, {p: [bx, by]}) => {
+        return ax === bx && ay === by;
+      })
+    ),
+    ad.at.onSize.pipe(
+      rx.distinctUntilChanged(({p: [ax, ay]}, {p: [bx, by]}) => {
+        return ax === bx && ay === by;
+      })
+    ),
+    ad.at.onContentSizeChange.pipe(
+      rx.distinctUntilChanged(({p: [ax, ay]}, {p: [bx, by]}) => {
+        return ax === bx && ay === by;
+      })
+    ),
+    ad.at.setBackground.pipe(
+      rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+    ),
+    ad.at.setDisplay.pipe(
+      rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+    ),
+    ad.at.needRerender.pipe(
+      rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+    ),
+    ad.at.bgCleared.pipe(
+      rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+    ),
+    ad.at.setFocusable.pipe(
+      rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => {
+        return a === b;
+      })
+    ),
+    ad.ofOtherTypes()
+  );
+}).defineReactor(init => {
+  const service = init();
   const {s, r, table} = service;
-  s.prependInterceptorByType(ad => {
-    return rx.merge(
-      ad.at.onPosition.pipe(
-        rx.distinctUntilChanged(({p: [ax, ay]}, {p: [bx, by]}) => {
-          return ax === bx && ay === by;
-        })
-      ),
-      ad.ofOtherTypes()
-    );
-  });
   r('_saveTransform -> onTransform', rx.merge(
     s.pt._saveTransform.pipe(
       rx.distinctUntilChanged(([, t1], [, t2]) => mat4.equals(t1, t2)),
@@ -139,17 +174,6 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
       s.ft.preferredSize(w, h).dp();
     })
   ));
-  r('needRerender, latestRenderData -> needRerender', s.pt.needRerender.pipe(
-    rx.map(([, need]) => need),
-    rx.distinctUntilChanged(),
-    rx.switchMap(need => need ? rx.EMPTY :
-      table.l.latestRenderData.pipe(
-        rx.switchMap(([, data$]) => data$),
-        rx.skip(1),
-        rx.take(1),
-        rx.map(() => s.ft.needRerender(true).dp())
-      ))
-  ));
   r('addRerenderAction', rx.merge(
     s.pt.addRerenderAction.pipe(
       rx.mergeMap(([, action$]) => action$)
@@ -160,7 +184,6 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
       s.ft.needRerender(true).dp(m);
     })
   ));
-
   r('setSize,onSize,setParent -> setPreferredSize', s.pt.setSize.pipe(
     rx.switchMap(([m, w, h]) => {
       if (typeof w === 'string' && typeof h === 'string') {
@@ -212,49 +235,91 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
       }
     })
   ));
-  r('needRerender, ofCanvas', s.pt.needRerender.pipe(
-    rx.withLatestFrom(table.l.ofCanvas),
-    rx.map(([[m, need], [, canvas]]) => {
-      if (canvas && need)
-        canvas.s.ft.requestRender().dp(m);
-    })
+  r('needRerender, ofCanvas -> canvas.requestRender', s.pt.needRerender.pipe(
+    rx.filter(([, need]) => need),
+    rx.switchMap(([m]) => table.l.onDetached.pipe(
+      rx.take(1),
+      rx.filter(([, detached]) => !detached),
+      rx.map(() => m)
+    )),
+    rx.switchMap(m => table.l.ofCanvas.pipe(
+      rx.map(([, canvas]) => {
+        if (canvas)
+          canvas.s.ft.requestRender().dp(m);
+      })
+    ))
   ));
-  r('render -> needRerender, onRender, renderBackgroundFor, onBoundingBox', s.pt.render.pipe(
-    rx.withLatestFrom(table.l.needRerender, table.l.setParent, table.l.onSize, table.l.setDisplay),
-    rx.map(([[m, canvas, trans, clips, masks], [, renderSelf], [, parent], [, width, height], [, display]]) => {
+  let lastClips: Rectangle[] | undefined;
+  // let lastMasks: Rectangle[] | undefined;
+  r('render -> needRerender, onRender, onBoundingBox', s.pt.render.pipe(
+    rx.withLatestFrom(table.l.needRerender, table.l.onSize, table.l.setDisplay),
+    rx.map(([[m, canvas, trans, clips, masks], [, renderSelf], [, width, height], [, display]]) => {
       s.ft._saveTransform(trans).dp(m);
       if (renderSelf) {
         s.ft.needRerender(false).dp(m);
-        if (parent)
-          parent.s.ft.renderBackgroundFor(service).dp(m);
       }
       const pos = [0, 0] as [number, number];
       vec2.transformMat4(pos, pos, trans);
       const bounding = [pos[0], pos[1], width, height] as [number, number, number, number];
       s.ft.onBoundingBox(bounding).dp(m);
-      // if (renderSelf) {
+      if (width === 0 || height === 0)
+        return;
       if (display === DisplayMode.hidden) {
-        canvas.s.ft.clearRect(...bounding).dp(m);
-        s.ft.bgCleared(true).dp(m);
-      } else
-        s.ft.onRender(canvas, trans, renderSelf, clips ?? [[0, 0, width, height]], masks).dp(m);
-      // }
+        s.ft.clear(canvas, trans).dp(m);
+      } else {
+        clips = clips ?? [[0, 0, width, height]];
+        s.ft.beforeRender(canvas, trans, clips, masks ?? []).dp(m);
+        const needRerender = !!table.getData().needRerender[0];
+        if (!renderSelf && !needRerender) {
+          const isClipChanged = lastClips == null || (clips != null && (
+            lastClips.length !== clips.length || !isRectangeCover(lastClips[0], clips[0])
+          ));
+          if (isClipChanged ) {
+            renderSelf = true;
+          }
+        }
+        s.ft.onRender(canvas, trans, renderSelf || needRerender, clips, masks).dp(m);
+        if (needRerender)
+          s.ft.needRerender(false).dp(m);
+      }
+      s.ft.bgCleared(false).dp(m);
+      lastClips = clips;
     })
   ));
-  r('setParent, error$, parent.destory$... -> parent.onChildError, dispose()...', table.l.setParent.pipe(
+  r('clear', s.pt.clear.pipe(
+    rx.withLatestFrom(
+      table.l.onSize,
+      table.l.onBgChangeWithParent,
+      table.l.bgCleared
+    ),
+    rx.map(([[m, canvas, trans], [m2, width, height], [m3, bg], [m4, cleared]], _idx) => {
+      const pos = [0, 0] as vec2;
+      vec2.transformMat4(pos, pos, trans);
+      if (bg) {
+        const fill = ' '.repeat(width);
+        for (let i = 0; i < height; i++) {
+          canvas.s.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
+        }
+      } else if (!cleared) {
+        canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
+        s.ft.bgCleared(true).dp(m, m2, m3, m4);
+      }
+    })
+  ));
+  r('setParent, error$, parent.destory$,parent.bgCleared... -> parent.onChildError, dispose()...', table.l.setParent.pipe(
     rx.switchMap(([m, parent]) => {
       if (parent == null) {
         s.ft.ofCanvas(null).dp(m);
-        s.ft.onDettached(true).dp(m);
+        s.ft.onDetached(true).dp(m);
         return rx.EMPTY;
       }
       return rx.merge(
-        parent.table.l.onDettached.pipe(
+        parent.table.l.onDetached.pipe(
           rx.map(([m, d]) => {
-            s.ft.onDettached(d).dp(m);
+            s.ft.onDetached(d).dp(m);
           })
         ),
-        parent.s.pt.hasOfflineCanvas.pipe(
+        parent.table.l.hasOfflineCanvas.pipe(
           rx.switchMap(([, has]) => has ?
             rx.EMPTY :
             parent.s.pt.bgCleared.pipe(
@@ -278,7 +343,7 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
       );
     })
   ));
-  r('setParent, parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
+  r('setParent,setBackground,parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
     table.l.setParent.pipe(
       rx.switchMap(([, parent]) => parent?.table.l.onBgChangeWithParent ?? rx.of([null, null] as const))
     ),
@@ -398,7 +463,6 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
         rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh)
       )
     ]).pipe(
-      rx.takeUntil(s.onCancelOf(m)),
       rx.switchMap(([[, p], [, x, y], [, w, h]]) => {
         if (x == null || y == null) {
           s.ft.didQueryAbsBounding(null).dp(m);
@@ -436,25 +500,30 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
             })
           );
         }
-      })
+      }),
+      rx.takeUntil(s.onCancelOf(m))
     ))
   ));
 
-  r('onDettached -> focusService.removeFocusable', s.pt.onDettached.pipe(
+  r('onDetached -> focusService.removeFocusable', s.pt.onDetached.pipe(
     rx.withLatestFrom(table.l.offsetParent),
     rx.map(([[m], [m2, op]]) => {
       if (op)
         op.focusService.s.ft.removeFocusable(service).dp(m, m2);
     })
   ));
-
-  const renderData = rx.combineLatest([
+  r('setRenderChanges -> needRerender', s.pt.setRenderChanges.pipe(
+    rx.switchMap(([, list]) => rx.merge(list.map(it => it.pipe(
+      rx.skip(1)
+    )))),
+    rx.mergeMap(o => o),
+    rx.map(([m]) => s.ft.needRerender(true).dp(m))
+  ));
+  const renderData = [
     table.l.setDisplay,
-    table.l.onSize.pipe(
-      rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
-    ),
+    table.l.onSize,
     table.l.setBackground
-  ]);
+  ];
 
   r('init', new rx.Observable<never>(() => {
     s.ft.bgCleared(false).dp();
@@ -470,14 +539,19 @@ export function createBase<S = BaseWidgetRenderData>(opts?: Partial<BaseWidgetOp
     s.ft.setDisplay(DisplayMode.visible).dp();
     s.ft.onBoundingBox([0, 0, 0, 0]).dp();
     s.ft.setFocusable(false).dp();
-    s.ft.onDettached(true).dp();
+    s.ft.onDetached(true).dp();
     s.ft.setBackground(null).dp();
     s.ft.isContainer(false).dp();
-    s.ft.latestRenderData(renderData as rx.Observable<S>).dp();
+    s.ft.onBgChangeWithParent(null).dp();
+    s.ft.setRenderChanges(renderData).dp();
   }));
-  return service;
-}
+});
 
 export interface OffsetParent {
   focusService: FocusService;
+}
+
+function isRectangeCover(covering: Rectangle, covered: Rectangle) {
+  return covering[0] <= covered[0] && covering[0] + covering[2] >= covered[0] + covered[2] &&
+    covering[1] <= covered[1] && covering[1] + covering[3] >= covered[1] + covered[3];
 }

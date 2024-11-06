@@ -38,6 +38,6 @@ export interface RootFocusableEvents {
     _canvas(c: TerminalCanvas): SingleActionFactory;
 }
 declare const tableForRoot: readonly ["forRootComp", "onFocus", "latestRenderedRect", "_canvas"];
-export declare function createRootService(keyEventService: KeyEventServcie, opts?: FocusableOptions): SimplexReactor<FocusableMessages & RootFocusableEvents, readonly ("didFocus" | "handleKeyEvents" | "rootService" | "controlHandleEvents" | "forRootComp" | "onFocus" | "latestRenderedRect" | "_canvas")[]>;
+export declare function createRootService(keyEventService: KeyEventServcie, opts?: FocusableOptions): SimplexReactor<FocusableMessages & RootFocusableEvents, readonly ("onFocus" | "didFocus" | "handleKeyEvents" | "rootService" | "controlHandleEvents" | "forRootComp" | "latestRenderedRect" | "_canvas")[]>;
 export type RootFocusService = SimplexReactorExtendType<FocusService, RootFocusableEvents, typeof tableForRoot>;
 export {};

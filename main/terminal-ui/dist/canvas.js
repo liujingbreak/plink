@@ -38,7 +38,7 @@ const algorithms_1 = require("@wfh/algorithms");
 // import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 const text_split_1 = require("./text-split");
 const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
-const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl']);
+const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl', 'hex', 'bgHex', 'ansi', 'bgAnsi', 'ansi256', 'bgAnsi256']);
 const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange'];
 function createTerminalCanvas(opts) {
     const canvas = new reactivizer_1.SimplexReactor(Object.assign({ name: 'Canvas', 
@@ -71,9 +71,14 @@ function createTerminalCanvas(opts) {
             sub.complete();
         }));
     })));
-    r('setRootComponent', s.pt.setRootComponent.pipe(rx.map(([m, root]) => {
+    r('setRootComponent', s.pt.setRootComponent.pipe(rx.switchMap(([m, root]) => {
         if (root)
-            root.s.ft.ofCanvas(canvas).dp(m);
+            return new rx.Observable(() => {
+                root.s.ft.ofCanvas(canvas).dp(m);
+                root.s.ft.onDetached(false).dp(m);
+                return () => root.s.ft.onDetached(true).dp(m);
+            });
+        return rx.EMPTY;
     })));
     r('setBounding -> rootComponent.onSize', s.pt.setBounding.pipe(rx.switchMap(([m, , , w, h]) => {
         return table.l.setRootComponent.pipe(rx.map(([, root]) => {
@@ -235,37 +240,35 @@ function createTerminalCanvas(opts) {
         }
         s.ft.onCopyRect(result).dp(m);
     })));
-    r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(rx.switchMap(([, enabled]) => {
-        let suspended = false; // Has recursive render request?
+    r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(
+    // rx.observeOn(rx.queueScheduler),
+    rx.switchMap(([, enabled]) => {
+        // let suspended: ActionMeta | false = false; // Has recursive render request?
         const rectTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
+        let hasWaitReq = false;
         // eslint-disable-next-line multiline-ternary
-        return enabled ? s.pt.requestRender.pipe(rx.mergeMap(([m, rect]) => {
+        return enabled ? s.pt.requestRender.pipe(
+        // rx.observeOn(rx.queueScheduler),
+        rx.mergeMap(([m, rect]) => {
             return table.l.setBounding.pipe(rx.take(1), rx.map(([, ...bounding]) => {
-                suspended = m;
+                hasWaitReq = true;
                 rectTree.addOrUnionRectOnOverlap(rect !== null && rect !== void 0 ? rect : bounding, null);
                 // canvas.log('rectTree', [...rectTree.allRectangles()].length);
                 return m;
             }));
-        }), rx.exhaustMap(m => new rx.Observable(sub => {
-            setTimeout(() => {
-                suspended = false;
-                const rects = [...rectTree.allRectangles()];
-                rectTree.clear();
-                // canvas.log('rectTree before render', rects.length);
-                s.ft.render(rects.map(([r]) => r)).dp(m);
-                // canvas.log('rectTree clear for', m);
-                sub.complete();
-                // canvas.log('has suspended:', suspended);
-                if (suspended) {
-                    const rects = [...rectTree.allRectangles()];
-                    rectTree.clear();
-                    // to process possible request which is recursively issued during "exhaustMap"
-                    // canvas.log('rectTree for suspended', rects.length);
-                    s.ft.render(rects.map(([r]) => r)).dp(suspended);
-                    // canvas.log('rectTree clear after', suspended);
-                    suspended = false;
-                }
-            }, 20);
+        }), rx.sampleTime(200), rx.filter(() => hasWaitReq), rx.exhaustMap(m => new rx.Observable(sub => {
+            const rects = [...rectTree.allRectangles()];
+            rectTree.clear();
+            s.ft.render(rects.map(([r]) => r)).dp(m);
+            hasWaitReq = false;
+            // If there are more recursive requests
+            // if (hasWaitReq) {
+            //   hasWaitReq = false;
+            //   const rects = [...rectTree.allRectangles()];
+            //   rectTree.clear();
+            //   s.ft.render(rects.map(([r]) => r)).dp(m);
+            // }
+            sub.complete();
         }))) : rx.EMPTY;
     })));
     r('init', new rx.Observable(() => {
@@ -286,7 +289,7 @@ function createTerminalCanvas(opts) {
                     if (match) {
                         const fn = match[1];
                         if (CHALK_NUMBER_FN.has(fn)) {
-                            const params = match[2].trim().split(',').map(v => Number(v));
+                            const params = match[2].trim().split(',').map(v => v.startsWith('#') ? v : Number(v));
                             return chalkInst[fn](...params);
                         }
                     }

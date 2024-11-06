@@ -50,12 +50,7 @@ function createSimpleIndentLogger(colorful, timestamp, out) {
     const out$ = new rx.Subject();
     const stop$ = new rx.BehaviorSubject(false);
     const buf = [];
-    rx.merge(stop$.pipe(
-    // rx.tap(stop => {
-    //   if (stop)
-    //     console.log('file output reaches high water mark');
-    // }),
-    rx.switchMap(stop => {
+    rx.merge(stop$.pipe(rx.switchMap(stop => {
         if (!stop)
             return rx.concat(new rx.Observable(sub => {
                 while (buf.length > 0) {
@@ -84,26 +79,32 @@ function createSimpleIndentLogger(colorful, timestamp, out) {
     // )
     ).subscribe();
     return function (prefix, ...msgs) {
-        if (lastPrefix === prefix) {
-            const hashPos = prefix.indexOf('@');
-            out$.next('  ');
-            if (hashPos >= 0) {
-                out$.next(prefix.slice(hashPos));
-                out$.next(' ');
-            }
-        }
-        else {
-            out$.next(prefix);
-            out$.next(' ');
-            lastPrefix = prefix;
-        }
-        if (timestamp) {
+        function printTime() {
             const date = new Date();
             out$.next('[');
             out$.next(date.getHours() + ':');
             out$.next(date.getMinutes() + ':');
             out$.next(date.getSeconds() + '.');
             out$.next(date.getMilliseconds() + '] ');
+        }
+        if (lastPrefix === prefix) {
+            const hashPos = prefix.indexOf('@');
+            out$.next('  ');
+            if (timestamp) {
+                printTime();
+            }
+            if (hashPos >= 0) {
+                out$.next(prefix.slice(hashPos));
+                out$.next(' ');
+            }
+        }
+        else {
+            if (timestamp) {
+                printTime();
+            }
+            out$.next(prefix);
+            out$.next(' ');
+            lastPrefix = prefix;
         }
         const rawMsg = colorful ? formatToConcise(...msgs) : formatToConciseNoColor(...msgs);
         out$.next(rawMsg.replaceAll(/\r?\n/g, '\n    '));

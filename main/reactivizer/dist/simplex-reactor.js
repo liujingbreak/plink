@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DerivedSimplexReactor = exports.SimplexReactor = void 0;
+exports.SimplexReactor = void 0;
 const rx = __importStar(require("rxjs"));
 const control2_1 = require("./control2");
 const action_table_1 = require("./action-table");
@@ -40,12 +40,6 @@ class SimplexReactor {
             else
                 this.reactorSubj.next(['', ...params]);
         };
-        // /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
-        // asBaseType = this as unknown as BaseType;
-        /** alias of "asBaseType",
-         * cast current SimplexReactor type to its logical super type for Typescript type assignable check
-         **/
-        // b = this as unknown as BaseType;
         this.id = SEQ++;
         this.reactorSubj = new rx.ReplaySubject();
         this.errorSubject = new rx.ReplaySubject(20);
@@ -121,7 +115,15 @@ class SimplexReactor {
      * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
      **/
     forExtend() {
-        this.s = new forked_control_1.ForkedRxController(this.s);
+        const s = this.s = new forked_control_1.ForkedRxController(this.s);
+        const baseTable = this.table;
+        this.table = new action_table_1.ActionTable(this.s, [...this.table.actionNames]);
+        for (const [type, [m, ...p]] of baseTable.actionSnapshot) {
+            const latestAct = this.s.createAction(type, p);
+            latestAct.i = m.i;
+            latestAct.r = m.r;
+            s.forkedUpStream.next(latestAct);
+        }
         return this;
     }
     /**
@@ -225,8 +227,8 @@ class SimplexReactor {
     }
     logError(label, err) {
         var _a, _b;
-        const message = 'Error@' + (((_a = this.opts) === null || _a === void 0 ? void 0 : _a.name) ? this.opts.name + '::' : '') + label;
-        this.errorSubject.next([message, err]);
+        const message = 'Error@' + (this.s.logPrefix + '::') + label;
+        this.errorSubject.next([message, (_a = err.message) !== null && _a !== void 0 ? _a : err]);
         if ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.log)
             this.opts.log(message, err);
         else
@@ -242,14 +244,4 @@ class SimplexReactor {
     }
 }
 exports.SimplexReactor = SimplexReactor;
-/** You should never create instance by constructor of this class,
- **/
-class DerivedSimplexReactor extends SimplexReactor {
-    constructor(ancestor) {
-        super();
-        this.s = new forked_control_1.ForkedRxController(ancestor.s);
-        this.table = ancestor.table;
-    }
-}
-exports.DerivedSimplexReactor = DerivedSimplexReactor;
 //# sourceMappingURL=simplex-reactor.js.map

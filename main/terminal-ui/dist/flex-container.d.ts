@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
-import { CoreOptsOfExtSmplxRctr, SimplexReactorExtendType, SingleActionFactory } from '@wfh/reactivizer';
+import { SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac } from '@wfh/reactivizer';
 import { BaseWidget } from './base';
-import { TerminalContainer } from './container';
+import { baseContainerFac } from './container';
 import { TextStyle } from './canvas';
 export declare enum FlexBorderSeparator {
     none = 0,
@@ -21,8 +21,8 @@ export interface FlexContainerInput {
 export interface FlexContainerEvents {
     onChangeChildrenSize(mainAxisSize: number[], crossAxisSize: number[]): SingleActionFactory;
 }
-declare const tableForFlexContainer: readonly ["setDirection", "alignItems", "justifyContent", "setBorderSpacing", "setBorderSeparator", "setBorderSeparatorStyle"];
-export type FlexContainer = SimplexReactorExtendType<TerminalContainer, FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>;
-export type FlexContainerOpts = CoreOptsOfExtSmplxRctr<TerminalContainer, FlexContainerInput & FlexContainerEvents>;
-export declare function createFlexContainer(opts?: FlexContainerOpts): import("@wfh/reactivizer").DerivedSimplexReactor<import("./base").BaseWidgetEvents<import("./base").BaseWidgetRenderData> & import("./container").TermainlContainerEvents & FlexContainerInput & FlexContainerEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "setDirection" | "alignItems" | "justifyContent" | "setBorderSpacing" | "setBorderSeparator" | "setBorderSeparatorStyle")[]>;
-export {};
+export declare const flexContainerFac: import("@wfh/reactivizer").DerivedReactorFactory<FlexContainerInput & FlexContainerEvents, readonly ["setDirection", "alignItems", "justifyContent", "setBorderSpacing", "setBorderSeparator", "setBorderSeparatorStyle"], [opts?: FlexContainerOpts | undefined], import("./container").TermainlContainerEvents & import("./base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck")[], []>;
+export type FlexContainer = SimplexReactorOfFac<typeof flexContainerFac>;
+export type FlexContainerOpts = CreateOptsInDef<FlexContainerInput & FlexContainerEvents, typeof baseContainerFac>;
+export declare function createFlexContainer(opts?: FlexContainerOpts): import("@wfh/reactivizer").DerivedSimplexReactor<FlexContainerInput & FlexContainerEvents & import("./container").TermainlContainerEvents & import("./base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setDirection" | "alignItems" | "justifyContent" | "setBorderSpacing" | "setBorderSeparator" | "setBorderSeparatorStyle")[]>;
+export declare function shrinkEachSize(chdPrefSizes: number[], shrinkOfEach: number[], availableSpace: number): number[];

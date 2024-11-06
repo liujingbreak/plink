@@ -1,10 +1,11 @@
 import * as rx from 'rxjs';
-import {CoreOptsOfExtSmplxRctr, CoreOptions, SingleActionFactory, ActionDispenser} from '@wfh/reactivizer';
-import {OffsetParent} from './base';
-import {TerminalContainerOpts, createContainerBase, TerminalContainer} from './container';
+import {CoreOptions, SingleActionFactory, SimplexReactorOfFac, CreateOptsOfFac, ActionMeta} from '@wfh/reactivizer';
+import {OffsetParent, DisplayMode} from './base';
+import {TerminalContainer} from './container';
 import {createFocusService, FocusableOptions, FocusService} from './focusable';
+import {baseContainerFac} from './container';
 import {BaseWidget, Rectangle, TerminalCanvas,
-  createTerminalCanvas, TerminalCanvasOptions, DisplayMode, TextStyle} from './index';
+  createTerminalCanvas, TerminalCanvasOptions, TextStyle} from './index';
 
 interface ElevatorActions {
   /** @param layerIndex 0 based number, this message simply triggers "setDisplay" on child component */
@@ -12,39 +13,25 @@ interface ElevatorActions {
 }
 interface ElevatorEvents extends ElevatorActions {
   onFocusServieReady(chd: BaseWidget, focusable: FocusService): SingleActionFactory;
+  // onChildLayerHidden(chd: BaseWidget): SingleActionFactory;
 }
-export interface ElevatorOptions {
-  default?: CoreOptions;
-  core?: CoreOptsOfExtSmplxRctr<TerminalContainer, ElevatorActions>;
-  /** Internal canvas */
-  canvas?: TerminalCanvasOptions;
-  focusable?: FocusableOptions;
-}
-
-export function createElevator(opts?: ElevatorOptions) {
-  const base = createContainerBase({
-    ...opts?.default as TerminalContainerOpts,
-    name: opts?.default?.name ?? 'Elevator',
-    ...opts?.core as TerminalContainerOpts
-  });
-  const service = base.config<ElevatorEvents>({}).forExtend();
+export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
+  name: 'elevator'
+}).interceptorForBaseByType(ac => rx.merge(
+  rx.merge(
+    ac.at.onRender,
+    ac.at.findOverlaps
+  ).pipe(
+    rx.ignoreElements()
+  ),
+  ac.ofOtherTypes()
+)).defineReactor((init, opts?: ElevatorOptions) => {
+  const service = init({...opts?.default as any, ...opts?.core});
   const {s, r, table} = service;
-  /** Canvas by root component */
+  // let lastBottom: BaseWidget | undefined;
+  /** Offline canvas by root component */
   const canvasMap = new Map<BaseWidget, TerminalCanvas>();
-  // intercept "onRender"
-  s.appendInterceptorToSrc(action$ => {
-    const dispenser = ActionDispenser.ofAction$<typeof base.s>(action$);
-    return rx.merge(
-      rx.merge(
-        dispenser.at.onRender,
-        dispenser.at.findOverlaps
-      ).pipe(
-        rx.ignoreElements()
-      ),
-      dispenser.ofOtherTypes()
-    );
-  });
-  r('addChild, removeChild -> "canvasMap"', rx.merge(
+  r('addChild,insertChild, removeChild -> "canvasMap"', rx.merge(
     s.pt.addChild.pipe(
       rx.map(([m, ...chdn]) => [m, chdn] as const)
     ),
@@ -172,6 +159,44 @@ export function createElevator(opts?: ElevatorOptions) {
       );
     })
   ));
+  /*
+  r('addChild,insertChild,c.setDisplay -> onChildLayerHidden', rx.merge(
+    s.pt.addChild.pipe(
+      rx.map(([, ...chd]) => chd)
+    ),
+    s.pt.insertChild.pipe(
+      rx.map(([, , chd]) => chd)
+    )
+  ).pipe(
+    rx.mergeMap(chd => {
+      return rx.from(chd).pipe(
+        rx.map(c => c)
+      );
+    }),
+    rx.mergeMap(c => rx.merge(
+      c.table.l.setDisplay.pipe(
+        rx.scan(([, prevDis], setDisplay) => {
+          const [m2, display] = setDisplay;
+          if ((prevDis === DisplayMode.visible) && (display === DisplayMode.none || display === DisplayMode.hidden)) {
+            s.ft.onChildLayerHidden(c).dp(m2);
+          }
+          return setDisplay;
+        }),
+        rx.takeUntil(s.pt.removeChild.pipe(
+          rx.filter(([, ...removed]) => removed.some(d => c === d))
+        )),
+        rx.takeUntil(c.destory$)
+      ),
+      s.pt.removeChild.pipe(
+        rx.map(([m, ...chd]) => {
+          for (const c of chd) {
+            s.ft.onChildLayerHidden(c).dp(m);
+          }
+        })
+      )
+    ))
+  ));
+  */
   r('onRender', s.pt.onRender.pipe(
     rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(
       rx.take(1),
@@ -181,8 +206,9 @@ export function createElevator(opts?: ElevatorOptions) {
         return acc;
       }, [] as BaseWidget[]),
       rx.mergeMap(children => {
-        if (renderSelf)
+        if (renderSelf) {
           s.ft.renderSelf(canvas, trans, clips, masks ?? []).dp(m);
+        }
         const allMasks = [] as Rectangle[];
         const last = children.length - 1;
         return rx.concat(
@@ -195,7 +221,7 @@ export function createElevator(opts?: ElevatorOptions) {
               const canvasOfChd = canvasMap.get(chd)!;
               const isBottomLayer = i === last;
               const idx = last - i;
-              s.ft.renderChild(idx, chd, isBottomLayer ? canvas : canvasOfChd, trans, clips, allMasks).dp(m);
+              s.ft.renderChild(idx, chd, canvasOfChd, trans, clips, allMasks).dp(m);
               return isBottomLayer ? rx.EMPTY : getBoundingOfCompTree(chd).pipe(rx.take(1));
             }),
             rx.map(rects => {
@@ -204,21 +230,10 @@ export function createElevator(opts?: ElevatorOptions) {
             })
           ),
           rx.from(children).pipe(
-            rx.skip(1), // the 1st has been directly rendered to outer canvas
+            // rx.skip(1), // the 1st has been directly rendered to outer canvas
             rx.map(chd => canvasMap.get(chd)!),
             rx.concatMap(c => {
-              return c.table.l.setBounding.pipe(
-                rx.take(1),
-                rx.mergeMap(([, , , w, h]) => {
-                  return c.s.ft.copyRect(0, 0, w, h).re(m).od(c.s.pt.onCopyRect);
-                }),
-                rx.map(([, lines]) => {
-                  for (const [x, , y, units, style] of lines) {
-                    canvas.s.ft.addDisplayUnits(x, y, units, [style] as unknown as TextStyle).dp(m);
-                  }
-                }),
-                rx.take(1)
-              );
+              return copyCanvas(c, canvas, m);
             })
           )
         );
@@ -246,8 +261,32 @@ export function createElevator(opts?: ElevatorOptions) {
       );
     })
   ));
+  function copyCanvas(source: TerminalCanvas, canvas: TerminalCanvas, m: ActionMeta) {
+    return source.table.l.setBounding.pipe(
+      rx.take(1),
+      rx.mergeMap(([, , , w, h]) => {
+        return source.s.ft.copyRect(0, 0, w, h).re(m).od(source.s.pt.onCopyRect);
+      }),
+      rx.map(([, lines]) => {
+        for (const [x, , y, units, style] of lines) {
+          canvas.s.ft.addDisplayUnits(x, y, units, [style] as unknown as TextStyle).dp(m);
+        }
+      }),
+      rx.take(1)
+    );
+  }
   s.ft.hasOfflineCanvas(true).dp();
-  return service;
+});
+export interface ElevatorOptions {
+  default?: CoreOptions;
+  core?: CreateOptsOfFac<typeof elevatorFac>;
+  /** Internal canvas */
+  canvas?: TerminalCanvasOptions;
+  focusable?: FocusableOptions;
+}
+export type ElevatorContainer = SimplexReactorOfFac<typeof elevatorFac>;
+export function createElevator(opts?: ElevatorOptions) {
+  return elevatorFac.create(opts);
 }
 export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]> {
   return rx.combineLatest([

@@ -23,26 +23,23 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.elevatorFac = void 0;
 exports.createElevator = createElevator;
 exports.getBoundingOfCompTree = getBoundingOfCompTree;
 const rx = __importStar(require("rxjs"));
-const reactivizer_1 = require("@wfh/reactivizer");
-const container_1 = require("./container");
+const base_1 = require("./base");
 const focusable_1 = require("./focusable");
+const container_1 = require("./container");
 const index_1 = require("./index");
-function createElevator(opts) {
-    var _a, _b;
-    const base = (0, container_1.createContainerBase)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: (_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'Elevator' }), opts === null || opts === void 0 ? void 0 : opts.core));
-    const service = base.config({}).forExtend();
+exports.elevatorFac = container_1.baseContainerFac.forExtend({
+    name: 'elevator'
+}).interceptorForBaseByType(ac => rx.merge(rx.merge(ac.at.onRender, ac.at.findOverlaps).pipe(rx.ignoreElements()), ac.ofOtherTypes())).defineReactor((init, opts) => {
+    const service = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
     const { s, r, table } = service;
-    /** Canvas by root component */
+    // let lastBottom: BaseWidget | undefined;
+    /** Offline canvas by root component */
     const canvasMap = new Map();
-    // intercept "onRender"
-    s.appendInterceptorToSrc(action$ => {
-        const dispenser = reactivizer_1.ActionDispenser.ofAction$(action$);
-        return rx.merge(rx.merge(dispenser.at.onRender, dispenser.at.findOverlaps).pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
-    });
-    r('addChild, removeChild -> "canvasMap"', rx.merge(s.pt.addChild.pipe(rx.map(([m, ...chdn]) => [m, chdn])), s.pt.insertChild.pipe(rx.map(([m, , chdn]) => [m, chdn]))).pipe(rx.mergeMap(([m, chd]) => rx.from(chd).pipe(rx.mergeMap(chd => {
+    r('addChild,insertChild, removeChild -> "canvasMap"', rx.merge(s.pt.addChild.pipe(rx.map(([m, ...chdn]) => [m, chdn])), s.pt.insertChild.pipe(rx.map(([m, , chdn]) => [m, chdn]))).pipe(rx.mergeMap(([m, chd]) => rx.from(chd).pipe(rx.mergeMap(chd => {
         const cv = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Elevator.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
         canvasMap.set(chd, cv);
         cv.s.ft.setRootComponent(chd).dp(m);
@@ -103,12 +100,51 @@ function createElevator(opts) {
             }
         }));
     })));
+    /*
+    r('addChild,insertChild,c.setDisplay -> onChildLayerHidden', rx.merge(
+      s.pt.addChild.pipe(
+        rx.map(([, ...chd]) => chd)
+      ),
+      s.pt.insertChild.pipe(
+        rx.map(([, , chd]) => chd)
+      )
+    ).pipe(
+      rx.mergeMap(chd => {
+        return rx.from(chd).pipe(
+          rx.map(c => c)
+        );
+      }),
+      rx.mergeMap(c => rx.merge(
+        c.table.l.setDisplay.pipe(
+          rx.scan(([, prevDis], setDisplay) => {
+            const [m2, display] = setDisplay;
+            if ((prevDis === DisplayMode.visible) && (display === DisplayMode.none || display === DisplayMode.hidden)) {
+              s.ft.onChildLayerHidden(c).dp(m2);
+            }
+            return setDisplay;
+          }),
+          rx.takeUntil(s.pt.removeChild.pipe(
+            rx.filter(([, ...removed]) => removed.some(d => c === d))
+          )),
+          rx.takeUntil(c.destory$)
+        ),
+        s.pt.removeChild.pipe(
+          rx.map(([m, ...chd]) => {
+            for (const c of chd) {
+              s.ft.onChildLayerHidden(c).dp(m);
+            }
+          })
+        )
+      ))
+    ));
+    */
     r('onRender', s.pt.onRender.pipe(rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chrd]) => chrd), rx.reduce((acc, chr) => {
         acc.push(chr);
         return acc;
     }, []), rx.mergeMap(children => {
-        if (renderSelf)
+        if (renderSelf) {
             s.ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
+        }
         const allMasks = [];
         const last = children.length - 1;
         return rx.concat(
@@ -120,20 +156,49 @@ function createElevator(opts) {
             const canvasOfChd = canvasMap.get(chd);
             const isBottomLayer = i === last;
             const idx = last - i;
-            s.ft.renderChild(idx, chd, isBottomLayer ? canvas : canvasOfChd, trans, clips, allMasks).dp(m);
+            s.ft.renderChild(idx, chd, canvasOfChd, trans, clips, allMasks).dp(m);
+            /*
+            let renderToCash$: rx.Observable<void> | undefined;
+            if (isBottomLayer) {
+              if (lastBottom !== chd) {
+                service.log('>>> case 1: isBottomLayer (not lastBottom)', chd.s.logPrefix);
+                // Current component is the new bottom layer, but previously it is not the bottom layer.
+                // 1) copy original cached offline canvas to outer canvas,
+                // 2) then render the rest new states of child component to outer canvas
+                renderToCash$ = copyCanvas(canvasOfChd, canvas, m).pipe(
+                  rx.map(() => {
+                    s.ft.renderChild(idx, chd, canvas, trans, clips, allMasks).dp(m);
+                  })
+                );
+                lastBottom = chd;
+              } else {
+                service.log('>>> case 2: always isBottomLayer (is lastBottom)', chd.s.logPrefix);
+                s.ft.renderChild(idx, chd, canvas, trans, clips, allMasks).dp(m);
+              }
+            } else if (lastBottom === chd) {
+              service.log('>>> case 3: NOT isBottomLayer (is lastBottom)', chd.s.logPrefix);
+              // current component is not the new bottom layer, but it was previously
+              chd.s.ft.bgCleared(true).dp(m); // bgCleared will cause "needRerender" on all its children
+              chd.s.ft.needRerender(true).dp(m);
+              s.ft.renderChild(idx, chd, canvasOfChd, trans, clips, allMasks).dp(m);
+            } else {
+              service.log('>>> case 4: NEVER isBottomLayer (nore is lastBottom)', chd.s.logPrefix);
+              s.ft.renderChild(idx, chd, isBottomLayer ? canvas : canvasOfChd, trans, clips, allMasks).dp(m);
+            }
+            return isBottomLayer ?
+              (renderToCash$ ?? rx.EMPTY).pipe(rx.ignoreElements()) :
+              (renderToCash$ ?? rx.of(1) as rx.Observable<unknown>).pipe(
+                rx.mergeMap(() => getBoundingOfCompTree(chd)),
+                rx.take(1)
+              ); */
             return isBottomLayer ? rx.EMPTY : getBoundingOfCompTree(chd).pipe(rx.take(1));
         }), rx.map(rects => {
             service.log('-- getBoundingOfCompTree', rects.join());
             allMasks.push(...rects);
-        })), rx.from(children).pipe(rx.skip(1), // the 1st has been directly rendered to outer canvas
+        })), rx.from(children).pipe(
+        // rx.skip(1), // the 1st has been directly rendered to outer canvas
         rx.map(chd => canvasMap.get(chd)), rx.concatMap(c => {
-            return c.table.l.setBounding.pipe(rx.take(1), rx.mergeMap(([, , , w, h]) => {
-                return c.s.ft.copyRect(0, 0, w, h).re(m).od(c.s.pt.onCopyRect);
-            }), rx.map(([, lines]) => {
-                for (const [x, , y, units, style] of lines) {
-                    canvas.s.ft.addDisplayUnits(x, y, units, [style]).dp(m);
-                }
-            }), rx.take(1));
+            return copyCanvas(c, canvas, m);
         })));
     })))));
     r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.withLatestFrom(s.pt.allDisplayChildren), rx.mergeMap(([[m, ...rect], [, chdr]]) => {
@@ -147,8 +212,19 @@ function createElevator(opts) {
             return comp.s.ft.findOverlaps(...rect).re(m).od(comp.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([m2, comps]) => s.ft.didFindOverlaps(comps.concat(comp)).dp(m, m2)));
         }));
     })));
+    function copyCanvas(source, canvas, m) {
+        return source.table.l.setBounding.pipe(rx.take(1), rx.mergeMap(([, , , w, h]) => {
+            return source.s.ft.copyRect(0, 0, w, h).re(m).od(source.s.pt.onCopyRect);
+        }), rx.map(([, lines]) => {
+            for (const [x, , y, units, style] of lines) {
+                canvas.s.ft.addDisplayUnits(x, y, units, [style]).dp(m);
+            }
+        }), rx.take(1));
+    }
     s.ft.hasOfflineCanvas(true).dp();
-    return service;
+});
+function createElevator(opts) {
+    return exports.elevatorFac.create(opts);
 }
 function getBoundingOfCompTree(c) {
     return rx.combineLatest([
@@ -157,7 +233,7 @@ function getBoundingOfCompTree(c) {
             rx.combineLatest([c.table.l.setBackground, c.table.l.isOpaque]) :
             rx.of([[null, ''], [null, false]])
     ]).pipe(rx.switchMap(([[, d], [[, bg], [, isOpaque]]]) => {
-        if (d !== index_1.DisplayMode.visible)
+        if (d !== base_1.DisplayMode.visible)
             return rx.of([]);
         else if (bg != null || isOpaque) {
             return c.table.l.onBoundingBox.pipe(rx.map(([, r]) => [r]));

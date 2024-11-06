@@ -161,11 +161,13 @@ describe('TerminalCanvas', () => {
 });
 
 function interceptPrint(service: TerminalCanvas) {
-  service.s.interceptor$.next(a$ => {
+  const inter = service.s.interceptorList$.getValue();
+  inter.push(a$ => {
     const dis = ActionDispenser.ofAction$<typeof service>(a$);
     return rx.merge(
       dis.at.onPrintText.pipe(rx.ignoreElements()),
       dis.ofOtherTypes()
     );
   });
+  service.s.interceptorList$.next(inter);
 }

@@ -42,14 +42,7 @@ export class SimplexReactor<
       this.reactorSubj.next(['', ...params as [stream: rx.Observable<any>, disableCatchError?: boolean]]);
   };
   table: ActionTable<I & BaseActions<I>, LE<LI>>;
-  // /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
-  // asBaseType = this as unknown as BaseType;
-  /** alias of "asBaseType",
-   * cast current SimplexReactor type to its logical super type for Typescript type assignable check
-   **/
-  // b = this as unknown as BaseType;
   id = SEQ++;
-  // use type parameter <any> to make SimplexReactor more assignable to extend type
   opts?: SimplexReactorOptions<unknown, readonly never[]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]> = new rx.ReplaySubject();
   protected errorSubject: rx.Subject<[label: string, originError: any]> =
@@ -155,7 +148,15 @@ export class SimplexReactor<
    * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
    **/
   forExtend() {
-    this.s = new ForkedRxController(this.s);
+    const s = this.s = new ForkedRxController(this.s);
+    const baseTable = this.table;
+    this.table = new ActionTable(this.s, [...this.table.actionNames] as LE<LI>[]);
+    for (const [type, [m, ...p]] of baseTable.actionSnapshot) {
+      const latestAct = this.s.createAction(type as keyof I, p as any);
+      latestAct.i = m.i;
+      latestAct.r = m.r;
+      s.forkedUpStream.next(latestAct);
+    }
     return this as unknown as DerivedSimplexReactor<I, LI>;
   }
   /**
@@ -279,8 +280,8 @@ export class SimplexReactor<
     this.dispose();
   }
   protected logError(label: string, err: any) {
-    const message = 'Error@' + (this.opts?.name ? this.opts.name + '::' : '') + label;
-    this.errorSubject.next([message, err]);
+    const message = 'Error@' + (this.s.logPrefix + '::') + label;
+    this.errorSubject.next([message, err.message ?? err]);
     if (this.opts?.log)
       this.opts.log(message, err);
     else
@@ -301,15 +302,15 @@ export class SimplexReactor<
 
 /** You should never create instance by constructor of this class,
  **/
-export class DerivedSimplexReactor<
+export interface DerivedSimplexReactor<
   I = Record<never, never>,
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly []
 > extends SimplexReactor<I, LI> {
   s: ForkedRxController<I & BaseActions>;
 
-  private constructor(ancestor: SimplexReactor<I, LI>) {
-    super();
-    this.s = new ForkedRxController(ancestor.s);
-    this.table = ancestor.table;
-  }
+  // private constructor(ancestor: SimplexReactor<I, LI>) {
+  //   super();
+  //   this.s = new ForkedRxController(ancestor.s);
+  //   this.table = new ActionTable(this.s, [...ancestor.table.actionNames] as LE<LI>[]);
+  // }
 }

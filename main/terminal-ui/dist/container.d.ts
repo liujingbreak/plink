@@ -1,12 +1,13 @@
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
-import { SingleActionFactory, SimplexReactor, SimplexReactorMergeType, Action, InferMapParam, OptionsOfSmplxRctr } from '@wfh/reactivizer';
+import { SingleActionFactory, Action, InferMapParam, CreateOptsOfFac, SimplexReactorOfFac } from '@wfh/reactivizer';
 import { TerminalCanvas, Rectangle } from './canvas';
-import { BaseWidget, BaseWidgetRenderData, BaseWidgetEvents } from './base';
+import { BaseWidget } from './base';
 export interface TerminalContainerInput {
     addChild(...children: BaseWidget[]): SingleActionFactory;
     insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
     removeChild(...children: BaseWidget[]): SingleActionFactory;
+    setLayoutCheck(watchTaget: rx.Observable<InferMapParam<any>>): SingleActionFactory;
     /** @deprecated use latestReflowData instead.
      * If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
     addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
@@ -15,9 +16,6 @@ export interface TerminalContainerInput {
     findOverlaps(...rect: Rectangle): SingleActionFactory;
 }
 export interface TermainlContainerEvents extends TerminalContainerInput {
-    /** implement should dispatch this event in "onRender" hanlder,
-     * Default implementation is about: reflow, clear background, set flags
-     **/
     renderSelf(canvas: TerminalCanvas, transform: mat4, clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
     renderChild(index: number, child: BaseWidget, canvas: TerminalCanvas, absTransform: mat4, clipArea: Rectangle[], maskArea: Rectangle[]): SingleActionFactory;
     allChildren(children: Array<BaseWidget>): SingleActionFactory;
@@ -31,6 +29,7 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
     onChildError(childId: string, errInfo: readonly [err: any, label: string | null]): SingleActionFactory;
     /** size of component which is "setDisplay" `none` is excluded */
     onChildPreferredSizeChange(sizes: [w: number, h: number][]): SingleActionFactory;
+    /** set to true if expecting "reflow" during next rendering phase */
     setLayoutValid(isValid: boolean): SingleActionFactory;
     /** Implementation container should set proper initial value, for container like "scrollable" whose child
      * component is actually rendered to another canvas other than the containing one, they must set this
@@ -45,15 +44,19 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
      *    2) Dispatch corresponding "onChildPositions" for latest "allDisplayChildren"
      **/
     reflow(clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
-    /** No reaction yet , preserve for the future */
-    renderBackgroundFor(child: BaseWidget): SingleActionFactory;
+    /** isLayoutDirty represents the actual layout change after "reflow" is handled,
+     *
+     * Value is changed against the observable of "setLayoutCheck", which
+     * can be used to configure what should considered as "layout changed", default is
+     * merged observable of values change of children position, size and current component's
+     * size
+     */
+    isLayoutDirty(yes: boolean): SingleActionFactory;
     /** Being relied by ElevatorContainer */
     isOpaque(yes: boolean): SingleActionFactory;
     /** In context of findOverlaps */
     didFindOverlaps(children: BaseWidget[]): SingleActionFactory;
 }
-declare const tableFor: readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque", "latestReflowData"];
-export type TerminalContainer = SimplexReactorMergeType<BaseWidget, SimplexReactor<TermainlContainerEvents, typeof tableFor>>;
-export type TerminalContainerOpts = Partial<OptionsOfSmplxRctr<TerminalContainer>>;
-export declare function createContainerBase<S = BaseWidgetRenderData>(opts?: TerminalContainerOpts): SimplexReactor<BaseWidgetEvents<S> & TermainlContainerEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDettached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "latestRenderData" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData")[]>;
-export {};
+export declare const baseContainerFac: import("@wfh/reactivizer").DerivedReactorFactory<TermainlContainerEvents, readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque", "latestReflowData", "isLayoutDirty", "setLayoutCheck"], [], import("./base").BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer"], []>;
+export type TerminalContainerOpts = CreateOptsOfFac<typeof baseContainerFac>;
+export type TerminalContainer = SimplexReactorOfFac<typeof baseContainerFac>;

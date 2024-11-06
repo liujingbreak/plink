@@ -418,7 +418,7 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
   ));
 
   // Enable and disable Mouse device
-  const reset = () => process.stdout.write('\x1b[?1000;1003;1006hl');
+  const reset = () => process.stdout.write('\x1b[?1000;1003;1006l');
   process.on('exit', reset);
   process.on('SIGINT', () => {
     reset();

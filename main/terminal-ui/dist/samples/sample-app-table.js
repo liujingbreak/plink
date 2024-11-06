@@ -31,30 +31,34 @@ const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
-const debug = false;
+const debug = true;
 const fout = fs_1.default.createWriteStream('terminal-table-sample.log');
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, true, fout);
 const table = (0, index_1.createTable)({
     default: {
         debug, log
     },
     core: {
         debug: true
+    },
+    optsForCellComponent: {
+        debug
+    },
+    lazy: {
+        // default: {debug},
+        core: { debug, log }
+        // headPlaceHolder: {debug: true},
+        // tailPlaceHolder: {debug: true}
+        // headPlaceHolderLabel: {
+        //   debug: false
+        // },
+        // tailPlaceHolderLabel: {
+        //   debug: false
+        // }
     }
-    // optsForCellComponent: {debug: true}
-    // lazy: {
-    //   core: {debug: true},
-    //   headPlaceHolder: {debug: true, debugIncludeTypes: ['onRender']},
-    //   headPlaceHolderLabel: {
-    //     debug: false
-    //   },
-    //   tailPlaceHolderLabel: {
-    //     debug: false
-    //   }
-    // }
 });
 const SAMPLE_ROW_COUNT = 10;
-const SAMPLE_COLUMN_CNT = 3;
+const SAMPLE_COLUMN_CNT = 1;
 table.s.ft.setLazyLoad(true, page => {
     table.log('*** handle onLoadPage', page);
     const out$ = new rx.Observable(sub => {
@@ -71,13 +75,13 @@ table.s.ft.setLazyLoad(true, page => {
                 sub.next([page + ':' + r, cells]);
             }
             sub.complete();
-        }, Math.round(Math.random() * 700));
+        }, Math.round(Math.random() * 300));
     });
     return out$;
 }).dp();
 table.s.pt.onRowAdded.pipe(rx.map(([, _idx, _id, cells]) => {
     cells.map(cell => {
-        cell.s.ft.setStyle(['black']).dp();
+        // (cell as MultiLineTextWidget).s.ft.setStyle(['black']).dp();
         cell.s.ft.setFocusable(true).dp();
     });
 })).subscribe();
@@ -107,24 +111,24 @@ const { canvas } = index_1.app.createApp(root, {
         debug, log
     },
     focusable: {
-        debug: true,
+        debug,
         debugExcludeTypes: ['removeFocusable']
     },
-    // canvas: {
-    //   debug: true,
-    //   debugIncludeTypes: ['clearRect']
-    // },
+    // statusbar: {debug: false},
+    canvas: {
+        debug: true,
+        debugIncludeTypes: ['render']
+    },
     scrollable: {
-        // default: {debug},
-        // core: {debug},
-        focusable: {
-            debug: true,
-            debugExcludeTypes: ['removeFocusable']
-        },
-        canvas: {
-            debug: false,
-            debugIncludeTypes: ['clearRect']
-        }
+        // default: {debug: true, log}
+        core: { debug }
+        // focusable: {
+        //   debug: false,
+        //   debugExcludeTypes: ['removeFocusable']
+        // },
+        // canvas: {
+        //   debug
+        // }
     }
 });
 const screenWidth = process.argv[2];

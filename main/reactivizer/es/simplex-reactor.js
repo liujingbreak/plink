@@ -221,7 +221,7 @@ export class DerivedSimplexReactor extends SimplexReactor {
     constructor(ancestor) {
         super();
         this.s = new ForkedRxController(ancestor.s);
-        this.table = ancestor.table;
+        this.table = new ActionTable(this.s, [...ancestor.table.actionNames]);
     }
 }
 //# sourceMappingURL=simplex-reactor.js.map

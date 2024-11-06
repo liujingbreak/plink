@@ -1,8 +1,8 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
-import {SimplexReactorExtendType, SingleActionFactory, OptionsOfSmplxRctr} from '@wfh/reactivizer';
+import {CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory, CreateOptsInDef} from '@wfh/reactivizer';
 import {getTextDisplayUnits, TextStyle} from './canvas';
-import {createBase, BaseWidget} from './base';
+import {baseComponentFac} from './base';
 import {isCodePointFullWidth, createWordSplitter} from './text-split';
 
 export interface MultiLineTextActions {
@@ -18,29 +18,34 @@ export interface MultiLineTextActions {
   // line number is most likely over 5000
 }
 const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'] as const;
-export type MultiLineTextWidget = SimplexReactorExtendType<
-BaseWidget, MultiLineTextActions, typeof tableForMultiLineText
->;
-
-export type MultiLineTextWidgetOpts = Omit<NonNullable<OptionsOfSmplxRctr<MultiLineTextWidget>>, 'tableFor'>;
-export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpts) {
-  const service = createBase({
-    name: 'text',
-    ...opts
-  } as OptionsOfSmplxRctr<BaseWidget>).config<MultiLineTextActions, typeof tableForMultiLineText>({
-    tableFor: tableForMultiLineText
-  });
+export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, typeof tableForMultiLineText>({
+  name: 'text',
+  tableFor: tableForMultiLineText
+}).interceptorByType(ad => rx.merge(
+  ad.at.setContent.pipe(
+    rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+  ),
+  ad.ofOtherTypes()
+)).defineReactor((init, initialText: string, opts?: CreateOptsInDef<MultiLineTextActions, typeof baseComponentFac>) => {
+  const service = init(opts);
   const spliter = createWordSplitter({debug: false, log: opts?.log});
   const {r, s, table} = service;
   r('onRender', s.pt.onRender.pipe(
     rx.filter(([, , , needRerender]) => needRerender),
-    rx.withLatestFrom(table.l.onDisplayLines, table.l.onStyleWithParentBg, table.l.onSize, table.l.overflow),
-    rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow]]) => {
+    rx.withLatestFrom(table.l.onDisplayLines, table.l.onStyleWithParentBg, table.l.onSize, table.l.overflow, table.l.onBgChangeWithParent),
+    rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
       const leftop = [0, 0] as vec2;
       const [x, y0] = vec2.transformMat4(leftop, leftop, trans);
       const lineCnt = Math.min(height, lines.length);
       for (let i = 0, l = lineCnt; i < l; i++) {
         // canvas.log('>>>', String.fromCodePoint(...lines[i]));
+        const line = lines[i];
+        if (line.length < width) {
+          if (bg)
+            canvas.s.ft.addString(line.length, y0 + i, ' '.repeat(width - line.length), [bg]).dp(m);
+          else
+            canvas.s.ft.clearRect(line.length, y0 + i, width - line.length, 1).dp(m);
+        }
         canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
       }
       if (overflow)
@@ -85,9 +90,7 @@ export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpt
     })
   ));
   r('onSize, setContent -> preferredSize, onDisplayLines, overflow, onDisplayLinesForWidth', rx.combineLatest([
-    table.l.onSize.pipe(
-      rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh)
-    ),
+    table.l.onSize,
     table.l.setContent.pipe(
       rx.map(([m, content]) => {
         const [lines, maxWidth] = preferLayoutText(content);
@@ -100,6 +103,8 @@ export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpt
     )
   ]).pipe(
     rx.mergeMap(([[m, width, height], [, prefWidth, prefHeight, linesOfPrefSize]]) => {
+      if (width == null || height == null)
+        throw new Error(`Error: ${width} or ${height} is not valid value of "onSize [i: ${m.i}, r: ${JSON.stringify(m.r)}]" of ${s.logPrefix}`);
       // service.log('======', width, height, prefWidth, prefHeight, linesOfPrefSize);
       if (width === 0) {
         s.ft.onDisplayLines([]).dp(m);
@@ -136,15 +141,22 @@ export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpt
         s.ft.onStyleWithParentBg(style).dp(m2);
     })
   ));
+  const renderData = [
+    table.l.setDisplay,
+    table.l.onSize.pipe(
+      rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
+    ),
+    table.l.setBackground,
+    table.l.setContent, table.l.setStyle
+  ];
   r('init', new rx.Observable<never>(() => {
-    s.ft.addRerenderAction(s.pt.setContent).dp();
-    s.ft.addRerenderAction(s.pt.setStyle).dp();
     s.ft.onContentSizeChange(0, 0).dp();
     s.ft.onSize(0, 0).dp();
     s.ft.setParent(null).dp();
     s.ft.overflow(false).dp();
     s.ft.setStyle([]).dp();
     s.ft.setContent(initialText).dp();
+    s.ft.setRenderChanges(renderData).dp();
   }));
 
   function preferLayoutText(content: string) {
@@ -229,6 +241,11 @@ export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpt
       })
     );
   }
+});
+export type MultiLineTextWidget = SimplexReactorOfFac<typeof textWidgetFac>;
+export type MultiLineTextWidgetOpts = CreateOptsOfFac<typeof textWidgetFac>;
+export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpts) {
+  const service = textWidgetFac.create(initialText, opts);
   return service;
 }
 

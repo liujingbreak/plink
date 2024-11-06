@@ -23,6 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.borderFac = void 0;
 exports.createBorderContainer = createBorderContainer;
 exports.renderLineBorder = renderLineBorder;
 const rx = __importStar(require("rxjs"));
@@ -31,41 +32,56 @@ const container_1 = require("./container");
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'];
 // https://symbl.cc/en/unicode/blocks/box-drawing/
 const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
-function createBorderContainer(child, opts) {
-    const container = (0, container_1.createContainerBase)(Object.assign({ name: 'borderContainer' }, opts));
-    const service = container.config({
-        tableFor: tableForBorderContainer
-    });
+exports.borderFac = container_1.baseContainerFac.forExtend({
+    name: 'border',
+    tableFor: tableForBorderContainer
+}).defineReactor((init, child, opts) => {
+    const service = init(opts);
     const { r, table, s } = service;
     const childPos = [0, 0];
     const positions = new Map([[child, childPos]]);
     r('querySizeOf -> prefWidthFor, prefHeightFor', s.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.allChildren, table.l.setBorder, table.l.setPadding), rx.mergeMap(([[m, w, h], [, children], [, border], [, top, right, bottom, left]]) => {
         if (w == null && h != null) {
-            return children[0].s.ft.querySizeOf(null, h - top - bottom - (border === 'line' ? 2 : 0)).re(m).od(children[0].s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, childWidth]) => {
+            const qh = h - top - bottom - (border === 'line' ? 2 : 0);
+            if (qh < 0) {
+                s.ft.prefWidthFor(0, h).dp(m);
+                return rx.EMPTY;
+            }
+            return children[0].s.ft.querySizeOf(null, qh).re(m).od(children[0].s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, childWidth]) => {
                 s.ft.prefWidthFor(childWidth + left + right + (border === 'line' ? 2 : 0), h).dp(m);
             }));
         }
         else if (h == null && w != null) {
-            return children[0].s.ft.querySizeOf(w - left - right - (border === 'line' ? 2 : 0), null).re(m).od(children[0].s.pt.prefHeightFor).pipe(rx.take(1), rx.map(([, , childHeight]) => {
+            const qw = w - left - right - (border === 'line' ? 2 : 0);
+            if (qw < 0) {
+                s.ft.prefHeightFor(w, 0).dp(m);
+                return rx.EMPTY;
+            }
+            return children[0].s.ft.querySizeOf(qw, null).re(m).od(children[0].s.pt.prefHeightFor).pipe(rx.take(1), rx.map(([, , childHeight]) => {
                 s.ft.prefHeightFor(w, childHeight + top + bottom + (border === 'line' ? 2 : 0)).dp(m);
             }));
         }
         return rx.EMPTY;
     })));
-    r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
+    r('onChildPreferredSizeChange,... -> onContentSizeChange', rx.combineLatest([
         s.pt.onChildPreferredSizeChange,
         table.l.setBorder, table.l.setPadding
     ]).pipe(rx.map(([[m, sizes], [m2, border], [m3, top, right, bottom, left]]) => {
         const line = border === 'line' ? 2 : 0;
-        s.ft.onContentSizeChange(sizes[0][0] + line + right + left, sizes[0][1] + line + top + bottom).dp(m, m2, m3);
+        if (sizes.length > 0) {
+            s.ft.onContentSizeChange(sizes[0][0] + line + right + left, sizes[0][1] + line + top + bottom).dp(m, m2, m3);
+        }
+        else {
+            s.ft.onContentSizeChange(line + right + left, line + top + bottom).dp(m, m2, m3);
+        }
     })));
-    const reflowData = rx.combineLatest([
+    const reflowData = [
         table.l.onSize,
         table.l.setBorder,
         table.l.setPadding,
         table.l.allChildren
-    ]);
-    r('reflow -> onSize, setLayoutValid', s.pt.reflow.pipe(rx.withLatestFrom(reflowData), rx.map(([[m], [[, w, h], [, border], [, top, right, bottom, left], [, children]]]) => {
+    ];
+    r('reflow -> onSize, setLayoutValid', s.pt.reflow.pipe(rx.withLatestFrom(...reflowData), rx.map(([[m], [ms, w, h], [, border], [, top, right, bottom, left], [, children]]) => {
         s.ft.setLayoutValid(true).dp(m);
         childPos[0] = childPos[1] = 0;
         let borderLine = 0;
@@ -98,14 +114,16 @@ function createBorderContainer(child, opts) {
         }
     })));
     r('init', new rx.Observable(() => {
-        s.ft.latestReflowData(reflowData).dp();
+        s.ft.latestReflowData(rx.merge(...reflowData)).dp();
         s.ft.setPadding(0, 1, 0, 1).dp();
         s.ft.setBorder('line').dp();
         s.ft.addChild(child).dp();
         s.ft.setBorderStyle([]).dp();
         s.ft.onChildPositions(positions).dp();
     }));
-    return service;
+});
+function createBorderContainer(child, opts) {
+    return exports.borderFac.create(child, opts);
 }
 function renderLineBorder(m, canvas, x, y, w, h, style) {
     canvas.s.ft.addString(x, y, BORDER_CHARS[0][0] + BORDER_CHARS[0][1].repeat(w - 2) + BORDER_CHARS[0][2], style).dp(m);

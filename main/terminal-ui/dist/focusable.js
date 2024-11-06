@@ -456,14 +456,16 @@ function createRootService(keyEventService, opts) {
     })));
     r('onFocus,c.onRender -> render', s.pt.onFocus.pipe(rx.distinctUntilChanged(([, , a], [, , b]) => a === b), rx.switchMap(([m, , c]) => {
         if (c) {
-            return c.s.pt.onRender.pipe(rx.map(([m2, canvas]) => {
+            return rx.merge(c.s.pt.onRender.pipe(rx.map(([m2, canvas]) => {
                 s.ft.render(canvas, c).dp(m, m2);
+            })), new rx.Observable(() => {
+                c.s.ft.needRerender(true).dp(m);
             }));
         }
         else
             return rx.EMPTY;
     })));
-    r('onFocus,latestRenderedRect -> requestRerenderFor', table.l.onFocus.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.filter(([, c, svc]) => c != null && svc != null), rx.mergeMap(([m]) => {
+    r('onFocus,latestRenderedRect -> requestRerenderFor', table.l.onFocus.pipe(rx.distinctUntilChanged(([, , a], [, , b]) => a === b), rx.filter(([, c, svc]) => c != null && svc != null), rx.mergeMap(([m]) => {
         return table.l.latestRenderedRect
             .pipe(rx.take(1), rx.map(([, lastRect]) => {
             if (lastRect) {

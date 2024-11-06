@@ -23,6 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.placeHolderFac = void 0;
 exports.createPlaceHolder = createPlaceHolder;
 /* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
@@ -33,14 +34,14 @@ const text_1 = require("./text");
 const tableFor = ['setExpandDir', 'setLabel', 'setAveragePageSize',
     'onBeforePages', 'onAfterPages', 'beforePageRange', 'afterPageRange',
     'dp_setTotalPageNum', 'setMaxLoadedPages'];
-function createPlaceHolder(opts) {
-    var _a, _b;
-    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign(Object.assign({ name: 'LazyPlaceHolder' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core), { tableFor }));
-    const before = (0, flex_container_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.head' : 'LazyPlaceHolder.head' }), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolder));
-    const after = (0, flex_container_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.tail' : 'LazyPlaceHolder.tail' }), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolder));
+exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
+    name: 'LazyPlaceHolder',
+    tableFor
+}).interceptorByType(ad => rx.merge(ad.at.onAfterPages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.onBeforePages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, before, after, opts) => {
+    const service = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
     const { r, s, table } = service;
     const labelBefore = (0, text_1.createTextWidget)('...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.headLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolderLabel));
-    const labelAfter = (0, text_1.createTextWidget)('Loading...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.headLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolderLabel));
+    const labelAfter = (0, text_1.createTextWidget)('Loading...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.tailLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolderLabel));
     const loadedCompsByPage = new Map();
     const loadingPages = new Map();
     const distinctAveragePageSize$ = s.pt.setAveragePageSize.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.share());
@@ -56,6 +57,10 @@ function createPlaceHolder(opts) {
             s.ft.setMaxLoadedPages(Math.ceil((dir === 'col' ? h : w) / pageSize) + 1)
                 .dp(m, m2, m3);
     })))));
+    r('queryLoadedPages -> didQueryLoadedPages', s.pt.queryLoadedPages.pipe(rx.map(([m]) => {
+        const pages = [...loadedCompsByPage.keys()];
+        s.ft.didQueryLoadedPages(pages).dp(m);
+    })));
     r('requestPage -> dp_onLoadPage | dp_didLoad -> onPagesLoaded, dp_setTotalPageNum', s.pt.requestPage.pipe(rx.mergeMap(([m, isHead, pIdx]) => {
         const load$ = s.ft.dp_onLoadPage(pIdx, isHead ? 'prepend' : 'append')
             .re(m, m.r).od(s.pt.dp_didLoad).pipe(rx.take(1), rx.takeUntil(s.pt.cancelRequestPage.pipe(rx.filter(([, idx]) => idx === pIdx))), rx.map(([, results]) => {
@@ -190,7 +195,7 @@ function createPlaceHolder(opts) {
         }
         service.log('requestPages >>> loadingPages', ...[...loadingPages.entries()].map(([p, obj]) => `${p}: ${JSON.stringify(obj)}`));
     })));
-    r('onBeforePages, before.onRender -> requestPages', s.pt.onBeforePages.pipe(rx.map(([, pages]) => pages), rx.distinctUntilChanged(), rx.switchMap(pages => {
+    r('onBeforePages, before.onRender -> requestPages', s.pt.onBeforePages.pipe(rx.map(([, pages]) => pages), rx.switchMap(pages => {
         return pages > 0 ? before.s.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.beforePageRange, before.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
             const pageSize = (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
             const [pIndex0, pIndex1] = clipRangeToPageIndex(dir, clips, pageSize);
@@ -198,7 +203,7 @@ function createPlaceHolder(opts) {
             return [pIndex0 + pageRangeOpen, pIndex1 - pIndex0 + 1, m];
         }), rx.distinctUntilChanged(([s1, e1], [s2, e2]) => s1 === s2 && e1 === e2), rx.map(([start, end, m]) => s.ft.requestPages(true, start, end).dp(m))) : rx.EMPTY;
     })));
-    r('onAfterPages, after.onRender -> requestPages', s.pt.onAfterPages.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.switchMap(([, pages]) => {
+    r('onAfterPages, after.onRender -> requestPages', s.pt.onAfterPages.pipe(rx.switchMap(([, pages]) => {
         return pages > 0 ? after.s.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.afterPageRange, after.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
             const sizeForEachPage = (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
             const [pIndex0, pIndex1] = clipRangeToPageIndex(dir, clips, sizeForEachPage);
@@ -245,6 +250,12 @@ function createPlaceHolder(opts) {
     s.ft.onBeforePages(0).dp();
     s.ft.setMaxLoadedPages(Number.MAX_SAFE_INTEGER).dp();
     s.ft.dp_setTotalPageNum('unknown').dp();
+});
+function createPlaceHolder(opts) {
+    var _a, _b;
+    const before = (0, flex_container_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.head' : 'LazyPlaceHolder.head' }), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolder));
+    const after = (0, flex_container_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.tail' : 'LazyPlaceHolder.tail' }), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolder));
+    const service = exports.placeHolderFac.create(before, after, opts);
     return { before, after, service };
 }
 function clipRangeToPageIndex(dir, clips, pageSize) {

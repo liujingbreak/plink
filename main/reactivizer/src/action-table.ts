@@ -8,7 +8,7 @@ import {ActionTableDataType, PayloadByType} from './inferred-types';
 const EMPTY_ARRY = [] as [];
 
 export class ActionTable<I, IK extends keyof I> {
-  private actionNames: Set<string>;
+  actionNames: Set<string>;
   latestPayloads = {} as PayloadByType<{[K in IK]: I[K]}>;
   /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
   l: PayloadByType<{[K in IK]: I[K]}>;
@@ -117,7 +117,7 @@ export class ActionTable<I, IK extends keyof I> {
     return this.streamCtl.opts?.log ?
       rx.map<P, P>((action, idx) => {
         if (idx === 0 && !core.debugExcludeSet.has(type)) {
-          this.streamCtl.opts!.log!(core.logPrefix + 'rx:latest', type, actionMetaToStr(action[0]));
+          this.streamCtl.opts.log!(core.logPrefix + 'rx:latest', type, actionMetaToStr(action[0]));
         }
         return action;
       }) :

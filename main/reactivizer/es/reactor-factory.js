@@ -25,12 +25,20 @@ export class BaseReactorFactory {
         });
         return this;
     }
-    create(instanceOpts) {
-        const service = new SimplexReactor(this.protoOptions ? Object.assign(Object.assign({}, this.protoOptions), instanceOpts) :
-            instanceOpts);
-        if (this._interceptors)
-            service.s.interceptorList$.next(this._interceptors);
-        this.reactorsFac(service);
+    create(...params) {
+        return this._create(a => a, params);
+    }
+    /** do not call this method directly, use create() instead */
+    _create(overrideOpts, param) {
+        let service;
+        this.reactorsFac(instanceOpts => {
+            const mergedOpts = this.protoOptions ? Object.assign(Object.assign({}, this.protoOptions), instanceOpts) :
+                instanceOpts;
+            service = new SimplexReactor(overrideOpts(mergedOpts));
+            if (this._interceptors)
+                service.s.prependInterceptor(...this._interceptors);
+            return service;
+        }, ...param);
         return service;
     }
 }
@@ -40,8 +48,8 @@ export class DerivedReactorFactory {
         this.reactorsFac = () => { };
         this.featTableForList = featOptions === null || featOptions === void 0 ? void 0 : featOptions.tableFor;
         if (featOptions) {
-            this.otherFeatOpts = Object.assign({}, featOptions);
-            delete this.otherFeatOpts.tableFor;
+            this.featOpts = Object.assign({}, featOptions);
+            delete this.featOpts.tableFor;
         }
     }
     defineReactor(fac) {
@@ -78,21 +86,24 @@ export class DerivedReactorFactory {
     forExtend(newOpts) {
         return new DerivedReactorFactory(this, newOpts);
     }
-    create(instanceOpts) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const mixedOpts = Object.assign(Object.assign({}, this.otherFeatOpts), instanceOpts);
-        const service = this.baseFactory.create(mixedOpts).config({
-            tableFor: this.featTableForList
-        }).forExtend();
-        const { s } = service;
-        if (this._interceptors) {
-            s.prependInterceptor(...this._interceptors);
-        }
-        if (this.baseInterceptors) {
-            s.appendInterceptorToSrc(...this.baseInterceptors);
-        }
-        this.reactorsFac(service);
+    /** do not call this method directly, use create() instead */
+    _create(overrideOpts, params) {
+        let service;
+        this.reactorsFac((instanceOpts, ...superParam) => {
+            const mixed = Object.assign(Object.assign({}, this.featOpts), instanceOpts);
+            service = this.baseFactory._create(baseOpts => overrideOpts(Object.assign(baseOpts, mixed)), superParam).config({
+                tableFor: this.featTableForList
+            }).forExtend();
+            if (this._interceptors)
+                service.s.prependInterceptor(...this._interceptors);
+            if (this.baseInterceptors)
+                service.s.appendInterceptorToSrc(...this.baseInterceptors);
+            return service;
+        }, ...params);
         return service;
+    }
+    create(...params) {
+        return this._create(a => a, params);
     }
 }
 //# sourceMappingURL=reactor-factory.js.map

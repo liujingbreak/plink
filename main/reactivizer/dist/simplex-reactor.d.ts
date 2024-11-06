@@ -25,9 +25,6 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     s: RxController2<I & BaseActions>;
     r: (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => void;
     table: ActionTable<I & BaseActions<I>, LE<LI>>;
-    /** alias of "asBaseType",
-     * cast current SimplexReactor type to its logical super type for Typescript type assignable check
-     **/
     id: number;
     opts?: SimplexReactorOptions<unknown, readonly never[]>;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
@@ -78,8 +75,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
 }
 /** You should never create instance by constructor of this class,
  **/
-export declare class DerivedSimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> extends SimplexReactor<I, LI> {
+export interface DerivedSimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> extends SimplexReactor<I, LI> {
     s: ForkedRxController<I & BaseActions>;
-    private constructor();
 }
 export {};

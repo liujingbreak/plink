@@ -2,7 +2,7 @@ import rl from 'node:readline';
 import * as rx from 'rxjs';
 import {mat4} from 'gl-matrix';
 import chalk from 'chalk';
-import {SingleActionFactory, SimplexReactor, SimplexReactorOptions, ActionMeta} from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactor, SimplexReactorOptions} from '@wfh/reactivizer';
 import {IntervalTree} from '@wfh/algorithms';
 // import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 import {isCodePointFullWidth} from './text-split';
@@ -10,10 +10,12 @@ import {BaseWidget} from './base';
 import {KeyEventServcie} from './keyEvent';
 import {RectangleOverlapTree} from './rectangle-overlap-tree';
 
-export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` | `bgHsl(${string})` | `bgRgb(${number},${number},${number})` | `hex(${string})` | `bgHex(${string})`)[];
-export type BackgroundStyle = typeof chalk.BackgroundColor | `bgRgb(${number},${number},${number})` | `bgHex(${string})` | `bgHsl(${string})`;
+export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` |
+                         `bgHsl(${string})` | `bgRgb(${number},${number},${number})` | `hex(${string})` | `bgHex(${string})` |
+                         `ansi(${string})` | `ansi256(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})`)[];
+export type BackgroundStyle = typeof chalk.BackgroundColor | `bgRgb(${number},${number},${number})` | `bgHex(${string})` | `bgHsl(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})`;
 
-const CHALK_NUMBER_FN = new Set<string>(['rgb', 'bgRgb', 'bgHsl', 'hsl']);
+const CHALK_NUMBER_FN = new Set<string>(['rgb', 'bgRgb', 'bgHsl', 'hsl', 'hex', 'bgHex', 'ansi', 'bgAnsi', 'ansi256', 'bgAnsi256']);
 
 export interface TerminalCanvasInput {
   /** render will not work until this message is dispatched */
@@ -70,6 +72,12 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
   // "lines" is an array of IntervalTree, each element of which represents a single line of display text of screen.
   // The intervalTree is a tree containing single or multiple discrete intervals which represents display text
   const lines = [] as (IntervalTree<[units: number[], style: string]> | undefined)[];
+  // A array of line cache to represent latest changes.
+  // When "addDisplayUnits", "clearRect"... is handled, "uncommited" is created or updated,
+  // in "render" phase, it is "merged" to "lines", and corresponding "onPrintText" will be dispatched,
+  // handling "onPrintText" is actually where to invoke text output through stand output stream.
+  // To avoid screen flickering, we use space character to clear screen instead of using API to clear lines.
+  const uncommited = [] as (IntervalTree<[units: number[], style: string]> | undefined)[];
   r('autoHideCursor', s.pt.autoHideCursor.pipe(
     rx.map(() => {
       process.stdout.write('\x1B[?25l');
@@ -107,9 +115,14 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
     })
   ));
   r('setRootComponent', s.pt.setRootComponent.pipe(
-    rx.map(([m, root]) => {
+    rx.switchMap(([m, root]) => {
       if (root)
-        root.s.ft.ofCanvas(canvas).dp(m);
+        return new rx.Observable(() => {
+          root.s.ft.ofCanvas(canvas).dp(m);
+          root.s.ft.onDetached(false).dp(m);
+          return () => root.s.ft.onDetached(true).dp(m);
+        });
+      return rx.EMPTY;
     })
   ));
   r('setBounding -> rootComponent.onSize', s.pt.setBounding.pipe(
@@ -158,16 +171,16 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
   r('clearRect', s.pt.clearRect.pipe(
     rx.map(([, x, y, w, h]) => {
       for (let i = y, l = y + h; i < l; i++) {
-        const dirtyRange = clearCodePointFromLine(x, i, w);
-        if (dirtyRange) {
-          const lastChange = dirtyLines.get(i);
-          if (lastChange) {
-            lastChange[0] = Math.min(lastChange[0], dirtyRange[0]);
-            lastChange[1] = Math.max(lastChange[1], dirtyRange[1]);
-          } else {
-            dirtyLines.set(i, [dirtyRange[0], dirtyRange[1]]);
-          }
-        }
+        clearCodePointFromLine(x, i, w);
+        // if (dirtyRange) {
+        //   const lastChange = dirtyLines.get(i);
+        //   if (lastChange) {
+        //     lastChange[0] = Math.min(lastChange[0], dirtyRange[0]);
+        //     lastChange[1] = Math.max(lastChange[1], dirtyRange[1]);
+        //   } else {
+        //     dirtyLines.set(i, [dirtyRange[0], dirtyRange[1]]);
+        //   }
+        // }
         // canvas.log('#### clearRect line', i, dirtyLines.get(y));
       }
     })
@@ -296,42 +309,40 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
     })
   ));
   r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(
+    // rx.observeOn(rx.queueScheduler),
     rx.switchMap(([, enabled]) => {
-      let suspended: ActionMeta | false = false; // Has recursive render request?
+      // let suspended: ActionMeta | false = false; // Has recursive render request?
       const rectTree = new RectangleOverlapTree();
+      let hasWaitReq = false;
       // eslint-disable-next-line multiline-ternary
       return enabled ? s.pt.requestRender.pipe(
+        // rx.observeOn(rx.queueScheduler),
         rx.mergeMap(([m, rect]) => {
           return table.l.setBounding.pipe(
             rx.take(1),
             rx.map(([, ...bounding]) => {
-              suspended = m;
+              hasWaitReq = true;
               rectTree.addOrUnionRectOnOverlap(rect ?? bounding, null);
               // canvas.log('rectTree', [...rectTree.allRectangles()].length);
               return m;
             })
           );
         }),
-        rx.exhaustMap(m => new rx.Observable<never>(sub => {
-          setTimeout(() => {
-            suspended = false;
-            const rects = [...rectTree.allRectangles()];
-            rectTree.clear();
-            // canvas.log('rectTree before render', rects.length);
-            s.ft.render(rects.map(([r]) => r)).dp(m);
-            // canvas.log('rectTree clear for', m);
-            sub.complete();
-            // canvas.log('has suspended:', suspended);
-            if (suspended) {
-              const rects = [...rectTree.allRectangles()];
-              rectTree.clear();
-              // to process possible request which is recursively issued during "exhaustMap"
-              // canvas.log('rectTree for suspended', rects.length);
-              s.ft.render(rects.map(([r]) => r)).dp(suspended);
-              // canvas.log('rectTree clear after', suspended);
-              suspended = false;
-            }
-          }, 20);
+        rx.sampleTime(200),
+        rx.filter(() => hasWaitReq),
+        rx.exhaustMap(m => new rx.Observable(sub => {
+          const rects = [...rectTree.allRectangles()];
+          rectTree.clear();
+          s.ft.render(rects.map(([r]) => r)).dp(m);
+          hasWaitReq = false;
+          // If there are more recursive requests
+          // if (hasWaitReq) {
+          //   hasWaitReq = false;
+          //   const rects = [...rectTree.allRectangles()];
+          //   rectTree.clear();
+          //   s.ft.render(rects.map(([r]) => r)).dp(m);
+          // }
+          sub.complete();
         }))
       ) : rx.EMPTY;
     })
@@ -354,7 +365,7 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
           if (match) {
             const fn = match[1];
             if (CHALK_NUMBER_FN.has(fn)) {
-              const params = match[2].trim().split(',').map(v => Number(v));
+              const params = match[2].trim().split(',').map(v => v.startsWith('#') ? v : Number(v));
               return chalkInst[fn as 'rgb'](...params as [number, number, number]);
             }
           }
@@ -366,10 +377,12 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
       return text;
     }
   }
+  /** add code points to "uncommited" line cache */
   function addCodePointsToCanvas(x: number, y: number, units: number[], style: TextStyle) {
     if (y < 0)
       return;
     if (x < 0) {
+      // units of negative coordinate should not be printed, so slice them
       const cutOffLen = 0 - x;
       units = units.slice(cutOffLen);
       if (isCodePointFullWidth(units[0])) {
@@ -377,16 +390,19 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
       }
       x = 0;
     }
-    let line = lines[y];
+    let line = uncommited[y];
     if (line == null) {
       line = new IntervalTree();
-      lines[y] = line;
+      uncommited[y] = line;
     }
     const endPos = units.length + x;
     const overlaps = [...line.searchMultipleOverlaps(x, endPos - 1)];
     // canvas.log('>>> line\n', stringifyRbTree(line));
     // canvas.log('>>> overlaps', ...overlaps.map(([l, h]) => `${l}-${h}`));
-    const newDisplayNodes = uniteDisplayUnits([x, endPos - 1, units, style.join(';')], overlaps.map(([l, h, [units, style]]) => [l, h, units, style]));
+    const newDisplayNodes = uniteDisplayUnits(
+      [x, endPos - 1, units, style.join(';')],
+      overlaps.map(([l, h, [units, style]]) => [l, h, units, style])
+    );
 
     for (const [low, high] of overlaps) {
       line.deleteInterval(low, high);
@@ -397,15 +413,12 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
       const node = line.insertInterval(low, high);
       node.value = [units, style];
     }
-    const lastChange = dirtyLines.get(y);
-    if (lastChange) {
-      lastChange[0] = Math.min(lastChange[0], x);
-      lastChange[1] = Math.max(lastChange[1], endPos);
-    } else {
-      dirtyLines.set(y, [x, endPos]);
-    }
   }
 
+  /**
+   * 1) delete overlaps from "uncommited"
+   * 2) fill white spaces to "uncommited" for all overlaps on "lines"
+   */
   function clearCodePointFromLine(x: number, y: number, width: number) {
     if (y < 0)
       return;
@@ -413,52 +426,51 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
       width -= 0 - x;
       x = 0;
     }
-    const line = lines[y];
-    if (line == null)
-      return null;
+    const uncLine = uncommited[y];
     const endPos = x + width;
-    // console.log('\n' + stringifyRbTree(line, node => '-' + node.maxHighOfMulti));
-    const overlaps = [...line.searchMultipleOverlaps(x, endPos - 1)];
-    if (overlaps.length === 0)
-      return null;
-    for (const [low, high] of overlaps) {
-      // console.log('clearCodePointFromLine delete', low, high);
-      line.deleteInterval(low, high);
-    }
-    // console.log('clearCodePointFromLine middle deleted', overlaps.length);
-    // const dirtyRange = [x, x + width - 1];
-    let dirtyRange = null as [number, number] | null;
-    for (const overlap of overlaps) {
-      const [low, high, [units, style]] = overlap;
-      if (dirtyRange == null) {
-        dirtyRange = [low, high + 1];
+    if (uncLine != null) {
+      // console.log('\n' + stringifyRbTree(uncLine, node => '-' + node.maxHighOfMulti));
+      const overlaps = [...uncLine.searchMultipleOverlaps(x, endPos - 1)];
+      for (const [low, high] of overlaps) {
+        // console.log('clearCodePointFromLine delete', low, high);
+        if (low >= x || high < endPos)
+          uncLine.deleteInterval(low, high);
       }
-      if (low < dirtyRange[0])
-        dirtyRange[0] = low;
-      if (low < x) {
-        dirtyRange[0] = x;
-        let chopEnd = x;
-        if (isCodePointFullWidth(units[x - low - 1])) {
-          chopEnd = x - 1;
+      // deal with full-width character
+      for (const overlap of overlaps) {
+        const [low, high, [units, style]] = overlap;
+        if (low < x) {
+          const chopEnd = x - low;
+          if (isCodePointFullWidth(units[chopEnd - 1])) {
+            units[chopEnd - 1] = SPACE_CODE_POINT;
+          }
+          const choppedUnits = units.slice(0, chopEnd);
+          const newNode = uncLine.insertInterval(low, x - 1);
+          newNode.value = [choppedUnits, style];
         }
-        const choppedUnits = units.slice(0, chopEnd - low);
-        const newNode = line.insertInterval(low, chopEnd - 1);
-        newNode.value = [choppedUnits, style];
-      }
-      if (high >= dirtyRange[1])
-        dirtyRange[1] = high + 1;
-      if (high >= endPos) {
-        dirtyRange[1] = endPos;
-        let chopStart = endPos;
-        if (units[0] === -1) {
-          chopStart = endPos + 1;
+        if (high >= endPos) {
+          if (units[endPos - low] === -1) {
+            units[endPos - low] = SPACE_CODE_POINT;
+          }
+          const choppedUnits = units.slice(endPos - low);
+          const newNode = uncLine.insertInterval(endPos, high);
+          newNode.value = [choppedUnits, style];
         }
-        const choppedUnits = units.slice(chopStart - low);
-        const newNode = line.insertInterval(chopStart, high);
-        newNode.value = [choppedUnits, style];
       }
     }
-    return dirtyRange;
+    // To find out where to put white space
+    const line = lines[y];
+    if (line) {
+      const overlaps = [...line.searchMultipleOverlaps(x, endPos - 1)];
+      for (const [low, high] of overlaps) {
+        const wsStart = low < x ? x : low;
+        const wsEnd = high >= endPos ? endPos : high + 1;
+        if (uncLine) {
+          const overlaps = [...uncLine.searchMultipleOverlaps(wsStart, wsEnd - 1)];
+          // TODO:
+        }
+      }
+    }
   }
   return canvas;
 }
@@ -480,7 +492,9 @@ export function* getTextDisplayUnits(text: string) {
 const SPACE_CODE_POINT = ' '.codePointAt(0)!;
 
 /** Inputed and returned "high" value is considered as an "included" value of range interval */
-function uniteDisplayUnits<T extends [low: number, high: number, units: number[], style: string]>(overlap: T, existings: T[]) {
+function uniteDisplayUnits<T extends [low: number, high: number, units: number[], style: string]>(
+  overlap: T, existings: T[]
+) {
   const [l, h, units, style] = overlap;
   const oUnits = [...units];
   let finalLow = l, finalHigh = h;

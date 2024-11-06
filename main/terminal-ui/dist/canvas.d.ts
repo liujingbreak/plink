@@ -3,8 +3,8 @@ import { SingleActionFactory, SimplexReactor, SimplexReactorOptions } from '@wfh
 import { IntervalTree } from '@wfh/algorithms';
 import { BaseWidget } from './base';
 import { KeyEventServcie } from './keyEvent';
-export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` | `bgHsl(${string})` | `bgRgb(${number},${number},${number})` | `hex(${string})` | `bgHex(${string})`)[];
-export type BackgroundStyle = typeof chalk.BackgroundColor | `bgRgb(${number},${number},${number})` | `bgHex(${string})` | `bgHsl(${string})`;
+export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` | `bgHsl(${string})` | `bgRgb(${number},${number},${number})` | `hex(${string})` | `bgHex(${string})` | `ansi(${string})` | `ansi256(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})`)[];
+export type BackgroundStyle = typeof chalk.BackgroundColor | `bgRgb(${number},${number},${number})` | `bgHex(${string})` | `bgHsl(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})`;
 export interface TerminalCanvasInput {
     /** render will not work until this message is dispatched */
     setBounding(left: number, top: number, width: number, height: number): SingleActionFactory;

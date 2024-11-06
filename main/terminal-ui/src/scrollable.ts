@@ -1,9 +1,9 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
-import {SimplexReactorExtendType, OptionsOfSmplxRctr, SingleActionFactory, ActionDispenser, CoreOptions} from '@wfh/reactivizer';
+import {SimplexReactorOfFac, CreateOptsOfFac, OptionsOfSmplxRctr, SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
 import {BaseWidget, OffsetParent} from './base';
-import {TerminalContainer, TerminalContainerOpts, createContainerBase} from './container';
+import {TerminalContainer, baseContainerFac} from './container';
 import {createTerminalCanvas, TerminalCanvasOptions, TextStyle, rectIntersection} from './canvas';
 import {createFocusService, FocusService} from './focusable';
 
@@ -26,36 +26,12 @@ const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', '
  * when they are scrolled to become visible, and they are firstly rendered to the offline canvas then will be copied
  * to outsider canvas afterward
  */
-export type Scrollable = SimplexReactorExtendType<TerminalContainer, ScrollSignals, typeof tableFor>;
-export interface ScrollableOptions {
-  default?: CoreOptions;
-  core?: Partial<OptionsOfSmplxRctr<Scrollable>>;
-  canvas?: TerminalCanvasOptions;
-  focusable?: Partial<OptionsOfSmplxRctr<FocusService>>;
-}
-
-export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
-  const base = createContainerBase<unknown>({
-    ...opts?.default as TerminalContainerOpts,
-    name: 'scrollable',
-    ...opts?.core as TerminalContainerOpts
-  });
-  const scrollable = base.config<ScrollSignals, typeof tableFor>({tableFor}).forExtend();
+export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof tableFor>({
+  name: 'scrollable',
+  tableFor
+}).defineReactor((init, comp: BaseWidget, opts?: ScrollableOptions) => {
+  const scrollable = init({...opts?.default as any, ...opts?.core});
   const {r, s, table} = scrollable;
-
-  s.appendInterceptorToSrc(action$ => {
-    const dispenser = ActionDispenser.ofAction$<typeof base.s>(action$);
-    return rx.merge(
-      rx.merge(
-        dispenser.at.onRender,
-        dispenser.at.findOverlaps
-      ).pipe(
-        rx.ignoreElements()
-      ),
-      dispenser.ofOtherTypes()
-    );
-  });
-
   const canvas = createTerminalCanvas({
     ...opts?.default as TerminalCanvasOptions,
     name: 'scrollable.canvas',
@@ -67,6 +43,14 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
     rx.take(1),
     rx.mergeMap(([, outerCanvas]) => cTable.l.requestRender.pipe(
       rx.map(([m]) => outerCanvas.s.ft.requestRender().dp(m))
+    ))
+  ));
+  r('onRender,canvas.clearRect -> outerCanvas.clearRect', s.pt.onRender.pipe(
+    rx.withLatestFrom(s.pt.onValidScroll),
+    rx.mergeMap(([[, oCanvas], [, left, top]]) => canvas.s.pt.clearRect.pipe(
+      rx.map(([m, x, y, w, h]) => {
+        oCanvas.s.ft.clearRect(x + left, y + top, w, h).dp(m);
+      })
     ))
   ));
   r('querySizeOf -> comp.querySizeOf', s.pt.querySizeOf.pipe(
@@ -89,10 +73,11 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
       return rx.EMPTY;
     })
   ));
-  const renderData = rx.combineLatest([table.l.onValidScroll, table.l.onSize]);
+  const renderData = [table.l.onValidScroll, table.l.onSize];
+
   r('onRender -> comp.render,...', s.pt.onRender.pipe(
-    rx.withLatestFrom(renderData),
-    rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [[, scLeft, scTop], [, width, height]]]) => {
+    rx.withLatestFrom(...renderData),
+    rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height]]) => {
       if (renderSelf)
         s.ft.renderSelf(outerCanvas, trans, clips, masks ?? []).dp(m);
       const clipsOfView = clips.map(c => {
@@ -104,9 +89,8 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
         }).filter(c => c != null) :
         [];
       // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
+      s.ft.clear(outerCanvas, trans).dp(m);
       comp.s.ft.render(canvas, mat4.create(), clipsOfView, masksOfView).dp(m);
-      const orig = [0, 0] as vec2;
-      vec2.transformMat4(orig, orig, trans);
       return canvas.s.ft.copyRect(scLeft, scTop, width, height).re(m).od(
         canvas.s.pt.onCopyRect
       ).pipe(
@@ -249,7 +233,7 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
         rx.filter(([[, cb], [, sb]]) => cb != null && sb != null),
         rx.map(([[, cb], [, sb]]) => {
           const [x, y, w, h] = sb!;
-          return [m, cb, [x - 1, y - 1, w - 2, h - 2]] as const;
+          return [m, cb, [x + 1, y + 1, w - 2, h - 2]] as const;
         })
       )),
       rx.filter(([, , [, , w, h]]) => w > 2 && h > 2),
@@ -309,10 +293,30 @@ export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
     s.ft.onOverflow(false, false).dp();
     s.ft.addChild(comp).dp();
     s.ft.onContent(comp).dp();
-    s.ft.latestRenderData(renderData).dp();
-    s.ft.addReflowAction(s.at.onValidScroll).dp();
-    s.ft.addReflowAction(s.at.setScrollable).dp();
+    s.ft.setRenderChanges(renderData).dp();
+    // s.ft.addReflowAction(s.at.onValidScroll).dp();
+    // s.ft.addReflowAction(s.at.setScrollable).dp();
     s.ft.hasOfflineCanvas(true).dp();
   }));
-  return service;
+}).interceptorForBaseByType(dispenser => {
+  return rx.merge(
+    rx.merge(
+      dispenser.at.onRender,
+      dispenser.at.findOverlaps
+    ).pipe(
+      rx.ignoreElements()
+    ),
+    dispenser.ofOtherTypes()
+  );
+});
+export type Scrollable = SimplexReactorOfFac<typeof scrollableFac>;
+export interface ScrollableOptions {
+  default?: CoreOptions;
+  core?: CreateOptsOfFac<typeof scrollableFac>;
+  canvas?: TerminalCanvasOptions;
+  focusable?: Partial<OptionsOfSmplxRctr<FocusService>>;
+}
+
+export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
+  return scrollableFac.create(comp, opts);
 }

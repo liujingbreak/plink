@@ -18,24 +18,25 @@ export interface AppSignals extends AppActions {
 export interface AppOptions {
   default?: CoreOptions<any>;
   core?: SimplexReactorOptions<AppSignals>;
-  statusbar?: StatusbarOptions,
+  statusbar?: StatusbarOptions;
   keyService?: KeyEventOptions;
   scrollable?: ScrollableOptions;
   elevator?: ElevatorOptions;
   canvas?: TerminalCanvasOptions;
   cover?: FlexContainerOpts;
-  root?: FlexContainerOpts;
+  main?: FlexContainerOpts;
   focusable?: FocusableOptions;
 }
 export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
   const appService = new SimplexReactor<AppSignals>({
     ...opts?.default as SimplexReactorOptions<AppSignals>,
+    ...opts?.core,
     name: opts?.default?.name ?? 'App'
   });
   const main = createFlexContainer({
     ...opts?.default as FlexContainerOpts,
     name: 'main',
-    ...opts?.root
+    ...opts?.main
   });
   main.s.ft.setDirection('col').dp();
   const statusbar = createStatusbar({
@@ -78,6 +79,7 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
   keyEventService.r('onKeypress', keyEventService.s.pt.onKeypress.pipe(
     rx.filter(([, evt]) => evt.name === 'return'),
     rx.exhaustMap(([m]) => {
+      appService.log('>>> on help');
       coverLayer.s.ft.setDisplay(DisplayMode.visible).dp(m);
       appService.s.ft.onHelp(coverLayer).dp(m);
       return keyEventService.s.pt.onBreak.pipe(
@@ -114,6 +116,5 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
   coverLayer.s.ft.setDisplay(DisplayMode.none).dp();
   canvas.s.ft.setRootComponent(elevator).dp();
   canvas.s.ft.setRenderOnRequest(true).dp();
-  canvas.s.ft.requestRender().dp();
   return {canvas, main, app: appService};
 }

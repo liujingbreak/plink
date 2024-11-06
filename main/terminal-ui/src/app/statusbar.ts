@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
-import {SingleActionFactory, SimplexReactorExtendType, OptionsOfSmplxRctr} from '@wfh/reactivizer';
-import {FlexContainer, createFlexContainer, Scrollable, KeyEventServcie, createBorderContainer, DisplayMode, createTextWidget} from '../index';
+import {SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac} from '@wfh/reactivizer';
+import {borderFac, createFlexContainer, Scrollable, KeyEventServcie, DisplayMode, createTextWidget} from '../index';
 
 export interface StatusbarMessages {
   trackScrollable(scrollable: Scrollable): SingleActionFactory;
@@ -8,35 +8,32 @@ export interface StatusbarMessages {
   onScrollStatus(vertical: number | null, horizontal: number | null): SingleActionFactory;
   onKeypressStatus(text: string, isValid: boolean): SingleActionFactory;
 }
-
 const tableFor = ['trackKeypressService', 'trackScrollable'] as const;
 
-export type Statusbar = SimplexReactorExtendType<FlexContainer, StatusbarMessages, typeof tableFor>;
-export type StatusbarOptions = Partial<OptionsOfSmplxRctr<Statusbar>>;
-export function createStatusbar(opts?: StatusbarOptions) {
+export type StatusbarOptions = CreateOptsInDef<StatusbarMessages, typeof borderFac>;
+export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableFor>({
+  name: 'statusbar',
+  tableFor
+}).defineReactor((init, opts?: StatusbarOptions) => {
   const container = createFlexContainer({
     ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.container'
   });
-  const containerWithBorder = createBorderContainer(container, {name: 'StatusBar', ...opts as any});
-  const statusbar = containerWithBorder.config<StatusbarMessages, typeof tableFor>({
-    tableFor
-  });
-  // containerWithBorder.s.ft.setBackground('bgBlue').dp();
+  const statusbar = init(opts, container);
   statusbar.s.ft.setPadding(0, 1, 0, 1).dp();
   statusbar.s.ft.setBorder('padding').dp();
   statusbar.s.ft.setFlexShrink(0).dp();
   const {r, s, table} = statusbar;
   const labelScrollText = createTextWidget('scroll', {
-    ...opts as any,
+    // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.container'
   });
   const labelScrollValue1 = createTextWidget('0%', {
-    ...opts as any,
+    // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.v1'
   });
   const labelScrollValue2 = createTextWidget('0%', {
-    ...opts as any,
+    // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.v2'
   });
   const HELP_KEY_HINT = 'Press <Enter> for help';
@@ -46,6 +43,12 @@ export function createStatusbar(opts?: StatusbarOptions) {
   });
   labelKeypress.s.ft.setFlexGrow(1).dp();
 
+  statusbar.s.ft.setBackground('bgHsl(120,50,80)').dp();
+  labelKeypress.s.ft.setStyle(['hex(#000000)']).dp();
+  // labelKeypress.s.ft.setBackground('bgHsl(90,50,80)').dp();
+  labelScrollText.s.ft.setStyle(['hex(#000000)']).dp();
+  labelScrollValue1.s.ft.setStyle(['hex(#000000)']).dp();
+  labelScrollValue2.s.ft.setStyle(['hex(#000000)']).dp();
   container.s.ft.addChild(labelKeypress,
     labelScrollText,
     labelScrollValue1,
@@ -116,8 +119,11 @@ export function createStatusbar(opts?: StatusbarOptions) {
     }),
     rx.distinctUntilChanged(),
     rx.map(valid => {
-      labelKeypress.s.ft.setStyle(valid ? ['green'] : []).dp();
+      labelKeypress.s.ft.setStyle(valid ? ['green'] : ['hex(#000000)']).dp();
     })
   ));
-  return statusbar;
+});
+export type Statusbar = SimplexReactorOfFac<typeof statusbarFac>;
+export function createStatusbar(opts?: StatusbarOptions) {
+  return statusbarFac.create(opts);
 }

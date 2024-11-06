@@ -1,9 +1,8 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
-import {CoreOptsOfExtSmplxRctr, SimplexReactorExtendType, SingleActionFactory, ActionDispenser,
-  actionRelatedToAction} from '@wfh/reactivizer';
+import {SingleActionFactory, actionRelatedToAction, CreateOptsInDef, SimplexReactorOfFac} from '@wfh/reactivizer';
 import {BaseWidget} from './base';
-import {TerminalContainer, createContainerBase} from './container';
+import {baseContainerFac, TerminalContainer} from './container';
 import {TextStyle, rectIntersection, Rectangle} from './canvas';
 import {RectangleOverlapTree} from './rectangle-overlap-tree';
 
@@ -30,26 +29,19 @@ const tableForFlexContainer = [
   'setDirection', 'alignItems', 'justifyContent', 'setBorderSpacing', 'setBorderSeparator',
   'setBorderSeparatorStyle'
 ] as const;
-
-export type FlexContainer = SimplexReactorExtendType<TerminalContainer, FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>;
-export type FlexContainerOpts = CoreOptsOfExtSmplxRctr<TerminalContainer, FlexContainerInput & FlexContainerEvents>;
-export function createFlexContainer(opts: FlexContainerOpts = {}) {
-  const base = createContainerBase({name: 'flexContainer', ...opts as any});
-  const listContainer = base.config<FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>({tableFor: tableForFlexContainer}).forExtend();
-  const prependCtl = listContainer.s;
-  // intercept "onRender"
-  prependCtl.appendInterceptorToSrc(action$ => {
-    const dispenser = ActionDispenser.ofAction$<typeof base>(action$);
-    return rx.merge(
-      dispenser.at.onRender.pipe(
-        rx.ignoreElements()
-      ),
-      dispenser.at.findOverlaps.pipe(
-        rx.ignoreElements()
-      ),
-      dispenser.ofOtherTypes()
-    );
-  });
+export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>({
+  name: 'flexContainer',
+  tableFor: tableForFlexContainer
+}).interceptorForBaseByType(ac => rx.merge(
+  ac.at.onRender.pipe(
+    rx.ignoreElements()
+  ),
+  ac.at.findOverlaps.pipe(
+    rx.ignoreElements()
+  ),
+  ac.ofOtherTypes()
+)).defineReactor((init, opts?: FlexContainerOpts) => {
+  const listContainer = init(opts);
   const childBoundingTree = new RectangleOverlapTree<[number, BaseWidget]>();
   const {r, table, s} = listContainer;
   const {ft} = s;
@@ -58,7 +50,8 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
     rx.withLatestFrom(
       table.l.allDisplayChildren,
       table.l.onChildPreferredSizeChange, table.l.justifyContent,
-      table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing,
+      table.l.alignItems, table.l.preferredSize,
+      table.l.setDirection, table.l.setBorderSpacing,
       table.l.setBorderSeparator
     ),
     rx.switchMap(([[m, w, h], [, children], [, chrPreferredSizes], [, _justifyContent], [, _alignItems], [, pWidth, pHeight], [, dir], [, marginWidth], [, borderSep]]) => {
@@ -232,6 +225,7 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
           remainSpace = 0;
         calcChdSizes$ = chdPrefMainChanged$.pipe(
           rx.mergeMap(chdMainPrefSize => {
+            listContainer.log('chdMainPrefSize', chdMainPrefSize.join(), 'shrinkOfEach=', shrinkOfEach, 'remainSpace=', remainSpace);
             chrMainAxisSizes = shrinkEachSize(chdMainPrefSize, shrinkOfEach, remainSpace);
             return rx.forkJoin(dir === 'row' ?
               children.map((chr, i) => chr.s.ft.querySizeOf(chrMainAxisSizes[i], null)
@@ -340,9 +334,9 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
             space -= baseSpaceBetween;
           }
           if (dir === 'row')
-            children[i].s.ft.onSize(chrMainAxisSizes[i], chrCrossAxisSizes[i]).dp(m);
+            children[i].s.ft.onSize(chrMainAxisSizes[i] ?? 0, chrCrossAxisSizes[i] ?? 0).dp(m);
           else
-            children[i].s.ft.onSize(chrCrossAxisSizes[i], chrMainAxisSizes[i]).dp(m);
+            children[i].s.ft.onSize(chrCrossAxisSizes[i] ?? 0, chrMainAxisSizes[i] ?? 0).dp(m);
         }
         // listContainer.log('childrenPosition:', ...childrenPosition.map(pos => '[' + pos.join(', ') + ']'));
         ft.onChildPositions(childrenPosition).dp(m);
@@ -365,32 +359,34 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
   ]).pipe(
     rx.map(([[m, sizes], [, direction], [, marginWidth], [, borderSeq]]) => {
       if (direction === 'row') {
-        const finalPreferredSize = sizes.reduce((preferred, [w, h]) => {
+        // eslint-disable-next-line prefer-const
+        let [fw, fh] = sizes.reduce((preferred, [w, h]) => {
           preferred[0] += w;
           if (h > preferred[1])
             preferred[1] = h;
           return preferred;
         }, [0, 0] as const);
-        finalPreferredSize[0] += (borderSeq === FlexBorderSeparator.line ? 2 + marginWidth + 1 : marginWidth) * (sizes.length - 1);
-        ft.onContentSizeChange(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
+        fw += (borderSeq === FlexBorderSeparator.line ? 2 + marginWidth + 1 : marginWidth) * (sizes.length - 1);
+        ft.onContentSizeChange(fw, fh).dp(m);
       } else if (direction === 'col') {
-        const finalPreferredSize = sizes.reduce((preferred, [w, h]) => {
+        const [fw, fh] = sizes.reduce((preferred, [w, h]) => {
           preferred[1] += h;
           if (w > preferred[0])
             preferred[0] = w;
           return preferred;
         }, [0, 0] as const);
-        ft.onContentSizeChange(finalPreferredSize[0], finalPreferredSize[1]).dp(m);
+        ft.onContentSizeChange(fw, fh).dp(m);
       }
     })
   ));
-  r('onRender -> renderSelf, renderChild', prependCtl.pt.onRender.pipe(
+  r('onRender -> renderSelf, renderChild', s.pt.onRender.pipe(
     rx.withLatestFrom(table.l.setDirection, table.l.onSize, table.l.setBorderSeparator, table.l.setBorderSeparatorStyle),
     rx.map(([[m, canvas, trans, renderSelf, clips, masks], [, dir], [, , h], [, borderSep], [, sepStyle]]) => {
       if (masks == null)
         masks = [];
-      if (renderSelf)
+      if (renderSelf) {
         s.ft.renderSelf(canvas, trans, clips, masks).dp(m);
+      }
       if (dir === 'row' && borderSep === FlexBorderSeparator.line) {
         const orig = vec2.create();
         vec2.transformMat4(orig, orig, trans);
@@ -409,7 +405,7 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
       }
     })
   ));
-  r('findOverlaps -> didFindOverlaps', prependCtl.pt.findOverlaps.pipe(
+  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
     rx.mergeMap(([m, ...rect]) => {
       return rx.combineLatest([
         table.l.onPosition,
@@ -454,25 +450,7 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
       );
     })
   ));
-  // r('enableLazy', s.pt.setLazyLoad.pipe(
-  //   rx.switchMap(([m, enabled, handler]) => {
-  //     return enabled ?
-  //       new rx.Observable(() => {
-  //         const moreIndicator = createFlexContainer({
-  //           ...opts?.default as any,
-  //           name: 'table.more',
-  //           ...opts?.moreIndicator
-  //         });
-  //         moreIndicator.s.ft.justifyContent('center').dp();
-  //         const moreText = createTextWidget('More...', {
-  //           ...opts as any,
-  //           name: 'table.more.text'
-  //         });
-  //         moreIndicator.s.ft.addChild(moreText).dp();
-  //       }) :
-  //       rx.EMPTY;
-  //   })
-  // ));
+
   const reflowData = rx.combineLatest([
     table.l.onSize,
     table.l.allDisplayChildren.pipe(
@@ -496,36 +474,41 @@ export function createFlexContainer(opts: FlexContainerOpts = {}) {
     ft.setBorderSeparator(FlexBorderSeparator.none).dp();
     ft.setBorderSeparatorStyle([]).dp();
     ft.latestReflowData(reflowData).dp();
-    // for (const a$ of [
-    //   s.pt.setDirection, s.pt.setBorderSpacing,
-    //   s.pt.alignItems, s.pt.justifyContent, s.pt.setBackground
-    // ]) {
-    //   ft.addReflowAction(a$).dp();
-    // }
   }));
-  return listContainer;
+});
+
+export type FlexContainer = SimplexReactorOfFac<typeof flexContainerFac>;
+export type FlexContainerOpts = CreateOptsInDef<FlexContainerInput & FlexContainerEvents, typeof baseContainerFac>;
+export function createFlexContainer(opts: FlexContainerOpts = {}) {
+  return flexContainerFac.create(opts);
 }
 
-function shrinkEachSize(individualPrefSizes: number[], shrinkOfEach: number[], availableSpace: number) {
+export function shrinkEachSize(chdPrefSizes: number[], shrinkOfEach: number[], availableSpace: number) {
+  if (chdPrefSizes.length === 0)
+    return [];
   if (availableSpace < 0) {
     availableSpace = 0;
   }
-  const prefSizeTotal = individualPrefSizes.reduce((prev, curr) => prev + curr);
+  const prefSizeTotal = chdPrefSizes.reduce((prev, curr) => prev + curr, 0);
   const spaceToShrink = prefSizeTotal - availableSpace;
-  const numOfShrinkUnit = individualPrefSizes.reduce((prev, curr, i) => prev + (curr * shrinkOfEach[i]), 0);
+  const numOfShrinkUnit = chdPrefSizes.reduce((prev, curr, i) => prev + (curr * shrinkOfEach[i]), 0);
   const shrinkUnit = spaceToShrink / numOfShrinkUnit;
   const chrSizes = [] as number[];
   let floatGap = 0;
   let i = 0;
-  for (const preSize of individualPrefSizes) {
+  for (const preSize of chdPrefSizes) {
     const units = preSize * shrinkOfEach[i];
     const fSize = preSize - shrinkUnit * units;
-    let size = Math.floor(fSize);
+    let size = Math.round(fSize);
     floatGap += fSize - size;
-    if (floatGap > 1) {
+    if (floatGap > 0.5) {
       size++;
       floatGap--;
+    } else if (floatGap < -0.5) {
+      size--;
+      floatGap++;
     }
+
     chrSizes.push(size < 0 ? 0 : size);
     i++;
   }
@@ -550,11 +533,14 @@ function stretchEachSize(prefSizes: number[], growOfEach: number[], shrinkOfEach
   let floatGap = 0;
   return prefSizes.map((pref, i) => {
     const growSize = growUnit * growOfEach[i];
-    let iGrowSize = Math.floor(growSize);
+    let iGrowSize = Math.round(growSize);
     floatGap += growSize - iGrowSize;
-    if (floatGap > 1) {
+    if (floatGap > 0.5) {
       iGrowSize += 1;
-      floatGap -= 1;
+      floatGap--;
+    } else if (floatGap < -0.5) {
+      iGrowSize -= 1;
+      floatGap++;
     }
     return iGrowSize + pref;
   });

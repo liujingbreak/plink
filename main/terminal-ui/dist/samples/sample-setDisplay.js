@@ -31,40 +31,51 @@ const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
-const debug = true;
+const debug = false;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
-function log(...args) {
-    const date = new Date();
-    fout.write(date.toLocaleTimeString());
-    // console.log(formatToConciseNoColor(...args));
-    fout.write('.');
-    fout.write(date.getMilliseconds() + ' - ');
-    fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
-    fout.write('\n');
-}
-const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, log });
-const border = (0, index_1.createBorderContainer)(panel, { name: 'contentPanelBorder', debug, log });
-const { canvas } = index_1.app.createApp(border, { default: { debug, log } });
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, true, fout);
+const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug: true, log });
+const border = (0, index_1.createBorderContainer)(panel, { name: 'contentPanelBorder', debug: false, log });
+const { canvas } = index_1.app.createApp(border, {
+    default: { debug, log },
+    scrollable: {
+        default: {
+            debug: true,
+            debugIncludeTypes: ['clearRect', 'render']
+        }
+    },
+    elevator: {
+        default: { debug: false },
+        canvas: { debug, log, debugIncludeTypes: ['clearRect', 'render'] }
+    },
+    statusbar: { debug: false, log },
+    canvas: { debug: true, log,
+        debugIncludeTypes: ['clearRect', 'render'] },
+    focusable: { debug: false },
+    keyService: { debug: false }
+});
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
 process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
 });
-const welcome = (0, index_1.createTextWidget)('Hello...');
+const welcome = (0, index_1.createTextWidget)('Hello...', { name: 'welcomLabel', debug: false, log });
 welcome.s.ft.setStyle(['cyan']).dp();
 panel.s.ft.addChild(welcome).dp();
 // panel.s.ft.setBackground('bgGray').dp();
 panel.s.ft.justifyContent('center').dp();
 panel.s.ft.alignItems('center').dp();
-const thinLabel = (0, index_1.createTextWidget)('label A', { debug: true, log });
-const fatLabel = (0, index_1.createTextWidget)('Label B');
-const hiddenLabel = (0, index_1.createTextWidget)('Label C');
+const labelA = (0, index_1.createTextWidget)('label A ', { name: 'Label A', debug: true, log });
+const labelB = (0, index_1.createTextWidget)('Label B ', { name: 'Label B', debug: true, log });
+const labelC = (0, index_1.createTextWidget)('Label C ', { name: 'Label C', debug: true, log });
+const labelD = (0, index_1.createTextWidget)('Label D ', { name: 'Label D', debug: true, log });
 border.s.ft.setFlexGrow(1).dp();
-panel.s.ft.addChild(hiddenLabel, thinLabel, fatLabel).dp();
-rx.timer(1000, 1000).pipe(rx.take(6), rx.map(i => {
-    fatLabel.s.ft.setDisplay(i % 2 === 1 ? index_1.DisplayMode.none : index_1.DisplayMode.visible).dp();
-    hiddenLabel.s.ft.setDisplay(i % 2 === 1 ? index_1.DisplayMode.hidden : index_1.DisplayMode.visible).dp();
+panel.s.ft.addChild(labelA, labelB, labelC, labelD).dp();
+rx.timer(1000, 1500).pipe(rx.take(1), rx.map(i => {
+    log('---- changing setDisplay ----', i);
+    labelB.s.ft.setDisplay(i % 2 === 0 ? index_1.DisplayMode.none : index_1.DisplayMode.visible).dp();
+    labelD.s.ft.setDisplay(i % 2 === 0 ? index_1.DisplayMode.hidden : index_1.DisplayMode.visible).dp();
 })).subscribe();
-canvas.s.ft.render().dp();
+canvas.s.ft.requestRender().dp();
 //# sourceMappingURL=sample-setDisplay.js.map

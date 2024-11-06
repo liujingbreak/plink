@@ -115,7 +115,7 @@ const {canvas} = app.createApp(root, {
   scrollable: {
     // default: {debug},
     core: {
-      debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender', 'renderBackgroundFor']
+      debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender']
     },
     focusable: {
       debug: true,

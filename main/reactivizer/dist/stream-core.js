@@ -47,6 +47,32 @@ class ControllerCore {
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
         const upstream = this.actionUpstream;
+        this.interceptorList$.next([
+            a$ => this.opts.debug ?
+                a$.pipe(this.opts.log ?
+                    rx.tap(action => {
+                        const type = action.t;
+                        if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                            this.opts.log(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                        }
+                    }) :
+                    (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+                        rx.tap(action => {
+                            const type = action.t;
+                            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                                // eslint-disable-next-line no-console
+                                console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                            }
+                        }) :
+                        rx.tap(action => {
+                            const type = action.t;
+                            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                                // eslint-disable-next-line no-console
+                                console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                            }
+                        }))
+                : a$
+        ]);
         this.connectableAction$ = rx.connectable(this.configChange.pipe(rx.map((props, i) => {
             var _a, _b, _c;
             let switchActionStream = i === 0; // always create action stream at first time
@@ -72,34 +98,8 @@ class ControllerCore {
             }
             return switchActionStream;
         }), rx.filter(needSwitch => needSwitch), rx.switchMap(() => {
-            const debuggableAction$ = this.opts.debug ?
-                upstream.pipe(this.opts.log ?
-                    rx.tap(action => {
-                        const type = action.t;
-                        if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                            this.opts.log(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-                        }
-                    }) :
-                    (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                        rx.tap(action => {
-                            const type = action.t;
-                            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                                // eslint-disable-next-line no-console
-                                console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-                            }
-                        }) :
-                        rx.tap(action => {
-                            const type = action.t;
-                            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                                // eslint-disable-next-line no-console
-                                console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-                            }
-                        }))
-                : upstream;
             return this.interceptorList$.pipe(rx.switchMap(interceptors => {
-                return interceptors ?
-                    debuggableAction$.pipe(...interceptors) :
-                    debuggableAction$;
+                return upstream.pipe(...interceptors);
             }));
         })));
         const actionSubDispatcher = new rx.ReplaySubject();

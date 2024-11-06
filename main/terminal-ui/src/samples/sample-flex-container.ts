@@ -37,19 +37,24 @@ layout1TitleLabel.config({name: 'title', debug, log});
 titleBorder.s.ft.setBorderStyle(['green']).dp();
 layout1TitleLabel.s.ft.setStyle(['bold']).dp();
 root.s.ft.addChild(titleBorder).dp();
-const layoutDemoContainer = createFlexContainer({
-  name: 'layoutDemo',
+
+const demoCtn = createFlexContainer({
+  name: 'demoCtn',
   debug,
   log
 });
 
-layoutDemoContainer.s.ft.justifyContent('center').dp();
-layoutDemoContainer.s.ft.setBorderSpacing(2).dp();
-const layoutDemoBorder = createBorderContainer(layoutDemoContainer, {debug, name: 'layoutDemoBorder', log});
-layoutDemoBorder.s.ft.setBorder('padding').dp();
-layoutDemoBorder.s.ft.setPadding(1, 1, 1, 1).dp();
-layoutDemoBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
-root.s.ft.addChild(layoutDemoBorder).dp();
+demoCtn.s.ft.justifyContent('center').dp();
+demoCtn.s.ft.setBorderSpacing(2).dp();
+const demoCtnBorder = createBorderContainer(demoCtn, {debug, name: 'demoCtnBorder', log});
+demoCtnBorder.s.ft.setBorder('padding').dp();
+demoCtnBorder.s.ft.setPadding(1, 1, 1, 1).dp();
+demoCtnBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
+root.s.ft.addChild(demoCtnBorder).dp();
+canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
+process.stdout.on('resize', () => {
+  canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
+});
 canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
 
@@ -67,7 +72,7 @@ const scene = new SimplexReactor<SceneActions>({
 });
 const {r, s} = scene;
 r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(
-  rx.switchMap(() => layoutDemoContainer.table.l.allChildren.pipe(rx.take(1))),
+  rx.switchMap(() => demoCtn.table.l.allChildren.pipe(rx.take(1))),
   rx.mergeMap(([, labels]) => rx.from(labels).pipe(
     rx.map((label, i) => {
       if (i === 0) {
@@ -98,10 +103,10 @@ r('showLablesLeftToRight', s.pt.showLablesLeftToRight.pipe(
       rx.map(i => {
         const text = createTextWidget('This is label ' + (i + 1), {name: 'text-' + i, debug, log});
         text.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp(m);
-        layoutDemoContainer.s.ft.addChild(text).dp(m);
+        demoCtn.s.ft.addChild(text).dp(m);
       }),
-      rx.take(num),
-      rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m))
+      rx.take(num)
+      // rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m))
     );
   })
 ));
@@ -122,9 +127,5 @@ r('changeStaticLabelToClock -> doneChangeStaticLabelToClock', s.pt.changeStaticL
     )
   ))
 ));
-canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 
-process.stdout.on('resize', () => {
-  canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-});
 s.ft.showLablesLeftToRight(5).dp();

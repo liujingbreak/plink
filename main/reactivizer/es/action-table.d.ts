@@ -6,7 +6,7 @@ import { ActionTableDataType, PayloadByType } from './inferred-types';
 export declare class ActionTable<I, IK extends keyof I> {
     #private;
     private streamCtl;
-    private actionNames;
+    actionNames: Set<string>;
     latestPayloads: PayloadByType<{ [K in IK]: I[K]; }>;
     /** Abbrevation of "latestPayloads", pointing to exactly same instance of latestPayloads */
     l: PayloadByType<{

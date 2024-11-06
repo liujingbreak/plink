@@ -10,22 +10,14 @@ const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
 const debug = true;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
-function log(...args) {
-    const date = new Date();
-    fout.write(date.toLocaleTimeString());
-    fout.write('.');
-    fout.write(date.getMilliseconds() + ' - ');
-    fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
-    fout.write('\n');
-}
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, true, fout);
 const canvas = (0, index_1.createTerminalCanvas)({ debug, log });
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
 canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRenderOnRequest(true).dp();
 const ev = (0, index_1.createElevator)({ default: { debug, log } });
 const popupLayer = (0, index_1.createFlexContainer)({ name: 'popup', debug, log });
 ev.s.ft.addChild(root, popupLayer).dp();
-const popupMsg = (0, index_1.createTextWidget)('POPUP MESSAGE', { name: 'popupMsg', debug, log });
+const popupMsg = (0, index_1.createTextWidget)('POPUP MESSAGE!', { name: 'popupMsg', debug, log });
 popupLayer.s.ft.justifyContent('center').dp();
 popupLayer.s.ft.alignItems('center').dp();
 popupLayer.s.ft.addChild(popupMsg).dp();
@@ -43,13 +35,15 @@ process.stdout.on('resize', () => {
 });
 root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
-const label = (0, index_1.createTextWidget)('ok', { debug, log });
+const label = (0, index_1.createTextWidget)('~~~ The bottom layer ~~~', { debug, log });
 root.s.ft.addChild(label).dp();
+canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
 setTimeout(() => {
+    popupLayer.log('--------------- change display ----');
     popupLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp();
 }, 1000);
-setTimeout(() => {
-    popupLayer.s.ft.setDisplay(index_1.DisplayMode.visible).dp();
-}, 2000);
+// setTimeout(() => {
+//   popupLayer.s.ft.setDisplay(DisplayMode.visible).dp();
+// }, 2000);
 //# sourceMappingURL=sample-elevator.js.map

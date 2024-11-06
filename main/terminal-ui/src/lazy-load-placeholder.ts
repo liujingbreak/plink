@@ -1,8 +1,8 @@
 /* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
-import {OptionsOfSmplxRctr, CoreOptions, SingleActionFactory, SimplexReactor, actionRelatedToAction} from '@wfh/reactivizer';
-import {createFlexContainer, FlexContainerOpts} from './flex-container';
+import {CoreOptions, SingleActionFactory, SimplexReactor, actionRelatedToAction, BaseReactorFactory} from '@wfh/reactivizer';
+import {FlexContainer, createFlexContainer, FlexContainerOpts} from './flex-container';
 import {Rectangle} from './canvas';
 import {createTextWidget, MultiLineTextWidgetOpts} from './text';
 
@@ -47,6 +47,13 @@ export interface PlaceHolderInput extends LazyLoadDataProviderActions {
   setMaxLoadedPages(num: number): SingleActionFactory;
   setLabel(text: string): SingleActionFactory;
   setExpandDir(dir: 'col' | 'row'): SingleActionFactory;
+
+  /** Responding with didQueryLoadedPages */
+  queryLoadedPages(): SingleActionFactory;
+  didQueryLoadedPages(pages: number[]): SingleActionFactory;
+}
+interface PageLoadingState {
+  keep: boolean; isHead: boolean; loaded?: boolean; isEmpty?: boolean
 }
 export interface PlaceHolderEvents extends PlaceHolderInput {
   onPagesLoaded(isHead: boolean, startIdx: number, endIdx: number, components: unknown[]): SingleActionFactory;
@@ -64,7 +71,7 @@ const tableFor = ['setExpandDir', 'setLabel', 'setAveragePageSize',
 
 export type LazyLoadPlaceHolderOpts = {
   default?: CoreOptions<any>;
-  core?: Partial<OptionsOfSmplxRctr<LazyLoadPlaceHolder>>;
+  core?: CoreOptions<PlaceHolderEvents>;
   headPlaceHolder?: Partial<FlexContainerOpts>;
   tailPlaceHolder?: Partial<FlexContainerOpts>;
   headPlaceHolderLabel?: Partial<MultiLineTextWidgetOpts>;
@@ -72,26 +79,19 @@ export type LazyLoadPlaceHolderOpts = {
 };
 
 export type LazyLoadPlaceHolder = SimplexReactor<PlaceHolderEvents, typeof tableFor>;
-
-export function createPlaceHolder(
-  opts?: LazyLoadPlaceHolderOpts
-) {
-  const service = new SimplexReactor<PlaceHolderEvents, typeof tableFor>({
-    name: 'LazyPlaceHolder',
-    ...opts?.default as any,
-    ...opts?.core,
-    tableFor
-  });
-  const before = createFlexContainer({
-    ...opts?.default as any,
-    name: opts?.default?.name ? opts?.default.name + '.head' : 'LazyPlaceHolder.head',
-    ...opts?.headPlaceHolder
-  });
-  const after = createFlexContainer({
-    ...opts?.default as any,
-    name: opts?.default?.name ? opts?.default.name + '.tail' : 'LazyPlaceHolder.tail',
-    ...opts?.tailPlaceHolder
-  });
+export const placeHolderFac = new BaseReactorFactory<PlaceHolderEvents, typeof tableFor>({
+  name: 'LazyPlaceHolder',
+  tableFor
+}).interceptorByType(ad => rx.merge(
+  ad.at.onAfterPages.pipe(
+    rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+  ),
+  ad.at.onBeforePages.pipe(
+    rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+  ),
+  ad.ofOtherTypes()
+)).defineReactor((init, before: FlexContainer, after: FlexContainer, opts?: LazyLoadPlaceHolderOpts) => {
+  const service = init({...opts?.default as any, ...opts?.core});
   const {r, s, table} = service;
   const labelBefore = createTextWidget('...', {
     name: 'LazyPlaceHolder.headLabel',
@@ -99,13 +99,13 @@ export function createPlaceHolder(
     ...opts?.headPlaceHolderLabel
   });
   const labelAfter = createTextWidget('Loading...', {
-    name: 'LazyPlaceHolder.headLabel',
+    name: 'LazyPlaceHolder.tailLabel',
     ...opts?.default as any,
-    ...opts?.headPlaceHolderLabel
+    ...opts?.tailPlaceHolderLabel
   });
 
   const loadedCompsByPage = new Map<number, unknown[]>();
-  const loadingPages = new Map<number, {keep: boolean; isHead: boolean; loaded?: boolean; isEmpty?: boolean}>();
+  const loadingPages = new Map<number, PageLoadingState>();
   const distinctAveragePageSize$ = s.pt.setAveragePageSize.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.share()
@@ -130,6 +130,12 @@ export function createPlaceHolder(
             .dp(m, m2, m3);
       })
     ))
+  ));
+  r('queryLoadedPages -> didQueryLoadedPages', s.pt.queryLoadedPages.pipe(
+    rx.map(([m]) => {
+      const pages = [...loadedCompsByPage.keys()];
+      s.ft.didQueryLoadedPages(pages).dp(m);
+    })
   ));
   r('requestPage -> dp_onLoadPage | dp_didLoad -> onPagesLoaded, dp_setTotalPageNum', s.pt.requestPage.pipe(
     rx.mergeMap(([m, isHead, pIdx]) => {
@@ -307,7 +313,6 @@ export function createPlaceHolder(
   ));
   r('onBeforePages, before.onRender -> requestPages', s.pt.onBeforePages.pipe(
     rx.map(([, pages]) => pages),
-    rx.distinctUntilChanged(),
     rx.switchMap(pages => {
       return pages > 0 ? before.s.pt.onRender.pipe(
         rx.withLatestFrom(table.l.setExpandDir, table.l.beforePageRange, before.table.l.onSize),
@@ -325,7 +330,6 @@ export function createPlaceHolder(
     })
   ));
   r('onAfterPages, after.onRender -> requestPages', s.pt.onAfterPages.pipe(
-    rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.switchMap(([, pages]) => {
       return pages > 0 ? after.s.pt.onRender.pipe(
         rx.withLatestFrom(table.l.setExpandDir, table.l.afterPageRange, after.table.l.onSize),
@@ -387,6 +391,21 @@ export function createPlaceHolder(
   s.ft.onBeforePages(0).dp();
   s.ft.setMaxLoadedPages(Number.MAX_SAFE_INTEGER).dp();
   s.ft.dp_setTotalPageNum('unknown').dp();
+});
+export function createPlaceHolder(
+  opts?: LazyLoadPlaceHolderOpts
+) {
+  const before = createFlexContainer({
+    ...opts?.default as any,
+    name: opts?.default?.name ? opts?.default.name + '.head' : 'LazyPlaceHolder.head',
+    ...opts?.headPlaceHolder
+  });
+  const after = createFlexContainer({
+    ...opts?.default as any,
+    name: opts?.default?.name ? opts?.default.name + '.tail' : 'LazyPlaceHolder.tail',
+    ...opts?.tailPlaceHolder
+  });
+  const service = placeHolderFac.create(before, after, opts);
   return {before, after, service};
 }
 

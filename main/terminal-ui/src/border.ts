@@ -1,9 +1,8 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
-import {SingleActionFactory, CoreOptsOfExtSmplxRctr, ActionMeta} from '@wfh/reactivizer';
-// import {TerminalCanvas} from './terminal-canvas';
+import {CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory, ActionMeta, CreateOptsInDef} from '@wfh/reactivizer';
 import {BaseWidget} from './base';
-import {createContainerBase, TerminalContainer} from './container';
+import {baseContainerFac} from './container';
 import {TextStyle, TerminalCanvas} from './canvas';
 
 export interface BorderContainerActions {
@@ -15,11 +14,11 @@ const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'] as
 
 // https://symbl.cc/en/unicode/blocks/box-drawing/
 const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
-export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmplxRctr<TerminalContainer, BorderContainerActions>) {
-  const container = createContainerBase({name: 'borderContainer', ...opts as CoreOptsOfExtSmplxRctr<TerminalContainer>});
-  const service = container.config<BorderContainerActions, typeof tableForBorderContainer>({
-    tableFor: tableForBorderContainer
-  });
+export const borderFac = baseContainerFac.forExtend<BorderContainerActions, typeof tableForBorderContainer>({
+  name: 'border',
+  tableFor: tableForBorderContainer
+}).defineReactor((init, child: BaseWidget, opts?: CreateOptsInDef<BorderContainerActions, typeof baseContainerFac>) => {
+  const service = init(opts);
   const {r, table, s} = service;
   const childPos = [0, 0] as [number, number];
   const positions = new Map<BaseWidget, [number, number]>([[child, childPos]]);
@@ -27,7 +26,12 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
     rx.withLatestFrom(table.l.allChildren, table.l.setBorder, table.l.setPadding),
     rx.mergeMap(([[m, w, h], [, children], [, border], [, top, right, bottom, left]]) => {
       if (w == null && h != null) {
-        return children[0].s.ft.querySizeOf(null, h - top - bottom - (border === 'line' ? 2 : 0)).re(m).od(
+        const qh = h - top - bottom - (border === 'line' ? 2 : 0);
+        if (qh < 0) {
+          s.ft.prefWidthFor(0, h).dp(m);
+          return rx.EMPTY;
+        }
+        return children[0].s.ft.querySizeOf(null, qh).re(m).od(
           children[0].s.pt.prefWidthFor
         ).pipe(
           rx.take(1),
@@ -36,7 +40,12 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
           })
         );
       } else if (h == null && w != null) {
-        return children[0].s.ft.querySizeOf(w - left - right - (border === 'line' ? 2 : 0), null).re(m).od(
+        const qw = w - left - right - (border === 'line' ? 2 : 0);
+        if (qw < 0) {
+          s.ft.prefHeightFor(w, 0).dp(m);
+          return rx.EMPTY;
+        }
+        return children[0].s.ft.querySizeOf(qw, null).re(m).od(
           children[0].s.pt.prefHeightFor
         ).pipe(
           rx.take(1),
@@ -48,27 +57,34 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
       return rx.EMPTY;
     })
   ));
-  r('onChildPreferredSizeChange,... -> preferredSize', rx.combineLatest([
+  r('onChildPreferredSizeChange,... -> onContentSizeChange', rx.combineLatest([
     s.pt.onChildPreferredSizeChange,
     table.l.setBorder, table.l.setPadding
   ]).pipe(
     rx.map(([[m, sizes], [m2, border], [m3, top, right, bottom, left]]) => {
       const line = border === 'line' ? 2 : 0;
-      s.ft.onContentSizeChange(
-        sizes[0][0] + line + right + left,
-        sizes[0][1] + line + top + bottom
-      ).dp(m, m2, m3);
+      if (sizes.length > 0) {
+        s.ft.onContentSizeChange(
+          sizes[0][0] + line + right + left,
+          sizes[0][1] + line + top + bottom
+        ).dp(m, m2, m3);
+      } else {
+        s.ft.onContentSizeChange(
+          line + right + left,
+          line + top + bottom
+        ).dp(m, m2, m3);
+      }
     })
   ));
-  const reflowData = rx.combineLatest([
+  const reflowData = [
     table.l.onSize,
     table.l.setBorder,
     table.l.setPadding,
     table.l.allChildren
-  ]);
+  ] as const;
   r('reflow -> onSize, setLayoutValid', s.pt.reflow.pipe(
-    rx.withLatestFrom(reflowData),
-    rx.map(([[m], [[, w, h], [, border], [, top, right, bottom, left], [, children]]]) => {
+    rx.withLatestFrom(...reflowData),
+    rx.map(([[m], [ms, w, h], [, border], [, top, right, bottom, left], [, children]]) => {
       s.ft.setLayoutValid(true).dp(m);
       childPos[0] = childPos[1] = 0;
       let borderLine = 0;
@@ -108,14 +124,19 @@ export function createBorderContainer(child: BaseWidget, opts?: CoreOptsOfExtSmp
     })
   ));
   r('init', new rx.Observable<never>(() => {
-    s.ft.latestReflowData(reflowData).dp();
+    s.ft.latestReflowData(rx.merge(...reflowData)).dp();
     s.ft.setPadding(0, 1, 0, 1).dp();
     s.ft.setBorder('line').dp();
     s.ft.addChild(child).dp();
     s.ft.setBorderStyle([]).dp();
     s.ft.onChildPositions(positions).dp();
   }));
-  return service;
+});
+
+export type BorderContainerOpts = CreateOptsOfFac<typeof borderFac>;
+export type BorderContainer = SimplexReactorOfFac<typeof borderFac>;
+export function createBorderContainer(child: BaseWidget, opts?: BorderContainerOpts) {
+  return borderFac.create(child, opts);
 }
 
 export function renderLineBorder(m: ActionMeta, canvas: TerminalCanvas, x: number, y: number, w: number, h: number, style: TextStyle) {
