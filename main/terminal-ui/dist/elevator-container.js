@@ -157,40 +157,6 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
             const isBottomLayer = i === last;
             const idx = last - i;
             s.ft.renderChild(idx, chd, canvasOfChd, trans, clips, allMasks).dp(m);
-            /*
-            let renderToCash$: rx.Observable<void> | undefined;
-            if (isBottomLayer) {
-              if (lastBottom !== chd) {
-                service.log('>>> case 1: isBottomLayer (not lastBottom)', chd.s.logPrefix);
-                // Current component is the new bottom layer, but previously it is not the bottom layer.
-                // 1) copy original cached offline canvas to outer canvas,
-                // 2) then render the rest new states of child component to outer canvas
-                renderToCash$ = copyCanvas(canvasOfChd, canvas, m).pipe(
-                  rx.map(() => {
-                    s.ft.renderChild(idx, chd, canvas, trans, clips, allMasks).dp(m);
-                  })
-                );
-                lastBottom = chd;
-              } else {
-                service.log('>>> case 2: always isBottomLayer (is lastBottom)', chd.s.logPrefix);
-                s.ft.renderChild(idx, chd, canvas, trans, clips, allMasks).dp(m);
-              }
-            } else if (lastBottom === chd) {
-              service.log('>>> case 3: NOT isBottomLayer (is lastBottom)', chd.s.logPrefix);
-              // current component is not the new bottom layer, but it was previously
-              chd.s.ft.bgCleared(true).dp(m); // bgCleared will cause "needRerender" on all its children
-              chd.s.ft.needRerender(true).dp(m);
-              s.ft.renderChild(idx, chd, canvasOfChd, trans, clips, allMasks).dp(m);
-            } else {
-              service.log('>>> case 4: NEVER isBottomLayer (nore is lastBottom)', chd.s.logPrefix);
-              s.ft.renderChild(idx, chd, isBottomLayer ? canvas : canvasOfChd, trans, clips, allMasks).dp(m);
-            }
-            return isBottomLayer ?
-              (renderToCash$ ?? rx.EMPTY).pipe(rx.ignoreElements()) :
-              (renderToCash$ ?? rx.of(1) as rx.Observable<unknown>).pipe(
-                rx.mergeMap(() => getBoundingOfCompTree(chd)),
-                rx.take(1)
-              ); */
             return isBottomLayer ? rx.EMPTY : getBoundingOfCompTree(chd).pipe(rx.take(1));
         }), rx.map(rects => {
             service.log('-- getBoundingOfCompTree', rects.join());

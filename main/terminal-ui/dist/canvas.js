@@ -48,7 +48,15 @@ function createTerminalCanvas(opts) {
     const dirtyLines = new Map();
     // "lines" is an array of IntervalTree, each element of which represents a single line of display text of screen.
     // The intervalTree is a tree containing single or multiple discrete intervals which represents display text
-    const lines = [];
+    let lines = [];
+    // screen lines for next frame
+    const proLines = [];
+    // A array of line cache to represent latest changes.
+    // When "addDisplayUnits", "clearRect"... is handled, "uncommited" is created or updated,
+    // in "render" phase, it is "merged" to "lines", and corresponding "onPrintText" will be dispatched,
+    // handling "onPrintText" is actually where to invoke text output through stand output stream.
+    // To avoid screen flickering, we use space character to clear screen instead of using API to clear lines.
+    let uncommited = [];
     r('autoHideCursor', s.pt.autoHideCursor.pipe(rx.map(() => {
         process.stdout.write('\x1B[?25l');
         const reset = () => process.stdout.write('\x1B[?25h');
@@ -96,33 +104,32 @@ function createTerminalCanvas(opts) {
     })));
     r('addDisplayUnits', s.pt.addDisplayUnits.pipe(rx.map(([, x, y, units, style]) => {
         if (units.length > 0)
-            addCodePointsToCanvas(x, y, units, style ? style.sort() : []);
+            addCodePointsToCache(x, y, units, style ? style.sort() : []);
     })));
     r('addString -> ', s.pt.addString.pipe(rx.map(([, x, y, text, style]) => {
         const units = [...getTextDisplayUnits(text)];
         if (units.length > 0)
-            addCodePointsToCanvas(x, y, units, style ? style.sort() : []);
+            addCodePointsToCache(x, y, units, style ? style.sort() : []);
     })));
     r('fillRect', s.pt.fillRect.pipe(rx.map(([, x, y, w, h, bg]) => {
         const units = [...getTextDisplayUnits(' '.repeat(w))];
         const style = [bg];
         for (let i = y, l = y + h; i < l; i++) {
-            addCodePointsToCanvas(x, i, units, style ? style.sort() : []);
+            addCodePointsToCache(x, i, units, style ? style.sort() : []);
         }
     })));
     r('clearRect', s.pt.clearRect.pipe(rx.map(([, x, y, w, h]) => {
         for (let i = y, l = y + h; i < l; i++) {
-            const dirtyRange = clearCodePointFromLine(x, i, w);
-            if (dirtyRange) {
-                const lastChange = dirtyLines.get(i);
-                if (lastChange) {
-                    lastChange[0] = Math.min(lastChange[0], dirtyRange[0]);
-                    lastChange[1] = Math.max(lastChange[1], dirtyRange[1]);
-                }
-                else {
-                    dirtyLines.set(i, [dirtyRange[0], dirtyRange[1]]);
-                }
-            }
+            clearCodePointsFromCache(x, i, w);
+            // if (dirtyRange) {
+            //   const lastChange = dirtyLines.get(i);
+            //   if (lastChange) {
+            //     lastChange[0] = Math.min(lastChange[0], dirtyRange[0]);
+            //     lastChange[1] = Math.max(lastChange[1], dirtyRange[1]);
+            //   } else {
+            //     dirtyLines.set(i, [dirtyRange[0], dirtyRange[1]]);
+            //   }
+            // }
             // canvas.log('#### clearRect line', i, dirtyLines.get(y));
         }
     })));
@@ -143,37 +150,32 @@ function createTerminalCanvas(opts) {
     r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rects], [, x, y, w, h], [, root]]) => {
         if (root)
             root.s.ft.render(canvas, gl_matrix_1.mat4.create(), rects !== null && rects !== void 0 ? rects : [[0, 0, w, h]]).dp(m);
-        for (const [lineIdx, [left, right]] of dirtyLines) {
-            const overlaps = [...lines[lineIdx].searchMultipleOverlaps(left, right - 1)];
-            let offset = left;
-            // canvas.log('#### dirty', left, right);
-            const printingText = [];
-            for (const [eLow, eHigh, data] of overlaps.sort(([a], [b]) => a - b)) {
-                // canvas.log('offset', offset, 'eLow', eLow, 'eHigh', eHigh, 'len', data[0].length);
-                let chopStart = 0;
-                let chopEnd = data[0].length;
-                if (offset < eLow) {
-                    printingText.push(' '.repeat(eLow - offset));
-                }
-                else {
-                    chopStart = offset - eLow;
-                }
-                if (eHigh < right) {
-                    offset = eHigh + 1;
-                }
-                else {
-                    chopEnd -= eHigh + 1 - right;
-                    offset = right;
-                }
-                printingText.push(treeNodeToStyleText([data[0].slice(chopStart, chopEnd), data[1]]));
+        let lineIdx = 0;
+        for (const line of uncommited) {
+            if (line == null) {
+                lineIdx++;
+                continue;
             }
-            // canvas.log('#### printingText', printingText);
-            if (offset < right) {
-                printingText.push(' '.repeat(right - offset));
+            for (const [eLow, , data] of line.allIntervals()) {
+                const text = treeNodeToStyleText(data);
+                s.ft.onPrintText(x + eLow, y + lineIdx, text).dp(m);
             }
-            s.ft.onPrintText(left + x, lineIdx + y, printingText.join('')).dp(m);
+            lineIdx++;
         }
-        dirtyLines.clear();
+        uncommited = [];
+        // clone proLines as new "lines"
+        lines = new Array(proLines.length);
+        for (let i = 0, l = lines.length; i < l; i++) {
+            if (proLines[i]) {
+                const line = lines[i] = new algorithms_1.IntervalTree();
+                for (const [l, h, value] of proLines[i].allIntervals()) {
+                    line.insertInterval(l, h).value = value;
+                }
+            }
+            else {
+                lines[i] = undefined;
+            }
+        }
     })));
     r('copyRect -> onCopyRect', s.pt.copyRect.pipe(rx.map(([m, x, y, w, h]) => {
         const result = [];
@@ -213,7 +215,7 @@ function createTerminalCanvas(opts) {
             const line = dirtyLines.get(lineIdx);
             if (line == null)
                 continue;
-            const overlaps = [...lines[lineIdx].searchMultipleOverlaps(x, x + w - 1)];
+            const overlaps = lines[lineIdx].searchMultipleOverlaps(x, x + w - 1);
             for (const [low, high, [units, style]] of overlaps) {
                 let newUnits = units;
                 let newLow = low;
@@ -302,10 +304,12 @@ function createTerminalCanvas(opts) {
             return text;
         }
     }
-    function addCodePointsToCanvas(x, y, units, style) {
+    /** add code points to "uncommited" line cache */
+    function addCodePointsToCache(x, y, units, style) {
         if (y < 0)
             return;
         if (x < 0) {
+            // units of negative coordinate should not be printed, so slice them
             const cutOffLen = 0 - x;
             units = units.slice(cutOffLen);
             if ((0, text_split_1.isCodePointFullWidth)(units[0])) {
@@ -313,10 +317,14 @@ function createTerminalCanvas(opts) {
             }
             x = 0;
         }
-        let line = lines[y];
+        addCodePointsToLines(uncommited, x, y, units, style);
+        addCodePointsToLines(proLines, x, y, units, style);
+    }
+    function addCodePointsToLines(tLines, x, y, units, style) {
+        let line = tLines[y];
         if (line == null) {
             line = new algorithms_1.IntervalTree();
-            lines[y] = line;
+            tLines[y] = line;
         }
         const endPos = units.length + x;
         const overlaps = [...line.searchMultipleOverlaps(x, endPos - 1)];
@@ -332,68 +340,81 @@ function createTerminalCanvas(opts) {
             const node = line.insertInterval(low, high);
             node.value = [units, style];
         }
-        const lastChange = dirtyLines.get(y);
-        if (lastChange) {
-            lastChange[0] = Math.min(lastChange[0], x);
-            lastChange[1] = Math.max(lastChange[1], endPos);
-        }
-        else {
-            dirtyLines.set(y, [x, endPos]);
-        }
     }
-    function clearCodePointFromLine(x, y, width) {
+    /**
+     * 1) delete overlaps from "uncommited"
+     * 2) fill white spaces to "uncommited" for all overlaps on "lines"
+     */
+    function clearCodePointsFromCache(x, y, width) {
         if (y < 0)
             return;
         if (x < 0) {
             width -= 0 - x;
             x = 0;
         }
-        const line = lines[y];
-        if (line == null)
-            return null;
+        // delete or chop intervals from line tree
+        const uncLine = uncommited[y];
         const endPos = x + width;
-        // console.log('\n' + stringifyRbTree(line, node => '-' + node.maxHighOfMulti));
-        const overlaps = [...line.searchMultipleOverlaps(x, endPos - 1)];
-        if (overlaps.length === 0)
-            return null;
-        for (const [low, high] of overlaps) {
-            // console.log('clearCodePointFromLine delete', low, high);
+        const proLine = proLines[y];
+        if (uncLine != null) {
+            delCodePointsFromLine(x, endPos, uncLine);
+        }
+        if (proLine) {
+            delCodePointsFromLine(x, endPos, proLine);
+        }
+        // To find out where to put white space
+        // 1) look for overlaps in "lines"
+        // 2) add "space" to "uncommited"
+        const line = lines[y];
+        if (line) {
+            const overlaps = line.searchMultipleOverlaps(x, endPos - 1);
+            for (const [low, high, [units]] of overlaps) {
+                let wsStart = low < x ? x : low;
+                if (low < x && (0, text_split_1.isCodePointFullWidth)(units[x - low - 1])) {
+                    wsStart--;
+                }
+                const wsEnd = high >= endPos ? endPos : high + 1;
+                if (uncLine) {
+                    const ovlpUncommited = uncLine.searchMultipleOverlaps(wsStart, wsEnd - 1);
+                    for (const [l, h] of ovlpUncommited)
+                        uncLine.deleteInterval(l, h);
+                    const united = uniteDisplayUnits([wsStart, wsEnd - 1, new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), ''], ovlpUncommited.map(([l, h, [units, style]]) => [l, h, units, style]));
+                    for (const [low, high, units, style] of united) {
+                        const node = line.insertInterval(low, high);
+                        node.value = [units, style];
+                    }
+                }
+                else {
+                    const node = line.insertInterval(wsStart, wsEnd - 1);
+                    node.value = [new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), ''];
+                }
+            }
+        }
+    }
+    function delCodePointsFromLine(x, endPos, line) {
+        const overlaps = line.searchMultipleOverlaps(x, endPos - 1);
+        for (const [low, high, [units, style]] of overlaps) {
             line.deleteInterval(low, high);
-        }
-        // console.log('clearCodePointFromLine middle deleted', overlaps.length);
-        // const dirtyRange = [x, x + width - 1];
-        let dirtyRange = null;
-        for (const overlap of overlaps) {
-            const [low, high, [units, style]] = overlap;
-            if (dirtyRange == null) {
-                dirtyRange = [low, high + 1];
-            }
-            if (low < dirtyRange[0])
-                dirtyRange[0] = low;
             if (low < x) {
-                dirtyRange[0] = x;
-                let chopEnd = x;
-                if ((0, text_split_1.isCodePointFullWidth)(units[x - low - 1])) {
-                    chopEnd = x - 1;
-                }
-                const choppedUnits = units.slice(0, chopEnd - low);
-                const newNode = line.insertInterval(low, chopEnd - 1);
-                newNode.value = [choppedUnits, style];
+                let chopEnd = x - low;
+                const isLastFw = (0, text_split_1.isCodePointFullWidth)(units[chopEnd - 1]);
+                if (isLastFw)
+                    chopEnd--;
+                const chopped = units.slice(0, chopEnd);
+                const node = line.insertInterval(low, chopEnd - 1);
+                node.value = [chopped, style];
             }
-            if (high >= dirtyRange[1])
-                dirtyRange[1] = high + 1;
             if (high >= endPos) {
-                dirtyRange[1] = endPos;
-                let chopStart = endPos;
-                if (units[0] === -1) {
-                    chopStart = endPos + 1;
+                let chopStart = endPos - low;
+                const isCwEnd = units[chopStart] === -1;
+                if (isCwEnd) {
+                    chopStart++;
                 }
-                const choppedUnits = units.slice(chopStart - low);
-                const newNode = line.insertInterval(chopStart, high);
-                newNode.value = [choppedUnits, style];
+                const chopped = units.slice(chopStart);
+                const node = line.insertInterval(chopStart, high);
+                node.value = [chopped, style];
             }
         }
-        return dirtyRange;
     }
     return canvas;
 }

@@ -136,6 +136,7 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
             return [l, h, hNode ? hNode.value : n.value, hNode, n];
         });
     }
+    /** traverse all nodes in in-order */
     *allIntervals() {
         for (const [node] of this.allChildNodeInorder()) {
             if (node.highValuesTree)

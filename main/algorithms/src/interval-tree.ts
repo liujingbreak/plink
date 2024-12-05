@@ -165,6 +165,7 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
       return [l, h, hNode ? hNode.value : n.value, hNode, n];
     });
   }
+  /** traverse all nodes in in-order */
   *allIntervals(): Generator<readonly [number, number, V], void, unknown> {
     for (const [node] of this.allChildNodeInorder()) {
       if (node.highValuesTree)
