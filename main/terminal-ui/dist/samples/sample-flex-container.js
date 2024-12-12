@@ -30,6 +30,7 @@ require("source-map-support/register");
 const util_1 = __importDefault(require("util"));
 const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
+// import stripAnsi from 'strip-ansi';
 const reactivizer_1 = require("@wfh/reactivizer");
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
@@ -38,7 +39,11 @@ const screenWidth = process.argv[2];
 const debug = true;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const canvas = (0, index_1.createTerminalCanvas)({ debug, log });
+const canvas = (0, index_1.createTerminalCanvas)({
+    debug: true,
+    log,
+    debugExcludeTypes: ['addDisplayUnits', 'requestRender', 'onPrintText']
+});
 canvas.s.ft.autoHideCursor().dp();
 const root = (0, index_2.createFlexContainer)({ name: 'root', debug, log });
 canvas.s.ft.setRootComponent(root).dp();
@@ -82,19 +87,12 @@ canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
 const scene = new reactivizer_1.SimplexReactor({
     name: 'scene',
-    debug: true,
+    debug,
     log
 });
 const { r, s } = scene;
-r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(rx.switchMap(() => demoCtn.table.l.allChildren.pipe(rx.take(1))), rx.mergeMap(([, labels]) => rx.from(labels).pipe(rx.map((label, i) => {
-    if (i === 0) {
-        (0, index_2.getBoundingOfCompTree)(root).pipe(rx.map(rects => {
-            scene.log('>>>>>> Bounding boxies', rects.map(r => util_1.default.inspect(r)).join());
-        }), rx.take(1)).subscribe();
-    }
-    return label;
-}), rx.concatMap((label, i) => s.ft.changeStaticLabelToClock(label, i, 5)
-    .od(s.pt.doneChangeStaticLabelToClock).pipe(rx.take(1))), rx.finalize(() => {
+r('doneShowLablesLeftToRight -> toClock', s.pt.doneShowLablesLeftToRight.pipe(rx.switchMap(() => demoCtn.table.l.allChildren), rx.concatMap(r => rx.timer(500).pipe(rx.map(() => r))), rx.mergeMap(([, labels]) => rx.from(labels).pipe(rx.concatMap((label, i) => s.ft.toClock(label, i, 5)
+    .od(s.pt.doneToClock).pipe(rx.take(1))), rx.takeLast(1), rx.mergeMap(() => canvas.s.pt.render), rx.take(1), rx.finalize(() => {
     canvas.dispose();
     root.dispose();
 })))));
@@ -104,16 +102,27 @@ r('showLablesLeftToRight', s.pt.showLablesLeftToRight.pipe(rx.concatMap(([m, num
         const text = (0, index_2.createTextWidget)('This is label ' + (i + 1), { name: 'text-' + i, debug, log });
         text.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp(m);
         demoCtn.s.ft.addChild(text).dp(m);
-    }), rx.take(num)
-    // rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m))
-    );
+    }), rx.take(num), rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m)));
 })));
-r('changeStaticLabelToClock -> doneChangeStaticLabelToClock', s.pt.changeStaticLabelToClock.pipe(rx.mergeMap(([m, label, i, duration]) => rx.concat(rx.timer(16, 1000).pipe(rx.map(() => {
+r('toClock -> doneToClock', s.pt.toClock.pipe(rx.mergeMap(([m, label, i, duration]) => rx.concat(rx.timer(16, 1000).pipe(rx.map(() => {
     const now = new Date();
     label.s.ft.setContent(`Current time: ${now.toLocaleTimeString()}`).dp(m);
 }), rx.take(duration)), rx.timer(1000).pipe(rx.map(() => {
     label.s.ft.setContent(`This is label ${i + 1}`).dp(m);
-    s.ft.doneChangeStaticLabelToClock().dp(m);
+    s.ft.doneToClock().dp(m);
 }))))));
-s.ft.showLablesLeftToRight(5).dp();
+canvas.s.pt.render.pipe(rx.mergeMap(() => canvas.table.l.internalCache.pipe(rx.take(1))), rx.map(([, , proLines]) => {
+    canvas.log('++ proLines', (0, index_2.debugLineTrees)(proLines));
+})).subscribe();
+// canvas.s.pt.addDisplayUnits.pipe(
+//   rx.map(([, x, y, units]) => {
+//     canvas.log('++ addDisplayUnits', x, y, treeNodeToStyleText([units]));
+//   })
+// ).subscribe();
+// canvas.s.pt.onPrintText.pipe(
+//   rx.map(([, x, y, text]) => {
+//     canvas.log('++ onPrintText', x, y, stripAnsi(text));
+//   })
+// ).subscribe();
+s.ft.showLablesLeftToRight(3).dp();
 //# sourceMappingURL=sample-flex-container.js.map

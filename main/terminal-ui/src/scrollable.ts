@@ -50,7 +50,8 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
     rx.mergeMap(([[, oCanvas], [, left, top]]) => canvas.s.pt.clearRect.pipe(
       rx.map(([m, x, y, w, h]) => {
         oCanvas.s.ft.clearRect(x + left, y + top, w, h).dp(m);
-      })
+      }),
+      rx.take(1)
     ))
   ));
   r('querySizeOf -> comp.querySizeOf', s.pt.querySizeOf.pipe(

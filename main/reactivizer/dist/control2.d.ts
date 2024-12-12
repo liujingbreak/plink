@@ -61,7 +61,8 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * It helps to conquer recursive message emitting problem when adding more reactors to existing message stream.
      */
     forkController(): ForkedRxControllerConst<I>;
-    /** alias of forkController() */
+    /** @deprecated
+     * Use forkController() instead */
     prependController(): ForkedRxControllerConst<I>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;

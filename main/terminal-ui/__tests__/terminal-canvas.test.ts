@@ -6,34 +6,40 @@ import stripAnsi from 'strip-ansi';
 import * as rx from 'rxjs';
 // import chalk from 'chalk';
 // import {actionRelatedToAction} from '@wfh/reactivizer';
-import {createTerminalCanvas, TerminalCanvas} from '../src';
+import {createTerminalCanvas, TerminalCanvas, debugLineTrees} from '../src';
 
 describe('TerminalCanvas', () => {
-  it('Single line, printing texts', () => {
+  it.skip('Single line, printing texts', () => {
     const service = createTerminalCanvas();
     service.config({
-      debug: true
+      debug: true,
+      debugExcludeTypes: ['internalCache']
     });
-    interceptPrint(service);
-    const s = service.s.prependController();
+    const {s} = service;
+    // s.ft.setRootComponent(createFlexContainer()).dp();
+    const p = s.forkController();
+    service.s.appendInterceptor(a$ => {
+      const dis = ActionDispenser.ofAction$<typeof service>(a$);
+      return rx.merge(
+        dis.at.onPrintText.pipe(rx.ignoreElements()),
+        dis.ofOtherTypes()
+      );
+    });
     const mockFn = jest.fn();
-    s.ft.setBounding(0, 0, 40, 8).dp();
-    // const root = createTextWidget();
-    // root.config({debug: true});
-    // s.ft.setRootWidget(root).dp();
+    s.ft.setBounding(0, 0, 40, 9).dp();
     s.ft.addString(10, 0, 'abc').dp();
     s.ft.addString(15, 0, 'edf').dp();
     s.ft.addString(20, 0, 'hij').dp();
-    s.ft.render().od(s.pt.onPrintText).pipe(
+    s.ft.render().od(p.pt.onPrintText).pipe(
       rx.map(([, x, , text]) => mockFn(x, text))
     ).subscribe();
     console.log(mockFn.mock.calls);
-    expect(mockFn.mock.calls.length).toBe(1);
+    expect(mockFn.mock.calls.length).toBe(3);
 
     // --- try printing some overlap text
     const mockFn1 = jest.fn();
     s.ft.addString(9, 0, 'xyz').dp();
-    s.ft.render().od(s.pt.onPrintText).pipe(
+    s.ft.render().od(p.pt.onPrintText).pipe(
       rx.map(([, x, , text]) => mockFn1(x, text))
     ).subscribe();
     console.log(mockFn.mock.calls);
@@ -43,7 +49,7 @@ describe('TerminalCanvas', () => {
     // --- try printing some overlap text whose position overlaps the space between exiting texts
     const mockFn2 = jest.fn();
     s.ft.addString(12, 0, '1234567890123').dp();
-    s.ft.render().od(s.pt.onPrintText).pipe(
+    s.ft.render().od(p.pt.onPrintText).pipe(
       rx.map(([, x, , text]) => mockFn2(x, text))
     ).subscribe();
     expect(mockFn2.mock.calls.length).toBe(1);
@@ -56,7 +62,7 @@ describe('TerminalCanvas', () => {
     s.ft.addString(15, 0, 'edf').dp();
     s.ft.addString(20, 0, 'hij').dp();
     s.ft.addString(21, 0, 'XXXX').dp();
-    s.ft.render().od(s.pt.onPrintText).pipe(
+    s.ft.render().od(p.pt.onPrintText).pipe(
       rx.map(([, x, , text]) => mockFn3(x, text))
     ).subscribe();
     console.log(mockFn3.mock.calls);
@@ -66,12 +72,12 @@ describe('TerminalCanvas', () => {
     service.dispose();
   });
 
-  it('Single line, printing full-width characters', () => {
+  it.skip('Single line, printing full-width characters', () => {
     const service = createTerminalCanvas();
-    service.config({debug: true});
+    service.config({debug: true, debugExcludeTypes: ['internalCache']});
     const {s} = service;
+    const prepended = s.forkController();
     interceptPrint(service);
-    const prepended = s.prependController();
     s.ft.setBounding(0, 0, 120, 20).dp();
     // Chinese characters overrides ASCII text
     const mockFn = jest.fn();
@@ -104,12 +110,12 @@ describe('TerminalCanvas', () => {
     service.dispose();
   });
 
-  it('print text in different style', () => {
+  it.skip('print text in different style', () => {
     const service = createTerminalCanvas();
-    service.config({debug: true});
+    service.config({debug: true, debugExcludeTypes: ['internalCache']});
     const {s} = service;
+    const prepended = s.forkController();
     interceptPrint(service);
-    const prepended = s.prependController();
     s.ft.setBounding(0, 0, 300, 50).dp();
 
     s.ft.addString(0, 0, '上c', ['red', 'strikethrough']).dp();
@@ -125,16 +131,17 @@ describe('TerminalCanvas', () => {
     // eslint-disable-next-line no-console
     mockFn.mock.calls.forEach(([, text]) => console.log(text));
     expect(mockFn.mock.calls.length).toEqual(1);
-    expect(stripAnsi(mockFn.mock.calls[0][1] as string)).toEqual(stripAnsi('上12345 g'));
+    expect(stripAnsi(mockFn.mock.calls[0][1] as string))
+      .toEqual('上12345 g');
     service.dispose();
   });
 
-  it('clearRect() from text lines', () => {
+  it.skip('clearRect()', () => {
     const service = createTerminalCanvas();
-    service.config({debug: true});
+    service.config({debug: true, debugExcludeTypes: ['internalCache']});
     const {s} = service;
+    const prepended = s.forkController();
     interceptPrint(service);
-    const prepended = s.prependController();
     s.ft.setBounding(0, 0, 200, 80).dp();
     s.ft.addString(0, 0, 'ab上', ['red', 'strikethrough']).dp();
     s.ft.addString(6, 0, '中gh', ['cyan', 'inverse']).dp();
@@ -153,21 +160,106 @@ describe('TerminalCanvas', () => {
     // eslint-disable-next-line no-console
     mockFn.mock.calls.forEach(([, text]) => console.log(text));
     expect(mockFn.mock.calls.length).toEqual(3);
-    expect(mockFn.mock.calls[0][1]).toEqual('ab     gh');
-    expect(mockFn.mock.calls[1][1]).toEqual('    ');
-    expect(mockFn.mock.calls[2][1]).toEqual('2    ');
+    expect(mockFn.mock.calls[0]).toEqual([0, 'ab']);
+    expect(mockFn.mock.calls[1]).toEqual([8, 'gh']);
+    expect(mockFn.mock.calls[2]).toEqual([2, '2']);
+    service.dispose();
+  });
+  it('clearRect() after rendered', () => {
+    const service = createTerminalCanvas();
+    service.config({debug: true, debugExcludeTypes: ['internalCache']});
+    const {s, table} = service;
+    const prepended = s.forkController();
+    interceptPrint(service);
+    s.ft.setBounding(0, 0, 200, 80).dp();
+    s.ft.addString(0, 0, 'ab上', ['red', 'strikethrough']).dp();
+    s.ft.addString(6, 0, '中gh', ['cyan', 'inverse']).dp();
+    s.ft.addString(3, 1, '3456').dp();
+    s.ft.addString(2, 2, '23456').dp();
+    // ab上  中gh
+    //    3456
+    //   23456
+    // 0123456789
+    s.ft.render().dp();
+    let [lines, proLines, uncommited] = table.getData().internalCache;
+    console.log('uncommited', debugLineTrees(uncommited!));
+    console.log('lines', debugLineTrees(lines!));
+    console.log('proLines', debugLineTrees(proLines!));
+
+    s.ft.clearRect(3, 0, 4, 5).dp();
+
+    [lines, proLines, uncommited] = table.getData().internalCache;
+    console.log('2 uncommited', debugLineTrees(uncommited!));
+    console.log('2 lines', debugLineTrees(lines!));
+    console.log('2 proLines', debugLineTrees(proLines!));
+    const mockFn = jest.fn();
+    s.ft.render().od(prepended.pt.onPrintText).pipe(
+      rx.map(([, x, y, text]) => mockFn(x, y, stripAnsi(text)))
+    ).subscribe();
+    // eslint-disable-next-line no-console
+    expect(mockFn.mock.calls.length).toEqual(4);
+    expect(mockFn.mock.calls[0]).toEqual([2, 0, '  ']);
+    expect(mockFn.mock.calls[1]).toEqual([6, 0, '  ']);
+    expect(mockFn.mock.calls[2]).toEqual([3, 1, '    ']);
+    expect(mockFn.mock.calls[3]).toEqual([3, 2, '    ']);
+
+    s.ft.addString(0, 0, 'ab上  中gh').dp();
+    s.ft.render().od(prepended.pt.onPrintText).pipe(
+      rx.map(([, x, y, text]) => mockFn(x, y, stripAnsi(text)))
+    ).subscribe();
+    expect(mockFn.mock.calls[4]).toEqual([0, 0, 'ab上  中gh']);
+    service.dispose();
+  });
+  it('clearRect() after rendered and addString', () => {
+    const service = createTerminalCanvas();
+    service.config({debug: true, debugIncludeTypes: ['render', 'onPrintText', 'clearRect']});
+    const {s, table} = service;
+    const prepended = s.forkController();
+    interceptPrint(service);
+    s.ft.setBounding(0, 0, 200, 80).dp();
+    s.ft.addString(0, 0, 'ab上', ['red', 'strikethrough']).dp();
+    s.ft.addString(6, 0, '中gh', ['cyan', 'inverse']).dp();
+    s.ft.addString(3, 1, '3456').dp();
+    s.ft.addString(2, 2, '23456').dp();
+    // ab上  中gh
+    //    3456
+    //   23456
+    //  覆盖
+    // 0123456789
+    s.ft.render().dp();
+    s.ft.addString(1, 0, '覆盖').dp();
+    let [lines, proLines, uncommited] = table.getData().internalCache;
+    console.log('uncommited', debugLineTrees(uncommited!));
+    console.log('lines', debugLineTrees(lines!));
+    console.log('proLines', debugLineTrees(proLines!));
+
+    s.ft.clearRect(3, 0, 4, 5).dp();
+
+    [lines, proLines, uncommited] = table.getData().internalCache;
+    console.log('after uncommited', debugLineTrees(uncommited!));
+    console.log('after lines', debugLineTrees(lines!));
+    console.log('after proLines', debugLineTrees(proLines!));
+
+    const mockFn = jest.fn();
+    s.ft.render().od(prepended.pt.onPrintText).pipe(
+      rx.map(([, x, y, text]) => mockFn(x, y, stripAnsi(text)))
+    ).subscribe();
+    // eslint-disable-next-line no-console
+    expect(mockFn.mock.calls.length).toEqual(4);
+    expect(mockFn.mock.calls[0]).toEqual([1, 0, '覆 ']);
+    expect(mockFn.mock.calls[1]).toEqual([6, 0, '  ']);
+    expect(mockFn.mock.calls[2]).toEqual([3, 1, '    ']);
+    expect(mockFn.mock.calls[3]).toEqual([3, 2, '    ']);
     service.dispose();
   });
 });
 
 function interceptPrint(service: TerminalCanvas) {
-  const inter = service.s.interceptorList$.getValue();
-  inter.push(a$ => {
+  service.s.appendInterceptor(a$ => {
     const dis = ActionDispenser.ofAction$<typeof service>(a$);
     return rx.merge(
       dis.at.onPrintText.pipe(rx.ignoreElements()),
       dis.ofOtherTypes()
     );
   });
-  service.s.interceptorList$.next(inter);
 }

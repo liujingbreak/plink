@@ -23,7 +23,7 @@ export interface AppOptions {
     focusable?: FocusableOptions;
 }
 export declare function createApp(mainComponent: BaseWidget, opts?: AppOptions): {
-    canvas: SimplexReactor<import("../canvas").TerminalCanvasEvents, readonly ["setBounding", "setRootComponent", "onDirtyLineChange"]>;
+    canvas: SimplexReactor<import("../canvas").TerminalCanvasEvents, readonly ["setBounding", "setRootComponent", "onDirtyLineChange", "internalCache"]>;
     main: import("@wfh/reactivizer").DerivedSimplexReactor<import("../flex-container").FlexContainerInput & import("../flex-container").FlexContainerEvents & import("../container").TermainlContainerEvents & import("../base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setDirection" | "alignItems" | "justifyContent" | "setBorderSpacing" | "setBorderSeparator" | "setBorderSeparatorStyle")[]>;
     app: SimplexReactor<AppSignals, readonly []>;
 };

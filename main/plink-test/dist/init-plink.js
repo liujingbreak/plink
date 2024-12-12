@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.lookupPackage = exports.packageToPathMap = exports.tsconfigJson = exports.tsconfigFile = exports.plinkRootDir = void 0;
+exports.packageToPathMap = exports.tsconfigJson = exports.tsconfigFile = exports.plinkRootDir = void 0;
+exports.lookupPackage = lookupPackage;
 const tslib_1 = require("tslib");
 const path_1 = tslib_1.__importDefault(require("path"));
 const fs_1 = tslib_1.__importDefault(require("fs"));
@@ -20,5 +21,4 @@ function lookupPackage(file) {
     });
     return resolved;
 }
-exports.lookupPackage = lookupPackage;
 //# sourceMappingURL=init-plink.js.map

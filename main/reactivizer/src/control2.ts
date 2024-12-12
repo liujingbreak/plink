@@ -121,7 +121,8 @@ export class RxController2<I> extends ControllerCore<I> {
     const {ForkedRxController} = require('./forked-control') as {ForkedRxController: typeof ForkedRxControllerConst}; // avoid cyclic import
     return new ForkedRxController<I>(this);
   }
-  /** alias of forkController() */
+  /** @deprecated
+   * Use forkController() instead */
   prependController() {
     return this.forkController();
   }

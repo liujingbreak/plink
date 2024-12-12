@@ -16,19 +16,16 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson,
     const service = languageServices(ts);
     const { s } = service;
     s.ft.setTsConfig(tsconfigJson, tsconfigDir).dp();
-    // service.config({debug: true});
-    // service.r('doneResolveCompilerOption', service.ot.l.doneResolveCompilerOption.pipe(
-    //   rx.map(([, co]) => {
-    //     console.log('compilerOoptions:', co);
-    //   })
-    // ));
     return function (content, file) {
         var _a;
         let destFile;
         let sourceMap;
         let unknownOutputFile;
         let error;
-        s.ft.addSourceFile(file, true, content)
+        rx.merge(s.pt.onSuggest.pipe(rx.map(([, file, diagnostics]) => {
+            // eslint-disable-next-line no-console
+            console.log('[langService]', file, diagnostics);
+        })), s.ft.addSourceFile(file, true, content)
             .od(s.pt.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
             if (/\.[mc]?js/.test(outputFile)) {
                 destFile = outputContent;
@@ -41,16 +38,15 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson,
             }
         }), 
         // rx.take(1),
-        rx.takeUntil(rx.merge(s.pt.onEmitFailure, s.pt.onSuggest).pipe(rx.map(([, file, diagnostics]) => {
+        rx.takeUntil(s.pt.onEmitFailure.pipe(rx.map(([, file, diagnostics]) => {
             // eslint-disable-next-line no-console
-            console.log('[tsc-util]', file, diagnostics);
+            console.log('[langService]', file, diagnostics);
         }))), rx.catchError(err => {
             // eslint-disable-next-line no-console
             console.log('[tsc-util] catch error', err);
             error = err;
             return rx.EMPTY;
-        }))
-            .subscribe();
+        }))).subscribe();
         if (destFile == null) {
             throw new Error(`Failed to compile ${file} (unknown: ${unknownOutputFile !== null && unknownOutputFile !== void 0 ? unknownOutputFile : ''}) ${error ? (_a = error.stack) !== null && _a !== void 0 ? _a : '' : ''}`);
         }

@@ -121,7 +121,8 @@ class RxController2 extends stream_core_1.ControllerCore {
         const { ForkedRxController } = require('./forked-control'); // avoid cyclic import
         return new ForkedRxController(this);
     }
-    /** alias of forkController() */
+    /** @deprecated
+     * Use forkController() instead */
     prependController() {
         return this.forkController();
     }

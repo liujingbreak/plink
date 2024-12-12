@@ -47,9 +47,9 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
             const line = lines[i];
             if (line.length < width) {
                 if (bg)
-                    canvas.s.ft.addString(line.length, y0 + i, ' '.repeat(width - line.length), [bg]).dp(m);
+                    canvas.s.ft.addString(x + line.length, y0 + i, ' '.repeat(width - line.length), [bg]).dp(m);
                 else
-                    canvas.s.ft.clearRect(line.length, y0 + i, width - line.length, 1).dp(m);
+                    canvas.s.ft.clearRect(x + line.length, y0 + i, width - line.length, 1).dp(m);
             }
             canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
         }

@@ -50,6 +50,7 @@ export declare class IntervalTree<V = unknown> extends RedBlackTree<number, V, I
     searchSingleOverlap(low: number, high: number): OverlapSearchResult<V> | null;
     /** @param high is considered as an included endpoint value */
     searchMultipleOverlaps(low: number, high: number): OverlapSearchResult<V>[];
+    /** traverse all nodes in in-order */
     allIntervals(): Generator<readonly [number, number, V], void, unknown>;
     /** @Override
      */

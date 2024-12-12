@@ -16,7 +16,7 @@ const ev = createElevator({default: {debug, log}});
 const popupLayer = createFlexContainer({name: 'popup', debug, log});
 ev.s.ft.addChild(root, popupLayer).dp();
 
-const popupMsg = createTextWidget('POPUP MESSAGE!', {name: 'popupMsg', debug, log});
+const popupMsg = createTextWidget('<POPUP MESSAGE>', {name: 'popupMsg', debug, log});
 popupLayer.s.ft.justifyContent('center').dp();
 popupLayer.s.ft.alignItems('center').dp();
 popupLayer.s.ft.addChild(popupMsg).dp();
@@ -43,9 +43,10 @@ canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
 setTimeout(() => {
   popupLayer.log('--------------- change display ----');
-  popupLayer.s.ft.setDisplay(DisplayMode.none).dp();
+  popupMsg.s.ft.setContent('xx').dp();
 }, 1000);
-// setTimeout(() => {
-//   popupLayer.s.ft.setDisplay(DisplayMode.visible).dp();
-// }, 2000);
+setTimeout(() => {
+  popupLayer.s.ft.setDisplay(DisplayMode.none).dp();
+  label.s.ft.setContent('bottom layer').dp();
+}, 3000);
 

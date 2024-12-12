@@ -17,7 +17,7 @@ canvas.s.ft.autoHideCursor().dp();
 const ev = (0, index_1.createElevator)({ default: { debug, log } });
 const popupLayer = (0, index_1.createFlexContainer)({ name: 'popup', debug, log });
 ev.s.ft.addChild(root, popupLayer).dp();
-const popupMsg = (0, index_1.createTextWidget)('POPUP MESSAGE!', { name: 'popupMsg', debug, log });
+const popupMsg = (0, index_1.createTextWidget)('<POPUP MESSAGE>', { name: 'popupMsg', debug, log });
 popupLayer.s.ft.justifyContent('center').dp();
 popupLayer.s.ft.alignItems('center').dp();
 popupLayer.s.ft.addChild(popupMsg).dp();
@@ -41,9 +41,10 @@ canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
 setTimeout(() => {
     popupLayer.log('--------------- change display ----');
-    popupLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp();
+    popupMsg.s.ft.setContent('xx').dp();
 }, 1000);
-// setTimeout(() => {
-//   popupLayer.s.ft.setDisplay(DisplayMode.visible).dp();
-// }, 2000);
+setTimeout(() => {
+    popupLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp();
+    label.s.ft.setContent('bottom layer').dp();
+}, 3000);
 //# sourceMappingURL=sample-elevator.js.map

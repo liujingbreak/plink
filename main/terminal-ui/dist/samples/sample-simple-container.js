@@ -10,18 +10,18 @@ const canvas_1 = require("../canvas");
 const text_1 = require("../text");
 const flex_container_1 = require("../flex-container");
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log', { flush: true });
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, true, fout);
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const canvas = (0, canvas_1.createTerminalCanvas)({
     debug: true, log
 });
-const text = (0, text_1.createTextWidget)('long sentance', { debug: true, log });
+const text = (0, text_1.createTextWidget)('long sentance', { debug: false, log });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-const container = (0, flex_container_1.createFlexContainer)({ debug: true, log });
+const container = (0, flex_container_1.createFlexContainer)({ debug: false, log });
 container.s.ft.addChild(text).dp();
 container.s.ft.justifyContent('center').dp();
 container.s.ft.alignItems('center').dp();
-container.s.ft.setBackground('bgAnsi256(25)').dp();
+// container.s.ft.setBackground('bgAnsi256(25)').dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
 canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRootComponent(container).dp();

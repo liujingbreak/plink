@@ -29,6 +29,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTerminalCanvas = createTerminalCanvas;
 exports.getTextDisplayUnits = getTextDisplayUnits;
 exports.rectIntersection = rectIntersection;
+exports.treeNodeToStyleText = treeNodeToStyleText;
+exports.debugLineTrees = debugLineTrees;
+exports.debugLineTree = debugLineTree;
 const node_readline_1 = __importDefault(require("node:readline"));
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
@@ -39,7 +42,7 @@ const algorithms_1 = require("@wfh/algorithms");
 const text_split_1 = require("./text-split");
 const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
 const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl', 'hex', 'bgHex', 'ansi', 'bgAnsi', 'ansi256', 'bgAnsi256']);
-const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange'];
+const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange', 'internalCache'];
 function createTerminalCanvas(opts) {
     const canvas = new reactivizer_1.SimplexReactor(Object.assign({ name: 'Canvas', 
         // debugExcludeTypes: ['requestRender'],
@@ -121,16 +124,6 @@ function createTerminalCanvas(opts) {
     r('clearRect', s.pt.clearRect.pipe(rx.map(([, x, y, w, h]) => {
         for (let i = y, l = y + h; i < l; i++) {
             clearCodePointsFromCache(x, i, w);
-            // if (dirtyRange) {
-            //   const lastChange = dirtyLines.get(i);
-            //   if (lastChange) {
-            //     lastChange[0] = Math.min(lastChange[0], dirtyRange[0]);
-            //     lastChange[1] = Math.max(lastChange[1], dirtyRange[1]);
-            //   } else {
-            //     dirtyLines.set(i, [dirtyRange[0], dirtyRange[1]]);
-            //   }
-            // }
-            // canvas.log('#### clearRect line', i, dirtyLines.get(y));
         }
     })));
     r('onPrintText', s.pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
@@ -148,18 +141,40 @@ function createTerminalCanvas(opts) {
         }
     })));
     r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rects], [, x, y, w, h], [, root]]) => {
+        // canvas.log('>> before uncommited', debugLineTrees(uncommited));
         if (root)
             root.s.ft.render(canvas, gl_matrix_1.mat4.create(), rects !== null && rects !== void 0 ? rects : [[0, 0, w, h]]).dp(m);
         let lineIdx = 0;
+        // canvas.log('>> after uncommited', debugLineTrees(uncommited));
+        // canvas.log('>> lines', debugLineTrees(lines));
         for (const line of uncommited) {
             if (line == null) {
                 lineIdx++;
                 continue;
             }
-            for (const [eLow, , data] of line.allIntervals()) {
+            let prevPrintable = '';
+            let prevPrintEnd = 0;
+            let prevPrintStart = 0;
+            for (const [eLow, eHigh, data] of line.allIntervals()) {
                 const text = treeNodeToStyleText(data);
-                s.ft.onPrintText(x + eLow, y + lineIdx, text).dp(m);
+                // canvas.log('- unc', eLow, eHigh, text);
+                if (eLow === prevPrintEnd) {
+                    // In case there are contiguous printables with different style (according
+                    // to the logic of "uniteDisplayUnits()"),
+                    // current printable is contiguous to previous one,
+                    // concatenate them
+                    prevPrintable += text;
+                }
+                else {
+                    if (prevPrintable)
+                        s.ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
+                    prevPrintable = text;
+                    prevPrintStart = eLow;
+                }
+                prevPrintEnd = eHigh + 1;
             }
+            if (prevPrintable)
+                s.ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
             lineIdx++;
         }
         uncommited = [];
@@ -176,10 +191,11 @@ function createTerminalCanvas(opts) {
                 lines[i] = undefined;
             }
         }
+        s.ft.internalCache(lines, proLines, uncommited).dp();
     })));
     r('copyRect -> onCopyRect', s.pt.copyRect.pipe(rx.map(([m, x, y, w, h]) => {
         const result = [];
-        lines.slice(y, y + h).forEach((lineTree, i) => {
+        proLines.slice(y, y + h).forEach((lineTree, i) => {
             if (lineTree == null)
                 return undefined;
             const overlaps = lineTree.searchMultipleOverlaps(x, x + w - 1);
@@ -274,36 +290,10 @@ function createTerminalCanvas(opts) {
         }))) : rx.EMPTY;
     })));
     r('init', new rx.Observable(() => {
+        s.ft.internalCache(lines, proLines, uncommited).dp();
         s.ft.setRootComponent(null).dp();
         s.ft.onDirtyLineChange(dirtyLines).dp();
     }));
-    function treeNodeToStyleText([codePoints, style]) {
-        const text = String.fromCodePoint(...codePoints.filter(codePoint => codePoint >= 0));
-        if (style) {
-            const chalkFn = style.split(';').reduce((chalkInst, keyword) => {
-                if (keyword.indexOf('(') < 0) {
-                    if (chalkInst == null)
-                        throw new Error(`Chalk is null for keyword "${keyword}" of ` + style);
-                    return chalkInst[keyword];
-                }
-                else {
-                    const match = /([^()]+)\(([^)]+)\)/.exec(keyword);
-                    if (match) {
-                        const fn = match[1];
-                        if (CHALK_NUMBER_FN.has(fn)) {
-                            const params = match[2].trim().split(',').map(v => v.startsWith('#') ? v : Number(v));
-                            return chalkInst[fn](...params);
-                        }
-                    }
-                }
-                throw new Error('TerminalCanvas does not support chalk style keyword: ' + keyword);
-            }, chalk_1.default);
-            return chalkFn(text);
-        }
-        else {
-            return text;
-        }
-    }
     /** add code points to "uncommited" line cache */
     function addCodePointsToCache(x, y, units, style) {
         if (y < 0)
@@ -327,19 +317,11 @@ function createTerminalCanvas(opts) {
             tLines[y] = line;
         }
         const endPos = units.length + x;
-        const overlaps = [...line.searchMultipleOverlaps(x, endPos - 1)];
-        // canvas.log('>>> line\n', stringifyRbTree(line));
-        // canvas.log('>>> overlaps', ...overlaps.map(([l, h]) => `${l}-${h}`));
-        const newDisplayNodes = uniteDisplayUnits([x, endPos - 1, units, style.join(';')], overlaps.map(([l, h, [units, style]]) => [l, h, units, style]));
-        for (const [low, high] of overlaps) {
-            line.deleteInterval(low, high);
-        }
-        // canvas.log('>>> addCodePointsToCanvas', `y:${y} x: ${x} endPos: ${endPos} units.length:`, units.length);
-        for (const [low, high, units, style] of newDisplayNodes) {
-            // canvas.log('>>> addCodePointsToCanvas insert', `low:${low} high: ${high} units.length:`, units.length);
-            const node = line.insertInterval(low, high);
-            node.value = [units, style];
-        }
+        // Make overlap search range 2 units bigger (1 unit expend at each end) than its actual size (x, endPos - 1),
+        // so that, any existing contiguous intervals are considered as "overlap" as well.
+        // if (y === 17)
+        //   canvas.log('>> uniteDisplayUnits', x, endPos - 1, treeNodeToStyleText([units]));
+        uniteDisplayUnits(line, [x, endPos - 1, units, style.join(';')]);
     }
     /**
      * 1) delete overlaps from "uncommited"
@@ -353,11 +335,12 @@ function createTerminalCanvas(opts) {
             x = 0;
         }
         // delete or chop intervals from line tree
-        const uncLine = uncommited[y];
+        let uncLine = uncommited[y];
         const endPos = x + width;
         const proLine = proLines[y];
         if (uncLine != null) {
             delCodePointsFromLine(x, endPos, uncLine);
+            // canvas.log('>> after del uncline:', y, debugLineTree(uncLine));
         }
         if (proLine) {
             delCodePointsFromLine(x, endPos, proLine);
@@ -369,23 +352,28 @@ function createTerminalCanvas(opts) {
         if (line) {
             const overlaps = line.searchMultipleOverlaps(x, endPos - 1);
             for (const [low, high, [units]] of overlaps) {
+                // canvas.log('>> ovlp line', y, ':', low, '-', high);
                 let wsStart = low < x ? x : low;
                 if (low < x && (0, text_split_1.isCodePointFullWidth)(units[x - low - 1])) {
-                    wsStart--;
+                    if ((uncLine === null || uncLine === void 0 ? void 0 : uncLine.searchSingleOverlap(x - 1, x - 1)) == null)
+                        wsStart--;
                 }
-                const wsEnd = high >= endPos ? endPos : high + 1;
+                let wsEnd = high >= endPos ? endPos : high + 1;
+                if (high >= endPos && units[wsEnd - low] === -1) {
+                    // canvas.log('>> here', wsEnd, uncLine?.searchSingleOverlap(wsEnd, wsEnd));
+                    if ((uncLine === null || uncLine === void 0 ? void 0 : uncLine.searchSingleOverlap(wsEnd, wsEnd)) == null)
+                        wsEnd++;
+                }
                 if (uncLine) {
-                    const ovlpUncommited = uncLine.searchMultipleOverlaps(wsStart, wsEnd - 1);
-                    for (const [l, h] of ovlpUncommited)
-                        uncLine.deleteInterval(l, h);
-                    const united = uniteDisplayUnits([wsStart, wsEnd - 1, new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), ''], ovlpUncommited.map(([l, h, [units, style]]) => [l, h, units, style]));
-                    for (const [low, high, units, style] of united) {
-                        const node = line.insertInterval(low, high);
-                        node.value = [units, style];
-                    }
+                    // canvas.log('>> overwrite uncLine', y, 'with ws:', wsStart, ',', wsEnd);
+                    // look for overlaping or contiguous (2 characters wider than actual clear space, from "wsStart - 1" to "wsEnd")
+                    uniteDisplayUnits(uncLine, [wsStart, wsEnd - 1, new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), '']);
                 }
                 else {
-                    const node = line.insertInterval(wsStart, wsEnd - 1);
+                    // canvas.log('>> add ws to uncline', y, ':', wsStart, ',', wsEnd);
+                    uncommited[y] = uncLine = new algorithms_1.IntervalTree();
+                    // canvas.log('>>> clearCode insert line', wsStart, wsEnd - 1);
+                    const node = uncLine.insertInterval(wsStart, wsEnd - 1);
                     node.value = [new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), ''];
                 }
             }
@@ -393,25 +381,28 @@ function createTerminalCanvas(opts) {
     }
     function delCodePointsFromLine(x, endPos, line) {
         const overlaps = line.searchMultipleOverlaps(x, endPos - 1);
+        // canvas.log('>> delCodePointsFromLine', x, endPos, 'overlap', overlaps.length);
         for (const [low, high, [units, style]] of overlaps) {
             line.deleteInterval(low, high);
+            // canvas.log('>> deleted', low, high, 'size', line.size());
             if (low < x) {
                 let chopEnd = x - low;
                 const isLastFw = (0, text_split_1.isCodePointFullWidth)(units[chopEnd - 1]);
                 if (isLastFw)
                     chopEnd--;
                 const chopped = units.slice(0, chopEnd);
-                const node = line.insertInterval(low, chopEnd - 1);
+                // canvas.log('>> insert low', low, 'chopEnd', chopEnd);
+                const node = line.insertInterval(low, low + chopEnd - 1);
                 node.value = [chopped, style];
             }
             if (high >= endPos) {
                 let chopStart = endPos - low;
-                const isCwEnd = units[chopStart] === -1;
-                if (isCwEnd) {
+                const isFwEnd = units[chopStart] === -1;
+                if (isFwEnd) {
                     chopStart++;
                 }
                 const chopped = units.slice(chopStart);
-                const node = line.insertInterval(chopStart, high);
+                const node = line.insertInterval(low + chopStart, high);
                 node.value = [chopped, style];
             }
         }
@@ -434,57 +425,52 @@ function* getTextDisplayUnits(text) {
 }
 const SPACE_CODE_POINT = ' '.codePointAt(0);
 /** Inputed and returned "high" value is considered as an "included" value of range interval */
-function uniteDisplayUnits(overlap, existings) {
-    const [l, h, units, style] = overlap;
+function uniteDisplayUnits(line, target) {
+    const [l, h, units, style] = target;
     const oUnits = [...units];
+    const overlaps = line.searchMultipleOverlaps(l - 1, h + 1);
+    for (const [l, h] of overlaps)
+        line.deleteInterval(l, h);
+    //  overlaps.map(([l, h, [units, style]]) => [l, h, units, style])
     let finalLow = l, finalHigh = h;
-    const choppedExistings = [];
-    for (const existing of existings) {
-        const [el, eh, eUnits, eStyle] = existing;
+    for (const existing of overlaps) {
+        const [el, eh, [eUnits, eStyle]] = existing;
         if (el < l) {
+            const choppedUnits = eUnits.slice(0, l - el);
+            if ((0, text_split_1.isCodePointFullWidth)(choppedUnits[choppedUnits.length - 1])) {
+                // A full width character is being chopped in the middle by overlapped new text, remove that character
+                choppedUnits[choppedUnits.length - 1] = SPACE_CODE_POINT;
+            }
             if (style === eStyle) {
                 // case of same style, merge two unit
                 finalLow = el;
-                const prependUnits = eUnits.slice(0, l - el);
-                if ((0, text_split_1.isCodePointFullWidth)(prependUnits[prependUnits.length - 1])) {
-                    // A full width character is being chopped in the middle by overlapped new text, replace that character with a space
-                    prependUnits[prependUnits.length - 1] = SPACE_CODE_POINT;
-                }
-                oUnits.unshift(...prependUnits);
+                oUnits.unshift(...choppedUnits);
             }
             else {
-                const choppedUnits = eUnits.slice(0, l - el);
-                if ((0, text_split_1.isCodePointFullWidth)(choppedUnits[choppedUnits.length - 1])) {
-                    // A full width character is being chopped in the middle by overlapped new text, remove that character
-                    choppedUnits[choppedUnits.length - 1] = SPACE_CODE_POINT;
-                }
                 // create a separate node
-                choppedExistings.push([el, l - 1, choppedUnits, eStyle]);
+                const n = line.insertInterval(el, l - 1);
+                n.value = [choppedUnits, eStyle];
             }
         }
         if (eh > h) {
+            const choppedUnits = eUnits.slice(h - el + 1, eUnits.length);
+            if (choppedUnits[0] === -1) {
+                choppedUnits[0] = SPACE_CODE_POINT;
+            }
             if (style === eStyle) {
                 // case of same style, merge two unit
                 finalHigh = eh;
-                const appendUnits = eUnits.slice(h - el + 1, eUnits.length);
-                if (appendUnits[0] === -1) {
-                    // A full width character is being chopped in the middle by overlapped new text, replace that character with a space
-                    appendUnits[0] = SPACE_CODE_POINT;
-                }
-                oUnits.push(...appendUnits);
+                oUnits.push(...choppedUnits);
             }
             else {
-                const choppedUnits = eUnits.slice(h - el + 1, eUnits.length);
-                if (choppedUnits[0] === -1) {
-                    choppedUnits[0] = SPACE_CODE_POINT;
-                }
                 // create a separate node
-                choppedExistings.push([h + 1, eh, choppedUnits, eStyle]);
+                const n = line.insertInterval(h + 1, eh);
+                n.value = [choppedUnits, eStyle];
             }
         }
     }
-    choppedExistings.push([finalLow, finalHigh, oUnits, style]);
-    return choppedExistings;
+    const inserted = line.insertInterval(finalLow, finalHigh);
+    inserted.value = [oUnits, style];
 }
 function rangeIntersection(low1, high1, low2, high2) {
     const overlap = [low1 > low2 ? low1 : low2, high1 > high2 ? high2 : high1];
@@ -498,5 +484,43 @@ function rectIntersection([x1, y1, w1, h1], [x2, y2, w2, h2]) {
     if (vert == null)
         return null;
     return [hoz[0], vert[0], hoz[1] - hoz[0], vert[1] - vert[0]];
+}
+function treeNodeToStyleText([codePoints, style]) {
+    const text = String.fromCodePoint(...codePoints.filter(codePoint => codePoint >= 0));
+    if (style) {
+        const chalkFn = style.split(';').reduce((chalkInst, keyword) => {
+            if (keyword.indexOf('(') < 0) {
+                if (chalkInst == null)
+                    throw new Error(`Chalk is null for keyword "${keyword}" of ` + style);
+                return chalkInst[keyword];
+            }
+            else {
+                const match = /([^()]+)\(([^)]+)\)/.exec(keyword);
+                if (match) {
+                    const fn = match[1];
+                    if (CHALK_NUMBER_FN.has(fn)) {
+                        const params = match[2].trim().split(',').map(v => v.startsWith('#') ? v : Number(v));
+                        return chalkInst[fn](...params);
+                    }
+                }
+            }
+            throw new Error('TerminalCanvas does not support chalk style keyword: ' + keyword);
+        }, chalk_1.default);
+        return chalkFn(text);
+    }
+    else {
+        return text;
+    }
+}
+function debugLineTrees(lines, colorful = false) {
+    return lines.map((els, i) => {
+        if (els == null) {
+            return '';
+        }
+        return `line ${i}\n` + debugLineTree(els, colorful);
+    }).filter(line => line).join('\n');
+}
+function debugLineTree(tree, colorful = false) {
+    return [...tree.allIntervals()].map(([l, h, d]) => `  ${l} - ${h}, "${colorful ? treeNodeToStyleText(d) : treeNodeToStyleText([d[0], ''])}"`).join('\n');
 }
 //# sourceMappingURL=canvas.js.map

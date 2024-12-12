@@ -145,15 +145,17 @@ export class IntervalTree<V = unknown> extends RedBlackTree<number, V, IntervalT
         node = node.right;
       }
     }
-    return [
-      node.key,
-      node.maxHighOfMulti,
-      node.highValuesTree && node.highValuesTree.size() > 0 ?
-        node.highValuesTree.maximum()!.value :
-        node.value,
-      node.highValuesTree?.maximum() ?? null,
-      node
-    ] as const;
+    return node === this.nil ?
+      null :
+      [
+        node.key,
+        node.maxHighOfMulti,
+        node.highValuesTree && node.highValuesTree.size() > 0 ?
+          node.highValuesTree.maximum()!.value :
+          node.value,
+        node.highValuesTree?.maximum() ?? null,
+        node
+      ] as const;
   }
   /** @param high is considered as an included endpoint value */
   searchMultipleOverlaps(low: number, high: number): OverlapSearchResult<V>[] {

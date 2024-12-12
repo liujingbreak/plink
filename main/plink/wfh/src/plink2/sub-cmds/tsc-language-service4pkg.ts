@@ -32,7 +32,7 @@ export function addOnPackageFeatures(baseService: LanguageServiceType, pkgMgr: P
   // const lookupService = createPlinkPackageLookupService();
   lookupService.input.fromPackageService(pkgMgr).dp();
   const packageToTscDirMap = new Map<string, {isom?: string; srcRoots: string[]; dest: string}>();
-  s.interceptor$.next(a$ => {
+  s.appendInterceptor(a$ => {
     const dispenser = ActionDispenser.ofAction$<FullFeaturedType>(a$);
     return rx.merge(
       dispenser.ofType('emitFile').pipe(

@@ -302,8 +302,8 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         }
       } else if (!cleared) {
         canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
-        s.ft.bgCleared(true).dp(m, m2, m3, m4);
       }
+      s.ft.bgCleared(true).dp(m, m2, m3, m4);
     })
   ));
   r('setParent, error$, parent.destory$,parent.bgCleared... -> parent.onChildError, dispose()...', table.l.setParent.pipe(

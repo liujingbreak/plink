@@ -32,7 +32,7 @@ canvas.error$.subscribe(([err, label]) => {
 const num = 20;
 const hueInterval = Math.round(360 / num);
 for (let i = 0; i < num; i++) {
-  const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug: false, log});
+  const label = createTextWidget('TEST LABEL ' + (num - i), {name: 'LABEL ' + i, debug: false, log});
   label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
   root.s.ft.addChild(label).dp();
 }

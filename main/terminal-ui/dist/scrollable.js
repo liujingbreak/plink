@@ -49,7 +49,7 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
     r('canvas,requestRender -> outerCanvas.requestRender', s.pt.onRender.pipe(rx.take(1), rx.mergeMap(([, outerCanvas]) => cTable.l.requestRender.pipe(rx.map(([m]) => outerCanvas.s.ft.requestRender().dp(m))))));
     r('onRender,canvas.clearRect -> outerCanvas.clearRect', s.pt.onRender.pipe(rx.withLatestFrom(s.pt.onValidScroll), rx.mergeMap(([[, oCanvas], [, left, top]]) => canvas.s.pt.clearRect.pipe(rx.map(([m, x, y, w, h]) => {
         oCanvas.s.ft.clearRect(x + left, y + top, w, h).dp(m);
-    })))));
+    }), rx.take(1)))));
     r('querySizeOf -> comp.querySizeOf', s.pt.querySizeOf.pipe(rx.mergeMap(([m, w, h]) => {
         if (w == null && h != null) {
             return comp.s.ft.querySizeOf(w, h).re(m).od(comp.s.pt.prefWidthFor).pipe(rx.take(1), rx.map(([, width]) => s.ft.prefWidthFor(width, h).dp(m)));

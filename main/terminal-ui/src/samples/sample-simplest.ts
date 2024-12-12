@@ -1,4 +1,5 @@
 import fs from 'fs';
+import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas} from '../canvas';
 import {createTextWidget} from '../text';
@@ -15,4 +16,12 @@ canvas.s.ft.autoHideCursor().dp();
 canvas.s.ft.setRootComponent(text).dp();
 canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
+canvas.s.pt.render.pipe(
+  rx.debounceTime(1000),
+  rx.take(1),
+  rx.tap(() => {
+    canvas.dispose();
+    text.dispose();
+  })
+).subscribe();
 

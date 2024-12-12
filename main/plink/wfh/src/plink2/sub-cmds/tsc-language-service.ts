@@ -12,43 +12,45 @@ export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: Tsco
   const service = languageServices(ts);
   const {s} = service;
   s.ft.setTsConfig(tsconfigJson, tsconfigDir).dp();
-  // service.config({debug: true});
-  // service.r('doneResolveCompilerOption', service.ot.l.doneResolveCompilerOption.pipe(
-  //   rx.map(([, co]) => {
-  //     console.log('compilerOoptions:', co);
-  //   })
-  // ));
   return function(content: string, file: string) {
     let destFile: string | undefined;
     let sourceMap: string | undefined;
     let unknownOutputFile: string | undefined;
     let error: Error | undefined;
-    s.ft.addSourceFile(file, true, content)
-      .od(s.pt.emitFile).pipe(
-        rx.map(([, outputFile, outputContent]) => {
-          if (/\.[mc]?js/.test(outputFile)) {
-            destFile = outputContent;
-          } else if (outputFile.endsWith('.map')) {
-            sourceMap = outputContent;
-          } else {
-            unknownOutputFile = outputFile;
-          }
-        }),
-        // rx.take(1),
-        rx.takeUntil(rx.merge( s.pt.onEmitFailure, s.pt.onSuggest).pipe(
-          rx.map(([, file, diagnostics]) => {
-            // eslint-disable-next-line no-console
-            console.log('[tsc-util]', file, diagnostics);
-          })
-        )),
-        rx.catchError(err => {
+
+    rx.merge(
+      s.pt.onSuggest.pipe(
+        rx.map(([, file, diagnostics]) => {
           // eslint-disable-next-line no-console
-          console.log('[tsc-util] catch error', err);
-          error = err as Error;
-          return rx.EMPTY;
+          console.log('[langService]', file, diagnostics);
         })
-      )
-      .subscribe();
+      ),
+      s.ft.addSourceFile(file, true, content)
+        .od(s.pt.emitFile).pipe(
+          rx.map(([, outputFile, outputContent]) => {
+            if (/\.[mc]?js/.test(outputFile)) {
+              destFile = outputContent;
+            } else if (outputFile.endsWith('.map')) {
+              sourceMap = outputContent;
+            } else {
+              unknownOutputFile = outputFile;
+            }
+          }),
+          // rx.take(1),
+          rx.takeUntil(s.pt.onEmitFailure.pipe(
+            rx.map(([, file, diagnostics]) => {
+            // eslint-disable-next-line no-console
+              console.log('[langService]', file, diagnostics);
+            })
+          )),
+          rx.catchError(err => {
+          // eslint-disable-next-line no-console
+            console.log('[tsc-util] catch error', err);
+            error = err as Error;
+            return rx.EMPTY;
+          })
+        )
+    ).subscribe();
     if (destFile == null) {
       throw new Error(`Failed to compile ${file} (unknown: ${unknownOutputFile ?? ''}) ${error ? error.stack ?? '' : ''}`);
     }

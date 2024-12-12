@@ -3,7 +3,7 @@ import fs from 'fs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {app, createFlexContainer, createTextWidget, createBorderContainer} from '../index';
 
-const debug = true;
+const debug = false;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
 const panel = createFlexContainer({name: 'contentPanel', debug, log});
@@ -17,7 +17,7 @@ const {canvas} = app.createApp(border, {
   elevator: {
     core: {debug, log}
   },
-  scrollable: {default: {debug: true}},
+  scrollable: {default: {debug}},
   statusbar: {
     debug: false
   },
@@ -27,7 +27,7 @@ const {canvas} = app.createApp(border, {
   },
   cover: {debug},
   canvas: {debug},
-  focusable: {debug: true}
+  focusable: {debug}
 });
 
 const screenWidth = process.argv[2];
@@ -45,7 +45,7 @@ setTimeout(() => {
   const num = 60;
   const hueInterval = Math.round(360 / num);
   for (let i = 0; i < num; i++) {
-    const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug: true, log});
+    const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug, log});
     label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
     label.s.ft.setFocusable(true).dp();
     panel.s.ft.addChild(label).dp();

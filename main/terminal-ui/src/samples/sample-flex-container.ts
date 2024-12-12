@@ -2,10 +2,12 @@ import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import * as rx from 'rxjs';
+// import stripAnsi from 'strip-ansi';
 import {SimplexReactor, SingleActionFactory} from '@wfh/reactivizer';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas} from '../index';
-import {createFlexContainer, createBorderContainer, createTextWidget, MultiLineTextWidget, getBoundingOfCompTree} from '../index';
+import {createFlexContainer, createBorderContainer, createTextWidget, MultiLineTextWidget,
+  debugLineTrees} from '../index';
 
 const screenWidth = process.argv[2];
 const debug = true;
@@ -13,7 +15,11 @@ const debug = true;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
 
-const canvas = createTerminalCanvas({debug, log});
+const canvas = createTerminalCanvas({
+  debug: true,
+  log,
+  debugExcludeTypes: ['addDisplayUnits', 'requestRender', 'onPrintText']
+});
 canvas.s.ft.autoHideCursor().dp();
 const root = createFlexContainer({name: 'root', debug, log});
 canvas.s.ft.setRootComponent(root).dp();
@@ -62,34 +68,29 @@ interface SceneActions {
   showLablesLeftToRight(numOfLabels: number): SingleActionFactory;
   doneShowLablesLeftToRight(numOfLabels: number): SingleActionFactory;
 
-  changeStaticLabelToClock(label: MultiLineTextWidget, labelIndex: number, durationMs: number): SingleActionFactory;
-  doneChangeStaticLabelToClock(): SingleActionFactory;
+  toClock(label: MultiLineTextWidget, labelIndex: number, durationMs: number): SingleActionFactory;
+  doneToClock(): SingleActionFactory;
 }
 const scene = new SimplexReactor<SceneActions>({
   name: 'scene',
-  debug: true,
+  debug,
   log
 });
 const {r, s} = scene;
-r('doneShowLablesLeftToRight', s.pt.doneShowLablesLeftToRight.pipe(
-  rx.switchMap(() => demoCtn.table.l.allChildren.pipe(rx.take(1))),
+r('doneShowLablesLeftToRight -> toClock', s.pt.doneShowLablesLeftToRight.pipe(
+  rx.switchMap(() => demoCtn.table.l.allChildren),
+  rx.concatMap(r => rx.timer(500).pipe(
+    rx.map(() => r)
+  )),
   rx.mergeMap(([, labels]) => rx.from(labels).pipe(
-    rx.map((label, i) => {
-      if (i === 0) {
-        getBoundingOfCompTree(root).pipe(
-          rx.map(rects => {
-            scene.log('>>>>>> Bounding boxies', rects.map(r => util.inspect(r)).join());
-          }),
-          rx.take(1)
-        ).subscribe();
-      }
-      return label;
-    }),
-    rx.concatMap((label, i) => s.ft.changeStaticLabelToClock(label as MultiLineTextWidget, i, 5)
-      .od(s.pt.doneChangeStaticLabelToClock).pipe(
+    rx.concatMap((label, i) => s.ft.toClock(label as MultiLineTextWidget, i, 5)
+      .od(s.pt.doneToClock).pipe(
         rx.take(1)
       )
     ),
+    rx.takeLast(1),
+    rx.mergeMap(() => canvas.s.pt.render),
+    rx.take(1),
     rx.finalize(() => {
       canvas.dispose();
       root.dispose();
@@ -105,12 +106,12 @@ r('showLablesLeftToRight', s.pt.showLablesLeftToRight.pipe(
         text.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp(m);
         demoCtn.s.ft.addChild(text).dp(m);
       }),
-      rx.take(num)
-      // rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m))
+      rx.take(num),
+      rx.finalize(() => s.ft.doneShowLablesLeftToRight(num).dp(m))
     );
   })
 ));
-r('changeStaticLabelToClock -> doneChangeStaticLabelToClock', s.pt.changeStaticLabelToClock.pipe(
+r('toClock -> doneToClock', s.pt.toClock.pipe(
   rx.mergeMap(([m, label, i, duration]) => rx.concat(
     rx.timer(16, 1000).pipe(
       rx.map(() => {
@@ -122,10 +123,30 @@ r('changeStaticLabelToClock -> doneChangeStaticLabelToClock', s.pt.changeStaticL
     rx.timer(1000).pipe(
       rx.map(() => {
         label.s.ft.setContent(`This is label ${i + 1}`).dp(m);
-        s.ft.doneChangeStaticLabelToClock().dp(m);
+        s.ft.doneToClock().dp(m);
       })
     )
   ))
 ));
 
-s.ft.showLablesLeftToRight(5).dp();
+canvas.s.pt.render.pipe(
+  rx.mergeMap(() => canvas.table.l.internalCache.pipe(
+    rx.take(1)
+  )),
+  rx.map(([, , proLines]) => {
+    canvas.log('++ proLines', debugLineTrees(proLines));
+  })
+).subscribe();
+
+// canvas.s.pt.addDisplayUnits.pipe(
+//   rx.map(([, x, y, units]) => {
+//     canvas.log('++ addDisplayUnits', x, y, treeNodeToStyleText([units]));
+//   })
+// ).subscribe();
+// canvas.s.pt.onPrintText.pipe(
+//   rx.map(([, x, y, text]) => {
+//     canvas.log('++ onPrintText', x, y, stripAnsi(text));
+//   })
+// ).subscribe();
+
+s.ft.showLablesLeftToRight(3).dp();

@@ -43,11 +43,11 @@ function define(scp, logger) {
     })));
     r('setRootDir', s.pt.setRootDir.pipe(rx.switchMap(([m, rootDir]) => {
         cmd_model_1.cmdModelService.i.ft.setRootDir(rootDir).dp();
-        rootWidget.s.ft.addChild(textWidget.asBaseType, versionTextWidget.asBaseType).dp();
+        rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
         textWidget.config({ log: logger, debug: true });
         versionTextWidget.config({ log: logger, debug: true });
         // rootWidget.config({debug: true});
-        canvas.s.ft.setRootWidget(rootWidget).dp();
+        canvas.s.ft.setRootComponent(rootWidget).dp();
         // canvas.s.ft.setAlwaysRerenderAll(true).dp();
         return cmd_model_1.cmdModelService.outputTable.l.load.pipe(rx.map(([, done]) => done), rx.filter(done => done), rx.take(1), rx.mergeMap(() => packageMgrService.i.ft.scan(rootDir)
             .do(packageMgrService.o.pt.onScanCompleted)), rx.mergeMap(() => rx.combineLatest([

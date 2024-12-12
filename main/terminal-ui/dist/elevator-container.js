@@ -138,10 +138,13 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
       ))
     ));
     */
-    r('onRender', s.pt.onRender.pipe(rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chrd]) => chrd), rx.reduce((acc, chr) => {
+    r('onRender', s.pt.onRender.pipe(rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => rx.combineLatest(table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chrd]) => chrd), rx.reduce((acc, chr) => {
         acc.push(chr);
         return acc;
-    }, []), rx.mergeMap(children => {
+    }, [])), table.l.bgCleared).pipe(rx.take(1), rx.mergeMap(([children, [, bgCleared]]) => {
+        if (!bgCleared) {
+            s.ft.clear(canvas, trans).dp();
+        }
         if (renderSelf) {
             s.ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         }

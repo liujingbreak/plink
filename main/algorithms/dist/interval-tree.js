@@ -116,15 +116,17 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
                 node = node.right;
             }
         }
-        return [
-            node.key,
-            node.maxHighOfMulti,
-            node.highValuesTree && node.highValuesTree.size() > 0 ?
-                node.highValuesTree.maximum().value :
-                node.value,
-            (_b = (_a = node.highValuesTree) === null || _a === void 0 ? void 0 : _a.maximum()) !== null && _b !== void 0 ? _b : null,
-            node
-        ];
+        return node === this.nil ?
+            null :
+            [
+                node.key,
+                node.maxHighOfMulti,
+                node.highValuesTree && node.highValuesTree.size() > 0 ?
+                    node.highValuesTree.maximum().value :
+                    node.value,
+                (_b = (_a = node.highValuesTree) === null || _a === void 0 ? void 0 : _a.maximum()) !== null && _b !== void 0 ? _b : null,
+                node
+            ];
     }
     /** @param high is considered as an included endpoint value */
     searchMultipleOverlaps(low, high) {
