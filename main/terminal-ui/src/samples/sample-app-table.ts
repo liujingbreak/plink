@@ -4,9 +4,9 @@ import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {app, createFlexContainer, TableBorderType, createTable} from '../index';
 
-const debug = true;
+const debug = false;
 const fout = fs.createWriteStream('terminal-table-sample.log');
-const log = createSimpleIndentLogger(false, true, fout);
+const log = createSimpleIndentLogger(false, false, fout);
 const table = createTable({
   default: {
     debug, log
@@ -19,7 +19,7 @@ const table = createTable({
   },
   lazy: {
     // default: {debug},
-    core: {debug, log}
+    core: {debug: true, log}
     // headPlaceHolder: {debug: true},
     // tailPlaceHolder: {debug: true}
     // headPlaceHolderLabel: {
@@ -94,7 +94,7 @@ const {canvas} = app.createApp(root, {
   },
   // statusbar: {debug: false},
   canvas: {
-    debug: true,
+    debug: false,
     debugIncludeTypes: ['render']
   },
   scrollable: {

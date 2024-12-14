@@ -31,9 +31,9 @@ const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
-const debug = true;
+const debug = false;
 const fout = fs_1.default.createWriteStream('terminal-table-sample.log');
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, true, fout);
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const table = (0, index_1.createTable)({
     default: {
         debug, log
@@ -46,7 +46,7 @@ const table = (0, index_1.createTable)({
     },
     lazy: {
         // default: {debug},
-        core: { debug, log }
+        core: { debug: true, log }
         // headPlaceHolder: {debug: true},
         // tailPlaceHolder: {debug: true}
         // headPlaceHolderLabel: {
@@ -116,7 +116,7 @@ const { canvas } = index_1.app.createApp(root, {
     },
     // statusbar: {debug: false},
     canvas: {
-        debug: true,
+        debug: false,
         debugIncludeTypes: ['render']
     },
     scrollable: {

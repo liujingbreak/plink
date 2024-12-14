@@ -99,7 +99,6 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
   let lazyService: LazyLoadPlaceHolder | undefined;
   let beforePlaceHolder: BaseWidget | undefined;
   let afterPlaceHolder: BaseWidget | undefined;
-  const prependedS = s.prependController();
 
   r('setLazyLoad, "lazyService".dp_onLoadPage -> "lazyService", addChild, insertChild...', s.pt.setLazyLoad.pipe(
     rx.switchMap(([m, enabled, handler]) => {
@@ -251,10 +250,11 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
       s.ft.onBorderTypeSet(typeSet).dp(m);
     })
   ));
-  r('reflow,calcSize,didCalcSize..->"cellBoundingTree"', prependedS.pt.reflow.pipe(
-    rx.switchMap(([m]) => prependedS.pt.calcSize.pipe(
+  // TODO: this piece of reactor requires "prepended" subscription
+  r('reflow,calcSize,didCalcSize..->"cellBoundingTree"', s.pt.reflow.pipe(
+    rx.switchMap(([m]) => s.pt.calcSize.pipe(
       actionRelatedToAction(m),
-      rx.mergeMap(([m2]) => prependedS.pt.didCalcSize.pipe(
+      rx.mergeMap(([m2]) => s.pt.didCalcSize.pipe(
         actionRelatedToAction(m2)
       )),
       rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet),
