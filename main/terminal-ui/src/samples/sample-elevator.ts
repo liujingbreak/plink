@@ -6,7 +6,7 @@ import {createTerminalCanvas, createFlexContainer, createTextWidget, createEleva
 
 const debug = true;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
-const log = createSimpleIndentLogger(false, true, fout);
+const log = createSimpleIndentLogger(false, false, fout);
 
 const canvas = createTerminalCanvas({debug, log});
 const root = createFlexContainer({name: 'root', debug, log});

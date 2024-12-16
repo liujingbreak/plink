@@ -274,12 +274,15 @@ function createTerminalCanvas(opts) {
                 // canvas.log('rectTree', [...rectTree.allRectangles()].length);
                 return m;
             }));
-        }), rx.sampleTime(200), rx.filter(() => hasWaitReq), rx.exhaustMap(m => new rx.Observable(sub => {
+        }), rx.throttleTime(200, rx.queueScheduler, { leading: false, trailing: true }), rx.tap(() => hasWaitReq), rx.exhaustMap(m => new rx.Observable(sub => {
             const rects = [...rectTree.allRectangles()];
             rectTree.clear();
             s.ft.render(rects.map(([r]) => r)).dp(m);
             hasWaitReq = false;
-            // If there are more recursive requests
+            // If there are more request comes in during previous rendering phase (
+            // meaning there is recursive "requestRender" during previous rendering
+            // which is not ideal and problematic, orendering should not trigger more dirty checks
+            // )
             // if (hasWaitReq) {
             //   hasWaitReq = false;
             //   const rects = [...rectTree.allRectangles()];

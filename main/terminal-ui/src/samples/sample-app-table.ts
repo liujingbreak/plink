@@ -19,7 +19,7 @@ const table = createTable({
   },
   lazy: {
     // default: {debug},
-    core: {debug: true, log}
+    core: {debug, log}
     // headPlaceHolder: {debug: true},
     // tailPlaceHolder: {debug: true}
     // headPlaceHolderLabel: {
@@ -31,7 +31,7 @@ const table = createTable({
   }
 });
 const SAMPLE_ROW_COUNT = 10;
-const SAMPLE_COLUMN_CNT = 1;
+const SAMPLE_COLUMN_CNT = 2;
 table.s.ft.setLazyLoad(true, page => {
   table.log('*** handle onLoadPage', page);
   const out$ = new rx.Observable<[string, string[]]>(sub => {
@@ -88,18 +88,25 @@ const {canvas} = app.createApp(root, {
   default: {
     debug, log
   },
+  elevator: {
+    canvas: {
+      debug: true,
+      debugIncludeTypes: ['render', 'requestRender', 'clearRect', 'copyRect']
+    }
+  },
   focusable: {
     debug,
     debugExcludeTypes: ['removeFocusable']
   },
   // statusbar: {debug: false},
   canvas: {
-    debug: false,
-    debugIncludeTypes: ['render']
+    name: 'outerCan',
+    debug: true,
+    debugIncludeTypes: ['render', 'requestRender', 'clearRect']
   },
   scrollable: {
     // default: {debug: true, log}
-    core: {debug}
+    // core: {debug: true}
     // focusable: {
     //   debug: false,
     //   debugExcludeTypes: ['removeFocusable']
@@ -107,7 +114,8 @@ const {canvas} = app.createApp(root, {
     // canvas: {
     //   debug
     // }
-  }
+  },
+  statusbar: {debug: true, log}
 });
 
 const screenWidth = process.argv[2];

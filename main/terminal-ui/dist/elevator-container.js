@@ -51,10 +51,19 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
             o.destory$.subscribe(() => o.focusService.dispose());
             s.ft.onFocusServieReady(o, o.focusService).dp(m);
         })), 
+        // table.l.ofCanvas.pipe(
+        //   rx.filter(([, c]) => c != null),
+        //   rx.take(1),
+        //   rx.switchMap(([, outerCanvas]) => cv.s.pt.requestRender.pipe(
+        //     rx.map(([m]) => outerCanvas!.s.ft.requestRender().dp(m))
+        //   )),
+        //   rx.takeUntil(cv.destory$)
+        // ),
         // Delete corresponding canvas when chd is removed
         s.pt.removeChild.pipe(rx.filter(([, w]) => w === chd), rx.take(1), rx.map(() => {
             chd.s.ft.isOffsetParent(false).dp(m);
             canvasMap.delete(chd);
+            cv.dispose();
         })));
     })))));
     r('allDisplayChildren -> last.isOffsetParent', s.pt.allDisplayChildren.pipe(rx.filter(([, childrn]) => childrn.length > 0), rx.map(([, childrn]) => childrn[childrn.length - 1]), rx.distinctUntilChanged(), rx.switchMap(last => {

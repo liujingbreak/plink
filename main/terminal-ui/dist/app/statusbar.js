@@ -32,35 +32,36 @@ exports.statusbarFac = index_1.borderFac.forExtend({
     name: 'statusbar',
     tableFor
 }).defineReactor((init, opts) => {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const container = (0, index_1.createFlexContainer)(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'statusbar') + '.container' }));
-    const statusbar = init(opts, container);
-    statusbar.s.ft.setPadding(0, 1, 0, 1).dp();
+    const statusbar = init(Object.assign(Object.assign({}, opts), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _b !== void 0 ? _b : 'statusbar') + '.border' }), container);
+    statusbar.s.ft.setPadding(0, 0, 0, 1).dp();
     statusbar.s.ft.setBorder('padding').dp();
     statusbar.s.ft.setFlexShrink(0).dp();
     const { r, s, table } = statusbar;
     const labelScrollText = (0, index_1.createTextWidget)('scroll', {
         // ...opts as any,
-        name: ((_b = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _b !== void 0 ? _b : 'statusbar') + '.container'
+        name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : 'statusbar') + '.label'
     });
-    const labelScrollValue1 = (0, index_1.createTextWidget)('0%', {
+    const labelScrollValueR = (0, index_1.createTextWidget)('0%', {
         // ...opts as any,
-        name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : 'statusbar') + '.v1'
+        name: ((_d = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _d !== void 0 ? _d : 'statusbar') + '.v1'
     });
-    const labelScrollValue2 = (0, index_1.createTextWidget)('0%', {
+    const labelScrollValueC = (0, index_1.createTextWidget)('0%', {
         // ...opts as any,
-        name: ((_d = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _d !== void 0 ? _d : 'statusbar') + '.v2'
+        name: ((_e = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _e !== void 0 ? _e : 'statusbar') + '.v2'
     });
     const HELP_KEY_HINT = 'Press <Enter> for help';
-    const labelKeypress = (0, index_1.createTextWidget)(HELP_KEY_HINT, Object.assign(Object.assign({}, opts), { name: ((_e = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _e !== void 0 ? _e : 'statusbar') + '.key' }));
+    const labelKeypress = (0, index_1.createTextWidget)(HELP_KEY_HINT, Object.assign(Object.assign({}, opts), { name: ((_f = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _f !== void 0 ? _f : 'statusbar') + '.key' }));
     labelKeypress.s.ft.setFlexGrow(1).dp();
     statusbar.s.ft.setBackground('bgHsl(120,50,80)').dp();
     labelKeypress.s.ft.setStyle(['hex(#000000)']).dp();
     // labelKeypress.s.ft.setBackground('bgHsl(90,50,80)').dp();
-    labelScrollText.s.ft.setStyle(['hex(#000000)']).dp();
-    labelScrollValue1.s.ft.setStyle(['hex(#000000)']).dp();
-    labelScrollValue2.s.ft.setStyle(['hex(#000000)']).dp();
-    container.s.ft.addChild(labelKeypress, labelScrollText, labelScrollValue1, labelScrollValue2).dp();
+    labelScrollText.s.ft.setStyle(['hex(#000000)', 'bgHsl(90, 50, 70)']).dp();
+    labelScrollValueR.s.ft.setStyle(['hex(#000000)', 'bgHsl(140, 50, 70)']).dp();
+    labelScrollValueC.s.ft.setStyle(['hex(#000000)', 'bgHsl(150, 50, 70)']).dp();
+    container.s.ft.setBorderSpacing(0).dp();
+    container.s.ft.addChild(labelKeypress, labelScrollText, labelScrollValueR, labelScrollValueC).dp();
     r('trackScrollable, scrollable.onValidScroll -> onScrollStatus', table.l.trackScrollable.pipe(rx.switchMap(([, scrollable]) => {
         return rx.combineLatest([
             scrollable.table.l.onValidScroll,
@@ -85,8 +86,8 @@ exports.statusbarFac = index_1.borderFac.forExtend({
         })));
     })));
     r('onScrollStatus', s.pt.onScrollStatus.pipe(rx.map(([m, v, h]) => {
-        labelScrollValue1.s.ft.setContent(v != null ? 'row: ' + Math.floor(v * 100) + '%' : '').dp(m);
-        labelScrollValue2.s.ft.setContent(h != null ? 'col: ' + Math.floor(h * 100) + '%' : '').dp(m);
+        labelScrollValueR.s.ft.setContent(v != null ? 'row: ' + Math.floor(v * 100) + '%' : '').dp(m);
+        labelScrollValueC.s.ft.setContent(h != null ? 'col: ' + Math.floor(h * 100) + '%' : '').dp(m);
     })));
     r('onKeypressStatus', s.pt.onKeypressStatus.pipe(rx.map(([m, text, valid]) => {
         labelKeypress.s.ft.setContent(text.length === 0 ? HELP_KEY_HINT : text).dp(m);

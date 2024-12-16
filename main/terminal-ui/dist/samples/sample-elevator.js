@@ -10,7 +10,7 @@ const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
 const debug = true;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, true, fout);
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const canvas = (0, index_1.createTerminalCanvas)({ debug, log });
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
 canvas.s.ft.autoHideCursor().dp();

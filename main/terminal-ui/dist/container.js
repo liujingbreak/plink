@@ -85,6 +85,14 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
         ft.setLayoutValid(false).dp(m);
         ft.bgCleared(false).dp(m);
     })));
+    r('requestReflowOn', s.pt.requestReflowOn.pipe(rx.switchMap(([, ...a$]) => rx.merge(...a$)), rx.map(actionOrPayload => {
+        const m = Array.isArray(actionOrPayload) ? actionOrPayload[0] : actionOrPayload;
+        ft.requestReflow().dp(m);
+    })));
+    r('requestReflow', s.pt.requestReflow.pipe(rx.map(([m]) => {
+        ft.setLayoutValid(false).dp(m.r);
+        ft.bgCleared(false).dp(m.r);
+    })));
     r('onChildPositions... -> children.onPosition', rx.combineLatest([
         table.l.onChildPositions,
         table.l.allDisplayChildren
@@ -148,9 +156,9 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
         if (parent)
             parent.s.ft.onChildError(childId, errInfo);
     })));
-    r('setLayoutValid, latestReflowData -> setLayoutValid', s.pt.setLayoutValid.pipe(rx.switchMap(([m, isValid]) => isValid ? table.l.latestReflowData.pipe(rx.switchMap(([m2, data$]) => data$.pipe(rx.skip(1), rx.take(1), rx.map(() => {
-        s.ft.setLayoutValid(false).dp(m2, m);
-        s.ft.bgCleared(false).dp(m2, m);
+    r('setLayoutValid, latestReflowData -> setLayoutValid', s.pt.setLayoutValid.pipe(rx.switchMap(([, isValid]) => isValid ? table.l.latestReflowData.pipe(rx.switchMap(([m2, data$]) => data$.pipe(rx.skip(1), rx.take(1), rx.map(() => {
+        s.ft.setLayoutValid(false).dp(m2);
+        s.ft.bgCleared(false).dp(m2);
     })))) : rx.EMPTY)));
     r('setLayoutValid(false), ofCanvas -> canvas.requestRender', s.pt.setLayoutValid.pipe(rx.filter(([, valid]) => !valid), rx.switchMap(([m]) => table.l.onDetached.pipe(rx.take(1), rx.filter(([, detached]) => !detached), rx.map(() => m))), rx.switchMap(m => table.l.ofCanvas.pipe(rx.map(([, canvas]) => {
         if (canvas)
@@ -190,12 +198,8 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
     r('isLayoutDirty(false),setLayoutCheck -> isLayoutDirty(true)', s.pt.isLayoutDirty.pipe(rx.switchMap(([, dirty]) => dirty ?
         rx.EMPTY :
         table.l.setLayoutCheck.pipe(rx.switchMap(([, target]) => target))), rx.map(([m]) => s.ft.isLayoutDirty(true).dp(m))));
-    const reflowData = rx.combineLatest([
-        table.l.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)),
-        table.l.onChildPreferredSizeChange
-    ]);
     r('init', new rx.Observable(() => {
-        ft.latestReflowData(reflowData).dp();
+        ft.requestReflowOn(s.pt.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)), s.pt.onChildPreferredSizeChange).dp();
         ft.isContainer(true).dp();
         ft.allChildren(children).dp();
         ft.onSize(0, 0).dp();

@@ -37,19 +37,16 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
     name: 'scrollable.canvas',
     ...opts?.canvas
   });
-  const cTable = canvas.table.addActions('requestRender');
   canvas.s.ft.setRootComponent(comp).dp();
-  r('canvas,requestRender -> outerCanvas.requestRender', s.pt.onRender.pipe(
-    rx.take(1),
-    rx.mergeMap(([, outerCanvas]) => cTable.l.requestRender.pipe(
-      rx.map(([m]) => outerCanvas.s.ft.requestRender().dp(m))
-    ))
-  ));
   r('onRender,canvas.clearRect -> outerCanvas.clearRect', s.pt.onRender.pipe(
-    rx.withLatestFrom(s.pt.onValidScroll),
-    rx.mergeMap(([[, oCanvas], [, left, top]]) => canvas.s.pt.clearRect.pipe(
+    rx.withLatestFrom(table.l.onValidScroll, table.l.onSize),
+    rx.mergeMap(([[, oCanvas], [, left, top], [, sw, sh]]) => canvas.s.pt.clearRect.pipe(
       rx.map(([m, x, y, w, h]) => {
-        oCanvas.s.ft.clearRect(x + left, y + top, w, h).dp(m);
+        const x1 = x + left;
+        const y1 = y + top;
+        const w1 = sw - x1 > w ? w : sw - x1;
+        const h1 = sh - y1 > h ? h : sh - y1;
+        oCanvas.s.ft.clearRect(x1, y1, w1, h1).dp(m);
       }),
       rx.take(1)
     ))

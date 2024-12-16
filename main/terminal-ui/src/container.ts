@@ -11,10 +11,13 @@ export interface TerminalContainerInput {
   insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
   removeChild(...children: BaseWidget[]): SingleActionFactory;
   setLayoutCheck(watchTaget: rx.Observable<InferMapParam<any>>): SingleActionFactory;
-  /** @deprecated use latestReflowData instead.
+  /** @deprecated use requestReflowOn, requestReflow instead
    * If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
   addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
-  latestReflowData(data$: rx.Observable<unknown>): SingleActionFactory;
+  /** @deprecated use requestReflowOn, requestReflow instead */
+  latestReflowData(data$: rx.Observable<InferMapParam<any>>): SingleActionFactory;
+  requestReflow(reason?: string): SingleActionFactory;
+  requestReflowOn<P extends [...(rx.Observable<Action<any>> | rx.Observable<InferMapParam<any>>)[]]>(...actionOrPayloads: P): SingleActionFactory;
 
   /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent */
   findOverlaps(...rect: Rectangle): SingleActionFactory;
@@ -149,6 +152,19 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
       ft.bgCleared(false).dp(m);
     })
   ));
+  r('requestReflowOn', s.pt.requestReflowOn.pipe(
+    rx.switchMap(([, ...a$]) => rx.merge(...a$)),
+    rx.map(actionOrPayload => {
+      const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;
+      ft.requestReflow().dp(m);
+    })
+  ));
+  r('requestReflow', s.pt.requestReflow.pipe(
+    rx.map(([m]) => {
+      ft.setLayoutValid(false).dp(m.r);
+      ft.bgCleared(false).dp(m.r);
+    })
+  ));
   r('onChildPositions... -> children.onPosition', rx.combineLatest([
     table.l.onChildPositions,
     table.l.allDisplayChildren
@@ -238,13 +254,13 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
     })
   ));
   r('setLayoutValid, latestReflowData -> setLayoutValid', s.pt.setLayoutValid.pipe(
-    rx.switchMap(([m, isValid]) => isValid ? table.l.latestReflowData.pipe(
+    rx.switchMap(([, isValid]) => isValid ? table.l.latestReflowData.pipe(
       rx.switchMap(([m2, data$]) => data$.pipe(
         rx.skip(1),
         rx.take(1),
         rx.map(() => {
-          s.ft.setLayoutValid(false).dp(m2, m);
-          s.ft.bgCleared(false).dp(m2, m);
+          s.ft.setLayoutValid(false).dp(m2);
+          s.ft.bgCleared(false).dp(m2);
         })
       ))
     ) : rx.EMPTY)
@@ -332,15 +348,13 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
     rx.map(([m]) => s.ft.isLayoutDirty(true).dp(m))
   ));
 
-  const reflowData = rx.combineLatest([
-    table.l.onSize.pipe(
-      rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
-    ),
-    table.l.onChildPreferredSizeChange
-  ]);
-
   r('init', new rx.Observable<never>(() => {
-    ft.latestReflowData(reflowData).dp();
+    ft.requestReflowOn(
+      s.pt.onSize.pipe(
+        rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
+      ),
+      s.pt.onChildPreferredSizeChange
+    ).dp();
     ft.isContainer(true).dp();
     ft.allChildren(children).dp();
     ft.onSize(0, 0).dp();

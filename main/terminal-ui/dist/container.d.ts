@@ -8,10 +8,13 @@ export interface TerminalContainerInput {
     insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
     removeChild(...children: BaseWidget[]): SingleActionFactory;
     setLayoutCheck(watchTaget: rx.Observable<InferMapParam<any>>): SingleActionFactory;
-    /** @deprecated use latestReflowData instead.
+    /** @deprecated use requestReflowOn, requestReflow instead
      * If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
     addReflowAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
-    latestReflowData(data$: rx.Observable<unknown>): SingleActionFactory;
+    /** @deprecated use requestReflowOn, requestReflow instead */
+    latestReflowData(data$: rx.Observable<InferMapParam<any>>): SingleActionFactory;
+    requestReflow(reason?: string): SingleActionFactory;
+    requestReflowOn<P extends [...(rx.Observable<Action<any>> | rx.Observable<InferMapParam<any>>)[]]>(...actionOrPayloads: P): SingleActionFactory;
     /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent */
     findOverlaps(...rect: Rectangle): SingleActionFactory;
 }

@@ -147,6 +147,12 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         return a === b;
       })
     ),
+    ad.at.setFlexGrow.pipe(
+      rx.distinctUntilChanged(({p: [v1]}, {p: [v2]}) => v1 === v2)
+    ),
+    ad.at.setFlexShrink.pipe(
+      rx.distinctUntilChanged(({p: [v1]}, {p: [v2]}) => v1 === v2)
+    ),
     ad.ofOtherTypes()
   );
 }).defineReactor(init => {

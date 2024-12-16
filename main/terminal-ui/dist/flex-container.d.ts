@@ -11,7 +11,7 @@ export interface FlexContainerInput {
     setDirection(dir: 'col' | 'row'): SingleActionFactory;
     justifyContent(value: 'stretch' | 'start' | 'center' | 'end' | 'space-between'): SingleActionFactory;
     alignItems(value: 'stretch' | 'start' | 'center' | 'end'): SingleActionFactory;
-    /** Effective only when "setDirection" is `"row"` */
+    /** Effective only when "setDirection" is `"row"`, default is 1 */
     setBorderSpacing(value: number): SingleActionFactory;
     /** Effective only when "setDirection" is `"row"` */
     setBorderSeparator(separator: FlexBorderSeparator): SingleActionFactory;

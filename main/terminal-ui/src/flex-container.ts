@@ -13,7 +13,7 @@ export interface FlexContainerInput {
   setDirection(dir: 'col' | 'row'): SingleActionFactory;
   justifyContent(value: 'stretch' | 'start' | 'center' | 'end' | 'space-between'): SingleActionFactory;
   alignItems(value: 'stretch' | 'start' | 'center' | 'end'): SingleActionFactory;
-  /** Effective only when "setDirection" is `"row"` */
+  /** Effective only when "setDirection" is `"row"`, default is 1 */
   setBorderSpacing(value: number): SingleActionFactory;
   /** Effective only when "setDirection" is `"row"` */
   setBorderSeparator(separator: FlexBorderSeparator): SingleActionFactory;
@@ -172,7 +172,7 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & 
     })
   ));
   r('reflow, ... -> onChildPositions, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(
-    rx.mergeMap(a => reflowData.pipe(
+    rx.mergeMap(a => rx.combineLatest(reflowData).pipe(
       rx.take(1),
       rx.map(b => [a, ...b] as const)
     )),
@@ -451,7 +451,7 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & 
     })
   ));
 
-  const reflowData = rx.combineLatest([
+  const reflowData = [
     table.l.onSize,
     table.l.allDisplayChildren.pipe(
       rx.switchMap(([, chdn]) => {
@@ -465,7 +465,15 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & 
     ),
     table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
     table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator
-  ]);
+  ] as const;
+  r('allDisplayChildren,...-> requestReflow', s.pt.allDisplayChildren.pipe(
+    rx.switchMap(([, chdn]) => {
+      return rx.merge(...chdn.map(
+        chd => rx.merge(chd.s.pt.setFlexGrow, chd.s.pt.setFlexShrink)
+      ));
+    }),
+    rx.map(([m]) => s.ft.requestReflow().dp(m))
+  ));
   r('init', new rx.Observable<never>(() => {
     ft.setDirection('row').dp();
     ft.alignItems('stretch').dp();
@@ -473,7 +481,11 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & 
     ft.setBorderSpacing(1).dp();
     ft.setBorderSeparator(FlexBorderSeparator.none).dp();
     ft.setBorderSeparatorStyle([]).dp();
-    ft.latestReflowData(reflowData).dp();
+    ft.requestReflowOn(
+      s.pt.onSize,
+      table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
+      table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator
+    ).dp();
   }));
 });
 

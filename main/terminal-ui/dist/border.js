@@ -81,7 +81,7 @@ exports.borderFac = container_1.baseContainerFac.forExtend({
         table.l.setPadding,
         table.l.allChildren
     ];
-    r('reflow -> onSize, setLayoutValid', s.pt.reflow.pipe(rx.withLatestFrom(...reflowData), rx.map(([[m], [ms, w, h], [, border], [, top, right, bottom, left], [, children]]) => {
+    r('reflow -> onSize, setLayoutValid', s.pt.reflow.pipe(rx.withLatestFrom(...reflowData), rx.map(([[m], [, w, h], [, border], [, top, right, bottom, left], [, children]]) => {
         s.ft.setLayoutValid(true).dp(m);
         childPos[0] = childPos[1] = 0;
         let borderLine = 0;
@@ -114,7 +114,8 @@ exports.borderFac = container_1.baseContainerFac.forExtend({
         }
     })));
     r('init', new rx.Observable(() => {
-        s.ft.latestReflowData(rx.merge(...reflowData)).dp();
+        s.ft.requestReflowOn(...reflowData).dp();
+        // s.ft.latestReflowData(rx.merge(...reflowData)).dp();
         s.ft.setPadding(0, 1, 0, 1).dp();
         s.ft.setBorder('line').dp();
         s.ft.addChild(child).dp();

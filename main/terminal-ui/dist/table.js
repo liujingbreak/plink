@@ -63,6 +63,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
 }).interceptorForBaseByType(ad => rx.merge(rx.merge(ad.pt.onRender, ad.pt.findOverlaps).pipe(rx.ignoreElements()), ad.ofOtherTypes())).defineReactor((init, opts) => {
     const service = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
     const { s, r, table } = service;
+    const preContrl = s.forkController();
     const rows = new Map();
     const rowIds = [];
     const childBoundingTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
@@ -75,7 +76,6 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
     let lazyService;
     let beforePlaceHolder;
     let afterPlaceHolder;
-    const prependedS = s.prependController();
     r('setLazyLoad, "lazyService".dp_onLoadPage -> "lazyService", addChild, insertChild...', s.pt.setLazyLoad.pipe(rx.switchMap(([m, enabled, handler]) => {
         var _a;
         if (enabled && lazyService == null) {
@@ -188,7 +188,9 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
             typeSet.delete(type);
         s.ft.onBorderTypeSet(typeSet).dp(m);
     })));
-    r('reflow,calcSize,didCalcSize..->"cellBoundingTree"', prependedS.pt.reflow.pipe(rx.switchMap(([m]) => prependedS.pt.calcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.mergeMap(([m2]) => prependedS.pt.didCalcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m2))), rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet), rx.map(([[, colWidths, rowHeights, , , beforePhHeight], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, border]]) => {
+    r('reflow,calcSize,didCalcSize..->"cellBoundingTree"', s.pt.reflow.pipe(
+    // preContrl here makes sure the later subscription to "calcSize" will recieve message earlier than other subscriber
+    rx.switchMap(([m]) => preContrl.pt.calcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.mergeMap(([m2]) => preContrl.pt.didCalcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m2))), rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet), rx.map(([[, colWidths, rowHeights, , , beforePhHeight], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, border]]) => {
         // service.log('>>>> table cell sizes:', colWidths.length, rowHeights.length);
         cellBoundingTree.clear();
         let rowIdx = 0;
@@ -380,7 +382,8 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
         }))));
     })));
     const reflowData = rx.combineLatest([
-        table.l.onSize, table.l.alignCell, table.l.setColumnSpacing, table.l.setRowSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet
+        table.l.onSize, table.l.alignCell, table.l.setColumnSpacing, table.l.setRowSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet,
+        table.l.onChildPreferredSizeChange
     ]);
     r('reflow -> overflow, onChildPositions, child.onSize', s.pt.reflow.pipe(rx.switchMap(([m, _clips, _masks]) => {
         return reflowData.pipe(rx.mergeMap(([[, w, h], [, alignCellHori, alignCellVert], [, colSpacing], [, rowSpacing], [, paddingX, paddingY], [, border]]) => {
@@ -489,7 +492,8 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
         table.l.setRowSpacing, table.l.setColumnSpacing,
         table.l.setBorderPadding, table.l.onSize,
         table.l.setDisplay,
-        table.l.setBackground
+        table.l.setBackground,
+        table.l.onChildPreferredSizeChange
     ];
     r('onRender', s.pt.onRender.pipe(rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks]) => {
         return rx.combineLatest(renderData).pipe(rx.take(1), rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height]]) => {
@@ -740,7 +744,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
             s.ft.onContentSizeChange(width, height).dp(m1, m2, m3);
         }));
     })));
-    s.ft.latestReflowData(reflowData).dp();
+    s.ft.requestReflowOn(table.l.onSize, table.l.alignCell, table.l.setColumnSpacing, table.l.setRowSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet, table.l.onChildPreferredSizeChange).dp();
     s.ft.setRenderChanges(renderData).dp();
     s.ft.onBorderTypeSet(new Set([TableBorderType.border, TableBorderType.columnSeparator])).dp();
     s.ft.setBorderStyle([]).dp();

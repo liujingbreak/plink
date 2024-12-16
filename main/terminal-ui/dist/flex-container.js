@@ -129,7 +129,7 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
             childBoundingTree.addContent([x, y, w, h], [idx, chd]);
         }))));
     })));
-    r('reflow, ... -> onChildPositions, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(rx.mergeMap(a => reflowData.pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.switchMap(([[m], [, w, h], [children, growOfEach, shrinkOfEach], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth], [, borderSep]]) => {
+    r('reflow, ... -> onChildPositions, child.onSize, onChangeChildrenSize', listContainer.s.pt.reflow.pipe(rx.mergeMap(a => rx.combineLatest(reflowData).pipe(rx.take(1), rx.map(b => [a, ...b]))), rx.switchMap(([[m], [, w, h], [children, growOfEach, shrinkOfEach], [, chrPrefSizes], [, justifyContent], [, alignItems], [, pWidth, pHeight], [, dir], [, marginWidth], [, borderSep]]) => {
         const childrenPosition = new Map();
         let mainAxis = w;
         let crossAxis = h;
@@ -346,7 +346,7 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
             }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
         }));
     })));
-    const reflowData = rx.combineLatest([
+    const reflowData = [
         table.l.onSize,
         table.l.allDisplayChildren.pipe(rx.switchMap(([, chdn]) => {
             return rx.combineLatest([
@@ -356,7 +356,10 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
         })),
         table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems,
         table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator
-    ]);
+    ];
+    r('allDisplayChildren,...-> requestReflow', s.pt.allDisplayChildren.pipe(rx.switchMap(([, chdn]) => {
+        return rx.merge(...chdn.map(chd => rx.merge(chd.s.pt.setFlexGrow, chd.s.pt.setFlexShrink)));
+    }), rx.map(([m]) => s.ft.requestReflow().dp(m))));
     r('init', new rx.Observable(() => {
         ft.setDirection('row').dp();
         ft.alignItems('stretch').dp();
@@ -364,7 +367,7 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
         ft.setBorderSpacing(1).dp();
         ft.setBorderSeparator(FlexBorderSeparator.none).dp();
         ft.setBorderSeparatorStyle([]).dp();
-        ft.latestReflowData(reflowData).dp();
+        ft.requestReflowOn(s.pt.onSize, table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator).dp();
     }));
 });
 function createFlexContainer(opts = {}) {

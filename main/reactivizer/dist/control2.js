@@ -112,8 +112,8 @@ class RxController2 extends stream_core_1.ControllerCore {
         return this.pt.__cancel.pipe((0, context_operators_1.actionRelatedToAction)(actionMeta));
     }
     /**
-     * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
-     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always
+     * This method create a new RxController2 which recieves exactly same action messages as the current controlle does.
+     * i.e. subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always
      * recieves earlier than any subscribers of this controller.
      * It helps to conquer recursive message emitting problem when adding more reactors to existing message stream.
      */

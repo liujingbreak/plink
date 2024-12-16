@@ -19,20 +19,23 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.container'
   });
-  const statusbar = init(opts, container);
-  statusbar.s.ft.setPadding(0, 1, 0, 1).dp();
+  const statusbar = init({
+    ...opts as any,
+    name: (opts?.name ?? 'statusbar') + '.border'
+  }, container);
+  statusbar.s.ft.setPadding(0, 0, 0, 1).dp();
   statusbar.s.ft.setBorder('padding').dp();
   statusbar.s.ft.setFlexShrink(0).dp();
   const {r, s, table} = statusbar;
   const labelScrollText = createTextWidget('scroll', {
     // ...opts as any,
-    name: (opts?.name ?? 'statusbar') + '.container'
+    name: (opts?.name ?? 'statusbar') + '.label'
   });
-  const labelScrollValue1 = createTextWidget('0%', {
+  const labelScrollValueR = createTextWidget('0%', {
     // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.v1'
   });
-  const labelScrollValue2 = createTextWidget('0%', {
+  const labelScrollValueC = createTextWidget('0%', {
     // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.v2'
   });
@@ -46,13 +49,14 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
   statusbar.s.ft.setBackground('bgHsl(120,50,80)').dp();
   labelKeypress.s.ft.setStyle(['hex(#000000)']).dp();
   // labelKeypress.s.ft.setBackground('bgHsl(90,50,80)').dp();
-  labelScrollText.s.ft.setStyle(['hex(#000000)']).dp();
-  labelScrollValue1.s.ft.setStyle(['hex(#000000)']).dp();
-  labelScrollValue2.s.ft.setStyle(['hex(#000000)']).dp();
+  labelScrollText.s.ft.setStyle(['hex(#000000)', 'bgHsl(90, 50, 70)']).dp();
+  labelScrollValueR.s.ft.setStyle(['hex(#000000)', 'bgHsl(140, 50, 70)']).dp();
+  labelScrollValueC.s.ft.setStyle(['hex(#000000)', 'bgHsl(150, 50, 70)']).dp();
+  container.s.ft.setBorderSpacing(0).dp();
   container.s.ft.addChild(labelKeypress,
     labelScrollText,
-    labelScrollValue1,
-    labelScrollValue2
+    labelScrollValueR,
+    labelScrollValueC
   ).dp();
   r('trackScrollable, scrollable.onValidScroll -> onScrollStatus', table.l.trackScrollable.pipe(
     rx.switchMap(([, scrollable]) => {
@@ -108,8 +112,8 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
 
   r('onScrollStatus', s.pt.onScrollStatus.pipe(
     rx.map(([m, v, h]) => {
-      labelScrollValue1.s.ft.setContent(v != null ? 'row: ' + Math.floor(v * 100) + '%' : '').dp(m);
-      labelScrollValue2.s.ft.setContent(h != null ? 'col: ' + Math.floor(h * 100) + '%' : '').dp(m);
+      labelScrollValueR.s.ft.setContent(v != null ? 'row: ' + Math.floor(v * 100) + '%' : '').dp(m);
+      labelScrollValueC.s.ft.setContent(h != null ? 'col: ' + Math.floor(h * 100) + '%' : '').dp(m);
     })
   ));
   r('onKeypressStatus', s.pt.onKeypressStatus.pipe(

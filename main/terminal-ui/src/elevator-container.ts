@@ -64,6 +64,14 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
               s.ft.onFocusServieReady(o, o.focusService).dp(m);
             })
           ),
+          // table.l.ofCanvas.pipe(
+          //   rx.filter(([, c]) => c != null),
+          //   rx.take(1),
+          //   rx.switchMap(([, outerCanvas]) => cv.s.pt.requestRender.pipe(
+          //     rx.map(([m]) => outerCanvas!.s.ft.requestRender().dp(m))
+          //   )),
+          //   rx.takeUntil(cv.destory$)
+          // ),
           // Delete corresponding canvas when chd is removed
           s.pt.removeChild.pipe(
             rx.filter(([, w]) => w === chd),
@@ -71,6 +79,7 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
             rx.map(() => {
               chd.s.ft.isOffsetParent(false).dp(m);
               canvasMap.delete(chd);
+              cv.dispose();
             })
           )
         );

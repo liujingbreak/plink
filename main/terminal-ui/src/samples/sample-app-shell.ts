@@ -15,7 +15,8 @@ const {canvas} = app.createApp(border, {
     debug
   },
   elevator: {
-    core: {debug, log}
+    core: {debug, log},
+    canvas: {debug: true, log}
   },
   scrollable: {default: {debug}},
   statusbar: {

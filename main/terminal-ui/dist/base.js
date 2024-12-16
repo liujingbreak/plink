@@ -56,7 +56,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         return ax === bx && ay === by;
     })), ad.at.setBackground.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setDisplay.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.needRerender.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.bgCleared.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setFocusable.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => {
         return a === b;
-    })), ad.ofOtherTypes());
+    })), ad.at.setFlexGrow.pipe(rx.distinctUntilChanged(({ p: [v1] }, { p: [v2] }) => v1 === v2)), ad.at.setFlexShrink.pipe(rx.distinctUntilChanged(({ p: [v1] }, { p: [v2] }) => v1 === v2)), ad.ofOtherTypes());
 }).defineReactor(init => {
     const service = init();
     const { s, r, table } = service;
