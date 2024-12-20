@@ -1,4 +1,4 @@
-import { SimplexReactor, SingleActionFactory, SimplexReactorExtendType, ActionMeta, SimplexReactorOptions } from '@wfh/reactivizer';
+import { SimplexReactor, SingleActionFactory, SimplexReactorExtendType, ActionMeta, CreateOptsInDef, BaseReactorFactory, CoreOptions } from '@wfh/reactivizer';
 import { BaseWidget, OffsetParent } from './base';
 import { Rectangle, TerminalCanvas } from './canvas';
 import { KeyEventServcie, KeyEventEnum } from './keyEvent';
@@ -25,11 +25,11 @@ export interface FocusableMessages {
     handleKeyEvents(keyService: KeyEventServcie, currKey: KeyEventEnum | null): SingleActionFactory;
     controlHandleEvents(stop: boolean): SingleActionFactory;
     onFocusOutside(dir: SearchDirection): SingleActionFactory;
-    requestRerenderFor(rect: Rectangle): SingleActionFactory;
 }
 declare const tableFor: readonly ["didFocus", "handleKeyEvents", "rootService", "controlHandleEvents"];
 export type FocusService = SimplexReactor<FocusableMessages, typeof tableFor>;
-export type FocusableOptions = Partial<SimplexReactorOptions<FocusableMessages, typeof tableFor>>;
+export type FocusableOptions = CoreOptions<FocusableMessages>;
+export declare const focusServiceFac: BaseReactorFactory<FocusableMessages, readonly ["didFocus", "handleKeyEvents", "rootService", "controlHandleEvents"], [opts?: FocusableOptions | undefined]>;
 export declare function createFocusService(opts?: FocusableOptions): SimplexReactor<FocusableMessages, readonly ["didFocus", "handleKeyEvents", "rootService", "controlHandleEvents"]>;
 export interface RootFocusableEvents {
     forRootComp(rootComp: BaseWidget): SingleActionFactory;
@@ -38,6 +38,7 @@ export interface RootFocusableEvents {
     _canvas(c: TerminalCanvas): SingleActionFactory;
 }
 declare const tableForRoot: readonly ["forRootComp", "onFocus", "latestRenderedRect", "_canvas"];
-export declare function createRootService(keyEventService: KeyEventServcie, opts?: FocusableOptions): SimplexReactor<FocusableMessages & RootFocusableEvents, readonly ("didFocus" | "handleKeyEvents" | "rootService" | "controlHandleEvents" | "forRootComp" | "onFocus" | "latestRenderedRect" | "_canvas")[]>;
+export declare const rootFocusSvc: import("@wfh/reactivizer").DerivedReactorFactory<RootFocusableEvents, readonly ["forRootComp", "onFocus", "latestRenderedRect", "_canvas"], [keyEventService: KeyEventServcie, opts?: CoreOptions<FocusableMessages & RootFocusableEvents> | undefined], FocusableMessages, readonly ["didFocus", "handleKeyEvents", "rootService", "controlHandleEvents"], [opts?: FocusableOptions | undefined]>;
+export declare function createRootService(keyEventService: KeyEventServcie, opts?: CreateOptsInDef<RootFocusableEvents, typeof focusServiceFac>): import("@wfh/reactivizer").DerivedSimplexReactor<RootFocusableEvents & FocusableMessages, readonly ("didFocus" | "handleKeyEvents" | "rootService" | "controlHandleEvents" | "forRootComp" | "onFocus" | "latestRenderedRect" | "_canvas")[]>;
 export type RootFocusService = SimplexReactorExtendType<FocusService, RootFocusableEvents, typeof tableForRoot>;
 export {};

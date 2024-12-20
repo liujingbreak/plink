@@ -24,6 +24,8 @@ export interface BaseWidgetInput {
     /** to override automatical "preferredSize" in layout calculation */
     setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
     setFocusable(focusable: boolean | Rectangle): SingleActionFactory;
+    /** observe the changes of absoulte bounding of component.
+     * the change is kept reported by didQueryAbsBounding */
     queryAbsBounding(untilParent?: TerminalContainer): SingleActionFactory;
 }
 export interface BaseWidgetEvents extends BaseWidgetInput {

@@ -4,7 +4,7 @@ import { LazyLoadPlaceHolderOpts } from './lazy-load-placeholder';
 import { MultiLineTextWidgetOpts } from './text';
 import { baseContainerFac } from './container';
 import { FlexContainerOpts } from './flex-container';
-import { BaseWidget, TextStyle, BackgroundStyle, Rectangle, TerminalCanvas } from './index';
+import { BaseWidget, TextStyle, BackgroundStyle } from './index';
 export declare enum TableBorderType {
     border = 0,
     rowSeparator = 1,
@@ -48,7 +48,7 @@ interface TableEvents extends TableInput {
     /** In context of "removeRow" */
     onRowRemoved(rowKey: unknown, cells: BaseWidget[]): SingleActionFactory;
     onBorderTypeSet(typeSet: Set<TableBorderType>): SingleActionFactory;
-    onCellBgRender(col: number, row: number, canvas: TerminalCanvas, rect: Rectangle): SingleActionFactory;
+    onCellBgRender(col: number, row: number): SingleActionFactory;
     rowById<K>(rows: Map<K, BaseWidget[]>): SingleActionFactory;
     calcSize(contrainWidth?: number): SingleActionFactory;
     didCalcSize(columnWidths: number[], rowHeights: number[], totalWidth: number, totalHeight: number, beforePhHeight?: number, afterPh?: number): SingleActionFactory;
@@ -65,5 +65,5 @@ export type TableOptions = {
 };
 export declare const tableFac: import("@wfh/reactivizer").DerivedReactorFactory<TableEvents, readonly ["rowById", "setColumnSpacing", "onBorderTypeSet", "setRowSpacing", "setLazyLoad", "setBorderStyle", "setBorderPadding", "alignCell", "didCalcSize", "setCellBackground", "rowIds"], [opts?: TableOptions | undefined], import("./container").TermainlContainerEvents & import("./base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck")[], []>;
 export type Table = SimplexReactorOfFac<typeof tableFac>;
-export declare function createTable(opts?: TableOptions): import("@wfh/reactivizer").DerivedSimplexReactor<TableEvents & import("./container").TermainlContainerEvents & import("./base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setBorderStyle" | "setLazyLoad" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[]>;
+export declare function createTable(opts?: TableOptions): import("@wfh/reactivizer").DerivedSimplexReactor<TableEvents & import("./container").TermainlContainerEvents & import("./base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setLazyLoad" | "setBorderStyle" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[]>;
 export {};

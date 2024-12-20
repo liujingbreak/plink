@@ -39,6 +39,6 @@ export declare class DerivedReactorFactory<I = Record<never, never>, LI extends 
     create(...params: P): DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>;
 }
 /** Used in paramter type definition of ReactorFactory["defineReactor"] to avoid cyclic reference problem `CreateOptsOfFac` */
-export type CreateOptsInDef<I, BaseFactory = never> = CoreOptions<BaseFactory extends ReactorFactory<infer Ib, any, any> ? Ib & I : I>;
+export type CreateOptsInDef<I, BaseFactory = never> = BaseFactory extends never ? CoreOptions<I> : CoreOptions<BaseFactory extends ReactorFactory<infer Ib, any, any> ? Ib & I : I>;
 export type CreateOptsOfFac<F> = F extends ReactorFactory<infer I, any, any> ? CoreOptions<I> : unknown;
 export type SimplexReactorOfFac<F> = F extends DerivedReactorFactory<any, any, any, any, any, any> ? ReturnType<F['_create']> : F extends BaseReactorFactory<any, any, any> ? ReturnType<F['_create']> : unknown;

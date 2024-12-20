@@ -10,7 +10,7 @@ import {baseContainerFac} from './container';
 import {rectIntersection} from './canvas';
 import {FlexContainerOpts} from './flex-container';
 import {BaseWidget, createFlexContainer, TerminalContainer,
-  TextStyle, BackgroundStyle, Rectangle, TerminalCanvas} from './index';
+  TextStyle, BackgroundStyle, Rectangle} from './index';
 
 export enum TableBorderType {
   border, rowSeparator, columnSeparator
@@ -49,7 +49,7 @@ interface TableEvents extends TableInput {
   /** In context of "removeRow" */
   onRowRemoved(rowKey: unknown, cells: BaseWidget[]): SingleActionFactory;
   onBorderTypeSet(typeSet: Set<TableBorderType>): SingleActionFactory;
-  onCellBgRender(col: number, row: number, canvas: TerminalCanvas, rect: Rectangle): SingleActionFactory;
+  onCellBgRender(col: number, row: number): SingleActionFactory;
   rowById<K>(rows: Map<K, BaseWidget[]>): SingleActionFactory;
   calcSize(contrainWidth?: number): SingleActionFactory;
   didCalcSize(columnWidths: number[], rowHeights: number[], totalWidth: number, totalHeight: number, beforePhHeight?: number, afterPh?: number): SingleActionFactory;
@@ -180,7 +180,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
         return rx.merge(
           // dp_onUnload -> removeRow
           lazyService.s.pt.dp_onUnload.pipe(
-            rx.map(([m, pIdx, ids]) => {
+            rx.map(([m, _pIdx, ids]) => {
               // pageLoaded.delete(pIdx);
               if (ids == null)
                 return;
@@ -665,16 +665,16 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
             s.ft.renderSelf(canvas, trans, clips, masks ?? []).dp(m);
           }
 
-          // let cellsToRender = clips.flatMap(clip => [...cellBoundingTree.searchOverlaps(clip).map(([, c]) => c)]);
-          // // service.log('>> clips', clips?.join('\n'), 'cellBoundingTree', cellBoundingTree.xIntervalTree.minimum()?.value.size());
-          // service.log('>>> rows of cellsToRender', cellsToRender.map(([, r]) => r));
-          // const excludedCells = new Set(masks ? masks.map(c => cellBoundingTree.searchForCovered(c).map(([col, row]) => col + ',' + row)).flat() : []);
-          // cellsToRender = cellsToRender.filter(([col, row]) => !excludedCells.has(col + ',' + row));
-          // for (const [col, row, rect] of cellsToRender) {
-          //   const pos = [rect[0], rect[1]] as [number, number];
-          //   vec2.transformMat4(pos, pos, trans);
-          //   s.ft.onCellBgRender(col, row, canvas, [...pos, rect[2], rect[3]]).dp(m);
-          // }
+          let cellsToRender = clips.flatMap(clip => [...cellBoundingTree.searchOverlaps(clip).map(([, c]) => c)]);
+          // service.log('>> clips', clips?.join('\n'), 'cellBoundingTree', cellBoundingTree.xIntervalTree.minimum()?.value.size());
+          service.log('>>> rows of cellsToRender', cellsToRender.map(([, r]) => r));
+          const excludedCells = new Set(masks ? masks.map(c => cellBoundingTree.searchForCovered(c).map(([col, row]) => col + ',' + row)).flat() : []);
+          cellsToRender = cellsToRender.filter(([col, row]) => !excludedCells.has(col + ',' + row));
+          for (const [col, row, rect] of cellsToRender) {
+            const pos = [rect[0], rect[1]] as [number, number];
+            vec2.transformMat4(pos, pos, trans);
+            s.ft.onCellBgRender(col, row).dp(m);
+          }
           let childToRender = clips.flatMap(clip => [...childBoundingTree.searchOverlaps(clip)].map(([, c]) => c));
           // service.log('>>>>> childToRender', childToRender.length);
           const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, w]) => w)).flat() : []);
@@ -853,7 +853,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
   ));
   r('setCellBackground, onCellBgRender', table.l.setCellBackground.pipe(
     rx.switchMap(([, handler]) => s.pt.onCellBgRender.pipe(
-      rx.map(([m, c, r, canvas, rect]) => {
+      rx.map(([m, c, r]) => {
         const bg = handler(c, r);
         const childComp = rows.get(rowIds[r])?.[c];
         // TODO: childComp should be extended to implement painting cell background
@@ -861,10 +861,9 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
         // that child component rerender itself, the background might be incorrently overridden
         if (childComp?.table.getData().needRerender[0]) {
           if (bg) {
-            canvas.s.ft.fillRect(...rect, bg).dp(m);
             childComp.s.ft.setBackground(bg).dp(m);
           } else {
-            canvas.s.ft.clearRect(...rect).dp(m);
+            // childComp.s.ft.clear(canvas, trans).dp(m);
             childComp.s.ft.setBackground(null).dp(m);
           }
         }
@@ -891,7 +890,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
           return rx.of([r[0] - x, r[1] - y!, r[2], r[3]] as Rectangle);
         }),
         rx.mergeMap(relativeR => {
-          // listContainer.log('childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
+          service.log('findOverlaps in childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
           const children = childBoundingTree.searchOverlaps(relativeR);
           return rx.from(children).pipe(
             rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(

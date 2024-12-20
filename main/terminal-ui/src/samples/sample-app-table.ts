@@ -2,7 +2,7 @@ import 'source-map-support/register';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {app, createFlexContainer, TableBorderType, createTable} from '../index';
+import {app, createFlexContainer, TableBorderType, createTable, MultiLineTextWidget} from '../index';
 
 const debug = false;
 const fout = fs.createWriteStream('terminal-table-sample.log');
@@ -15,7 +15,7 @@ const table = createTable({
     debug: true
   },
   optsForCellComponent: {
-    debug
+    debug: true
   },
   lazy: {
     // default: {debug},
@@ -57,6 +57,7 @@ table.s.pt.onRowAdded.pipe(
     cells.map(cell => {
       // (cell as MultiLineTextWidget).s.ft.setStyle(['black']).dp();
       cell.s.ft.setFocusable(true).dp();
+      (cell as MultiLineTextWidget).s.ft.setStyle(['rgb(0,0,0)']).dp();
     });
   })
 ).subscribe();
@@ -90,15 +91,13 @@ const {canvas} = app.createApp(root, {
   },
   elevator: {
     canvas: {
-      debug: true,
       debugIncludeTypes: ['render', 'requestRender', 'clearRect', 'copyRect']
     }
   },
   focusable: {
-    debug,
+    debug: true,
     debugExcludeTypes: ['removeFocusable']
   },
-  // statusbar: {debug: false},
   canvas: {
     name: 'outerCan',
     debug: true,
@@ -115,7 +114,7 @@ const {canvas} = app.createApp(root, {
     //   debug
     // }
   },
-  statusbar: {debug: true, log}
+  statusbar: {debug, log}
 });
 
 const screenWidth = process.argv[2];

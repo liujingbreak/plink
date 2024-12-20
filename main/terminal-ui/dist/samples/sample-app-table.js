@@ -42,7 +42,7 @@ const table = (0, index_1.createTable)({
         debug: true
     },
     optsForCellComponent: {
-        debug
+        debug: true
     },
     lazy: {
         // default: {debug},
@@ -83,6 +83,7 @@ table.s.pt.onRowAdded.pipe(rx.map(([, _idx, _id, cells]) => {
     cells.map(cell => {
         // (cell as MultiLineTextWidget).s.ft.setStyle(['black']).dp();
         cell.s.ft.setFocusable(true).dp();
+        cell.s.ft.setStyle(['rgb(0,0,0)']).dp();
     });
 })).subscribe();
 table.s.ft.setBorderType(index_1.TableBorderType.rowSeparator, true).dp();
@@ -112,15 +113,13 @@ const { canvas } = index_1.app.createApp(root, {
     },
     elevator: {
         canvas: {
-            debug: true,
             debugIncludeTypes: ['render', 'requestRender', 'clearRect', 'copyRect']
         }
     },
     focusable: {
-        debug,
+        debug: true,
         debugExcludeTypes: ['removeFocusable']
     },
-    // statusbar: {debug: false},
     canvas: {
         name: 'outerCan',
         debug: true,
@@ -137,7 +136,7 @@ const { canvas } = index_1.app.createApp(root, {
     //   debug
     // }
     },
-    statusbar: { debug: true, log }
+    statusbar: { debug, log }
 });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];

@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SearchDirection = void 0;
+exports.rootFocusSvc = exports.focusServiceFac = exports.SearchDirection = void 0;
 exports.createFocusService = createFocusService;
 exports.createRootService = createRootService;
 /**
@@ -53,8 +53,11 @@ const tableFor = [
     'didFocus', 'handleKeyEvents',
     'rootService', 'controlHandleEvents'
 ];
-function createFocusService(opts) {
-    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'focusSvc' }, opts), { tableFor }));
+exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
+    name: 'focusSvc',
+    tableFor
+}).defineReactor((init, opts) => {
+    const service = init(opts);
     const { s, r, table } = service;
     const rectByComponent = new Map();
     const xTree = new algorithms_1.RedBlackTree();
@@ -430,29 +433,22 @@ function createFocusService(opts) {
     // s.ft.isDirtyForRender(false).dp();
     s.ft.controlHandleEvents(false).dp();
     return service;
+});
+function createFocusService(opts) {
+    return exports.focusServiceFac.create(opts);
 }
 const tableForRoot = ['forRootComp', 'onFocus', 'latestRenderedRect', '_canvas'];
-function createRootService(keyEventService, opts) {
-    const base = createFocusService(Object.assign(Object.assign({}, opts), { name: (opts === null || opts === void 0 ? void 0 : opts.name) ? 'Root' + (opts === null || opts === void 0 ? void 0 : opts.name) : 'rootFocusSvc' }));
-    const extended = base.config({ tableFor: tableForRoot });
+exports.rootFocusSvc = exports.focusServiceFac.forExtend({
+    name: 'rootFocusSvc',
+    tableFor: tableForRoot
+}).interceptorByType(ad => rx.merge(ad.at.onFocus.pipe(rx.distinctUntilChanged(({ p: [, c1] }, { p: [, c2] }) => c1 === c2)), ad.ofOtherTypes())).defineReactor((init, keyEventService, opts) => {
+    const extended = init(opts);
     const { r, s, table } = extended;
-    r('forRootComp -> isOffsetParent|destory$ -> dispose | requestRerenderFor -> c.needRerender', s.pt.forRootComp.pipe(rx.switchMap(([m, root]) => {
-        root.focusService = base;
+    r('forRootComp -> isOffsetParent|destory$ -> dispose', s.pt.forRootComp.pipe(rx.switchMap(([m, root]) => {
+        root.focusService = extended;
         root.s.ft.isOffsetParent(root).dp(m);
         s.ft.rootService(extended).dp(m);
-        return rx.merge(
-        // root.s.pt.render.pipe(
-        //   rx.map(([m, canvas]) => {
-        //     s.ft.afterRootCompRender(canvas).dp(m);
-        //   })
-        // ),
-        root.destory$.pipe(rx.map(() => extended.dispose())), s.pt.requestRerenderFor.pipe(rx.switchMap(([m, rect]) => root
-            .s.ft.findOverlaps(...rect).re(m).od(root.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, comps]) => {
-            // extended.log('>>> request rerender for', m.i, comps.map(c => c.s.logPrefix));
-            for (const c of comps) {
-                c.s.ft.needRerender(true).dp(m);
-            }
-        })))));
+        return rx.merge(root.destory$.pipe(rx.map(() => extended.dispose())));
     })));
     r('onFocus,c.onRender -> render', s.pt.onFocus.pipe(rx.distinctUntilChanged(([, , a], [, , b]) => a === b), rx.switchMap(([m, , c]) => {
         if (c) {
@@ -465,14 +461,12 @@ function createRootService(keyEventService, opts) {
         else
             return rx.EMPTY;
     })));
-    r('onFocus,latestRenderedRect -> requestRerenderFor', table.l.onFocus.pipe(rx.distinctUntilChanged(([, , a], [, , b]) => a === b), rx.filter(([, c, svc]) => c != null && svc != null), rx.mergeMap(([m]) => {
-        return table.l.latestRenderedRect
-            .pipe(rx.take(1), rx.map(([, lastRect]) => {
-            if (lastRect) {
-                // canvas.s.ft.clearRect(...lastRect).dp(m);
-                s.ft.requestRerenderFor(lastRect).dp(m);
-            }
-        }));
+    r('onFocus,latestRenderedRect -> needRerender', table.l.onFocus.pipe(rx.scan((prev, curr) => {
+        const [, , pC] = prev;
+        const [m] = curr;
+        if (pC)
+            pC.s.ft.needRerender(true).dp(m);
+        return curr;
     })));
     r('render,setBounding -> latestRenderedRect,canvas.copyRect', s.pt.render.pipe(rx.exhaustMap(([m, can, c]) => {
         return c.table.l.onBoundingBox.pipe(rx.take(1), rx.mergeMap(([, rect]) => can.s.ft.copyRect(...rect).re(m)
@@ -490,6 +484,9 @@ function createRootService(keyEventService, opts) {
     s.ft.onFocus('', null, null).dp();
     s.ft.handleKeyEvents(keyEventService, null).dp();
     return extended;
+});
+function createRootService(keyEventService, opts) {
+    return exports.rootFocusSvc.create(keyEventService, opts);
 }
 function chooseClosestLeftOrRight(x, node1, node2) {
     if (node1 != null && node2 == null)

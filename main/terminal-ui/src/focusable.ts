@@ -11,10 +11,9 @@
  */
 import * as rx from 'rxjs';
 import {SimplexReactor, SingleActionFactory, SimplexReactorExtendType, actionRelatedToAction, ActionMeta,
-  SimplexReactorOptions} from '@wfh/reactivizer';
+  CreateOptsInDef, BaseReactorFactory, CoreOptions, InferMapParam} from '@wfh/reactivizer';
 import {RedBlackTree} from '@wfh/algorithms';
 import {BaseWidget, OffsetParent} from './base';
-import {TerminalContainer} from './container';
 import {Rectangle, TerminalCanvas, TextStyle} from './canvas';
 // import {Scrollable} from './scrollable';
 import {KeyEventServcie, KeyEventEnum} from './keyEvent';
@@ -41,22 +40,18 @@ export interface FocusableMessages {
   handleKeyEvents(keyService: KeyEventServcie, currKey: KeyEventEnum | null): SingleActionFactory;
   controlHandleEvents(stop: boolean): SingleActionFactory;
   onFocusOutside(dir: SearchDirection): SingleActionFactory;
-  // setRenderClips(clips: Rectangle[]): SingleActionFactory;
-  requestRerenderFor(rect: Rectangle): SingleActionFactory;
 }
 const tableFor = [
   'didFocus', 'handleKeyEvents',
   'rootService', 'controlHandleEvents'
 ] as const;
 export type FocusService = SimplexReactor<FocusableMessages, typeof tableFor>;
-export type FocusableOptions = Partial<SimplexReactorOptions<FocusableMessages, typeof tableFor>>;
-export function createFocusService(opts?: FocusableOptions) {
-  const service = new SimplexReactor<FocusableMessages, typeof tableFor>({
-    name: 'focusSvc',
-    // debugExcludeTypes: ['removeFocusable'],
-    ...opts,
-    tableFor
-  });
+export type FocusableOptions = CoreOptions<FocusableMessages>;
+export const focusServiceFac = new BaseReactorFactory<FocusableMessages, typeof tableFor>({
+  name: 'focusSvc',
+  tableFor
+}).defineReactor((init, opts?: FocusableOptions) => {
+  const service = init(opts);
   const {s, r, table} = service;
   const rectByComponent = new Map<BaseWidget, Rectangle>();
   const xTree = new RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>();
@@ -477,6 +472,9 @@ export function createFocusService(opts?: FocusableOptions) {
   // s.ft.isDirtyForRender(false).dp();
   s.ft.controlHandleEvents(false).dp();
   return service;
+});
+export function createFocusService(opts?: FocusableOptions) {
+  return focusServiceFac.create(opts);
 }
 
 export interface RootFocusableEvents {
@@ -487,40 +485,25 @@ export interface RootFocusableEvents {
   _canvas(c: TerminalCanvas): SingleActionFactory;
 }
 const tableForRoot = ['forRootComp', 'onFocus', 'latestRenderedRect', '_canvas'] as const;
-export function createRootService(keyEventService: KeyEventServcie, opts?: FocusableOptions) {
-  const base = createFocusService({
-    ...opts,
-    name: opts?.name ? 'Root' + opts?.name : 'rootFocusSvc'
-  });
-  const extended = base.config<RootFocusableEvents, typeof tableForRoot>({tableFor: tableForRoot});
+export const rootFocusSvc = focusServiceFac.forExtend<RootFocusableEvents, typeof tableForRoot>({
+  name: 'rootFocusSvc',
+  tableFor: tableForRoot
+}).interceptorByType(ad => rx.merge(
+  ad.at.onFocus.pipe(
+    rx.distinctUntilChanged(({p: [, c1]}, {p: [, c2]}) => c1 === c2)
+  ),
+  ad.ofOtherTypes()
+)).defineReactor((init, keyEventService: KeyEventServcie, opts?: CreateOptsInDef<RootFocusableEvents, typeof focusServiceFac>) => {
+  const extended = init(opts);
   const {r, s, table} = extended;
-  r('forRootComp -> isOffsetParent|destory$ -> dispose | requestRerenderFor -> c.needRerender', s.pt.forRootComp.pipe(
+  r('forRootComp -> isOffsetParent|destory$ -> dispose', s.pt.forRootComp.pipe(
     rx.switchMap(([m, root]) => {
-      (root as BaseWidget & OffsetParent).focusService = base;
+      (root as BaseWidget & OffsetParent).focusService = extended;
       root.s.ft.isOffsetParent((root as BaseWidget & OffsetParent)).dp(m);
       s.ft.rootService(extended).dp(m);
       return rx.merge(
-        // root.s.pt.render.pipe(
-        //   rx.map(([m, canvas]) => {
-        //     s.ft.afterRootCompRender(canvas).dp(m);
-        //   })
-        // ),
         root.destory$.pipe(
           rx.map(() => extended.dispose())
-        ),
-        s.pt.requestRerenderFor.pipe(
-          rx.switchMap(([m, rect]) => (root as TerminalContainer)
-            .s.ft.findOverlaps(...rect).re(m).od(
-              (root as TerminalContainer).s.pt.didFindOverlaps
-            ).pipe(
-              rx.take(1),
-              rx.map(([, comps]) => {
-                // extended.log('>>> request rerender for', m.i, comps.map(c => c.s.logPrefix));
-                for (const c of comps) {
-                  c.s.ft.needRerender(true).dp(m);
-                }
-              })
-            ))
         )
       );
     })
@@ -543,20 +526,13 @@ export function createRootService(keyEventService: KeyEventServcie, opts?: Focus
         return rx.EMPTY;
     })
   ));
-  r('onFocus,latestRenderedRect -> requestRerenderFor', table.l.onFocus.pipe(
-    rx.distinctUntilChanged(([, , a], [, , b]) => a === b),
-    rx.filter(([, c, svc]) => c != null && svc != null),
-    rx.mergeMap(([m]) => {
-      return table.l.latestRenderedRect
-        .pipe(
-          rx.take(1),
-          rx.map(([, lastRect]) => {
-            if (lastRect) {
-              // canvas.s.ft.clearRect(...lastRect).dp(m);
-              s.ft.requestRerenderFor(lastRect).dp(m);
-            }
-          })
-        );
+  r('onFocus,latestRenderedRect -> needRerender', table.l.onFocus.pipe(
+    rx.scan<InferMapParam<RootFocusableEvents['onFocus']>>((prev, curr) => {
+      const [, , pC] = prev;
+      const [m] = curr;
+      if (pC)
+        pC.s.ft.needRerender(true).dp(m);
+      return curr;
     })
   ));
   r('render,setBounding -> latestRenderedRect,canvas.copyRect', s.pt.render.pipe(
@@ -590,6 +566,10 @@ export function createRootService(keyEventService: KeyEventServcie, opts?: Focus
   s.ft.onFocus('', null, null).dp();
   s.ft.handleKeyEvents(keyEventService, null).dp();
   return extended;
+});
+
+export function createRootService(keyEventService: KeyEventServcie, opts?: CreateOptsInDef<RootFocusableEvents, typeof focusServiceFac>) {
+  return rootFocusSvc.create(keyEventService, opts);
 }
 export type RootFocusService = SimplexReactorExtendType<FocusService, RootFocusableEvents, typeof tableForRoot>;
 

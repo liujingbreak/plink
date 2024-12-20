@@ -132,7 +132,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
         if (enable && lazyService) {
             return rx.merge(
             // dp_onUnload -> removeRow
-            lazyService.s.pt.dp_onUnload.pipe(rx.map(([m, pIdx, ids]) => {
+            lazyService.s.pt.dp_onUnload.pipe(rx.map(([m, _pIdx, ids]) => {
                 // pageLoaded.delete(pIdx);
                 if (ids == null)
                     return;
@@ -500,16 +500,16 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
             if (renderSelf) {
                 s.ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
             }
-            // let cellsToRender = clips.flatMap(clip => [...cellBoundingTree.searchOverlaps(clip).map(([, c]) => c)]);
-            // // service.log('>> clips', clips?.join('\n'), 'cellBoundingTree', cellBoundingTree.xIntervalTree.minimum()?.value.size());
-            // service.log('>>> rows of cellsToRender', cellsToRender.map(([, r]) => r));
-            // const excludedCells = new Set(masks ? masks.map(c => cellBoundingTree.searchForCovered(c).map(([col, row]) => col + ',' + row)).flat() : []);
-            // cellsToRender = cellsToRender.filter(([col, row]) => !excludedCells.has(col + ',' + row));
-            // for (const [col, row, rect] of cellsToRender) {
-            //   const pos = [rect[0], rect[1]] as [number, number];
-            //   vec2.transformMat4(pos, pos, trans);
-            //   s.ft.onCellBgRender(col, row, canvas, [...pos, rect[2], rect[3]]).dp(m);
-            // }
+            let cellsToRender = clips.flatMap(clip => [...cellBoundingTree.searchOverlaps(clip).map(([, c]) => c)]);
+            // service.log('>> clips', clips?.join('\n'), 'cellBoundingTree', cellBoundingTree.xIntervalTree.minimum()?.value.size());
+            service.log('>>> rows of cellsToRender', cellsToRender.map(([, r]) => r));
+            const excludedCells = new Set(masks ? masks.map(c => cellBoundingTree.searchForCovered(c).map(([col, row]) => col + ',' + row)).flat() : []);
+            cellsToRender = cellsToRender.filter(([col, row]) => !excludedCells.has(col + ',' + row));
+            for (const [col, row, rect] of cellsToRender) {
+                const pos = [rect[0], rect[1]];
+                gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+                s.ft.onCellBgRender(col, row).dp(m);
+            }
             let childToRender = clips.flatMap(clip => [...childBoundingTree.searchOverlaps(clip)].map(([, c]) => c));
             // service.log('>>>>> childToRender', childToRender.length);
             const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, w]) => w)).flat() : []);
@@ -676,7 +676,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
             }));
         }));
     })));
-    r('setCellBackground, onCellBgRender', table.l.setCellBackground.pipe(rx.switchMap(([, handler]) => s.pt.onCellBgRender.pipe(rx.map(([m, c, r, canvas, rect]) => {
+    r('setCellBackground, onCellBgRender', table.l.setCellBackground.pipe(rx.switchMap(([, handler]) => s.pt.onCellBgRender.pipe(rx.map(([m, c, r]) => {
         var _a;
         const bg = handler(c, r);
         const childComp = (_a = rows.get(rowIds[r])) === null || _a === void 0 ? void 0 : _a[c];
@@ -685,11 +685,10 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
         // that child component rerender itself, the background might be incorrently overridden
         if (childComp === null || childComp === void 0 ? void 0 : childComp.table.getData().needRerender[0]) {
             if (bg) {
-                canvas.s.ft.fillRect(...rect, bg).dp(m);
                 childComp.s.ft.setBackground(bg).dp(m);
             }
             else {
-                canvas.s.ft.clearRect(...rect).dp(m);
+                // childComp.s.ft.clear(canvas, trans).dp(m);
                 childComp.s.ft.setBackground(null).dp(m);
             }
         }
@@ -710,7 +709,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
             }
             return rx.of([r[0] - x, r[1] - y, r[2], r[3]]);
         }), rx.mergeMap(relativeR => {
-            // listContainer.log('childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
+            service.log('findOverlaps in childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
             const children = childBoundingTree.searchOverlaps(relativeR);
             return rx.from(children).pipe(rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => isContainer ?
                 chd.s.ft.findOverlaps(...rect)
