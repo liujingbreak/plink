@@ -61,15 +61,15 @@ function createKeyEventService(canvas, opts) {
             function h(_chr, data) {
                 ft.onRawKeyInput(data).dp(m);
             }
-            function handleData(chunk) {
-                // TODO
-                // service.log('>>> stdin data', chunk);
-            }
+            // function handleData(chunk: Buffer) {
+            //   // TODO
+            //   // service.log('>>> stdin data', chunk);
+            // }
             stdin.on('keypress', h);
-            stdin.on('data', handleData);
+            // stdin.on('data', handleData);
             return () => {
                 stdin.off('keypress', h);
-                stdin.off('data', handleData);
+                // stdin.off('data', handleData);
                 if (tty) {
                     stdin.setRawMode(false);
                 }
@@ -328,10 +328,21 @@ function createKeyEventService(canvas, opts) {
         reset();
         process.exit(0);
     });
-    // enable mouse event and SGR mode, refer to tty-events.js
-    process.stdout.write('\x1b[?1000;1003;1006h');
+    setImmediate(() => {
+        // enable mouse event and SGR mode, refer to "blessed" program.js or tty-events.js
+        process.stdout.write('\x1b[?1000h');
+        process.stdout.write('\x1b[?1001h');
+        process.stdout.write('\x1b[?1002h');
+        process.stdout.write('\x1b[?1003h');
+        process.stdout.write('\x1b[?1005h');
+        process.stdout.write('\x1b[?1015h');
+        process.stdout.write('\x1b[1;2\'z\x1b[1;3\'{');
+        process.stdout.write('\x1b[>1h\x1b[>6h\x1b[>7h\x1b[>1h\x1b[>9l');
+        // process.stdout.write('\x1b[0~ZwLMRK+1Q\x1b\\'); jsbtermMouse
+        process.stdout.write('\x1b[?9h');
+    });
     // Query device attributes
-    process.stdout.write('\x1b[0c');
+    // process.stdout.write('\x1b[0c');
     ft.setPageSize(10, 10).dp();
     ft.setInputStream(process.stdin, true).dp();
     return service;

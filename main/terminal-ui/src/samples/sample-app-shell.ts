@@ -23,8 +23,8 @@ const {canvas} = app.createApp(border, {
     debug: false
   },
   keyService: {
-    debug
-    // debugExcludeTypes: ['onRawKeyInput']
+    debug: true,
+    debugIncludeTypes: ['onRawKeyInput']
   },
   cover: {debug},
   canvas: {debug},

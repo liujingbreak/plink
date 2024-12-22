@@ -4,6 +4,7 @@
 
 `@wfh/reactivizer` is a RxJS based Reactive Programming library for programming convenience.
 It introduces an opinionated style to program reusable logic in shape of **reative service**, you may consider it as a reactive alternative of OOP.
+Comparing this style of programming with other imperative styles in single sentence is: **Messages over nonpure functions**.
 
 The purpose is aiming for promoting and exhibiting opinionated modeling and abstracting of reactive-programming as alternative counterpart to OOP,
   remedy demerits and inconvenience in adopting reactive programming paradigm in prevalent languages.
@@ -13,7 +14,7 @@ but it is not limited to be used as frontend state management tool or a backend 
 
 @wfh/reactivizer is not a platform or architecture tool like "event sourcing" to address and solve high level design concerns in between modules or services.
 
-Some of the concepts and conventions are inspired by Apache kafka, Redux-observable
+Some of the concepts and conventions are inspired by Apache kafka, Redux-observable.
 
 ### 1.1. Some of implemented design goals and APIs
 - Great Typescript type definition for type inference
@@ -31,7 +32,7 @@ Some of the concepts and conventions are inspired by Apache kafka, Redux-observa
 
 ```ts
 import * as rx from 'rxjs';
-import {SimplexReactor, SingleActionFactory} from '@wfh/reactivizer';
+import {BaseReactorFactory, SimplexReactorOfFac, SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
 
 // Use interface or type to define input message
 interface InputActions {
@@ -40,26 +41,29 @@ interface InputActions {
   setLanguage(locale: string): SingleActionFactory;
 }
 
-// Define output message
-interface OutputEvents {
+// Define other messages
+interface MyServiceEvents extends InputActions {
   replyGreeting(word: string): SingleActionFactory;
   answerQuestion(content: string): SingleActionFactory;
 }
 
 // define which actions should be stored and replayable (treated by ReplaySubject(1))
 const tableFor = ['setLanguage'] as const;
-export function createMyReactiveService() {
-
-  // Create an reactive service
-  const myRxService = new SimplexReactor<InputActions & OutputEvents, typeof tableFor>({
-    name: 'Sample',
-    tableFor
-  });
-
+// export factory so that it can be extended by other modules
+export const serviceFactory = new BaseReactorFactory<MyServiceEvents, typeof tableFor>({
+  name: 'logNameForService',
+  tableFor
+}).interceptorByType(ad => rx.merge(
+  ad.greeting.pipe(
+    rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+  ),
+  ad.ofOtherTypes()
+)).defineReactor((init, language: string, instanceOpts?: CoreOptions<MyServiceEvents>) => {
+  // obtain reactive service instance
+  const myRxService = init(instanceOpts);
+  // define reactors: subscribe to messages and publish new messages
   const {s, r, table} = myRxService;
-
   // create a message "setLanguage" and dispatch it, the parameter will be stored in internal `Map` for later reading (or replay)
-  s.ft.setLanguage('zh').dp();
 
   // Plan reactions on incoming input "message", this is like defining a member function body of reactive service
   r('greeting -> replyGreeting', s.pt.greeting.pipe(
@@ -79,14 +83,20 @@ export function createMyReactiveService() {
       s.ft.answerQuestion(`>> ${topic}\n` + answer).re(meta).dp();
     })
   ));
-  return myRxService;
-}
+  s.ft.setLanguage(language).dp();
+});
 
-export type MyReactiveSerivce = SimplexReactor<InputActions & OutputEvents, typeof tableFor>;
- 
+// Sample of creating a service instance, it is not necessary to have a function to encapsolute them.
+export function createService(language: string) {
+  return serviceFactory.create(language, {debug: true});
+}
+// export the Type definition for other module to reference
+export type MyReactiveSerivce = SimplexReactor<typeof serviceFactory>;
+// export the type definition of service options, service logging behaviour can be configured through "options" from a caller module
+export type MyReactiveSerivceOpts = CoreOptions<MyServiceEvents>;
 ```
-In above snippet, `SimplexReactor<InputActions & OutputEvents, typeof tableFor>` is creating an _Reactive Service_,
-the type parameter tells the shape of input and output messages, the `tableFor` tells which messages should be stored and replayable for later query.
+In above snippet, `SimplexReactor<InputActions & MyServiceEvents, typeof tableFor>` is creating an _Reactive Service_,
+the type parameter tells the shape of event messages, the `tableFor` tells which messages should be stored and replayable for later query.
 
 #### 1.2.2 A consumer program interact with _Reactive Service_ in form of dispatching **input** message and subscribe **output** message
 
