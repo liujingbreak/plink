@@ -225,16 +225,12 @@ function createKeyEventService(canvas, opts) {
             return ft.setPageSize(w, h).dp(m);
         })), s.pt.onLeft.pipe(rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(-amount, 0).dp(m);
-            // canvas.s.ft.render().dp(m);
         })), s.pt.onUp.pipe(rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(0, -amount).dp(m);
-            canvas.s.ft.render().dp(m);
         })), s.pt.onRight.pipe(rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(amount, 0).dp(m);
-            canvas.s.ft.render().dp(m);
         })), s.pt.onDown.pipe(rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(0, amount).dp(m);
-            canvas.s.ft.render().dp(m);
         })), s.pt.didConsumeMultiKey.pipe(rx.withLatestFrom(scrollable.table.l.onValidScroll), rx.map(([[m, act], [, x, y]]) => {
             if (act === KeyEventEnum.scrollTop)
                 scrollable.s.ft.scrollTo(x, 0).dp(m);
@@ -244,7 +240,6 @@ function createKeyEventService(canvas, opts) {
                 scrollable.s.ft.scrollTo(0, y).dp(m);
             else if (act === KeyEventEnum.end)
                 scrollable.s.ft.scrollTo(Number.MAX_VALUE, y).dp(m);
-            canvas.s.ft.render().dp(m);
         })));
     })));
     r('onRawKeyInput -> onKeypress,onMouseEvent', s.pt.onRawKeyInput.pipe(rx.exhaustMap(([m1, evt]) => {

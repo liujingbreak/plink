@@ -115,7 +115,9 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
         s.ft.clear(canvas, trans).dp(m);
         s.ft.needRerender(true).dp(m);
     })));
-    r('onRender -> beforeRenderSelf,renderSelf, renderChild', s.pt.onRender.pipe(rx.observeOn(rx.queueScheduler), rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(rx.take(1), rx.map(([, children]) => {
+    r('onRender -> beforeRenderSelf,renderSelf, renderChild', s.pt.onRender.pipe(
+    // rx.observeOn(rx.queueScheduler),
+    rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(rx.take(1), rx.map(([, children]) => {
         if (renderSelf) {
             s.ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         }

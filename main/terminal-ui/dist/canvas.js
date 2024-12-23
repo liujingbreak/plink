@@ -140,13 +140,17 @@ function createTerminalCanvas(opts) {
             node_readline_1.default.clearLine(process.stdout, 0);
         }
     })));
-    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rects], [, x, y, w, h], [, root]]) => {
+    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rects], [, x, y, w, h], [, root]], idx) => {
         // canvas.log('>> before uncommited', debugLineTrees(uncommited));
         if (root)
             root.s.ft.render(canvas, gl_matrix_1.mat4.create(), rects !== null && rects !== void 0 ? rects : [[0, 0, w, h]]).dp(m);
         let lineIdx = 0;
         // canvas.log('>> after uncommited', debugLineTrees(uncommited));
         // canvas.log('>> lines', debugLineTrees(lines));
+        if (idx === 0) {
+            for (let i = y, l = y + h; i < l; i++)
+                s.ft.onClearLine(i, 0).dp(m);
+        }
         for (const line of uncommited) {
             if (line == null) {
                 lineIdx++;

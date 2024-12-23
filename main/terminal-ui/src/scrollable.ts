@@ -71,7 +71,12 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
       return rx.EMPTY;
     })
   ));
-  const renderData = [table.l.onValidScroll, table.l.onSize];
+  const renderData = [
+    table.l.onValidScroll,
+    table.l.onSize,
+    table.l.onBgChangeWithParent,
+    table.l.setDisplay
+  ] as const;
 
   r('onRender -> comp.render,...', s.pt.onRender.pipe(
     rx.withLatestFrom(...renderData),
@@ -80,11 +85,11 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
         s.ft.renderSelf(outerCanvas, trans, clips, masks ?? []).dp(m);
       const clipsOfView = clips.map(c => {
         return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
-      }).filter(c => c != null);
+      }).filter((c): c is NonNullable<typeof c> => c != null);
       const masksOfView = masks ?
         masks.map(c => {
           return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
-        }).filter(c => c != null) :
+        }).filter((c): c is NonNullable<typeof c> => c != null) :
         [];
       // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
       s.ft.clear(outerCanvas, trans).dp(m);

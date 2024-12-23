@@ -202,13 +202,17 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
   ));
   r('render -> onPrintText', s.pt.render.pipe(
     rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent),
-    rx.map(([[m, rects], [, x, y, w, h], [, root]]) => {
+    rx.map(([[m, rects], [, x, y, w, h], [, root]], idx) => {
       // canvas.log('>> before uncommited', debugLineTrees(uncommited));
       if (root)
         root.s.ft.render(canvas, mat4.create(), rects ?? [[0, 0, w, h] as const]).dp(m);
       let lineIdx = 0;
       // canvas.log('>> after uncommited', debugLineTrees(uncommited));
       // canvas.log('>> lines', debugLineTrees(lines));
+      if (idx === 0) {
+        for (let i = y, l = y + h; i < l; i++)
+          s.ft.onClearLine(i, 0).dp(m);
+      }
       for (const line of uncommited) {
         if (line == null) {
           lineIdx++;

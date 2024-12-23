@@ -299,25 +299,21 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
         s.pt.onLeft.pipe(
           rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(-amount, 0).dp(m);
-            // canvas.s.ft.render().dp(m);
           })
         ),
         s.pt.onUp.pipe(
           rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(0, -amount).dp(m);
-            canvas.s.ft.render().dp(m);
           })
         ),
         s.pt.onRight.pipe(
           rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(amount, 0).dp(m);
-            canvas.s.ft.render().dp(m);
           })
         ),
         s.pt.onDown.pipe(
           rx.map(([m, amount]) => {
             scrollable.s.ft.scroll(0, amount).dp(m);
-            canvas.s.ft.render().dp(m);
           })
         ),
         s.pt.didConsumeMultiKey.pipe(
@@ -331,7 +327,6 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
               scrollable.s.ft.scrollTo(0, y).dp(m);
             else if (act === KeyEventEnum.end)
               scrollable.s.ft.scrollTo(Number.MAX_VALUE, y).dp(m);
-            canvas.s.ft.render().dp(m);
           })
         )
       );

@@ -437,7 +437,7 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
 function createFocusService(opts) {
     return exports.focusServiceFac.create(opts);
 }
-const tableForRoot = ['forRootComp', 'onFocus', 'latestRenderedRect', '_canvas'];
+const tableForRoot = ['forRootComp', 'onFocus', '_canvas'];
 exports.rootFocusSvc = exports.focusServiceFac.forExtend({
     name: 'rootFocusSvc',
     tableFor: tableForRoot
@@ -461,14 +461,15 @@ exports.rootFocusSvc = exports.focusServiceFac.forExtend({
         else
             return rx.EMPTY;
     })));
-    r('onFocus,latestRenderedRect -> needRerender', table.l.onFocus.pipe(rx.scan((prev, curr) => {
+    // clean up previous rendered component
+    r('onFocus -> needRerender', table.l.onFocus.pipe(rx.scan((prev, curr) => {
         const [, , pC] = prev;
         const [m] = curr;
         if (pC)
             pC.s.ft.needRerender(true).dp(m);
         return curr;
     })));
-    r('render,setBounding -> latestRenderedRect,canvas.copyRect', s.pt.render.pipe(rx.exhaustMap(([m, can, c]) => {
+    r('render,setBounding -> canvas.copyRect', s.pt.render.pipe(rx.exhaustMap(([m, can, c]) => {
         return c.table.l.onBoundingBox.pipe(rx.take(1), rx.mergeMap(([, rect]) => can.s.ft.copyRect(...rect).re(m)
             .od(can.s.pt.onCopyRect).pipe(rx.take(1), rx.mergeMap(([, lines]) => {
             for (const [l, , y, units, style] of lines) {
@@ -478,9 +479,8 @@ exports.rootFocusSvc = exports.focusServiceFac.forExtend({
                 can.s.ft.addDisplayUnits(l + rect[0], y + rect[1], units, styleList).dp(m);
             }
             return c.s.ft.queryAbsBounding().re(m).od(c.s.pt.didQueryAbsBounding);
-        }), rx.take(1))), rx.take(1), rx.map(([, r]) => s.ft.latestRenderedRect(r).dp(m)));
+        }), rx.take(1))));
     })));
-    s.ft.latestRenderedRect(null).dp();
     s.ft.onFocus('', null, null).dp();
     s.ft.handleKeyEvents(keyEventService, null).dp();
     return extended;

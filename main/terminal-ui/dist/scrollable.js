@@ -61,17 +61,22 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
         }
         return rx.EMPTY;
     })));
-    const renderData = [table.l.onValidScroll, table.l.onSize];
+    const renderData = [
+        table.l.onValidScroll,
+        table.l.onSize,
+        table.l.onBgChangeWithParent,
+        table.l.setDisplay
+    ];
     r('onRender -> comp.render,...', s.pt.onRender.pipe(rx.withLatestFrom(...renderData), rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height]]) => {
         if (renderSelf)
             s.ft.renderSelf(outerCanvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
         const clipsOfView = clips.map(c => {
             return (0, canvas_1.rectIntersection)([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
-        }).filter(c => c != null);
+        }).filter((c) => c != null);
         const masksOfView = masks ?
             masks.map(c => {
                 return (0, canvas_1.rectIntersection)([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
-            }).filter(c => c != null) :
+            }).filter((c) => c != null) :
             [];
         // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
         s.ft.clear(outerCanvas, trans).dp(m);

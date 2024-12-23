@@ -481,10 +481,9 @@ export interface RootFocusableEvents {
   forRootComp(rootComp: BaseWidget): SingleActionFactory;
   // afterRootCompRender(canvas: TerminalCanvas): SingleActionFactory;
   onFocus(name: string, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
-  latestRenderedRect(rect: Rectangle | null): SingleActionFactory;
   _canvas(c: TerminalCanvas): SingleActionFactory;
 }
-const tableForRoot = ['forRootComp', 'onFocus', 'latestRenderedRect', '_canvas'] as const;
+const tableForRoot = ['forRootComp', 'onFocus', '_canvas'] as const;
 export const rootFocusSvc = focusServiceFac.forExtend<RootFocusableEvents, typeof tableForRoot>({
   name: 'rootFocusSvc',
   tableFor: tableForRoot
@@ -526,7 +525,8 @@ export const rootFocusSvc = focusServiceFac.forExtend<RootFocusableEvents, typeo
         return rx.EMPTY;
     })
   ));
-  r('onFocus,latestRenderedRect -> needRerender', table.l.onFocus.pipe(
+  // clean up previous rendered component
+  r('onFocus -> needRerender', table.l.onFocus.pipe(
     rx.scan<InferMapParam<RootFocusableEvents['onFocus']>>((prev, curr) => {
       const [, , pC] = prev;
       const [m] = curr;
@@ -535,7 +535,7 @@ export const rootFocusSvc = focusServiceFac.forExtend<RootFocusableEvents, typeo
       return curr;
     })
   ));
-  r('render,setBounding -> latestRenderedRect,canvas.copyRect', s.pt.render.pipe(
+  r('render,setBounding -> canvas.copyRect', s.pt.render.pipe(
     rx.exhaustMap(([m, can, c]) => {
       return c.table.l.onBoundingBox.pipe(
         rx.take(1),
@@ -556,13 +556,10 @@ export const rootFocusSvc = focusServiceFac.forExtend<RootFocusableEvents, typeo
             }),
             rx.take(1)
           )
-        ),
-        rx.take(1),
-        rx.map(([, r]) => s.ft.latestRenderedRect(r).dp(m))
+        )
       );
     })
   ));
-  s.ft.latestRenderedRect(null).dp();
   s.ft.onFocus('', null, null).dp();
   s.ft.handleKeyEvents(keyEventService, null).dp();
   return extended;

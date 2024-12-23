@@ -6,19 +6,19 @@ import {app, createFlexContainer, createTextWidget, createBorderContainer} from 
 const debug = false;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
-const panel = createFlexContainer({name: 'contentPanel', debug, log});
+const panel = createFlexContainer({name: 'contentPanel', debug: true, log});
 const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug: true, log});
 const {canvas} = app.createApp(border, {
   default: {debug, log},
-  core: {debug: true},
+  core: {debug},
   main: {
     debug
   },
   elevator: {
     core: {debug, log},
-    canvas: {debug: true, log}
+    // canvas: {debug: true, log}
   },
-  scrollable: {default: {debug}},
+  scrollable: {default: {debug: true}},
   statusbar: {
     debug: false
   },
@@ -28,7 +28,7 @@ const {canvas} = app.createApp(border, {
   },
   cover: {debug},
   canvas: {debug},
-  focusable: {debug}
+  // focusable: {debug: true}
 });
 
 const screenWidth = process.argv[2];

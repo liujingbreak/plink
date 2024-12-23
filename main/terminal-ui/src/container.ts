@@ -129,7 +129,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
           rx.combineLatest(children.map(c => c.table.l.setDisplay.pipe(
             rx.map(([, d]) => d === DisplayMode.none ? null : c)
           ))).pipe(
-            rx.map(chdn => chdn.filter(c => c != null)),
+            rx.map(chdn => chdn.filter((c): c is NonNullable<typeof c> => c != null)),
             rx.switchMap(chdn => {
               ft.allDisplayChildren(chdn).dp();
               return rx.combineLatest(chdn.map(c => {
@@ -199,7 +199,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
     })
   ));
   r('onRender -> beforeRenderSelf,renderSelf, renderChild', s.pt.onRender.pipe(
-    rx.observeOn(rx.queueScheduler),
+    // rx.observeOn(rx.queueScheduler),
     rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => table.l.allDisplayChildren.pipe(
       rx.take(1),
       rx.map(([, children]) => {
@@ -229,7 +229,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
             intersection[1] -= y;
           }
           return intersection;
-        }).filter(c => c != null);
+        }).filter((c): c is NonNullable<typeof c> => c != null);
         const masksOfCh = masks.map(mk => {
           const intersection = rectIntersection([x, y, width, height], mk);
           if (intersection) {
@@ -237,7 +237,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
             intersection[1] -= y;
           }
           return intersection;
-        }).filter(c => c != null);
+        }).filter((c): c is NonNullable<typeof c> => c != null);
         if (clipsOfCh.length > 0) {
           const tranOfChild = mat4.fromTranslation(mat4.create(), [x, y, 0]);
           mat4.mul(tranOfChild, trans, tranOfChild);

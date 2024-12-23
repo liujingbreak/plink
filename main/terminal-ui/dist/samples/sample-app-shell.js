@@ -10,19 +10,19 @@ const index_1 = require("../index");
 const debug = false;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, log });
+const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug: true, log });
 const border = (0, index_1.createBorderContainer)(panel, { name: 'contentPanelBorder', debug: true, log });
 const { canvas } = index_1.app.createApp(border, {
     default: { debug, log },
-    core: { debug: true },
+    core: { debug },
     main: {
         debug
     },
     elevator: {
         core: { debug, log },
-        canvas: { debug: true, log }
+        // canvas: {debug: true, log}
     },
-    scrollable: { default: { debug } },
+    scrollable: { default: { debug: true } },
     statusbar: {
         debug: false
     },
@@ -32,7 +32,7 @@ const { canvas } = index_1.app.createApp(border, {
     },
     cover: { debug },
     canvas: { debug },
-    focusable: { debug }
+    // focusable: {debug: true}
 });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
