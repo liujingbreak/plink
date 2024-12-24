@@ -59,7 +59,7 @@ export function createApp(mainComponent: BaseWidget, opts?: AppOptions) {
     ...opts?.canvas
   });
   canvas.s.ft.autoHideCursor().dp();
-  const keyEventService = createKeyEventService(canvas, {
+  const keyEventService = createKeyEventService({
     ...opts?.default as KeyEventOptions,
     ...opts?.keyService
   });

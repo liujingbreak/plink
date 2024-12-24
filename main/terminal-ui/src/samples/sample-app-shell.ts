@@ -6,28 +6,31 @@ import {app, createFlexContainer, createTextWidget, createBorderContainer} from 
 const debug = false;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
-const panel = createFlexContainer({name: 'contentPanel', debug: true, log});
+const panel = createFlexContainer({name: 'contentPanel', debug, log});
 const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug: true, log});
 const {canvas} = app.createApp(border, {
   default: {debug, log},
   core: {debug},
   main: {
-    debug
+    debug: true
   },
   elevator: {
     core: {debug, log},
-    // canvas: {debug: true, log}
+    canvas: {debug: true, log}
   },
-  scrollable: {default: {debug: true}},
+  scrollable: {
+    core: {debug: true},
+    canvas: {debug: true}
+  },
   statusbar: {
-    debug: false
+    debug: true
   },
-  keyService: {
-    debug: true,
-    debugIncludeTypes: ['onRawKeyInput']
-  },
+  // keyService: {
+  //   debug: true,
+  //   debugIncludeTypes: ['onRawKeyInput']
+  // },
   cover: {debug},
-  canvas: {debug},
+  canvas: {debug}
   // focusable: {debug: true}
 });
 
@@ -46,7 +49,7 @@ setTimeout(() => {
   const num = 60;
   const hueInterval = Math.round(360 / num);
   for (let i = 0; i < num; i++) {
-    const label = createTextWidget('TEST LABEL ' + i, {name: 'LABEL ' + i, debug, log});
+    const label = createTextWidget('TEST LABEL ~~~~~~~~~~~ ' + i, {name: 'LABEL' + i, debug, log});
     label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
     label.s.ft.setFocusable(true).dp();
     panel.s.ft.addChild(label).dp();

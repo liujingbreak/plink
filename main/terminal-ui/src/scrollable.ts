@@ -10,6 +10,7 @@ import {createFocusService, FocusService} from './focusable';
 export interface ScrollActions {
   scrollTo(left: number, top: number): SingleActionFactory;
   scroll(relativeLeft: number, relativeTop: number): SingleActionFactory;
+  setScrollbarStyle(width: number, height: number, buttonColor: TextStyle, trackColor: TextStyle): SingleActionFactory;
   /** Set which axis direction is allowed to be scrollabe */
   setScrollable(x: boolean, y: boolean): SingleActionFactory;
 }
@@ -19,8 +20,10 @@ interface ScrollSignals extends ScrollActions {
   onOverflow(xOverflow: boolean, yOverflow: boolean): SingleActionFactory;
   /** true if content size is bigger than scrollable container size */
   isScrollNeeded(needed: boolean): SingleActionFactory;
+  onViewPortSize(w: number, h: number): SingleActionFactory;
 }
-const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded'] as const;
+const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded',
+  'setScrollbarStyle', 'onViewPortSize'] as const;
 
 /** Scrollable is a TerminalContainer which has an offline canvas, child components will only be "render"ed
  * when they are scrolled to become visible, and they are firstly rendered to the offline canvas then will be copied
@@ -39,16 +42,15 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
   });
   canvas.s.ft.setRootComponent(comp).dp();
   r('onRender,canvas.clearRect -> outerCanvas.clearRect', s.pt.onRender.pipe(
-    rx.withLatestFrom(table.l.onValidScroll, table.l.onSize),
-    rx.mergeMap(([[, oCanvas], [, left, top], [, sw, sh]]) => canvas.s.pt.clearRect.pipe(
+    rx.withLatestFrom(table.l.onValidScroll, table.l.onViewPortSize),
+    rx.switchMap(([[, oCanvas], [, left, top], [, sw, sh]]) => canvas.s.pt.clearRect.pipe(
       rx.map(([m, x, y, w, h]) => {
         const x1 = x + left;
         const y1 = y + top;
         const w1 = sw - x1 > w ? w : sw - x1;
         const h1 = sh - y1 > h ? h : sh - y1;
         oCanvas.s.ft.clearRect(x1, y1, w1, h1).dp(m);
-      }),
-      rx.take(1)
+      })
     ))
   ));
   r('querySizeOf -> comp.querySizeOf', s.pt.querySizeOf.pipe(
@@ -75,14 +77,67 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
     table.l.onValidScroll,
     table.l.onSize,
     table.l.onBgChangeWithParent,
-    table.l.setDisplay
+    table.l.setDisplay,
+    table.l.setScrollbarStyle
   ] as const;
 
   r('onRender -> comp.render,...', s.pt.onRender.pipe(
-    rx.withLatestFrom(...renderData),
-    rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height]]) => {
-      if (renderSelf)
+    rx.withLatestFrom(...renderData, table.l.onOverflow, canvas.table.l.setBounding, table.l.onViewPortSize),
+    rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height],
+      , , [, barWidth, barHeight, barCol, barTrack], [, xOverflow, yOverflow], [, , , cw, ch], [, vpWidth, vpHeight]]) => {
+      if (renderSelf) {
+        s.ft.clear(outerCanvas, trans).dp(m);
         s.ft.renderSelf(outerCanvas, trans, clips, masks ?? []).dp(m);
+        // render scroll bar
+        if (yOverflow) {
+          const trackHeight = xOverflow ? height - barHeight : height;
+          const leftTop = [width - barWidth, 0] as [number, number];
+          let barBtnTop = Math.floor(trackHeight * scTop / ch);
+          const barBtnHeight = Math.ceil(trackHeight * vpHeight / ch);
+          if (scTop > 0 && barBtnTop === 0) {
+            // make scroll bar button position more obvious for non-zero value
+            barBtnTop = 1;
+          } else if (scTop + vpHeight < ch && barBtnTop + barBtnHeight === trackHeight) {
+            // make scroll bar button position more obvious
+            barBtnTop = trackHeight - barBtnHeight - 1;
+          }
+          vec2.transformMat4(leftTop, leftTop, trans);
+          const barChars = '█'.repeat(barWidth);
+          const trackChars = '░'.repeat(barWidth);
+          scrollable.log('>> yScrollbar', 'top', barBtnTop, 'button height', barBtnHeight, 'track height', trackHeight);
+          for (let i = 0; i < trackHeight; i++) {
+            const isButton = i >= barBtnTop && i < barBtnTop + barBtnHeight;
+            const style = isButton ? barCol : barTrack;
+            outerCanvas.s.ft.addString(leftTop[0], leftTop[1] + i, isButton ? barChars : trackChars, style).dp(m);
+          }
+        }
+        if (xOverflow) {
+          const trackWidth = yOverflow ? width - barWidth : width;
+          const leftTop = [0, height - barHeight] as [number, number];
+          let barBtnLeft = Math.floor(trackWidth * scLeft / cw);
+          const barBtnWidth = Math.ceil(trackWidth * vpWidth / cw);
+          if (scLeft > 0 && barBtnLeft === 0) {
+            // make scroll bar button position more obvious for non-zero value
+            barBtnLeft = 1;
+          } else if (scLeft + vpWidth < cw && barBtnLeft + barBtnWidth === trackWidth) {
+            barBtnLeft = trackWidth - barBtnWidth;
+          }
+          vec2.transformMat4(leftTop, leftTop, trans);
+          const rightWidth = trackWidth - barBtnWidth - barBtnLeft;
+          scrollable.log('>> trackWidth', trackWidth, 'barBtnLeft', barBtnLeft, 'barBtnWidth', barBtnWidth,
+            'rightWidth', rightWidth);
+          for (let i = 0; i < barHeight; i++) {
+            const y = leftTop[1] + i;
+            if (barBtnLeft > 0)
+              outerCanvas.s.ft.addString(0, y, '░'.repeat(barBtnLeft), barTrack).dp(m);
+            outerCanvas.s.ft.addString(barBtnLeft, y, '█'.repeat(barBtnWidth), barCol).dp(m);
+            if (rightWidth > 0)
+              outerCanvas.s.ft.addString(barBtnLeft + barBtnWidth, y, '░'.repeat(rightWidth), barTrack).dp(m);
+          }
+        }
+      } else {
+        outerCanvas.s.ft.clearRect(0, 0, vpWidth, vpHeight).dp(m);
+      }
       const clipsOfView = clips.map(c => {
         return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
       }).filter((c): c is NonNullable<typeof c> => c != null);
@@ -92,9 +147,8 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
         }).filter((c): c is NonNullable<typeof c> => c != null) :
         [];
       // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
-      s.ft.clear(outerCanvas, trans).dp(m);
       comp.s.ft.render(canvas, mat4.create(), clipsOfView, masksOfView).dp(m);
-      return canvas.s.ft.copyRect(scLeft, scTop, width, height).re(m).od(
+      return canvas.s.ft.copyRect(scLeft, scTop, vpWidth, vpHeight).re(m).od(
         canvas.s.pt.onCopyRect
       ).pipe(
         rx.take(1),
@@ -110,7 +164,7 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
   ));
   r('scrollTo, onSize, canvas.setBounding -> onValidScroll', rx.combineLatest([
     s.pt.scrollTo,
-    s.pt.onSize,
+    s.pt.onViewPortSize,
     canvas.table.l.setBounding
   ]).pipe(
     rx.map(([[m, x, y], [m2, sWidth, sHeight], [m3, , , cWidth, cHeight]]) => {
@@ -140,29 +194,51 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
       s.ft.scrollTo(currX + x, currY + y).dp(m);
     })
   ));
-  r('reflow... -> canvas.setBounding, comp.onSize, onOverflow', s.pt.reflow.pipe(
+  r('reflow... -> canvas.setBounding, onOverflow', s.pt.reflow.pipe(
     rx.switchMap(() => rx.combineLatest([
-      table.l.onSize, comp.table.l.preferredSize, table.l.setScrollable
+      table.l.onSize, comp.table.l.preferredSize, table.l.setScrollable,
+      table.l.setScrollbarStyle
     ]).pipe(
       rx.take(1),
-      rx.switchMap(([[m1, w, h], [m2, pW, pH], [m3, xScrollable, yScrollable]]) => {
+      rx.switchMap(([[m1, w, h], [m2, pW, pH], [m3, xScrollable, yScrollable], [, barWidth, barHeight]]) => {
+        let vpWidth = w;
+        let vpHeight = h;
         if (xScrollable && yScrollable) {
-          const compWidth = w > pW ? w : pW;
-          const compHeight = h > pH ? h : pH;
+          vpWidth -= barWidth;
+          vpHeight -= barHeight;
+          const hasYScrollBar = pH > h;
+          const hasXScrollBar = pW > w;
+          let compWidth = pW > w ? pW : w;
+          let compHeight = pH > h ? pH : h;
+          if (!hasYScrollBar || !hasXScrollBar) {
+            if (hasYScrollBar)
+              compWidth = compWidth - barWidth;
+            if (hasXScrollBar)
+              compHeight = compHeight - barHeight;
+          }
+          scrollable.log('>> hasYScrollBar', hasYScrollBar, 'hasXScrollBar', hasXScrollBar);
           canvas.s.ft.setBounding(0, 0, compWidth, compHeight).dp(m1, m2, m3);
           s.ft.onOverflow(w < pW, h < pH).dp(m1, m2, m3);
           return rx.EMPTY;
         } else if (yScrollable) {
           if (w < pW) {
-            return comp.s.ft.querySizeOf(w, null).re(m1, m2, m3).od(
-              comp.s.pt.prefHeightFor
-            ).pipe(
-              rx.take(1),
-              rx.map(([, , newPrefH]) => {
-                canvas.s.ft.setBounding(0, 0, w, newPrefH > h ? newPrefH : h).dp(m1, m2, m3);
-                s.ft.onOverflow(false, newPrefH > h).dp(m1, m2, m3);
-              })
-            );
+            return comp.s.ft.querySizeOf(w, null)
+              .re(m1, m2, m3)
+              .od(comp.s.pt.prefHeightFor).pipe(
+                rx.mergeMap(([, , newPrefH]) => {
+                  if (newPrefH > h) {
+                    return comp.s.ft.querySizeOf(w - barWidth, null)
+                      .re(m1, m2, m3)
+                      .od(comp.s.pt.prefHeightFor);
+                  }
+                  return rx.of([null, w, newPrefH] as const);
+                }),
+                rx.take(1),
+                rx.map(([, w, newPrefH]) => {
+                  canvas.s.ft.setBounding(0, 0, w, newPrefH > h ? newPrefH : h).dp(m1, m2, m3);
+                  s.ft.onOverflow(false, newPrefH > h).dp(m1, m2, m3);
+                })
+              );
           } else {
             canvas.s.ft.setBounding(0, 0, w, pH > h ? pH : h).dp(m1, m2, m3);
             s.ft.onOverflow(false, h < pH).dp(m1, m2, m3);
@@ -174,7 +250,15 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
               comp.s.pt.prefWidthFor
             ).pipe(
               rx.take(1),
-              rx.map(([, newPrefWidth]) => {
+              rx.mergeMap(([, newPrefWidth]) => {
+                if (newPrefWidth > w) {
+                  return comp.s.ft.querySizeOf(null, h - barHeight).re(m1, m2, m3).od(
+                    comp.s.pt.prefWidthFor
+                  );
+                }
+                return rx.of([null, newPrefWidth, h] as const);
+              }),
+              rx.map(([, newPrefWidth, h]) => {
                 canvas.s.ft.setBounding(0, 0, newPrefWidth > w ? newPrefWidth : w, h).dp(m1, m2, m3);
                 s.ft.onOverflow(newPrefWidth > w, false).dp(m1, m2, m3);
               })
@@ -187,6 +271,14 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
         }
       })
     ))
+  ));
+  r('onOverflow...-> onViewPortSize', rx.combineLatest([
+    s.pt.onOverflow, table.l.onSize, table.l.setScrollbarStyle
+  ]).pipe(
+    rx.map(([[m, xOverflow, yOverflow], [, w, h], [, barWidth, barHeight]]) => {
+      s.ft.onViewPortSize(yOverflow ? w - barWidth : w,
+        xOverflow ? h - barHeight : h).dp(m, m.r);
+    })
   ));
   r('onSize, comp.onSize -> isScrollNeeded', rx.combineLatest([
     table.l.onSize,
@@ -297,6 +389,7 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
     s.ft.addChild(comp).dp();
     s.ft.onContent(comp).dp();
     s.ft.setRenderChanges(renderData).dp();
+    s.ft.setScrollbarStyle(1, 1, ['rgb(150,150,150)'], []).dp();
     // s.ft.addReflowAction(s.at.onValidScroll).dp();
     // s.ft.addReflowAction(s.at.setScrollable).dp();
     s.ft.hasOfflineCanvas(true).dp();

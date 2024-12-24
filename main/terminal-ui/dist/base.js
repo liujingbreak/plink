@@ -148,6 +148,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
     r('clear', s.pt.clear.pipe(rx.withLatestFrom(table.l.onSize, table.l.onBgChangeWithParent, table.l.bgCleared), rx.map(([[m, canvas, trans], [m2, width, height], [m3, bg], [m4, cleared]], _idx) => {
         const pos = [0, 0];
         gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+        service.log('>> clear bg:', bg, 'bgCleared:', cleared);
         if (bg) {
             const fill = ' '.repeat(width);
             for (let i = 0; i < height; i++) {

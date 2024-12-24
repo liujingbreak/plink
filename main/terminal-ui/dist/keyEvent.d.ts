@@ -1,6 +1,5 @@
 import { SimplexReactor, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
 import { Scrollable } from './scrollable';
-import { TerminalCanvas } from './canvas';
 export interface KeyScrollingMsg {
     setPageSize(w: number, h: number): SingleActionFactory;
     bindToScrollable(scrollable: Scrollable): SingleActionFactory;
@@ -64,7 +63,7 @@ interface RawKeyEvent {
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
 export type KeyEventOptions = CoreOptions<keypressSignals>;
-export declare function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"]>;
+export declare function createKeyEventService(opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"]>;
 interface MouseEventOpts {
     type: 'mousemove' | 'mouseup' | 'mousedown' | 'wheel';
     direction?: number;

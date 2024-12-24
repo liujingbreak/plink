@@ -65,7 +65,7 @@ canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout
 process.stdout.on('resize', () => {
     canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
 });
-const keyService = (0, index_1.createKeyEventService)(canvas, { log, debug: true, debugExcludeTypes: [] });
+const keyService = (0, index_1.createKeyEventService)({ log, debug: true, debugExcludeTypes: [] });
 const { r, s, table } = keyService;
 canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();

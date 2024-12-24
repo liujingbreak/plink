@@ -348,7 +348,7 @@ export function createTerminalCanvas(opts?: TerminalCanvasOptions) {
             })
           );
         }),
-        rx.throttleTime(200, rx.queueScheduler, {leading: false, trailing: true}),
+        rx.throttleTime(150, rx.queueScheduler, {leading: false, trailing: true}),
         rx.tap(() => hasWaitReq),
         rx.exhaustMap(m => new rx.Observable(sub => {
           const rects = [...rectTree.allRectangles()];

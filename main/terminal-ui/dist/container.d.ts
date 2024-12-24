@@ -7,6 +7,8 @@ export interface TerminalContainerInput {
     addChild(...children: BaseWidget[]): SingleActionFactory;
     insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
     removeChild(...children: BaseWidget[]): SingleActionFactory;
+    /** set those messages which should be considered as "isLayoutDirty" once changed,
+     * a "isLayoutDirty" message will be dispatched and follows "clear" and "needRerender" */
     setLayoutCheck(watchTaget: rx.Observable<InferMapParam<any>>): SingleActionFactory;
     /** @deprecated use requestReflowOn, requestReflow instead
      * If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */

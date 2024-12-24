@@ -40,7 +40,7 @@ function createApp(mainComponent, opts) {
     main.s.ft.addChild(scrollable, statusbar).dp();
     const canvas = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.canvas));
     canvas.s.ft.autoHideCursor().dp();
-    const keyEventService = (0, index_1.createKeyEventService)(canvas, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.keyService));
+    const keyEventService = (0, index_1.createKeyEventService)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.keyService));
     // keyEventService.config({debug: true});
     keyEventService.s.ft.bindToScrollable(scrollable).dp();
     statusbar.s.ft.trackKeypressService(keyEventService).dp();

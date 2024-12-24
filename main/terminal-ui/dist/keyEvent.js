@@ -48,7 +48,7 @@ var KeyEventEnum;
     KeyEventEnum[KeyEventEnum["focusNext"] = 12] = "focusNext";
 })(KeyEventEnum || (exports.KeyEventEnum = KeyEventEnum = {}));
 const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'];
-function createKeyEventService(canvas, opts) {
+function createKeyEventService(opts) {
     const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'keyEvent' }, opts), { tableFor }));
     const { r, s, table } = service;
     const { ft } = s;
@@ -317,7 +317,9 @@ function createKeyEventService(canvas, opts) {
         return rx.EMPTY;
     })));
     // Enable and disable Mouse device
-    const reset = () => process.stdout.write('\x1b[?1000;1003;1006l');
+    const reset = () => {
+        process.stdout.write('\x1b[?1000;1002;1003;1005;1015l');
+    };
     process.on('exit', reset);
     process.on('SIGINT', () => {
         reset();

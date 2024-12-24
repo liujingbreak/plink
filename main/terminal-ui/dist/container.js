@@ -73,7 +73,7 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
         '-> onChildPreferredSizeChange, setLayoutValid, allDisplayChildren', rx.merge(s.pt.addChild, s.pt.insertChild, s.pt.removeChild).pipe(rx.switchMap(([m]) => table.l.allChildren.pipe(rx.switchMap(([, children]) => {
         return rx.merge(
         // -> allDisplayChildren
-        rx.combineLatest(children.map(c => c.table.l.setDisplay.pipe(rx.map(([, d]) => d === base_1.DisplayMode.none ? null : c)))).pipe(rx.map(chdn => chdn.filter(c => c != null)), rx.switchMap(chdn => {
+        rx.combineLatest(children.map(c => c.table.l.setDisplay.pipe(rx.map(([, d]) => d === base_1.DisplayMode.none ? null : c)))).pipe(rx.map(chdn => chdn.filter((c) => c != null)), rx.switchMap(chdn => {
             ft.allDisplayChildren(chdn).dp();
             return rx.combineLatest(chdn.map(c => {
                 return c.table.l.preferredSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2));
@@ -103,11 +103,13 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
                 c.s.ft.onPosition(...pos).dp(m, m2);
         }
     })));
-    r('beforeRender, onBgChangeWithParent, onSize -> canvas.addString, canvas.clearRect', s.pt.beforeRender.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.mergeMap(([[m, canvas, trans, clips, masks], [, valid]]) => {
+    // If not "setLayoutValid", then "reflow", and if "isLayoutDirty", then "clear"
+    r('beforeRender,setLayoutValid -> isLayoutDirty,reflow,clear,needRerender', s.pt.beforeRender.pipe(rx.withLatestFrom(table.l.setLayoutValid), rx.mergeMap(([[m, canvas, trans, clips, masks], [, valid]]) => {
         if (!valid) {
             s.ft.isLayoutDirty(false).dp(m);
             s.ft.reflow(clips, masks).dp(m);
             s.ft.setLayoutValid(true).dp(m);
+            // get changed "isLayoutDirty"
             return table.l.isLayoutDirty.pipe(rx.map(([, dirty]) => dirty), rx.take(1), rx.filter(d => d), rx.map(() => [m, canvas, trans]));
         }
         return rx.EMPTY;
@@ -139,7 +141,7 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
                 intersection[1] -= y;
             }
             return intersection;
-        }).filter(c => c != null);
+        }).filter((c) => c != null);
         const masksOfCh = masks.map(mk => {
             const intersection = (0, canvas_1.rectIntersection)([x, y, width, height], mk);
             if (intersection) {
@@ -147,7 +149,7 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
                 intersection[1] -= y;
             }
             return intersection;
-        }).filter(c => c != null);
+        }).filter((c) => c != null);
         if (clipsOfCh.length > 0) {
             const tranOfChild = gl_matrix_1.mat4.fromTranslation(gl_matrix_1.mat4.create(), [x, y, 0]);
             gl_matrix_1.mat4.mul(tranOfChild, trans, tranOfChild);
@@ -197,6 +199,7 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
             }
         }));
     })));
+    // is "setLayoutCheck" is changed, set "isLayoutDirty" to true
     r('isLayoutDirty(false),setLayoutCheck -> isLayoutDirty(true)', s.pt.isLayoutDirty.pipe(rx.switchMap(([, dirty]) => dirty ?
         rx.EMPTY :
         table.l.setLayoutCheck.pipe(rx.switchMap(([, target]) => target))), rx.map(([m]) => s.ft.isLayoutDirty(true).dp(m))));

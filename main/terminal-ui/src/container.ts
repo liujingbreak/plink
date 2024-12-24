@@ -10,6 +10,8 @@ export interface TerminalContainerInput {
   addChild(...children: BaseWidget[]): SingleActionFactory;
   insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
   removeChild(...children: BaseWidget[]): SingleActionFactory;
+  /** set those messages which should be considered as "isLayoutDirty" once changed,
+   * a "isLayoutDirty" message will be dispatched and follows "clear" and "needRerender" */
   setLayoutCheck(watchTaget: rx.Observable<InferMapParam<any>>): SingleActionFactory;
   /** @deprecated use requestReflowOn, requestReflow instead
    * If following action is dispatched, the next render message must be handled, and relow action will be dispatched along with "render" message */
@@ -177,13 +179,15 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
       }
     })
   ));
-  r('beforeRender, onBgChangeWithParent, onSize -> canvas.addString, canvas.clearRect', s.pt.beforeRender.pipe(
+  // If not "setLayoutValid", then "reflow", and if "isLayoutDirty", then "clear"
+  r('beforeRender,setLayoutValid -> isLayoutDirty,reflow,clear,needRerender', s.pt.beforeRender.pipe(
     rx.withLatestFrom(table.l.setLayoutValid),
     rx.mergeMap(([[m, canvas, trans, clips, masks], [, valid]]) => {
       if (!valid) {
         s.ft.isLayoutDirty(false).dp(m);
         s.ft.reflow(clips, masks).dp(m);
         s.ft.setLayoutValid(true).dp(m);
+        // get changed "isLayoutDirty"
         return table.l.isLayoutDirty.pipe(
           rx.map(([, dirty]) => dirty),
           rx.take(1),
@@ -339,6 +343,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
       );
     })
   ));
+  // is "setLayoutCheck" is changed, set "isLayoutDirty" to true
   r('isLayoutDirty(false),setLayoutCheck -> isLayoutDirty(true)', s.pt.isLayoutDirty.pipe(
     rx.switchMap(([, dirty]) => dirty ?
       rx.EMPTY :

@@ -86,8 +86,8 @@ exports.statusbarFac = index_1.borderFac.forExtend({
         })));
     })));
     r('onScrollStatus', s.pt.onScrollStatus.pipe(rx.map(([m, v, h]) => {
-        labelScrollValueR.s.ft.setContent(v != null ? 'row: ' + Math.floor(v * 100) + '%' : '').dp(m);
-        labelScrollValueC.s.ft.setContent(h != null ? 'col: ' + Math.floor(h * 100) + '%' : '').dp(m);
+        labelScrollValueR.s.ft.setContent(v != null ? ' row: ' + Math.floor(v * 100) + '%' : '').dp(m);
+        labelScrollValueC.s.ft.setContent(h != null ? ' col: ' + Math.floor(h * 100) + '%' : '').dp(m);
     })));
     r('onKeypressStatus', s.pt.onKeypressStatus.pipe(rx.map(([m, text, valid]) => {
         labelKeypress.s.ft.setContent(text.length === 0 ? HELP_KEY_HINT : text).dp(m);

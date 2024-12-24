@@ -53,7 +53,7 @@ export interface PlaceHolderInput extends LazyLoadDataProviderActions {
   didQueryLoadedPages(pages: number[]): SingleActionFactory;
 }
 interface PageLoadingState {
-  keep: boolean; isHead: boolean; loaded?: boolean; isEmpty?: boolean
+  keep: boolean; isHead: boolean; loaded?: boolean; isEmpty?: boolean;
 }
 export interface PlaceHolderEvents extends PlaceHolderInput {
   onPagesLoaded(isHead: boolean, startIdx: number, endIdx: number, components: unknown[]): SingleActionFactory;

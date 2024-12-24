@@ -38,6 +38,6 @@ export interface RootFocusableEvents {
 }
 declare const tableForRoot: readonly ["forRootComp", "onFocus", "_canvas"];
 export declare const rootFocusSvc: import("@wfh/reactivizer").DerivedReactorFactory<RootFocusableEvents, readonly ["forRootComp", "onFocus", "_canvas"], [keyEventService: KeyEventServcie, opts?: CoreOptions<FocusableMessages & RootFocusableEvents> | undefined], FocusableMessages, readonly ["didFocus", "handleKeyEvents", "rootService", "controlHandleEvents"], [opts?: FocusableOptions | undefined]>;
-export declare function createRootService(keyEventService: KeyEventServcie, opts?: CreateOptsInDef<RootFocusableEvents, typeof focusServiceFac>): import("@wfh/reactivizer").DerivedSimplexReactor<RootFocusableEvents & FocusableMessages, readonly ("didFocus" | "handleKeyEvents" | "rootService" | "controlHandleEvents" | "forRootComp" | "onFocus" | "_canvas")[]>;
+export declare function createRootService(keyEventService: KeyEventServcie, opts?: CreateOptsInDef<RootFocusableEvents, typeof focusServiceFac>): import("@wfh/reactivizer").DerivedSimplexReactor<RootFocusableEvents & FocusableMessages, readonly ("onFocus" | "forRootComp" | "_canvas" | "didFocus" | "handleKeyEvents" | "rootService" | "controlHandleEvents")[]>;
 export type RootFocusService = SimplexReactorExtendType<FocusService, RootFocusableEvents, typeof tableForRoot>;
 export {};

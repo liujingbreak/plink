@@ -207,7 +207,7 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
   ));
   */
   r('onRender', s.pt.onRender.pipe(
-    rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => rx.combineLatest(
+    rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => rx.combineLatest([
       table.l.allDisplayChildren.pipe(
         rx.take(1),
         rx.mergeMap(([, chrd]) => chrd),
@@ -217,7 +217,7 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
         }, [] as BaseWidget[])
       ),
       table.l.bgCleared
-    ).pipe(
+    ]).pipe(
       rx.take(1),
       rx.mergeMap(([children, [, bgCleared]]) => {
         if (!bgCleared) {

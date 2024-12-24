@@ -225,8 +225,11 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & 
           remainSpace = 0;
         calcChdSizes$ = chdPrefMainChanged$.pipe(
           rx.mergeMap(chdMainPrefSize => {
-            listContainer.log('chdMainPrefSize', chdMainPrefSize.join(), 'shrinkOfEach=', shrinkOfEach, 'remainSpace=', remainSpace);
             chrMainAxisSizes = shrinkEachSize(chdMainPrefSize, shrinkOfEach, remainSpace);
+            listContainer.log(':: chdMainPrefSize', chdMainPrefSize.join(),
+              'shrinkOfEach=', shrinkOfEach,
+              'remainSpace=', remainSpace,
+              'chrMainAxisSizes', chrMainAxisSizes);
             return rx.forkJoin(dir === 'row' ?
               children.map((chr, i) => chr.s.ft.querySizeOf(chrMainAxisSizes[i], null)
                 .re(m).od(chr.s.pt.prefHeightFor).pipe(

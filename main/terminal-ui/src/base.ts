@@ -303,6 +303,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     rx.map(([[m, canvas, trans], [m2, width, height], [m3, bg], [m4, cleared]], _idx) => {
       const pos = [0, 0] as vec2;
       vec2.transformMat4(pos, pos, trans);
+      service.log('>> clear bg:', bg, 'bgCleared:', cleared);
       if (bg) {
         const fill = ' '.repeat(width);
         for (let i = 0; i < height; i++) {

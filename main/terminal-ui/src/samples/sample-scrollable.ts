@@ -28,7 +28,7 @@ canvas.error$.subscribe(([err, label]) => {
   process.exit(0);
 });
 
-const label = createTextWidget('Hello border container', {debug: true, log});
+const label = createTextWidget('Hello border container', {debug: false, log});
 const border = createBorderContainer(label, {debug: true, log});
 const scrollable = createScrollable(border, {default: {debug: true, log}});
 scrollable.s.ft.setScrollable(false, true).dp();
@@ -36,7 +36,7 @@ canvas.s.ft.setRootComponent(scrollable).dp();
 
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns,
   screenHeight ? Number(screenHeight) : process.stdout.rows - 1).dp();
-const keyEventService = createKeyEventService(canvas, {debug: true, log});
+const keyEventService = createKeyEventService({debug: true, log});
 keyEventService.s.ft.bindToScrollable(scrollable).dp();
 
 keyEventService.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(

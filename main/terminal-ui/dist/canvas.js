@@ -278,7 +278,7 @@ function createTerminalCanvas(opts) {
                 // canvas.log('rectTree', [...rectTree.allRectangles()].length);
                 return m;
             }));
-        }), rx.throttleTime(200, rx.queueScheduler, { leading: false, trailing: true }), rx.tap(() => hasWaitReq), rx.exhaustMap(m => new rx.Observable(sub => {
+        }), rx.throttleTime(150, rx.queueScheduler, { leading: false, trailing: true }), rx.tap(() => hasWaitReq), rx.exhaustMap(m => new rx.Observable(sub => {
             const rects = [...rectTree.allRectangles()];
             rectTree.clear();
             s.ft.render(rects.map(([r]) => r)).dp(m);

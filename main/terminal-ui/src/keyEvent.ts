@@ -4,7 +4,6 @@ import rl from 'readline';
 import * as rx from 'rxjs';
 import {SimplexReactor, SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
 import {Scrollable} from './scrollable';
-import {TerminalCanvas} from './canvas';
 
 export interface KeyScrollingMsg {
   setPageSize(w: number, h: number): SingleActionFactory;
@@ -61,7 +60,7 @@ interface RawKeyEvent {
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
 export type KeyEventOptions = CoreOptions<keypressSignals>;
-export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOptions) {
+export function createKeyEventService(opts?: KeyEventOptions) {
   const service = new SimplexReactor<keypressSignals, typeof tableFor>({
     name: 'keyEvent',
     ...opts,
@@ -413,7 +412,9 @@ export function createKeyEventService(canvas: TerminalCanvas, opts?: KeyEventOpt
   ));
 
   // Enable and disable Mouse device
-  const reset = () => process.stdout.write('\x1b[?1000;1003;1006l');
+  const reset = () => {
+    process.stdout.write('\x1b[?1000;1002;1003;1005;1015l');
+  };
   process.on('exit', reset);
   process.on('SIGINT', () => {
     reset();
