@@ -28,24 +28,24 @@ const baseFac = new BaseReactorFactory<BaseActions, typeof tableForBase>({
   ac.ofOtherTypes()
 )).defineReactor((getService, greeting: string) => {
   const service = getService();
-  const {s, r, table} = service;
-  r('msg1 -> res1', s.pt.msg1.pipe(
+  const {pt, ft, r, table} = service;
+  r('msg1 -> res1', pt.msg1.pipe(
     rx.map(([m, g]) => {
-      s.ft.res1('hey ' + g).dp(m);
+      ft.res1('hey ' + g).dp(m);
     })
   ));
 
-  r('msgX', s.pt.msgX.pipe(
+  r('msgX', pt.msgX.pipe(
     rx.map(([m]) => {
-      s.ft.onMsgX('base').dp(m);
+      ft.onMsgX('base').dp(m);
     })
   ));
   r('table.l.msgX', table.l.msgX.pipe(
     rx.map(([m]) => {
-      s.ft.onMsgX('base table').dp(m);
+      ft.onMsgX('base table').dp(m);
     })
   ));
-  s.ft.msg1('base factory service' + greeting).dp();
+  ft.msg1('base factory service' + greeting).dp();
 });
 
 interface DerivedActions {
@@ -72,20 +72,20 @@ const derivedFac = baseFac.forExtend<DerivedActions, typeof tableForDerived>({
   ),
   ad.ofOtherTypes()
 )).defineReactor((init, opts?: CreateOptsInDef<DerivedActions, typeof baseFac>) => {
-  const {s, r, table} = init(opts, '');
-  r('msgX', s.pt.msgX.pipe(
+  const {ft, pt, r, table} = init(opts, '');
+  r('msgX', pt.msgX.pipe(
     rx.map(([m]) => {
-      s.ft.onMsgX('deri').dp(m);
+      ft.onMsgX('deri').dp(m);
     })
   ));
   r('table.l.msgX', table.l.msgX.pipe(
     rx.map(([m]) => {
-      s.ft.onMsgX('deri table').dp(m);
+      ft.onMsgX('deri table').dp(m);
     })
   ));
-  r('msg2 -> res2', s.pt.msg2.pipe(
+  r('msg2 -> res2', pt.msg2.pipe(
     rx.map(([m, msg]) => {
-      s.ft.res2('derived got ' + msg).dp(m);
+      ft.res2('derived got ' + msg).dp(m);
     })
   ));
 });
@@ -110,10 +110,10 @@ const derivedFac2 = derivedFac.forExtend<DerivedActions2, typeof tableForDerived
   ),
   ac.ofOtherTypes()
 )).defineReactor((init, opts: CreateOptsInDef<DerivedActions2, typeof derivedFac>) => {
-  const {s} = init(opts);
-  s.pt.msg3.pipe(
+  const {pt, ft} = init(opts);
+  pt.msg3.pipe(
     rx.map(([m, msg]) => {
-      s.ft.res3(msg).dp(m);
+      ft.res3(msg).dp(m);
     })
   ).subscribe();
 });
@@ -131,89 +131,112 @@ interface CornerCaseBaseFacActions {
 const cornerBaseFac = new BaseReactorFactory<CornerCaseBaseFacActions>({
   name: 'base', debug: true, log
 }).interceptor(a$ => a$).defineReactor((service) => {
-  const {s, r} = service();
-  r('msg1', s.pt.msg1.pipe(
-    rx.map(([m, g]) => s.ft.res1('from base:' + g).dp(m))
+  const {pt, ft, r} = service();
+  r('msg1', pt.msg1.pipe(
+    rx.map(([m, g]) => ft.res1('from base:' + g).dp(m))
   ));
 });
 interface CornerDerivedAction1 {
   res2(msg: string): SingleActionFactory;
 }
 const cornerDerivedFac1 = cornerBaseFac.forExtend<CornerDerivedAction1>({name: 'derivedFromBase-1'}).defineReactor(service => {
-  const {r, s} = service();
-  r('msg1 -> res2', s.pt.msg1.pipe(
-    rx.map(([m, g]) => s.ft.res2('from derived1:' + g).dp(m))
+  const {r, ft, pt} = service();
+  r('msg1 -> res2', pt.msg1.pipe(
+    rx.map(([m, g]) => ft.res2('from derived1:' + g).dp(m))
   ));
 });
 interface CornerDerivedAction2 {
   res3(msg: string): SingleActionFactory;
 }
 const cornerDerivedFac2 = cornerBaseFac.forExtend<CornerDerivedAction2>({name: 'derivedFromBase-2'}).defineReactor(service => {
-  const {r, s} = service();
-  r('msg1 -> res3', s.pt.msg1.pipe(
-    rx.map(([m, g]) => s.ft.res3('from derived2:' + g).dp(m))
+  const {r, pt, ft} = service();
+  r('msg1 -> res3', pt.msg1.pipe(
+    rx.map(([m, g]) => ft.res3('from derived2:' + g).dp(m))
   ));
 });
 describe('reactor factory', () => {
   describe('base cases', () => {
     it('Instance from base factory can work with filter', () => {
       const mock = jest.fn();
+      const mock2 = jest.fn();
 
       const baseService = baseFac.create('initParam');
-      const {r, s, table} = baseService;
+      const {r, pt, ft, table} = baseService;
       r('res1', table.l.res1.pipe(
         rx.map(([, msg]) => mock(msg))
       ));
-      s.ft.msg1('bro').dp();
-      s.ft.msg1('bro').dp();
+      expect(baseService.s.pt).toBe(pt);
+      r('res1', pt.res1.pipe(
+        rx.map(([, msg]) => mock2(msg))
+      ));
+      ft.msg1('bro').dp();
+      ft.msg1('bro').dp();
       expect(mock.mock.calls.length).toBe(2);
-
+      expect(mock2.mock.calls.length).toBe(1);
+      expect(mock2.mock.calls[0][0]).toBe('hey bro');
       baseService.dispose();
     }, 2000);
 
     it('Inheritance can work, filter can also work on derived service, filter from base service is respected', () => {
       const mock = jest.fn();
       const mock2 = jest.fn();
+      const testOrder = jest.fn();
 
       // instantiate instance
       const derivedSvc = derivedFac.create();
-      const {r, s, table} = derivedSvc;
+      const {r, ft, pt, table, p} = derivedSvc;
+      r('post res1', p.pt.msgX.pipe(
+        rx.map(() => {
+          testOrder('postBase');
+        })
+      ));
+      r('post res1', pt.msgX.pipe(
+        rx.map(() => {
+          testOrder('normal');
+        })
+      ));
       r('res1', table.l.res1.pipe(
-        rx.map(([, msg]) => mock(msg))
+        rx.map(([, msg]) => {
+          mock(msg);
+        })
       ));
       r('res2', table.l.res2.pipe(
         rx.map(([, msg]) => mock2(msg))
       ));
 
-      s.ft.msg1('man').do(s.pt.res1).subscribe();
-      s.ft.msg1('man').dp();
-      s.ft.msg2('Jesus').dp();
-      s.ft.msg2('Jesus').dp();
-      s.ft.msg2('God').do(s.pt.res2).subscribe();
+      ft.msgX('').dp();
+      ft.msg1('man').do(pt.res1).subscribe();
+      ft.msg1('man').dp();
+      ft.msg2('Jesus').dp();
+      ft.msg2('Jesus').dp();
+      ft.msg2('God').do(pt.res2).subscribe();
       expect(mock.mock.calls.length).toBe(2);
       expect(mock2.mock.calls.length).toBe(2);
+      expect(testOrder.mock.calls.map(([x]) => x))
+        .toEqual(['normal', 'postBase']);
       derivedSvc.dispose();
     }, 2000);
 
     it('2 levels inheritance', () => {
       const service = derivedFac2.create({name: 'derived-of-derived'});
-      const {s, table} = service;
+      const {s, ft, pt, table} = service;
       const mock1 = jest.fn();
       const mock2 = jest.fn();
       const mock3 = jest.fn();
       const mock4 = jest.fn();
       table.l.res1.subscribe(([, v]) => mock1(v));
       table.l.res2.subscribe(([, v]) => mock2(v));
-      s.pt.msg2.subscribe(([, v]) => mock4(v));
+      pt.msg2.subscribe(([, v]) => mock4(v));
+      expect(s.pt === pt).toBe(true);
       table.l.res3.subscribe(([, v]) => mock3(v));
 
-      s.ft.msg1('supreme leader').dp();
-      s.ft.msg1('supreme leader').dp();
-      s.ft.msg3('from Mr Liu').dp();
-      s.ft.msg3('from Mr Liu').dp();
-      s.ft.msg3('from Mrs Liu').dp();
-      s.ft.msg2('hello').dp();
-      s.ft.msg2('').dp();
+      ft.msg1('supreme leader').dp();
+      ft.msg1('supreme leader').dp();
+      ft.msg3('from Mr Liu').dp();
+      ft.msg3('from Mr Liu').dp();
+      ft.msg3('from Mrs Liu').dp();
+      ft.msg2('hello').dp();
+      ft.msg2('').dp();
       service.log('>> mock1:', mock1.mock.calls.map(a => a[0]));
       expect(s.logPrefix.startsWith('derived-of-derived')).toBeTruthy();
       expect(mock1.mock.calls.map(a => a[0])).toEqual([
@@ -237,27 +260,27 @@ describe('reactor factory', () => {
     it('inherited reactor and table should recieve messages earlier', () => {
       const mock = jest.fn();
       const derivedSvc = derivedFac.create();
-      const {r, s} = derivedSvc;
-      r('onMsgX', s.pt.onMsgX.pipe(
+      const {r, ft, pt} = derivedSvc;
+      r('onMsgX', pt.onMsgX.pipe(
         rx.map(([, who]) => mock(who))
       ));
-      s.ft.msgX('').dp();
+      ft.msgX('').dp();
       const seq = mock.mock.calls.map(m => m[0]);
       console.log(seq);
       expect(seq).toEqual([ 'deri table', 'deri', 'base table', 'base' ]);
     });
   });
 
-  describe.skip('corner cases', () => {
+  describe('corner cases', () => {
     it('2 independent services which is derived from same base factory should not interfere on each other', () => {
       const svc1 = cornerDerivedFac1.create();
       const svc2 = cornerDerivedFac2.create();
       const mock1 = jest.fn();
       const mock2 = jest.fn();
       // res2 is not supposed to be dispatched
-      svc1.s.pt.res2.subscribe(() => mock1());
-      svc2.s.pt.res3.subscribe(() => mock2());
-      svc2.s.ft.msg1('expecting res3').dp();
+      svc1.pt.res2.subscribe(() => mock1());
+      svc2.pt.res3.subscribe(() => mock2());
+      svc2.ft.msg1('expecting res3').dp();
       expect(mock1.mock.calls.length).toBe(0);
       expect(mock2.mock.calls.length).toBe(1);
       svc1.dispose();

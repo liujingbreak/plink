@@ -1,18 +1,24 @@
-import { CoreOptions, SingleActionFactory, SimplexReactor, SimplexReactorOptions } from '@wfh/reactivizer';
-import { BaseWidget, ScrollableOptions, TerminalCanvasOptions, ElevatorOptions, FlexContainer, FlexContainerOpts, KeyEventOptions } from '../index';
-import { FocusableOptions } from '../focusable';
+import * as rx from 'rxjs';
+import { CoreOptions, SingleActionFactory, SimplexReactor, ActionMeta } from '@wfh/reactivizer';
+import { BaseWidget, ScrollableOptions, TerminalCanvasOptions, ElevatorOptions, FlexContainer, FlexContainerOpts, KeyEventOptions, TerminalCanvas, KeyEventServcie, app } from '../index';
 import { StatusbarOptions } from './statusbar';
 export interface AppActions {
+    setFullScreenMode(): SingleActionFactory;
+    /** If width or height is larger than the number of available columens and rows,
+    * it is same effect as "setFullScreenMode" */
+    setSize(width: number, height: number): SingleActionFactory;
     showPopup(component: BaseWidget): SingleActionFactory;
 }
 export interface AppSignals extends AppActions {
     /** In context of "showPopup" action */
+    onExit(): SingleActionFactory;
     onPopup(component: BaseWidget): SingleActionFactory;
     onHelp(helper: FlexContainer): SingleActionFactory;
+    onReady(context: AppContext): SingleActionFactory;
 }
 export interface AppOptions {
-    default?: CoreOptions<any>;
-    core?: SimplexReactorOptions<AppSignals>;
+    default?: Pick<CoreOptions<AppSignals>, 'debug' | 'log'>;
+    core?: CoreOptions<AppSignals>;
     statusbar?: StatusbarOptions;
     keyService?: KeyEventOptions;
     scrollable?: ScrollableOptions;
@@ -20,10 +26,13 @@ export interface AppOptions {
     canvas?: TerminalCanvasOptions;
     cover?: FlexContainerOpts;
     main?: FlexContainerOpts;
-    focusable?: FocusableOptions;
 }
-export declare function createApp(mainComponent: BaseWidget, opts?: AppOptions): {
-    canvas: SimplexReactor<import("../canvas").TerminalCanvasEvents, readonly ["setBounding", "setRootComponent", "onDirtyLineChange", "internalCache"]>;
-    main: import("@wfh/reactivizer").DerivedSimplexReactor<import("../flex-container").FlexContainerInput & import("../flex-container").FlexContainerEvents & import("../container").TermainlContainerEvents & import("../base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "offsetParent" | "isOffsetParent" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setDirection" | "alignItems" | "justifyContent" | "setBorderSpacing" | "setBorderSeparator" | "setBorderSeparatorStyle")[]>;
-    app: SimplexReactor<AppSignals, readonly []>;
-};
+export interface AppContext {
+    canvas: TerminalCanvas;
+    main: BaseWidget;
+    app: SimplexReactor<AppSignals>;
+    keyEventService: KeyEventServcie;
+    statusbar: app.Statusbar;
+}
+export declare function createApp(mainComponent: BaseWidget, canScroll?: boolean, opts?: AppOptions): SimplexReactor<app.AppSignals, readonly ["onReady"]>;
+export declare function useAppContext(currComp: BaseWidget, m?: ActionMeta): rx.Observable<app.AppContext>;

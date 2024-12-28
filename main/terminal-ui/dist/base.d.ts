@@ -2,11 +2,13 @@ import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
 import { SingleActionFactory, SimplexReactor, Action, InferMapParam, BaseReactorFactory, CoreOptions } from '@wfh/reactivizer';
 import { TerminalCanvas, Rectangle, BackgroundStyle } from './canvas';
-import { SearchDirection, FocusService } from './focusable';
+import { FocusService } from './focusable';
 import { TerminalContainer } from './container';
 export declare enum DisplayMode {
     visible = 0,
-    none = 1,// like CSS display:none, does not take any space in layout
+    /** like CSS display:none, does not take any space in layout */
+    none = 1,
+    /** it does take space in layout, but with empty content */
     hidden = 2
 }
 export interface BaseWidgetInput {
@@ -27,19 +29,31 @@ export interface BaseWidgetInput {
     /** observe the changes of absoulte bounding of component.
      * the change is kept reported by didQueryAbsBounding */
     queryAbsBounding(untilParent?: TerminalContainer): SingleActionFactory;
+    /** Response message is "onContextChange" */
+    queryContext(key: string): SingleActionFactory;
+    provideContext(key: string, value: any): SingleActionFactory;
+    provideFocusService(focusSvc: FocusService): SingleActionFactory;
+    /**
+     * Stops the propagation of events which is bubbling to containing components,
+     * this message must be dispatched with corresponding action meta of event message.
+     * ```
+     * service.pt.onFocus.pipe(
+     *    rx.map(([m, src]) => service.ft.stopEventPropagation().dp(m))
+     * ).subscribe();
+     * ```
+     * */
+    stopEventPropagation(): SingleActionFactory;
 }
 export interface BaseWidgetEvents extends BaseWidgetInput {
     isContainer(yes: boolean): SingleActionFactory;
     onSize(width: number, height: number): SingleActionFactory;
     /** The coordinate value is relative to parent container,
-     * avaible after parent container's "reflow"
+     * available after parent container's "reflow"
      **/
     onPosition(x: number | null, y: number | null): SingleActionFactory;
     /** available after "render" */
     onTransform(trans: mat4): SingleActionFactory;
     _saveTransform(trans: mat4): SingleActionFactory;
-    offsetParent(p: OffsetParent | null): SingleActionFactory;
-    isOffsetParent(me: OffsetParent | false): SingleActionFactory;
     /** Implementation needs to handle this event */
     querySizeOf(width: number | null, height: number | null): SingleActionFactory;
     /** Extended container implementation need to handle this event. */
@@ -48,6 +62,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     prefWidthFor(width: number, constrainHeight: number): SingleActionFactory;
     /** As response to "querySizeOf" */
     prefHeightFor(constrainWidth: number, height: number): SingleActionFactory;
+    depth(componentTreeDepth: number): SingleActionFactory;
     /** Implementation should dispatch this message after calculating size based on child components or content,
      * unlike "onSize" which is set by user/caller or layout calculation logic.
      * Along with "setPreferredSize" are used to calculate "preferredSize"*/
@@ -61,11 +76,14 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
      * @param masks - Rectangle indicates the space being masked by any elevator component, may not render masks area to improve performance
      */
     render(canvas: TerminalCanvas, absTransform: mat4, clips?: Rectangle[], masks?: Rectangle[]): SingleActionFactory;
+    /** Meant for being extended, @see container */
     beforeRender(canvas: TerminalCanvas, transform: mat4, clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
     clear(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
     /** Implementation needed to handle this event */
     onRender(canvas: TerminalCanvas, absTransform: mat4, renderSelf: boolean, clipArea: Rectangle[], maskArea?: Rectangle[]): SingleActionFactory;
     needRerender(need: boolean): SingleActionFactory;
+    /** Set "needRerender" state on not only current component, but also all its children */
+    needRerenderTree(): SingleActionFactory;
     /** Set rendering state data.
      * When this observable state data changes, a "needRerender" message will be triggered and followed by "render", "onRender" messages,
      * the observable value should be derived from table properties or any other observable in form of BehaviorSubject, which provides "current state" without any
@@ -75,7 +93,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     /** @deprecated use addRenderData or latestRenderData instead
      * If following action is dispatched, the next render message must not be skipped on current widget */
     addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
-    /** Get bouding rectangle that is calculated when the lastest "render" message is handled,
+    /** Get bounding rectangle that is calculated when the lastest "render" message is handled,
      * the coordinate of rectangle is relative to canvas which is attached with closest offset parent,
      * in case of child component of "scrollable" container,
      * the effect canvas is an offline canvas whose coordinate is different from containing canvas.
@@ -86,10 +104,13 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
     /** track whether current component has its background being cleared or rerendered by its parents */
     bgCleared(hasCleared: boolean): SingleActionFactory;
-    onFocus(direction: SearchDirection): SingleActionFactory;
+    onFocus(src: BaseWidget): SingleActionFactory;
+    onBlur(src: BaseWidget): SingleActionFactory;
     didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
+    onContextChange<T>(key: string, value: T): SingleActionFactory;
+    focusService(focusSvc: FocusService): SingleActionFactory;
 }
-export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer"];
+export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"];
 export type BaseWidgetRenderData = readonly [
     InferMapParam<BaseWidgetInput['setDisplay']>,
     InferMapParam<BaseWidgetEvents['onSize']>,
@@ -98,7 +119,4 @@ export type BaseWidgetRenderData = readonly [
 export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
 export type BaseWidgetOptions = CoreOptions<BaseWidgetEvents>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare const baseComponentFac: BaseReactorFactory<BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer"], []>;
-export interface OffsetParent {
-    focusService: FocusService;
-}
+export declare const baseComponentFac: BaseReactorFactory<BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;

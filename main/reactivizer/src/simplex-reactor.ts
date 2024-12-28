@@ -6,6 +6,7 @@ import {SimplexReactorOptions, SimplexReactorCfgOpts} from './reactor-base';
 import {ActionTable} from './action-table';
 import {RxControlConfigType} from './global-config';
 import {ForkedRxController} from './forked-control';
+import {ForkedPostRxController} from './forked-post-control';
 import {actionRelatedToAction} from './context-operators';
 import {InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement} from './inferred-types';
 
@@ -35,6 +36,16 @@ export class SimplexReactor<
   dispose: () => void;
   /** default stream controller used also as Reactor's internal message stream */
   s: RxController2<I & BaseActions>;
+  /** shortcut to s.pt */
+  pt: RxController2<I & BaseActions>['pt'];
+  /** shortcut to s.at */
+  at: RxController2<I & BaseActions>['at'];
+  /** shortcut to s.ft */
+  ft: RxController2<I & BaseActions>['ft'];
+  /** shortcut to table.l */
+  latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
+  // ft: RxController2<I & BaseActions>['ft'];
+
   r = (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => {
     if (typeof params[0] === 'string')
       this.reactorSubj.next(params as [label: string, stream: rx.Observable<any>, disableCatchError?: boolean]);
@@ -52,6 +63,9 @@ export class SimplexReactor<
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.opts = opts as any;
     this.s = new RxController2<I & BaseActions<I>>({...opts, name: (opts?.name ?? '') + `@${this.id}`});
+    this.pt = this.s.pt;
+    this.at = this.s.at;
+    this.ft = this.s.ft;
     const internalMsgCtl = this.s as unknown as RxController2<BaseActions>;
 
     const doOperator = <A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.merge(
@@ -94,6 +108,7 @@ export class SimplexReactor<
     ).subscribe();
 
     this.table = new ActionTable(this.s, [...opts?.tableFor ?? [], ...baseTableFor] as LE<LI>[]);
+    this.latest = this.table.l;
     const internalTable = this.table as unknown as ActionTable<BaseActions, (typeof baseTableFor)[number]>;
     this.error$ = rx.merge(
       this.errorSubject.pipe(
@@ -148,14 +163,37 @@ export class SimplexReactor<
    * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
    **/
   forExtend() {
-    const s = this.s = new ForkedRxController(this.s);
+    const baseS = this.s;
+    const s = this.s = new ForkedRxController(baseS);
     const baseTable = this.table;
-    this.table = new ActionTable(this.s, [...this.table.actionNames] as LE<LI>[]);
+    this.table = new ActionTable(s, [...this.table.actionNames] as LE<LI>[]);
     for (const [type, [m, ...p]] of baseTable.actionSnapshot) {
-      const latestAct = this.s.createAction(type as keyof I, p as any);
+      const latestAct = s.createAction(type as keyof I, p as any);
       latestAct.i = m.i;
       latestAct.r = m.r;
       s.forkedUpStream.next(latestAct);
+    }
+    this.pt = s.pt;
+    this.ft = s.ft;
+    this.at = s.at;
+    this.latest = this.table.l;
+    let cachePostBase: ForkedPostRxController<I & BaseActions> | undefined;
+
+    function ensurePostBase() {
+      if (cachePostBase)
+        return cachePostBase;
+      cachePostBase = new ForkedPostRxController(baseS);
+      return cachePostBase;
+    }
+    if ((this as unknown as DerivedSimplexReactor<I, LI>).postBase == null) {
+      Object.defineProperty(this, 'postBase', {
+        get: ensurePostBase,
+        configurable: true
+      });
+      Object.defineProperty(this, 'p', {
+        get: ensurePostBase,
+        configurable: true
+      });
     }
     return this as unknown as DerivedSimplexReactor<I, LI>;
   }
@@ -266,10 +304,6 @@ export class SimplexReactor<
 
     return resolveFuncKey;
   }
-  // init() {
-  //   this.s.ft.__onInit().dp();
-  //   return this;
-  // }
   /** @deprecated no longer needed, always start automatically after being contructed */
   startAll() {
     return this;
@@ -307,10 +341,7 @@ export interface DerivedSimplexReactor<
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly []
 > extends SimplexReactor<I, LI> {
   s: ForkedRxController<I & BaseActions>;
-
-  // private constructor(ancestor: SimplexReactor<I, LI>) {
-  //   super();
-  //   this.s = new ForkedRxController(ancestor.s);
-  //   this.table = new ActionTable(this.s, [...ancestor.table.actionNames] as LE<LI>[]);
-  // }
+  postBase: ForkedPostRxController<I & BaseActions>;
+  /** alias of postBase */
+  p: ForkedPostRxController<I & BaseActions>;
 }

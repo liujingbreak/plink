@@ -409,49 +409,44 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & 
     })
   ));
   r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
-    rx.mergeMap(([m, ...rect]) => {
-      return rx.combineLatest([
-        table.l.onPosition,
-        table.l.onSize
-      ]).pipe(
-        rx.take(1),
-        rx.switchMap(([[, x, y], [, w, h]]) => {
-          if (x == null) {
-            s.ft.didFindOverlaps([]).dp(m);
-            return rx.EMPTY;
-          }
-          const r = rectIntersection([x, y!, w, h], rect);
-          if (r == null) {
-            s.ft.didFindOverlaps([]).dp(m);
-            return rx.EMPTY;
-          }
-          return rx.of([r[0] - x, r[1] - y!, r[2], r[3]] as Rectangle);
-        }),
-        rx.mergeMap(relativeR => {
-          // listContainer.log('childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
-          const children = childBoundingTree.searchOverlaps(relativeR);
-          return rx.from(children).pipe(
-            rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(
-              rx.take(1),
-              rx.mergeMap(([, isContainer]) => isContainer ?
-                (chd as TerminalContainer).s.ft.findOverlaps(...rect)
-                  .re(m).od((chd as TerminalContainer).s.pt.didFindOverlaps).pipe(
-                    rx.map(([, chdOfChd]) => chdOfChd),
-                    rx.take(1),
-                    rx.endWith([chd])
-                  ) :
-                rx.of([chd])
-              )
-            )),
-            rx.reduce((acc, it) => {
-              acc.push(...it);
-              return acc;
-            }, [] as BaseWidget[]),
-            rx.map(found => s.ft.didFindOverlaps(found).dp(m))
-          );
-        })
-      );
-    })
+    rx.mergeMap(([m, ...rect]) => table.l.onBoundingBox.pipe(
+      rx.take(1),
+      rx.switchMap(([, [x, y, w, h]]) => {
+        if (x == null) {
+          s.ft.didFindOverlaps([]).dp(m);
+          return rx.EMPTY;
+        }
+        const r = rectIntersection([x, y, w, h], rect);
+        if (r == null) {
+          s.ft.didFindOverlaps([]).dp(m);
+          return rx.EMPTY;
+        }
+        return rx.of([r[0] - x, r[1] - y, r[2], r[3]] as Rectangle);
+      }),
+      rx.mergeMap(relativeR => {
+        // listContainer.log('childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
+        const children = childBoundingTree.searchOverlaps(relativeR);
+        return rx.from(children).pipe(
+          rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(
+            rx.take(1),
+            rx.mergeMap(([, isContainer]) => isContainer ?
+              (chd as TerminalContainer).s.ft.findOverlaps(...rect)
+                .re(m).od((chd as TerminalContainer).s.pt.didFindOverlaps).pipe(
+                  rx.map(([, chdOfChd]) => chdOfChd),
+                  rx.take(1),
+                  rx.endWith([chd])
+                ) :
+              rx.of([chd])
+            )
+          )),
+          rx.reduce((acc, it) => {
+            acc.push(...it);
+            return acc;
+          }, [] as BaseWidget[]),
+          rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+        );
+      })
+    ))
   ));
 
   const reflowData = [

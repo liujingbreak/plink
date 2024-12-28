@@ -15,40 +15,51 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SPACE_CODE_POINT = exports.canvasFac = void 0;
 exports.createTerminalCanvas = createTerminalCanvas;
 exports.getTextDisplayUnits = getTextDisplayUnits;
+exports.uniteDisplayUnits = uniteDisplayUnits;
 exports.rectIntersection = rectIntersection;
 exports.treeNodeToStyleText = treeNodeToStyleText;
 exports.debugLineTrees = debugLineTrees;
 exports.debugLineTree = debugLineTree;
+/* eslint-disable multiline-ternary */
 const node_readline_1 = __importDefault(require("node:readline"));
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const chalk_1 = __importDefault(require("chalk"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const algorithms_1 = require("@wfh/algorithms");
-// import {stringifyRbTree} from '@wfh/algorithms/dist/utils';
 const text_split_1 = require("./text-split");
 const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
 const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl', 'hex', 'bgHex', 'ansi', 'bgAnsi', 'ansi256', 'bgAnsi256']);
-const tableFor = ['setBounding', 'setRootComponent', 'onDirtyLineChange', 'internalCache'];
-function createTerminalCanvas(opts) {
-    const canvas = new reactivizer_1.SimplexReactor(Object.assign({ name: 'Canvas', 
-        // debugExcludeTypes: ['requestRender'],
-        tableFor }, opts));
-    const { r, s, table } = canvas;
-    const dirtyLines = new Map();
+const tableFor = ['setBounding', 'setRootComponent', 'internalCache'];
+exports.canvasFac = new reactivizer_1.BaseReactorFactory({
+    name: 'canvas', tableFor
+}).defineReactor((init, opts) => {
+    const canvas = init(opts);
+    const { r, ft, pt, table } = canvas;
     // "lines" is an array of IntervalTree, each element of which represents a single line of display text of screen.
     // The intervalTree is a tree containing single or multiple discrete intervals which represents display text
     let lines = [];
@@ -60,7 +71,7 @@ function createTerminalCanvas(opts) {
     // handling "onPrintText" is actually where to invoke text output through stand output stream.
     // To avoid screen flickering, we use space character to clear screen instead of using API to clear lines.
     let uncommited = [];
-    r('autoHideCursor', s.pt.autoHideCursor.pipe(rx.map(() => {
+    r('autoHideCursor', pt.autoHideCursor.pipe(rx.map(() => {
         process.stdout.write('\x1B[?25l');
         const reset = () => process.stdout.write('\x1B[?25h');
         process.on('exit', reset);
@@ -69,68 +80,66 @@ function createTerminalCanvas(opts) {
             process.exit(0);
         });
     }), rx.take(1)));
-    r('scrollUp', s.pt.scrollUp.pipe(rx.map(([, lines]) => {
+    r('scrollUp', pt.scrollUp.pipe(rx.map(([, lines]) => {
         process.stdout.write('\x1B[' + lines + 'S');
     })));
-    r('scrollDown', s.pt.scrollDown.pipe(rx.map(([, lines]) => {
+    r('scrollDown', pt.scrollDown.pipe(rx.map(([, lines]) => {
         process.stdout.write('\x1B[' + lines + 'T');
     })));
     // Refer to https://en.wikipedia.org/wiki/ANSI_escape_code
-    r('reportCursor', s.pt.reportCursor.pipe(rx.switchMap(([m, keyEventService]) => {
-        return rx.merge(keyEventService.s.pt.onReportCursor.pipe(rx.take(1), rx.map(([, x, y]) => s.ft.doneReportCursor(x, y).dp(m))), new rx.Observable(sub => {
+    r('reportCursor -> doneReportCursor', pt.reportCursor.pipe(rx.switchMap(([m, keyEventService]) => {
+        return rx.merge(keyEventService.pt.onReportCursor.pipe(rx.take(1), rx.map(([, x, y]) => ft.doneReportCursor(x - 1, y - 1).dp(m))), new rx.Observable(sub => {
             process.stdout.write('\x1B[6n');
             sub.complete();
         }));
     })));
-    r('setRootComponent', s.pt.setRootComponent.pipe(rx.switchMap(([m, root]) => {
+    r('setRootComponent', pt.setRootComponent.pipe(rx.switchMap(([m, root]) => {
         if (root)
             return new rx.Observable(() => {
-                root.s.ft.ofCanvas(canvas).dp(m);
-                root.s.ft.onDetached(false).dp(m);
-                return () => root.s.ft.onDetached(true).dp(m);
+                root.ft.ofCanvas(canvas).dp(m);
+                root.ft.onDetached(false).dp(m);
+                return () => root.ft.onDetached(true).dp(m);
             });
         return rx.EMPTY;
     })));
-    r('setBounding -> rootComponent.onSize', s.pt.setBounding.pipe(rx.switchMap(([m, , , w, h]) => {
+    r('setBounding -> rootComponent.onSize', pt.setBounding.pipe(rx.switchMap(([m, , , w, h]) => {
         return table.l.setRootComponent.pipe(rx.map(([, root]) => {
             if (root) {
-                root.s.ft.onSize(w, h).dp(m);
-                root.s.ft.onPosition(0, 0).dp(m);
+                root.ft.onSize(w, h).dp(m);
+                root.ft.onPosition(0, 0).dp(m);
             }
         }));
     })));
-    r('setBounding -> "lines"', s.pt.setBounding.pipe(rx.map(([, , , , h]) => h), rx.scan((prev, curr) => {
+    r('setBounding -> "lines"', pt.setBounding.pipe(rx.map(([, , , , h]) => h), rx.scan((prev, curr) => {
         if (curr < prev) {
             lines.splice(curr);
         }
         return curr;
     })));
-    r('addDisplayUnits', s.pt.addDisplayUnits.pipe(rx.map(([, x, y, units, style]) => {
+    r('addDisplayUnits', pt.addDisplayUnits.pipe(rx.map(([, x, y, units, style, byPassFilter]) => {
         if (units.length > 0)
-            addCodePointsToCache(x, y, units, style ? style.sort() : []);
+            addCodePointsToCache(x, y, units, style ? style.sort() : [], byPassFilter === true);
     })));
-    r('addString -> ', s.pt.addString.pipe(rx.map(([, x, y, text, style]) => {
+    r('addString -> ', pt.addString.pipe(rx.map(([, x, y, text, style, byPassFilter]) => {
         const units = [...getTextDisplayUnits(text)];
         if (units.length > 0)
-            addCodePointsToCache(x, y, units, style ? style.sort() : []);
+            addCodePointsToCache(x, y, units, style ? style.sort() : [], byPassFilter === true);
     })));
-    r('fillRect', s.pt.fillRect.pipe(rx.map(([, x, y, w, h, bg]) => {
+    r('fillRect', pt.fillRect.pipe(rx.map(([, x, y, w, h, bg]) => {
         const units = [...getTextDisplayUnits(' '.repeat(w))];
         const style = [bg];
         for (let i = y, l = y + h; i < l; i++) {
-            addCodePointsToCache(x, i, units, style ? style.sort() : []);
+            addCodePointsToCache(x, i, units, style ? style.sort() : [], false);
         }
     })));
-    r('clearRect', s.pt.clearRect.pipe(rx.map(([, x, y, w, h]) => {
-        for (let i = y, l = y + h; i < l; i++) {
-            clearCodePointsFromCache(x, i, w);
-        }
+    r('clearRect', pt.clearRect.pipe(rx.mergeMap(([, x, y, w, h]) => {
+        return rx.range(y, h).pipe(rx.mergeMap(i => clearCodePointsFromCache(x, i, w)));
     })));
-    r('onPrintText', s.pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
+    r('onPrintText', pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
         node_readline_1.default.cursorTo(process.stdout, x, y);
         process.stdout.write(text);
     })));
-    r('onClearLine', s.pt.onClearLine.pipe(rx.map(([, y, x, dir]) => {
+    r('onClearLine', pt.onClearLine.pipe(rx.map(([, y, x, dir]) => {
         if (x != null) {
             node_readline_1.default.cursorTo(process.stdout, x, y);
             node_readline_1.default.clearLine(process.stdout, dir !== null && dir !== void 0 ? dir : 1);
@@ -140,17 +149,25 @@ function createTerminalCanvas(opts) {
             node_readline_1.default.clearLine(process.stdout, 0);
         }
     })));
-    r('render -> onPrintText', s.pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rects], [, x, y, w, h], [, root]], idx) => {
+    r('render... -> onPrintText', pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rects], [, x, y, w, h], [, root]], idx) => {
         // canvas.log('>> before uncommited', debugLineTrees(uncommited));
         if (root)
-            root.s.ft.render(canvas, gl_matrix_1.mat4.create(), rects !== null && rects !== void 0 ? rects : [[0, 0, w, h]]).dp(m);
+            root.ft.render(canvas, gl_matrix_1.mat4.create(), rects !== null && rects !== void 0 ? rects : [[0, 0, w, h]]).dp(m);
+        // ft.takeSnapshot({noColor: true, type: 'uncommited'}).re(m).od(pt.didTakeSnapshot).pipe(
+        //   rx.take(1),
+        //   rx.map(([, lines]) => canvas.log('snapshot 1.5 uncommited\n' + [...lines].join('')))
+        // ).subscribe();
+        // ft.takeSnapshot({noColor: true, type: 'pro'}).re(m).od(pt.didTakeSnapshot).pipe(
+        //   rx.take(1),
+        //   rx.map(([, lines]) => canvas.log('snapshot 1.6 proLines\n' + [...lines].join('')))
+        // ).subscribe();
         let lineIdx = 0;
         // canvas.log('>> after uncommited', debugLineTrees(uncommited));
         // canvas.log('>> lines', debugLineTrees(lines));
-        if (idx === 0) {
-            for (let i = y, l = y + h; i < l; i++)
-                s.ft.onClearLine(i, 0).dp(m);
-        }
+        // if (idx === 0) {
+        //   for (let i = y, l = y + h; i < l; i++)
+        //     ft.onClearLine(i, 0).dp(m);
+        // }
         for (const line of uncommited) {
             if (line == null) {
                 lineIdx++;
@@ -171,14 +188,14 @@ function createTerminalCanvas(opts) {
                 }
                 else {
                     if (prevPrintable)
-                        s.ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
+                        ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
                     prevPrintable = text;
                     prevPrintStart = eLow;
                 }
                 prevPrintEnd = eHigh + 1;
             }
             if (prevPrintable)
-                s.ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
+                ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
             lineIdx++;
         }
         uncommited = [];
@@ -195,93 +212,140 @@ function createTerminalCanvas(opts) {
                 lines[i] = undefined;
             }
         }
-        s.ft.internalCache(lines, proLines, uncommited).dp();
+        ft.internalCache(lines, proLines, uncommited).dp();
     })));
-    r('copyRect -> onCopyRect', s.pt.copyRect.pipe(rx.map(([m, x, y, w, h]) => {
-        const result = [];
-        proLines.slice(y, y + h).forEach((lineTree, i) => {
-            if (lineTree == null)
-                return undefined;
-            const overlaps = lineTree.searchMultipleOverlaps(x, x + w - 1);
-            // const newTree = new IntervalTree<readonly [units: number[], style: string]>();
-            for (const [low, high, [units, style]] of overlaps) {
-                let newUnits = units;
-                let newLow = low;
-                let newHigh = high;
-                if (low < x) {
-                    newLow = x;
-                    newUnits = units.slice(x - low);
-                    if (newUnits[0] === -1) {
-                        // a full-width character it is
-                        newUnits[0] = SPACE_CODE_POINT;
-                    }
+    r('takeSnapshot', pt.takeSnapshot.pipe(rx.map(([m, opts]) => {
+        function* cachedLines() {
+            let col = 0;
+            const source = (opts === null || opts === void 0 ? void 0 : opts.type) === 'commited' ? lines :
+                (opts === null || opts === void 0 ? void 0 : opts.type) === 'uncommited' ? uncommited : proLines;
+            for (const line of source) {
+                if (line == null) {
+                    yield '\n';
+                    continue;
                 }
-                if (high >= x + w) {
-                    newHigh = x + w - 1;
-                    newUnits = newUnits.slice(0, newUnits.length - (high + 1 - x - w));
-                    if ((0, text_split_1.isCodePointFullWidth)(newUnits[newUnits.length - 1])) {
-                        newUnits[newUnits.length - 1] = SPACE_CODE_POINT;
-                    }
+                col = 0;
+                let outputLine = '';
+                for (const [l, h, data] of line.allIntervals()) {
+                    if (l > col)
+                        outputLine += ' '.repeat(l - col);
+                    outputLine += treeNodeToStyleText((opts === null || opts === void 0 ? void 0 : opts.noColor) ? [data[0], undefined] : data);
+                    col = h + 1;
                 }
-                result.push([newLow - x, newHigh - x, i, newUnits, style]);
-                // newTree.insertInterval(newLow, newHigh).value = [newUnits, style];
+                yield outputLine + '\n';
             }
-        });
-        s.ft.onCopyRect(result).dp(m);
-    })));
-    r('copyDirtyRectAndClear -> onCopyRect', s.pt.copyDirtyRectAndClear.pipe(rx.map(([m, x, y, w, h]) => {
-        const result = [];
-        for (let lineIdx = y, l = y + h; lineIdx < l; lineIdx++) {
-            const line = dirtyLines.get(lineIdx);
-            if (line == null)
-                continue;
-            const overlaps = lines[lineIdx].searchMultipleOverlaps(x, x + w - 1);
-            for (const [low, high, [units, style]] of overlaps) {
-                let newUnits = units;
-                let newLow = low;
-                let newHigh = high;
-                if (low < x) {
-                    newLow = x;
-                    newUnits = units.slice(x - low);
-                    if (newUnits[0] === -1) {
-                        // a full-width character it is
-                        newUnits[0] = SPACE_CODE_POINT;
-                    }
-                }
-                if (high >= x + w) {
-                    newHigh = x + w - 1;
-                    newUnits = newUnits.slice(0, newUnits.length - (high + 1 - x - w));
-                    if ((0, text_split_1.isCodePointFullWidth)(newUnits[newUnits.length - 1])) {
-                        newUnits[newUnits.length - 1] = SPACE_CODE_POINT;
-                    }
-                }
-                result.push([newLow - x, newHigh - x, lineIdx - y, newUnits, style]);
-                // newTree.insertInterval(newLow, newHigh).value = [newUnits, style];
-            }
-            dirtyLines.delete(lineIdx);
         }
-        s.ft.onCopyRect(result).dp(m);
+        ft.didTakeSnapshot(cachedLines()).dp(m);
     })));
-    r('setRenderOnRequest, requestRender -> render', s.pt.setRenderOnRequest.pipe(
+    r('copyRect -> didCopyRect', pt.copyRect.pipe(rx.mergeMap(([m, x, y, w, h, fill]) => {
+        const fillCharCode = fill === null || fill === void 0 ? void 0 : fill.codePointAt(0);
+        const result = [];
+        return rx.range(y, h).pipe(rx.map(i => {
+            const lineTree = proLines[i];
+            if (lineTree == null) {
+                if (fill) {
+                    canvas.log('-- copy empty line', y, i);
+                    result.push([x, x + w - 1, i, new Array(w).fill(fillCharCode), '']);
+                }
+                return undefined;
+            }
+            let col = x;
+            // canvas.log(`-- copyRect line begin ${i}`);
+            const overlaps = lineTree.searchMultipleOverlaps(x, x + w - 1);
+            for (const [low, high, [units, style]] of overlaps) {
+                // canvas.log(`-- copyRect ${low} - ${high}, y: ${i}, col:${col}`);
+                if (fill && low > col)
+                    result.push([col, low - 1, i, new Array(low - col).fill(fillCharCode), '']);
+                let newUnits = units;
+                let newLow = low;
+                let newHigh = high;
+                if (low < x) {
+                    newLow = x;
+                    newUnits = units.slice(x - low);
+                    if (newUnits[0] === -1) {
+                        // a full-width character it is
+                        newUnits[0] = exports.SPACE_CODE_POINT;
+                    }
+                }
+                if (high >= x + w) {
+                    newHigh = x + w - 1;
+                    newUnits = newUnits.slice(0, newUnits.length - (high + 1 - x - w));
+                    if ((0, text_split_1.isCodePointFullWidth)(newUnits[newUnits.length - 1])) {
+                        newUnits[newUnits.length - 1] = exports.SPACE_CODE_POINT;
+                    }
+                }
+                result.push([newLow, newHigh, i, newUnits, style]);
+                col = newHigh + 1;
+            }
+            if (fill && col < x + w) {
+                canvas.log('-- fill line', col, i);
+                result.push([col, x + w - 1, i, new Array(x + w - col).fill(fillCharCode), '']);
+            }
+        })
+        // rx.count(),
+        // rx.tap(numLines => canvas.log('-- copy lines', numLines))
+        ).pipe(rx.finalize(() => {
+            // canvas.log('-- copied', result.map(([x, , y]) => `(${x},${y})`).join());
+            ft.didCopyRect(result).dp(m);
+        }));
+    })));
+    /*
+    r('copyDirtyRectAndClear -> didCopyRect', pt.copyDirtyRectAndClear.pipe(
+      rx.map(([m, x, y, w, h]) => {
+        const result = [] as [xLow: number, xHigh: number, y: number, units: number[], style: string][];
+        for (let lineIdx = y, l = y + h; lineIdx < l; lineIdx++) {
+          const line = dirtyLines.get(lineIdx);
+          if (line == null)
+            continue;
+  
+          const overlaps = lines[lineIdx]!.searchMultipleOverlaps(x, x + w - 1);
+          for (const [low, high, [units, style]] of overlaps) {
+            let newUnits = units;
+            let newLow = low;
+            let newHigh = high;
+            if (low < x) {
+              newLow = x;
+              newUnits = units.slice(x - low);
+              if (newUnits[0] === -1) {
+                // a full-width character it is
+                newUnits[0] = SPACE_CODE_POINT;
+              }
+            }
+            if (high >= x + w) {
+              newHigh = x + w - 1;
+              newUnits = newUnits.slice(0, newUnits.length - (high + 1 - x - w));
+              if (isFullWidth(newUnits[newUnits.length - 1])) {
+                newUnits[newUnits.length - 1] = SPACE_CODE_POINT;
+              }
+            }
+            result.push([newLow - x, newHigh - x, lineIdx - y, newUnits, style] as const);
+            // newTree.insertInterval(newLow, newHigh).value = [newUnits, style];
+          }
+          dirtyLines.delete(lineIdx);
+        }
+        ft.didCopyRect(result).dp(m);
+      })
+    )); */
+    r('setRenderOnRequest, requestRender -> render', pt.setRenderOnRequest.pipe(
     // rx.observeOn(rx.queueScheduler),
     rx.switchMap(([, enabled]) => {
         // let suspended: ActionMeta | false = false; // Has recursive render request?
         const rectTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
         let hasWaitReq = false;
         // eslint-disable-next-line multiline-ternary
-        return enabled ? s.pt.requestRender.pipe(
+        return enabled ? pt.requestRender.pipe(
         // rx.observeOn(rx.queueScheduler),
         rx.mergeMap(([m, rect]) => {
-            return table.l.setBounding.pipe(rx.take(1), rx.map(([, ...bounding]) => {
+            return table.l.setBounding.pipe(rx.take(1), rx.map(([, , , w, h]) => {
                 hasWaitReq = true;
-                rectTree.addOrUnionRectOnOverlap(rect !== null && rect !== void 0 ? rect : bounding, null);
+                rectTree.addOrUnionRectOnOverlap(rect !== null && rect !== void 0 ? rect : [0, 0, w, h], null);
                 // canvas.log('rectTree', [...rectTree.allRectangles()].length);
                 return m;
             }));
         }), rx.throttleTime(150, rx.queueScheduler, { leading: false, trailing: true }), rx.tap(() => hasWaitReq), rx.exhaustMap(m => new rx.Observable(sub => {
             const rects = [...rectTree.allRectangles()];
             rectTree.clear();
-            s.ft.render(rects.map(([r]) => r)).dp(m);
+            ft.render(rects.map(([r]) => r)).dp(m);
             hasWaitReq = false;
             // If there are more request comes in during previous rendering phase (
             // meaning there is recursive "requestRender" during previous rendering
@@ -291,18 +355,31 @@ function createTerminalCanvas(opts) {
             //   hasWaitReq = false;
             //   const rects = [...rectTree.allRectangles()];
             //   rectTree.clear();
-            //   s.ft.render(rects.map(([r]) => r)).dp(m);
+            //   ft.render(rects.map(([r]) => r)).dp(m);
             // }
             sub.complete();
         }))) : rx.EMPTY;
     })));
+    const filters = new Map();
+    r('addRenderFilter,filter.renderBypassFilter... -> copyRect,addDisplayUnits...', pt.addRenderFilter.pipe(rx.mergeMap(([m, rect, filter]) => {
+        filters.set(m.i, [rect, filter]);
+        return rx.merge(filter.pt.renderBypassFilter.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.map(([rm, x, y, units, style]) => ft.addDisplayUnits(x, y, units, style, true).dp(rm, m)), rx.takeUntil(pt.removeRenderFilter.pipe((0, reactivizer_1.actionRelatedToAction)(m)))), ft.copyRect(...rect, ' ').re(m).od(pt.didCopyRect).pipe(rx.take(1), rx.mergeMap(([, paintables]) => paintables), rx.map(([x, , y, units, style]) => filter.ft.onRenderForFilter(x, y, units, style.split(';')).dp(m))));
+    })));
+    r('updateRenderFilter', pt.updateRenderFilter.pipe(rx.map(([, addM, rect]) => {
+        const entry = filters.get(addM.i);
+        if (entry) {
+            entry[0] = rect;
+        }
+    })));
+    r('removeRenderFilter', pt.removeRenderFilter.pipe(rx.map(([, addM]) => {
+        filters.delete(addM.i);
+    })));
     r('init', new rx.Observable(() => {
-        s.ft.internalCache(lines, proLines, uncommited).dp();
-        s.ft.setRootComponent(null).dp();
-        s.ft.onDirtyLineChange(dirtyLines).dp();
+        ft.internalCache(lines, proLines, uncommited).dp();
+        ft.setRootComponent(null).dp();
     }));
     /** add code points to "uncommited" line cache */
-    function addCodePointsToCache(x, y, units, style) {
+    function addCodePointsToCache(x, y, units, style, byPassFilter) {
         if (y < 0)
             return;
         if (x < 0) {
@@ -310,16 +387,72 @@ function createTerminalCanvas(opts) {
             const cutOffLen = 0 - x;
             units = units.slice(cutOffLen);
             if ((0, text_split_1.isCodePointFullWidth)(units[0])) {
-                units[0] = SPACE_CODE_POINT;
+                units[0] = exports.SPACE_CODE_POINT;
             }
             x = 0;
         }
-        addCodePointsToLines(uncommited, x, y, units, style);
-        addCodePointsToLines(proLines, x, y, units, style);
+        if (byPassFilter) {
+            addCodePointsToLines(uncommited, x, y, units, style);
+            addCodePointsToLines(proLines, x, y, units, style);
+            return;
+        }
+        let toRender = [[x, y, units, style]];
+        // check the rendering item agains each filter, if a filter's rectangle intersects,
+        // chop rendering item to at most 3 pieces, the piece in the middle which overlaps with filter's
+        // rectangle will be passed to filterFn function, other 2 pieces are added back to
+        // a queue for being checked against rest of the filters.
+        for (const [m, [[left, top, width, height], filter]] of filters) {
+            const bottom = top + height;
+            const right = left + width;
+            const forNextFilter = [];
+            // eslint-disable-next-line prefer-const
+            for (let [x, y, units, style] of toRender) {
+                const r = x + units.length;
+                // check if it overlaps with the rectangle
+                // canvas.log('>> check', 'x', x, 'r', r, 'y', y, 'left', left, 'top', top, 'right', right, 'bottom', bottom);
+                if (y >= top && y < bottom && r > left && x < right) {
+                    // canvas.log('>> intersect', 'x', x, 'r', r, 'y', y, 'left', left, 'right', right);
+                    if (x < left) {
+                        const fullWidthEnd = (0, text_split_1.isCodePointFullWidth)(units[left - x - 1]);
+                        const leftChopped = units.slice(0, left - x);
+                        units = units.slice(left - x);
+                        if (fullWidthEnd) {
+                            units[0] = exports.SPACE_CODE_POINT;
+                            leftChopped[leftChopped.length - 1] = exports.SPACE_CODE_POINT;
+                        }
+                        forNextFilter.push([x, y, leftChopped, style]);
+                        x = left;
+                    }
+                    if (r > right) {
+                        const fullWidthStart = (0, text_split_1.isCodePointFullWidth)(units[right - x - 1]);
+                        const rightChopped = units.slice(right - x);
+                        units = units.slice(0, right - x);
+                        if (fullWidthStart) {
+                            units[units.length - 1] = exports.SPACE_CODE_POINT;
+                            rightChopped[0] = exports.SPACE_CODE_POINT;
+                        }
+                        forNextFilter.push([right, y, rightChopped, style]);
+                    }
+                    filter.ft.onRenderForFilter(x, y, units, style).dp({ i: m });
+                }
+                else {
+                    forNextFilter.push([x, y, units, style]);
+                }
+            }
+            toRender = forNextFilter;
+        }
+        for (const [x, y, units, style] of toRender) {
+            addCodePointsToLines(uncommited, x, y, units, style);
+            addCodePointsToLines(proLines, x, y, units, style);
+        }
     }
     function addCodePointsToLines(tLines, x, y, units, style) {
         let line = tLines[y];
         if (line == null) {
+            if (tLines.length <= y) {
+                for (let i = tLines.length; i < y; i++)
+                    tLines.push(undefined);
+            }
             line = new algorithms_1.IntervalTree();
             tLines[y] = line;
         }
@@ -334,57 +467,87 @@ function createTerminalCanvas(opts) {
      * 1) delete overlaps from "uncommited"
      * 2) fill white spaces to "uncommited" for all overlaps on "lines"
      */
-    function clearCodePointsFromCache(x, y, width) {
+    function clearCodePointsFromCache(x, y, w) {
         if (y < 0)
-            return;
+            return rx.EMPTY;
         if (x < 0) {
-            width -= 0 - x;
+            w -= 0 - x;
             x = 0;
         }
         // delete or chop intervals from line tree
-        let uncLine = uncommited[y];
-        const endPos = x + width;
-        const proLine = proLines[y];
-        if (uncLine != null) {
-            delCodePointsFromLine(x, endPos, uncLine);
-            // canvas.log('>> after del uncline:', y, debugLineTree(uncLine));
-        }
-        if (proLine) {
-            delCodePointsFromLine(x, endPos, proLine);
-        }
-        // To find out where to put white space
-        // 1) look for overlaps in "lines"
-        // 2) add "space" to "uncommited"
-        const line = lines[y];
-        if (line) {
-            const overlaps = line.searchMultipleOverlaps(x, endPos - 1);
-            for (const [low, high, [units]] of overlaps) {
-                // canvas.log('>> ovlp line', y, ':', low, '-', high);
-                let wsStart = low < x ? x : low;
-                if (low < x && (0, text_split_1.isCodePointFullWidth)(units[x - low - 1])) {
-                    if ((uncLine === null || uncLine === void 0 ? void 0 : uncLine.searchSingleOverlap(x - 1, x - 1)) == null)
-                        wsStart--;
-                }
-                let wsEnd = high >= endPos ? endPos : high + 1;
-                if (high >= endPos && units[wsEnd - low] === -1) {
-                    // canvas.log('>> here', wsEnd, uncLine?.searchSingleOverlap(wsEnd, wsEnd));
-                    if ((uncLine === null || uncLine === void 0 ? void 0 : uncLine.searchSingleOverlap(wsEnd, wsEnd)) == null)
-                        wsEnd++;
-                }
-                if (uncLine) {
-                    // canvas.log('>> overwrite uncLine', y, 'with ws:', wsStart, ',', wsEnd);
-                    // look for overlaping or contiguous (2 characters wider than actual clear space, from "wsStart - 1" to "wsEnd")
-                    uniteDisplayUnits(uncLine, [wsStart, wsEnd - 1, new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), '']);
+        const endPos = x + w;
+        let toDel = [[x, y, x + w]];
+        const toFilter = [];
+        for (const [m, [[left, top, width, height], filter]] of filters.entries()) {
+            const bottom = top + height;
+            const right = left + width;
+            const prevDel = toDel.slice(0);
+            toDel = [];
+            // eslint-disable-next-line prefer-const
+            for (let [x, y, endPos] of prevDel) {
+                if (y >= top && y < bottom && endPos > left && x < right) {
+                    if (x < left) {
+                        toDel.push([x, y, left]);
+                        x = left;
+                    }
+                    if (endPos > right) {
+                        toDel.push([right, y, endPos]);
+                        endPos = right;
+                    }
+                    toFilter.push(filter.ft.onClearForFilter(x, y, endPos - x)
+                        .re(m).od(filter.pt.allowClear).pipe(rx.take(1), rx.filter(([, need]) => need), rx.map(() => [x, y, endPos])));
                 }
                 else {
-                    // canvas.log('>> add ws to uncline', y, ':', wsStart, ',', wsEnd);
-                    uncommited[y] = uncLine = new algorithms_1.IntervalTree();
-                    // canvas.log('>>> clearCode insert line', wsStart, wsEnd - 1);
-                    const node = uncLine.insertInterval(wsStart, wsEnd - 1);
-                    node.value = [new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), ''];
+                    toDel.push([x, y, endPos]);
                 }
             }
         }
+        // eslint-disable-next-line multiline-ternary
+        return (filters.size > 0 ? rx.merge(...toFilter, rx.from(toDel)) : rx.of([x, y, endPos])).pipe(rx.map(([x, y, endPos]) => {
+            // canvas.log('>> clearCodePointsFromCache:', x, y, endPos);
+            let uncLine = uncommited[y];
+            const proLine = proLines[y];
+            if (uncLine != null) {
+                delCodePointsFromLine(x, endPos, uncLine);
+                // canvas.log('>> after del uncline:', y, debugLineTree(uncLine));
+            }
+            if (proLine) {
+                delCodePointsFromLine(x, endPos, proLine);
+            }
+            // To find out where to put white space
+            // 1) look for overlaps in "lines"
+            // 2) add "space" to "uncommited"
+            const line = lines[y];
+            if (line) {
+                const overlaps = line.searchMultipleOverlaps(x, endPos - 1);
+                for (const [low, high, [units]] of overlaps) {
+                    // canvas.log('>> ovlp line', y, ':', low, '-', high);
+                    let wsStart = low < x ? x : low;
+                    if (low < x && (0, text_split_1.isCodePointFullWidth)(units[x - low - 1])) {
+                        if ((uncLine === null || uncLine === void 0 ? void 0 : uncLine.searchSingleOverlap(x - 1, x - 1)) == null)
+                            wsStart--;
+                    }
+                    let wsEnd = high >= endPos ? endPos : high + 1;
+                    if (high >= endPos && units[wsEnd - low] === -1) {
+                        // canvas.log('>> here', wsEnd, uncLine?.searchSingleOverlap(wsEnd, wsEnd));
+                        if ((uncLine === null || uncLine === void 0 ? void 0 : uncLine.searchSingleOverlap(wsEnd, wsEnd)) == null)
+                            wsEnd++;
+                    }
+                    if (uncLine) {
+                        // canvas.log('>> overwrite uncLine', y, 'with ws:', wsStart, ',', wsEnd);
+                        // look for overlaping or contiguous (2 characters wider than actual clear space, from "wsStart - 1" to "wsEnd")
+                        uniteDisplayUnits(uncLine, [wsStart, wsEnd - 1, new Array(wsEnd - wsStart).fill(exports.SPACE_CODE_POINT), '']);
+                    }
+                    else {
+                        // canvas.log('>> add ws to uncline', y, ':', wsStart, ',', wsEnd);
+                        uncommited[y] = uncLine = new algorithms_1.IntervalTree();
+                        // canvas.log('>>> clearCode insert line', wsStart, wsEnd - 1);
+                        const node = uncLine.insertInterval(wsStart, wsEnd - 1);
+                        node.value = [new Array(wsEnd - wsStart).fill(exports.SPACE_CODE_POINT), ''];
+                    }
+                }
+            }
+        }));
     }
     function delCodePointsFromLine(x, endPos, line) {
         const overlaps = line.searchMultipleOverlaps(x, endPos - 1);
@@ -414,7 +577,9 @@ function createTerminalCanvas(opts) {
             }
         }
     }
-    return canvas;
+});
+function createTerminalCanvas(opts) {
+    return exports.canvasFac.create(opts);
 }
 function* getTextDisplayUnits(text) {
     const screenLineBuffer = [];
@@ -430,7 +595,7 @@ function* getTextDisplayUnits(text) {
     }
     return screenLineBuffer;
 }
-const SPACE_CODE_POINT = ' '.codePointAt(0);
+exports.SPACE_CODE_POINT = ' '.codePointAt(0);
 /** Inputed and returned "high" value is considered as an "included" value of range interval */
 function uniteDisplayUnits(line, target) {
     const [l, h, units, style] = target;
@@ -446,7 +611,7 @@ function uniteDisplayUnits(line, target) {
             const choppedUnits = eUnits.slice(0, l - el);
             if ((0, text_split_1.isCodePointFullWidth)(choppedUnits[choppedUnits.length - 1])) {
                 // A full width character is being chopped in the middle by overlapped new text, remove that character
-                choppedUnits[choppedUnits.length - 1] = SPACE_CODE_POINT;
+                choppedUnits[choppedUnits.length - 1] = exports.SPACE_CODE_POINT;
             }
             if (style === eStyle) {
                 // case of same style, merge two unit
@@ -462,7 +627,7 @@ function uniteDisplayUnits(line, target) {
         if (eh > h) {
             const choppedUnits = eUnits.slice(h - el + 1, eUnits.length);
             if (choppedUnits[0] === -1) {
-                choppedUnits[0] = SPACE_CODE_POINT;
+                choppedUnits[0] = exports.SPACE_CODE_POINT;
             }
             if (style === eStyle) {
                 // case of same style, merge two unit
@@ -497,9 +662,7 @@ function treeNodeToStyleText([codePoints, style]) {
     if (style) {
         const chalkFn = style.split(';').reduce((chalkInst, keyword) => {
             if (keyword.indexOf('(') < 0) {
-                if (chalkInst == null)
-                    throw new Error(`Chalk is null for keyword "${keyword}" of ` + style);
-                return chalkInst[keyword];
+                return (chalkInst !== null && chalkInst !== void 0 ? chalkInst : chalk_1.default)[keyword];
             }
             else {
                 const match = /([^()]+)\(([^)]+)\)/.exec(keyword);

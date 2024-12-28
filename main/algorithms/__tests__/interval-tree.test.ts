@@ -18,7 +18,7 @@ describe('Interval tree', () => {
     const found = tree.searchSingleOverlap(5, 15);
     expect(found).not.toBeNull();
     // eslint-disable-next-line no-console
-    console.log('Found single overlap', found?.int);
+    console.log('Found single overlap', found?.[0]);
     const founds = tree.searchMultipleOverlaps(5, 15);
     // eslint-disable-next-line no-console
     console.log([...founds]);
@@ -35,7 +35,7 @@ describe('Interval tree', () => {
     expect(found).not.toBeNull();
     const founds = [...tree.searchMultipleOverlaps(5, 15)];
     // eslint-disable-next-line no-console
-    console.log(founds.map(([low, high, , node]) => `found [${low} - ${high}] #${tree.indexOf(node.key)}`));
+    console.log(founds.map(([low, high, , node]) => node ? `found [${low} - ${high}] #${tree.indexOf(node.key)}` : 'NOT FOUND'));
     expect(founds.length).toBe(6);
   });
 
@@ -51,7 +51,8 @@ describe('Interval tree', () => {
     printTree(tree);
     const founds = [...tree.searchMultipleOverlaps(7, 15)];
     // eslint-disable-next-line no-console
-    console.log('Intervals which overlap [7 - 15] are', founds.map(([low, high, , node]) => `found [${low} - ${high}] #${tree.indexOf(node.key)}`));
+    console.log('Intervals which overlap [7 - 15] are',
+      founds.map(([low, high, , node]) => node ? `found [${low} - ${high}] #${tree.indexOf(node.key)}` : 'NOT FOUND'));
   });
 
   it('Delete a simple single interval node', () => {

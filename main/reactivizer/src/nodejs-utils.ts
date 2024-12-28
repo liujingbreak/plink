@@ -20,6 +20,7 @@ export function formatToConciseNoColor(...messageItems: any[]) {
 }
 export function createSimpleIndentLogger(colorful: boolean, timestamp: boolean, out: Writable) {
   let lastPrefix: string | undefined;
+  let lastMsgName: string | undefined;
   const out$ = new rx.Subject<string>();
   const stop$ = new rx.BehaviorSubject<boolean>(false);
 
@@ -64,18 +65,23 @@ export function createSimpleIndentLogger(colorful: boolean, timestamp: boolean, 
     // )
   ).subscribe();
 
+  function printTime() {
+    const date = new Date();
+    out$.next('[');
+    out$.next(date.getHours() + ':');
+    out$.next(date.getMinutes() + ':');
+    out$.next(date.getSeconds() + '.');
+    out$.next(date.getMilliseconds() + '] ');
+  }
   return function(prefix: string, ...msgs: any[]) {
-    function printTime() {
-      const date = new Date();
-      out$.next('[');
-      out$.next(date.getHours() + ':');
-      out$.next(date.getMinutes() + ':');
-      out$.next(date.getSeconds() + '.');
-      out$.next(date.getMilliseconds() + '] ');
-    }
     if (lastPrefix === prefix) {
-      const hashPos = prefix.indexOf('@');
+      const hashPos = prefix.lastIndexOf('@');
       out$.next('  ');
+      if (lastMsgName === msgs[0]) {
+        out$.next('  ');
+      } else {
+        lastMsgName = msgs[0] as string;
+      }
       if (timestamp) {
         printTime();
       }
@@ -92,7 +98,7 @@ export function createSimpleIndentLogger(colorful: boolean, timestamp: boolean, 
       lastPrefix = prefix;
     }
     const rawMsg = colorful ? formatToConcise(...msgs) : formatToConciseNoColor(...msgs);
-    out$.next(rawMsg.replaceAll(/\r?\n/g, '\n    '));
+    out$.next(rawMsg.replaceAll(/\r?\n/g, '\n' + ' '.repeat(6)));
     out$.next('\n');
   };
 }

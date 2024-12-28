@@ -15,68 +15,150 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createApp = createApp;
+exports.useAppContext = useAppContext;
+const node_readline_1 = __importDefault(require("node:readline"));
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const index_1 = require("../index");
-const focusable_1 = require("../focusable");
 const statusbar_1 = require("./statusbar");
-function createApp(mainComponent, opts) {
-    var _a, _b, _c;
-    const appService = new reactivizer_1.SimplexReactor(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core), { name: (_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'App' }));
-    const main = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'main' }), opts === null || opts === void 0 ? void 0 : opts.main));
-    main.s.ft.setDirection('col').dp();
+const tableFor = ['onReady'];
+const appServiceFac = new reactivizer_1.BaseReactorFactory({
+    name: 'App',
+    tableFor
+}).defineReactor((init, mainComponent, canScroll, opts) => {
+    var _a;
+    const appService = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
+    const { r, ft, pt } = appService;
+    const basePane = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'basePane' }), opts === null || opts === void 0 ? void 0 : opts.main));
+    basePane.ft.setDirection('col').dp();
     const statusbar = (0, statusbar_1.createStatusbar)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Statusbar' }), opts === null || opts === void 0 ? void 0 : opts.statusbar));
-    const scrollable = (0, index_1.createScrollable)(mainComponent, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.scrollable), { default: Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'AppScrollable' }), (_c = opts === null || opts === void 0 ? void 0 : opts.scrollable) === null || _c === void 0 ? void 0 : _c.default) }));
-    scrollable.s.ft.setFlexGrow(1).dp();
-    main.s.ft.addChild(scrollable, statusbar).dp();
-    const canvas = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.canvas));
-    canvas.s.ft.autoHideCursor().dp();
     const keyEventService = (0, index_1.createKeyEventService)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.keyService));
-    // keyEventService.config({debug: true});
-    keyEventService.s.ft.bindToScrollable(scrollable).dp();
-    statusbar.s.ft.trackKeypressService(keyEventService).dp();
-    statusbar.s.ft.trackScrollable(scrollable).dp();
-    main.r('keyEventService.onExit', keyEventService.s.pt.onExit.pipe(rx.concatMap(() => rx.timer(32)), rx.map(() => {
-        main.dispose();
+    let mainContainer = mainComponent;
+    if (canScroll) {
+        const scrollable = (0, index_1.createScrollable)(mainComponent, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.scrollable), { default: Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'AppScrollable' }), (_a = opts === null || opts === void 0 ? void 0 : opts.scrollable) === null || _a === void 0 ? void 0 : _a.default) }));
+        scrollable.ft.setFlexGrow(1).dp();
+        // main.ft.addChild(scrollable, statusbar).dp();
+        mainContainer = scrollable;
+        statusbar.ft.trackScrollable(scrollable).dp();
+    }
+    const canvas = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.canvas));
+    r('setFullScreen -> onReady', pt.setFullScreenMode.pipe(rx.exhaustMap(([m]) => {
+        const blankLines = '\n'.repeat(process.stdout.rows - 1);
+        return new rx.Observable(sub => {
+            process.stdout.write(blankLines, () => sub.next());
+        }).pipe(rx.take(1), rx.switchMap(() => {
+            canvas.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
+            ft.onReady({
+                canvas,
+                main: basePane,
+                app: appService,
+                keyEventService,
+                statusbar
+            }).dp(m);
+            return new rx.Observable(sub => {
+                const handleResize = () => {
+                    canvas.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
+                };
+                process.stdout.on('resize', handleResize);
+                return () => {
+                    process.stdout.off('resize', handleResize);
+                };
+            });
+        }));
+    })));
+    r('setSize -> onReady', pt.setSize.pipe(rx.switchMap(([m, w, h]) => {
+        const cols = w > process.stdout.columns ? process.stdout.columns : w;
+        const rows = h > process.stdout.rows ? process.stdout.rows : h;
+        const blankLines = '\n'.repeat(rows - 1);
+        return canvas.ft.reportCursor(keyEventService).re(m).od(canvas.pt.doneReportCursor).pipe(rx.take(1), rx.switchMap(([, , top]) => new rx.Observable(s => {
+            process.stdout.write(blankLines, () => s.next(top));
+        })), rx.map((top) => {
+            if (top + rows > process.stdout.rows)
+                top = process.stdout.rows - rows;
+            canvas.ft.setBounding(0, top, cols, rows).dp(m);
+            ft.onReady({
+                canvas,
+                main: basePane,
+                app: appService,
+                keyEventService,
+                statusbar
+            }).dp(m);
+        }));
+    })));
+    r('onReady', pt.onReady.pipe(rx.map(([m, ctx]) => {
+        canvas.ft.setRenderOnRequest(true).dp(m);
+        basePane.ft.addChild(mainContainer, statusbar).dp();
+        canvas.ft.setRootComponent(elevator).dp();
+        canvas.ft.requestRender().dp(m);
+        elevator.ft.provideContext('__appshell', ctx).dp(m);
+    })));
+    canvas.ft.autoHideCursor().dp();
+    statusbar.ft.trackKeypressService(keyEventService).dp();
+    r('keyEventService.onExit', keyEventService.pt.onExit.pipe(rx.concatMap(() => rx.timer(32)), rx.exhaustMap(() => {
+        appService.ft.onExit().dp();
+        return canvas.table.l.setBounding.pipe(rx.take(1));
+    }), rx.switchMap(([, left, top, w, h]) => new rx.Observable(sink => {
+        node_readline_1.default.cursorTo(process.stdout, left + w - 1, top + h - 1, () => sink.next());
+    })), rx.map(() => {
+        // process.stdout.write('\n');
+        basePane.dispose();
         canvas.dispose();
         keyEventService.dispose();
-        process.exit();
+        setImmediate(() => process.exit());
     })));
-    keyEventService.r('onKeypress', keyEventService.s.pt.onKeypress.pipe(rx.filter(([, evt]) => evt.name === 'return'), rx.exhaustMap(([m]) => {
+    r('onKeypress', keyEventService.pt.onKeypress.pipe(rx.filter(([, evt]) => evt.name === 'return'), rx.exhaustMap(([m]) => {
         appService.log('>>> on help');
-        coverLayer.s.ft.setDisplay(index_1.DisplayMode.visible).dp(m);
-        appService.s.ft.onHelp(coverLayer).dp(m);
-        return keyEventService.s.pt.onBreak.pipe(rx.take(1), rx.map(([m]) => {
-            coverLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp(m);
+        coverLayer.ft.setDisplay(index_1.DisplayMode.visible).dp(m);
+        appService.ft.onHelp(coverLayer).dp(m);
+        return keyEventService.pt.onBreak.pipe(rx.take(1), rx.map(([m]) => {
+            coverLayer.ft.setDisplay(index_1.DisplayMode.none).dp(m);
         }));
     })));
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const elevator = (0, index_1.createElevator)(Object.assign({ default: opts === null || opts === void 0 ? void 0 : opts.default }, opts === null || opts === void 0 ? void 0 : opts.elevator));
+    const elevator = (0, index_1.createElevator)(keyEventService, Object.assign({ default: opts === null || opts === void 0 ? void 0 : opts.default }, opts === null || opts === void 0 ? void 0 : opts.elevator));
     const coverLayer = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'coverLayer' }), opts === null || opts === void 0 ? void 0 : opts.cover));
-    const focusable = (0, focusable_1.createRootService)(keyEventService, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
-    focusable.s.ft.forRootComp(elevator).dp();
-    coverLayer.s.ft.alignItems('center').dp();
-    coverLayer.s.ft.justifyContent('center').dp();
+    coverLayer.ft.alignItems('center').dp();
+    coverLayer.ft.justifyContent('center').dp();
     // const helpBox = createFlexContainer();
     const helpNote = (0, index_1.createTextWidget)('Keyboard Help');
     const coverLayerBorder = (0, index_1.createBorderContainer)(helpNote, Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default));
-    coverLayerBorder.s.ft.setPadding(5, 5, 5, 5).dp();
-    coverLayerBorder.s.ft.setBackground('bgGrey').dp();
-    coverLayerBorder.s.ft.setBorder('padding').dp();
-    coverLayer.s.ft.addChild(coverLayerBorder).dp();
-    elevator.s.ft.addChild(main, coverLayer).dp();
-    coverLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp();
-    canvas.s.ft.setRootComponent(elevator).dp();
-    canvas.s.ft.setRenderOnRequest(true).dp();
-    return { canvas, main, app: appService };
+    coverLayerBorder.ft.setPadding(5, 5, 5, 5).dp();
+    coverLayerBorder.ft.setBackground('bgGrey').dp();
+    coverLayerBorder.ft.setBorder('padding').dp();
+    coverLayer.ft.addChild(coverLayerBorder).dp();
+    mainContainer.ft.setFlexGrow(1).dp();
+    elevator.ft.addChild(basePane, coverLayer).dp();
+    coverLayer.ft.setDisplay(index_1.DisplayMode.none).dp();
+});
+function createApp(mainComponent, canScroll = true, opts) {
+    return appServiceFac.create(mainComponent, canScroll, opts);
+}
+function useAppContext(currComp, m) {
+    let fac = currComp.ft.queryContext('__appshell');
+    if (m)
+        fac = fac.re(m);
+    return fac.od(currComp.pt.onContextChange).pipe(rx.map(([, , v]) => v));
 }
 //# sourceMappingURL=app-shell.js.map

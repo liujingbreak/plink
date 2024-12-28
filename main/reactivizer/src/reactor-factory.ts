@@ -18,20 +18,22 @@ export class BaseReactorFactory<
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
   P extends [...any[]] = [...any[]]
 > implements ReactorFactory<I, LI, P> {
-  private reactorsFac: (service: (opts?: CoreOptions<I>) => SimplexReactor<I, LI>, ...params: P) => void = () => {};
+  private reactorDefinition: (createService: (opts?: CoreOptions<I>) => SimplexReactor<I, LI>, ...params: P) => void = (init, ...p) => { init(...p); };
   private _interceptors: Interceptor[] | undefined;
 
   constructor(public protoOptions: SimplexReactorOptions<I, LI>) {
   }
+  /** Define message subscription in this method will be able to be inherited by any derived SimplexRectors
+   **/
   defineReactor<PA extends P = P>(fac: (init: (overrideOpts?: CoreOptions<I>) => SimplexReactor<I, LI>, ...params: PA) => void) {
-    this.reactorsFac = fac as typeof this.reactorsFac;
+    this.reactorDefinition = fac as typeof this.reactorDefinition;
     return this as unknown as BaseReactorFactory<I, LI, PA>;
   }
   forExtend<
     I2 = Record<never, never>,
     LI2 extends readonly(keyof I2)[] | (keyof I2)[] = readonly [],
     P2 extends readonly [...any[]] = [...any[]]
-  >(newOpts: SimplexReactorCfgOpts<I, I2, LI2>) {
+  >(newOpts?: SimplexReactorCfgOpts<I, I2, LI2>) {
     return new DerivedReactorFactory<I2, LI2, P2, I, LI, P>(this, newOpts);
   }
 
@@ -53,16 +55,20 @@ export class BaseReactorFactory<
   }
   /** do not call this method directly, use create() instead */
   _create(overrideOpts: (currOpts: SimplexReactorOptions<I, LI>) => SimplexReactorOptions<I, LI>, param: P): SimplexReactor<I, LI> {
-    let service: SimplexReactor<I, LI>;
-    this.reactorsFac(instanceOpts => {
+    let service: SimplexReactor<I, LI> | undefined;
+
+    this.reactorDefinition(instanceOpts => {
       const mergedOpts = this.protoOptions ?
         {...this.protoOptions, ...instanceOpts} :
         instanceOpts as typeof this.protoOptions;
+
       service = new SimplexReactor<I, LI>(overrideOpts(mergedOpts));
+
       if (this._interceptors)
         service.s.prependInterceptor(...this._interceptors);
       return service;
     }, ...param);
+
     return service!;
   }
 }
@@ -75,13 +81,13 @@ export class DerivedReactorFactory<
   LIb extends readonly (keyof Ib)[] | (keyof Ib)[] = readonly [],
   Pb extends readonly [...any[]] = [...any[]]
 > implements ReactorFactory<I & Ib, readonly (LI[number] | LIb[number])[], P> {
-  private reactorsFac: (
+  private reactorDefinition: (
     getService: (
       overrideOpts: CoreOptions<I & Ib> | undefined,
       ...superParam: Pb
     ) => DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>,
     ...params: P
-  ) => void = () => {};
+  ) => void = (init, ...p) => { (init as any)(); };
   private _interceptors: Interceptor[] | undefined;
   private baseInterceptors: Interceptor[] | undefined;
   private featTableForList: LI;
@@ -94,13 +100,13 @@ export class DerivedReactorFactory<
     }
   }
   defineReactor<PA extends P = P>( fac: (
-    init: (
+    createSuper: (
       createOpts?: CoreOptions<I & Ib> | undefined | null,
       ...superParam: Pb
     ) => DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>,
     ...params: PA
   ) => void) {
-    this.reactorsFac = fac as typeof this.reactorsFac;
+    this.reactorDefinition = fac as typeof this.reactorDefinition;
     return this as DerivedReactorFactory<I, LI, PA, Ib, LIb, Pb>;
   }
 
@@ -147,13 +153,14 @@ export class DerivedReactorFactory<
   ) => SimplexReactorOptions<I & Ib, readonly (LI[number] | LIb[number])[]>,
   params: P): DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]> {
     let service: DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>;
-    this.reactorsFac((instanceOpts, ...superParam) => {
+    this.reactorDefinition((instanceOpts, ...superParam) => {
       const mixed = {
         ...this.featOpts,
         ...instanceOpts
       };
       service = this.baseFactory._create(
-        baseOpts => overrideOpts(Object.assign(baseOpts, mixed) as any) as any, superParam
+        baseOpts => overrideOpts(Object.assign(baseOpts, mixed) as any) as any,
+        superParam
       ).config<I, LI>({
         tableFor: this.featTableForList
       } as any).forExtend();

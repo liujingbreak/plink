@@ -103,8 +103,8 @@ export class ArrayBufferMgr<R extends Record<string, StructureArrayEntryDef<Type
   allocate(length: number, isSharedArrayBuffer: boolean) {
     // allocate ArrayBuffer
     const bufferCons = isSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-    const buffers = [undefined, undefined, undefined, undefined] as (ArrayBuffer | undefined)[];
-    for(const [numBytes, meta] of this.metaByNumByte.entries()) {
+    const buffers = [undefined, undefined, undefined, undefined] as (ArrayBuffer | SharedArrayBuffer | undefined)[];
+    for (const [numBytes, meta] of this.metaByNumByte.entries()) {
       buffers[Math.log2(numBytes)] = new bufferCons(meta.lenPerEntry * numBytes * length);
     }
     this.fromArrayBuffers(buffers);

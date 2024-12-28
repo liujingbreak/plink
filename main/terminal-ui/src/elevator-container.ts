@@ -1,9 +1,10 @@
 import * as rx from 'rxjs';
 import {CoreOptions, SingleActionFactory, SimplexReactorOfFac, CreateOptsOfFac, ActionMeta} from '@wfh/reactivizer';
-import {OffsetParent, DisplayMode} from './base';
+import {DisplayMode} from './base';
 import {TerminalContainer} from './container';
-import {createFocusService, FocusableOptions, FocusService} from './focusable';
+import {rootFocusSvcFac, RootFocusServiceOpts, RootFocusService} from './focusable';
 import {baseContainerFac} from './container';
+import {KeyEventServcie} from './keyEvent';
 import {BaseWidget, Rectangle, TerminalCanvas,
   createTerminalCanvas, TerminalCanvasOptions, TextStyle} from './index';
 
@@ -12,7 +13,7 @@ interface ElevatorActions {
   toggleLayer(layerIndex: number, visible: boolean): SingleActionFactory;
 }
 interface ElevatorEvents extends ElevatorActions {
-  onFocusServieReady(chd: BaseWidget, focusable: FocusService): SingleActionFactory;
+  onFocusServieReady(chd: BaseWidget): SingleActionFactory;
   // onChildLayerHidden(chd: BaseWidget): SingleActionFactory;
 }
 export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
@@ -25,17 +26,18 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
     rx.ignoreElements()
   ),
   ac.ofOtherTypes()
-)).defineReactor((init, opts?: ElevatorOptions) => {
+)).defineReactor((init, keyEventSvc: KeyEventServcie, opts?: ElevatorOptions) => {
   const service = init({...opts?.default as any, ...opts?.core});
-  const {s, r, table} = service;
+  const {ft, pt, s, r, table} = service;
   // let lastBottom: BaseWidget | undefined;
   /** Offline canvas by root component */
   const canvasMap = new Map<BaseWidget, TerminalCanvas>();
+  const focusSvcMap = new Map<BaseWidget, RootFocusService>();
   r('addChild,insertChild, removeChild -> "canvasMap"', rx.merge(
-    s.pt.addChild.pipe(
+    pt.addChild.pipe(
       rx.map(([m, ...chdn]) => [m, chdn] as const)
     ),
-    s.pt.insertChild.pipe(
+    pt.insertChild.pipe(
       rx.map(([m, , chdn]) => [m, chdn] as const)
     )
   ).pipe(
@@ -47,68 +49,57 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
           ...opts?.canvas
         });
         canvasMap.set(chd, cv);
-        cv.s.ft.setRootComponent(chd).dp(m);
-        return rx.merge(
-          // Set chd as an "offsetParent" if it was not already an offset parent
-          chd.table.l.isOffsetParent.pipe(
-            rx.take(1),
-            rx.map(([, isOffsetP]) => isOffsetP ? false : true),
-            rx.filter(notOffsetParent => notOffsetParent),
-            rx.map(() => {
-              const o = chd as BaseWidget & OffsetParent;
-              o.focusService = createFocusService({
-                ...opts?.default as any,
-                ...opts?.focusable
-              });
-              o.destory$.subscribe(() => o.focusService.dispose());
-              s.ft.onFocusServieReady(o, o.focusService).dp(m);
-            })
-          ),
-          // table.l.ofCanvas.pipe(
-          //   rx.filter(([, c]) => c != null),
-          //   rx.take(1),
-          //   rx.switchMap(([, outerCanvas]) => cv.s.pt.requestRender.pipe(
-          //     rx.map(([m]) => outerCanvas!.s.ft.requestRender().dp(m))
-          //   )),
-          //   rx.takeUntil(cv.destory$)
-          // ),
-          // Delete corresponding canvas when chd is removed
-          s.pt.removeChild.pipe(
-            rx.filter(([, w]) => w === chd),
-            rx.take(1),
-            rx.map(() => {
-              chd.s.ft.isOffsetParent(false).dp(m);
-              canvasMap.delete(chd);
-              cv.dispose();
-            })
-          )
+        cv.ft.setRootComponent(chd).dp(m);
+        const rootFoc = rootFocusSvcFac.create(cv, {
+          name: s.logPrefix + '.focus',
+          ...(opts?.default as RootFocusServiceOpts | undefined),
+          ...opts?.focusable
+        });
+        focusSvcMap.set(chd, rootFoc);
+        rootFoc.ft.forRootComp(chd).dp(m);
+        chd.ft.provideContext('rootFocus', rootFoc).dp(m);
+        rootFoc.ft.handleKeyEvents(keyEventSvc).dp(m);
+        ft.onFocusServieReady(chd).dp(m);
+        // Delete corresponding canvas when chd is removed
+        return pt.removeChild.pipe(
+          rx.filter(([, w]) => w === chd),
+          rx.take(1),
+          rx.map(() => {
+            canvasMap.delete(chd);
+            rootFoc.dispose();
+            cv.dispose();
+          })
         );
       })
     ))
   ));
-  r('allDisplayChildren -> last.isOffsetParent', s.pt.allDisplayChildren.pipe(
+  r('allDisplayChildren -> last.isOffsetParent', pt.allDisplayChildren.pipe(
     rx.filter(([, childrn]) => childrn.length > 0),
     rx.map(([, childrn]) => childrn[childrn.length - 1]),
     rx.distinctUntilChanged(),
     rx.switchMap(last => {
-      const waitForFocusService$ = (last as BaseWidget & OffsetParent).focusService != null ?
-        rx.of(true) :
-        s.pt.onFocusServieReady.pipe(
-          rx.filter(() => (last as BaseWidget & OffsetParent).focusService != null),
+      const waitForFocusService$ = rx.concat(
+        rx.of(focusSvcMap.get(last)),
+        pt.onFocusServieReady.pipe(
+          rx.filter(([, readyChd]) => readyChd === last),
           rx.take(1),
-          rx.map(() => true)
-        );
+          rx.map(() => focusSvcMap.get(last))
+        )
+      ).pipe(
+        rx.filter(focusSvc => focusSvc != null),
+        rx.take(1)
+      );
       return waitForFocusService$.pipe(
-        rx.map(() => {
-          last.s.ft.isOffsetParent(last as BaseWidget & OffsetParent).dp();
-        }),
-        rx.finalize(() => {
-          last.s.ft.isOffsetParent(false).dp();
+        rx.mergeMap(focusSvc => {
+          focusSvc.ft.resumeHandleEvents().dp();
+          return new rx.Observable(() => () => {
+            focusSvc.ft.pauseHandleEvents().dp();
+          });
         })
       );
     })
   ));
-  r('querySizeOf', s.pt.querySizeOf.pipe(
+  r('querySizeOf', pt.querySizeOf.pipe(
     rx.mergeMap(([m, w, h]) => {
       return table.l.allDisplayChildren.pipe(
         rx.take(1),
@@ -116,8 +107,8 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
           if (w == null && h != null) {
             return rx.from(chdn).pipe(
               rx.mergeMap(comp => {
-                return comp.s.ft.querySizeOf(w, h).re(m).od(
-                  comp.s.pt.prefWidthFor
+                return comp.ft.querySizeOf(w, h).re(m).od(
+                  comp.pt.prefWidthFor
                 ).pipe(
                   rx.take(1)
                 );
@@ -125,13 +116,13 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
               rx.reduce((acc, [, w]) => {
                 return w > acc ? w : acc;
               }, 0),
-              rx.tap(width => s.ft.prefWidthFor(width, h).dp(m))
+              rx.tap(width => ft.prefWidthFor(width, h).dp(m))
             );
           } else if (h == null && w != null) {
             return rx.from(chdn).pipe(
               rx.mergeMap(comp => {
-                return comp.s.ft.querySizeOf(w, h).re(m).od(
-                  comp.s.pt.prefHeightFor
+                return comp.ft.querySizeOf(w, h).re(m).od(
+                  comp.pt.prefHeightFor
                 ).pipe(
                   rx.take(1)
                 );
@@ -139,7 +130,7 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
               rx.reduce((acc, [, , h]) => {
                 return h > acc ? h : acc;
               }, 0),
-              rx.tap(height => s.ft.prefHeightFor(w, height).dp(m))
+              rx.tap(height => ft.prefHeightFor(w, height).dp(m))
             );
           }
           return rx.EMPTY;
@@ -152,61 +143,23 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
       const [xw, xh] = sizes.reduce(([maxW, maxH], [w, h]) => {
         return [maxW > w ? maxW : w, maxH > h ? maxH : h];
       }, [0, 0] as [number, number]);
-      s.ft.onContentSizeChange(xw, xh).dp(m);
+      ft.onContentSizeChange(xw, xh).dp(m);
     })
   ));
-  r('reflow -> canvas.setBounding', s.pt.reflow.pipe(
+  r('reflow -> canvas.setBounding', pt.reflow.pipe(
     rx.mergeMap(([m]) => {
       return rx.combineLatest([table.l.onSize, table.l.allDisplayChildren]).pipe(
         rx.take(1),
         rx.map(([[, w, h], [, chdn]]) => {
-          s.ft.onChildPositions(new Map<BaseWidget, [number, number]>(chdn.map(chd => [chd, [0, 0] as const] as const))).dp(m);
+          ft.onChildPositions(new Map<BaseWidget, [number, number]>(chdn.map(chd => [chd, [0, 0] as const] as const))).dp(m);
           for (const cv of canvasMap.values()) {
-            cv.s.ft.setBounding(0, 0, w, h).dp(m);
+            cv.ft.setBounding(0, 0, w, h).dp(m);
           }
         })
       );
     })
   ));
-  /*
-  r('addChild,insertChild,c.setDisplay -> onChildLayerHidden', rx.merge(
-    s.pt.addChild.pipe(
-      rx.map(([, ...chd]) => chd)
-    ),
-    s.pt.insertChild.pipe(
-      rx.map(([, , chd]) => chd)
-    )
-  ).pipe(
-    rx.mergeMap(chd => {
-      return rx.from(chd).pipe(
-        rx.map(c => c)
-      );
-    }),
-    rx.mergeMap(c => rx.merge(
-      c.table.l.setDisplay.pipe(
-        rx.scan(([, prevDis], setDisplay) => {
-          const [m2, display] = setDisplay;
-          if ((prevDis === DisplayMode.visible) && (display === DisplayMode.none || display === DisplayMode.hidden)) {
-            s.ft.onChildLayerHidden(c).dp(m2);
-          }
-          return setDisplay;
-        }),
-        rx.takeUntil(s.pt.removeChild.pipe(
-          rx.filter(([, ...removed]) => removed.some(d => c === d))
-        )),
-        rx.takeUntil(c.destory$)
-      ),
-      s.pt.removeChild.pipe(
-        rx.map(([m, ...chd]) => {
-          for (const c of chd) {
-            s.ft.onChildLayerHidden(c).dp(m);
-          }
-        })
-      )
-    ))
-  ));
-  */
-  r('onRender', s.pt.onRender.pipe(
+  r('onRender', pt.onRender.pipe(
     rx.switchMap(([m, canvas, trans, renderSelf, clips, masks]) => rx.combineLatest([
       table.l.allDisplayChildren.pipe(
         rx.take(1),
@@ -221,10 +174,10 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
       rx.take(1),
       rx.mergeMap(([children, [, bgCleared]]) => {
         if (!bgCleared) {
-          s.ft.clear(canvas, trans).dp();
+          ft.clear(canvas, trans).dp();
         }
         if (renderSelf) {
-          s.ft.renderSelf(canvas, trans, clips, masks ?? []).dp(m);
+          ft.renderSelf(canvas, trans, clips, masks ?? []).dp(m);
         }
         const allMasks = [] as Rectangle[];
         const last = children.length - 1;
@@ -238,7 +191,7 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
               const canvasOfChd = canvasMap.get(chd)!;
               const isBottomLayer = i === last;
               const idx = last - i;
-              s.ft.renderChild(idx, chd, canvasOfChd, trans, clips, allMasks).dp(m);
+              ft.renderChild(idx, chd, canvasOfChd, trans, clips, allMasks).dp(m);
               return isBottomLayer ? rx.EMPTY : getBoundingOfCompTree(chd).pipe(rx.take(1));
             }),
             rx.map(rects => {
@@ -250,6 +203,13 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
             // rx.skip(1), // the 1st has been directly rendered to outer canvas
             rx.map(chd => canvasMap.get(chd)!),
             rx.concatMap(c => {
+              // c.ft.takeSnapshot({noColor: true, type: 'pro'})
+              //   .od(c.pt.didTakeSnapshot).pipe(
+              //     rx.take(1),
+              //     rx.map(([, lineIt]) => {
+              //       service.log('--layer snapshot\n', [...lineIt].join(''));
+              //     })
+              //   ).subscribe();
               return copyCanvas(c, canvas, m);
             })
           )
@@ -257,22 +217,22 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
       })
     ))
   ));
-  r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
-    rx.withLatestFrom(s.pt.allDisplayChildren),
+  r('findOverlaps -> didFindOverlaps', pt.findOverlaps.pipe(
+    rx.withLatestFrom(pt.allDisplayChildren),
     rx.mergeMap(([[m, ...rect], [, chdr]]) => {
       const last = chdr[chdr.length - 1];
       return last.table.l.isContainer.pipe(
         rx.concatMap(([, isContainer]) => {
           if (!isContainer) {
-            s.ft.didFindOverlaps([last]).dp(m);
+            ft.didFindOverlaps([last]).dp(m);
             return rx.EMPTY;
           }
           const comp = last as TerminalContainer;
-          return comp.s.ft.findOverlaps(...rect).re(m).od(
-            comp.s.pt.didFindOverlaps
+          return comp.ft.findOverlaps(...rect).re(m).od(
+            comp.pt.didFindOverlaps
           ).pipe(
             rx.take(1),
-            rx.map(([m2, comps]) => s.ft.didFindOverlaps(comps.concat(comp)).dp(m, m2))
+            rx.map(([m2, comps]) => ft.didFindOverlaps(comps.concat(comp)).dp(m, m2))
           );
         })
       );
@@ -282,28 +242,28 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
     return source.table.l.setBounding.pipe(
       rx.take(1),
       rx.mergeMap(([, , , w, h]) => {
-        return source.s.ft.copyRect(0, 0, w, h).re(m).od(source.s.pt.onCopyRect);
+        return source.ft.copyRect(0, 0, w, h).re(m).od(source.pt.didCopyRect);
       }),
       rx.map(([, lines]) => {
         for (const [x, , y, units, style] of lines) {
-          canvas.s.ft.addDisplayUnits(x, y, units, [style] as unknown as TextStyle).dp(m);
+          canvas.ft.addDisplayUnits(x, y, units, [style] as unknown as TextStyle).dp(m);
         }
       }),
       rx.take(1)
     );
   }
-  s.ft.hasOfflineCanvas(true).dp();
+  ft.hasOfflineCanvas(true).dp();
 });
 export interface ElevatorOptions {
   default?: CoreOptions;
   core?: CreateOptsOfFac<typeof elevatorFac>;
   /** Internal canvas */
   canvas?: TerminalCanvasOptions;
-  focusable?: FocusableOptions;
+  focusable?: RootFocusServiceOpts;
 }
 export type ElevatorContainer = SimplexReactorOfFac<typeof elevatorFac>;
-export function createElevator(opts?: ElevatorOptions) {
-  return elevatorFac.create(opts);
+export function createElevator(keyEventSvc: KeyEventServcie, opts?: ElevatorOptions) {
+  return elevatorFac.create(keyEventSvc, opts);
 }
 export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]> {
   return rx.combineLatest([
@@ -325,7 +285,7 @@ export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]>
           p.table.l.allChildren.pipe(
             rx.take(1)
           ),
-          rx.merge(p.s.pt.addChild, p.s.pt.insertChild, p.s.pt.removeChild).pipe(
+          rx.merge(p.pt.addChild, p.pt.insertChild, p.pt.removeChild).pipe(
             rx.switchMap(() => p.table.l.allChildren.pipe(
               rx.take(1)
             ))

@@ -94,7 +94,7 @@ table.s.ft.setCellBackground((col, row) => {
     sat = saturation * col;
   return `bgHsl(${hue},${30 + sat},70)`;
 }).dp();
-const {canvas} = app.createApp(root, {
+const {ft} = app.createApp(root, true, {
   default: {
     debug, log
   },
@@ -103,10 +103,6 @@ const {canvas} = app.createApp(root, {
       debug: true,
       debugExcludeTypes: ['onRectChange', 'removeFocusable']
     }
-  },
-  focusable: {
-    debug: true,
-    debugExcludeTypes: ['onRectChange', 'removeFocusable']
   },
   // canvas: {
   //   debug: true,
@@ -117,7 +113,7 @@ const {canvas} = app.createApp(root, {
     core: {
       debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender']
     },
-    focusable: {
+    focus: {
       debug: true,
       debugExcludeTypes: ['removeFocusable']
     },
@@ -130,9 +126,8 @@ const {canvas} = app.createApp(root, {
 
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
-
-process.stdout.on('resize', () => {
-  canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
-});
+if (screenWidth && screenHeight)
+  ft.setSize(Number(screenWidth), Number(screenHeight)).dp();
+else
+  ft.setFullScreenMode().dp();
 

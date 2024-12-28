@@ -1,4 +1,6 @@
 export * from './canvas';
+export * from './canvas-filter';
+export * from './canvas-cache';
 export * from './base';
 export * from './container';
 export * from './border';

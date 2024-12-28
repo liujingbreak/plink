@@ -5,14 +5,16 @@ import {mat4, vec2} from 'gl-matrix';
 import {SingleActionFactory, SimplexReactor, ActionMeta, Action, InferMapParam,
   BaseReactorFactory, CoreOptions} from '@wfh/reactivizer';
 import {TerminalCanvas, Rectangle, BackgroundStyle} from './canvas';
-import {SearchDirection, FocusService} from './focusable';
+import {FocusService} from './focusable';
 import {TerminalContainer} from './container';
 import {Scrollable} from './scrollable';
 
 export enum DisplayMode {
   visible,
-  none, // like CSS display:none, does not take any space in layout
-  hidden // it does take space in layout, but with empty content 
+  /** like CSS display:none, does not take any space in layout */
+  none,
+  /** it does take space in layout, but with empty content */
+  hidden
 }
 export interface BaseWidgetInput {
   /** The size set by this message will only affect "preference" size which is by default calculated by its content size,
@@ -32,19 +34,33 @@ export interface BaseWidgetInput {
   /** observe the changes of absoulte bounding of component.
    * the change is kept reported by didQueryAbsBounding */
   queryAbsBounding(untilParent?: TerminalContainer): SingleActionFactory;
+  /** Response message is "onContextChange" */
+  queryContext(key: string): SingleActionFactory;
+  provideContext(key: string, value: any): SingleActionFactory;
+  provideFocusService(focusSvc: FocusService): SingleActionFactory;
+  /**
+   * Stops the propagation of events which is bubbling to containing components,
+   * this message must be dispatched with corresponding action meta of event message.
+   * ```
+   * service.pt.onFocus.pipe(
+   *    rx.map(([m, src]) => service.ft.stopEventPropagation().dp(m))
+   * ).subscribe();
+   * ```
+   * */
+  stopEventPropagation(): SingleActionFactory;
 }
 export interface BaseWidgetEvents extends BaseWidgetInput {
   isContainer(yes: boolean): SingleActionFactory;
   onSize(width: number, height: number): SingleActionFactory;
   /** The coordinate value is relative to parent container,
-   * avaible after parent container's "reflow"
+   * available after parent container's "reflow"
    **/
   onPosition(x: number | null, y: number | null): SingleActionFactory;
   /** available after "render" */
   onTransform(trans: mat4): SingleActionFactory;
   _saveTransform(trans: mat4): SingleActionFactory;
-  offsetParent(p: OffsetParent | null): SingleActionFactory;
-  isOffsetParent(me: OffsetParent | false): SingleActionFactory;
+  // offsetParent(p: OffsetParent | null): SingleActionFactory;
+  // isOffsetParent(me: OffsetParent | false): SingleActionFactory;
   /** Implementation needs to handle this event */
   querySizeOf(width: number | null, height: number | null): SingleActionFactory;
   /** Extended container implementation need to handle this event. */
@@ -53,6 +69,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   prefWidthFor(width: number, constrainHeight: number): SingleActionFactory;
   /** As response to "querySizeOf" */
   prefHeightFor(constrainWidth: number, height: number): SingleActionFactory;
+  depth(componentTreeDepth: number): SingleActionFactory;
   /** Implementation should dispatch this message after calculating size based on child components or content,
    * unlike "onSize" which is set by user/caller or layout calculation logic.
    * Along with "setPreferredSize" are used to calculate "preferredSize"*/
@@ -67,11 +84,14 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
    * @param masks - Rectangle indicates the space being masked by any elevator component, may not render masks area to improve performance
    */
   render(canvas: TerminalCanvas, absTransform: mat4, clips?: Rectangle[], masks?: Rectangle[]): SingleActionFactory;
+  /** Meant for being extended, @see container */
   beforeRender(canvas: TerminalCanvas, transform: mat4, clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
   clear(canvas: TerminalCanvas, absTransform: mat4): SingleActionFactory;
   /** Implementation needed to handle this event */
   onRender(canvas: TerminalCanvas, absTransform: mat4, renderSelf: boolean, clipArea: Rectangle[], maskArea?: Rectangle[]): SingleActionFactory;
   needRerender(need: boolean): SingleActionFactory;
+  /** Set "needRerender" state on not only current component, but also all its children */
+  needRerenderTree(): SingleActionFactory;
   /** Set rendering state data.
    * When this observable state data changes, a "needRerender" message will be triggered and followed by "render", "onRender" messages,
    * the observable value should be derived from table properties or any other observable in form of BehaviorSubject, which provides "current state" without any
@@ -81,7 +101,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   /** @deprecated use addRenderData or latestRenderData instead
    * If following action is dispatched, the next render message must not be skipped on current widget */
   addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
-  /** Get bouding rectangle that is calculated when the lastest "render" message is handled,
+  /** Get bounding rectangle that is calculated when the lastest "render" message is handled,
    * the coordinate of rectangle is relative to canvas which is attached with closest offset parent,
    * in case of child component of "scrollable" container,
    * the effect canvas is an offline canvas whose coordinate is different from containing canvas.
@@ -92,13 +112,16 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
   /** track whether current component has its background being cleared or rerendered by its parents */
   bgCleared(hasCleared: boolean): SingleActionFactory;
-  onFocus(direction: SearchDirection): SingleActionFactory;
+  onFocus(src: BaseWidget): SingleActionFactory;
+  onBlur(src: BaseWidget): SingleActionFactory;
   didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
+  onContextChange<T>(key: string, value: T): SingleActionFactory;
+  focusService(focusSvc: FocusService): SingleActionFactory;
 }
 export const tableForBase = [
-  'onSize', 'onTransform', 'onPosition', 'offsetParent', 'isOffsetParent', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
+  'onSize', 'onTransform', 'onPosition', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
   'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink',
-  'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer'
+  'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer', 'depth', 'focusService'
 ] as const;
 export type BaseWidgetRenderData = readonly [
   InferMapParam<BaseWidgetInput['setDisplay']>,
@@ -159,15 +182,15 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
   );
 }).defineReactor(init => {
   const service = init();
-  const {s, r, table} = service;
+  const {ft, at, pt, r, s, table, latest} = service;
   r('_saveTransform -> onTransform', rx.merge(
-    s.pt._saveTransform.pipe(
+    pt._saveTransform.pipe(
       rx.distinctUntilChanged(([, t1], [, t2]) => mat4.equals(t1, t2)),
-      rx.map(([m, t]) => s.ft.onTransform(t).dp(m))
+      rx.map(([m, t]) => ft.onTransform(t).dp(m))
     )
   ));
   r('setPreferredSize, onContentSizeChange -> preferredSize', rx.combineLatest([
-    table.l.setPreferredSize, s.pt.onContentSizeChange
+    latest.setPreferredSize, pt.onContentSizeChange
   ]).pipe(
     rx.map(([[, w, h], [, cW, cH]]) => {
       const override = [cW, cH] as [number, number];
@@ -179,29 +202,29 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     }),
     rx.distinctUntilChanged((a, b) => a[0] === b[0] && a[1] === b[1]),
     rx.map(([w, h]) => {
-      s.ft.preferredSize(w, h).dp();
+      ft.preferredSize(w, h).dp();
     })
   ));
   r('addRerenderAction', rx.merge(
-    s.pt.addRerenderAction.pipe(
+    pt.addRerenderAction.pipe(
       rx.mergeMap(([, action$]) => action$)
     )
   ).pipe(
     rx.map(actionOrPayload => {
       const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;
-      s.ft.needRerender(true).dp(m);
+      ft.needRerender(true).dp(m);
     })
   ));
-  r('setSize,onSize,setParent -> setPreferredSize', s.pt.setSize.pipe(
+  r('setSize,onSize,setParent -> setPreferredSize', pt.setSize.pipe(
     rx.switchMap(([m, w, h]) => {
       if (typeof w === 'string' && typeof h === 'string') {
         const percW = /(\d+)%/.exec(w)![0];
         const percH = /(\d+)%/.exec(h)![0];
-        return table.l.setParent.pipe(
+        return latest.setParent.pipe(
           rx.switchMap(([, p]) => p ?
-            p.table.l.onSize.pipe(
+            p.latest.onSize.pipe(
               rx.map(([, w0, h0]) => {
-                s.ft.setPreferredSize(
+                ft.setPreferredSize(
                   Math.round(w0 * Number(percW) / 100),
                   Math.round(h0 * Number(percH) / 100)
                 ).dp(m);
@@ -211,11 +234,11 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         );
       } else if (typeof w === 'string') {
         const percW = /(\d+)%/.exec(w)![0];
-        return table.l.setParent.pipe(
+        return latest.setParent.pipe(
           rx.switchMap(([, p]) => p ?
-            p.table.l.onSize.pipe(
+            p.latest.onSize.pipe(
               rx.map(([, w0]) => {
-                s.ft.setPreferredSize(
+                ft.setPreferredSize(
                   Math.round(w0 * Number(percW) / 100),
                   h as (number | null)
                 ).dp(m);
@@ -225,11 +248,11 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         );
       } else if (typeof h === 'string') {
         const percH = /(\d+)%/.exec(h)![0];
-        return table.l.setParent.pipe(
+        return latest.setParent.pipe(
           rx.switchMap(([, p]) => p ?
-            p.table.l.onSize.pipe(
+            p.latest.onSize.pipe(
               rx.map(([, , h0]) => {
-                s.ft.setPreferredSize(
+                ft.setPreferredSize(
                   w,
                   Math.round(h0 * Number(percH) / 100)
                 ).dp(m);
@@ -238,45 +261,45 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
             rx.EMPTY)
         );
       } else {
-        s.ft.setPreferredSize(w, h).dp(m);
+        ft.setPreferredSize(w, h).dp(m);
         return rx.EMPTY;
       }
     })
   ));
-  r('needRerender, ofCanvas -> canvas.requestRender', s.pt.needRerender.pipe(
+  r('needRerender, ofCanvas -> canvas.requestRender', pt.needRerender.pipe(
     rx.filter(([, need]) => need),
-    rx.switchMap(([m]) => table.l.onDetached.pipe(
+    rx.switchMap(([m]) => latest.onDetached.pipe(
       rx.take(1),
       rx.filter(([, detached]) => !detached),
       rx.map(() => m)
     )),
-    rx.switchMap(m => table.l.ofCanvas.pipe(
+    rx.switchMap(m => latest.ofCanvas.pipe(
       rx.map(([, canvas]) => {
         if (canvas)
-          canvas.s.ft.requestRender().dp(m);
+          canvas.ft.requestRender().dp(m);
       })
     ))
   ));
   let lastClips: Rectangle[] | undefined;
   // let lastMasks: Rectangle[] | undefined;
-  r('render -> needRerender, onRender, onBoundingBox', s.pt.render.pipe(
-    rx.withLatestFrom(table.l.needRerender, table.l.onSize, table.l.setDisplay),
+  r('render -> needRerender, onRender, onBoundingBox', pt.render.pipe(
+    rx.withLatestFrom(latest.needRerender, latest.onSize, latest.setDisplay),
     rx.map(([[m, canvas, trans, clips, masks], [, renderSelf], [, width, height], [, display]]) => {
-      s.ft._saveTransform(trans).dp(m);
+      ft._saveTransform(trans).dp(m);
       if (renderSelf) {
-        s.ft.needRerender(false).dp(m);
+        ft.needRerender(false).dp(m);
       }
       const pos = [0, 0] as [number, number];
       vec2.transformMat4(pos, pos, trans);
       const bounding = [pos[0], pos[1], width, height] as [number, number, number, number];
-      s.ft.onBoundingBox(bounding).dp(m);
+      ft.onBoundingBox(bounding).dp(m);
       if (width === 0 || height === 0)
         return;
       if (display === DisplayMode.hidden) {
-        s.ft.clear(canvas, trans).dp(m);
+        ft.clear(canvas, trans).dp(m);
       } else {
         clips = clips ?? [[0, 0, width, height]];
-        s.ft.beforeRender(canvas, trans, clips, masks ?? []).dp(m);
+        ft.beforeRender(canvas, trans, clips, masks ?? []).dp(m);
         const needRerender = !!table.getData().needRerender[0];
         if (!renderSelf && !needRerender) {
           const isClipChanged = lastClips == null || (clips != null && (
@@ -286,213 +309,229 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
             renderSelf = true;
           }
         }
-        s.ft.onRender(canvas, trans, renderSelf || needRerender, clips, masks).dp(m);
+        ft.onRender(canvas, trans, renderSelf || needRerender, clips, masks).dp(m);
         if (needRerender)
-          s.ft.needRerender(false).dp(m);
+          ft.needRerender(false).dp(m);
       }
-      s.ft.bgCleared(false).dp(m);
+      ft.bgCleared(false).dp(m);
       lastClips = clips;
     })
   ));
-  r('clear', s.pt.clear.pipe(
+  r('clear... -> bgCleared...', pt.clear.pipe(
     rx.withLatestFrom(
-      table.l.onSize,
-      table.l.onBgChangeWithParent,
-      table.l.bgCleared
+      latest.onSize,
+      latest.onBgChangeWithParent,
+      latest.bgCleared
     ),
     rx.map(([[m, canvas, trans], [m2, width, height], [m3, bg], [m4, cleared]], _idx) => {
       const pos = [0, 0] as vec2;
       vec2.transformMat4(pos, pos, trans);
-      service.log('>> clear bg:', bg, 'bgCleared:', cleared);
+      // service.log('>> clear bg:', bg, 'bgCleared:', cleared);
       if (bg) {
         const fill = ' '.repeat(width);
         for (let i = 0; i < height; i++) {
-          canvas.s.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
+          canvas.ft.addString(pos[0], pos[1] + i, fill, [bg]).dp(m);
         }
       } else if (!cleared) {
-        canvas.s.ft.clearRect(pos[0], pos[1], width, height).dp(m);
+        canvas.ft.clearRect(pos[0], pos[1], width, height).dp(m);
       }
-      s.ft.bgCleared(true).dp(m, m2, m3, m4);
+      ft.bgCleared(true).dp(m, m2, m3, m4);
     })
   ));
-  r('setParent, error$, parent.destory$,parent.bgCleared... -> parent.onChildError, dispose()...', table.l.setParent.pipe(
+  r('setParent, error$, parent.destory$,parent.bgCleared... -> parent.onChildError, dispose()...', latest.setParent.pipe(
     rx.switchMap(([m, parent]) => {
       if (parent == null) {
-        s.ft.ofCanvas(null).dp(m);
-        s.ft.onDetached(true).dp(m);
+        ft.ofCanvas(null).dp(m);
+        ft.onDetached(true).dp(m);
+        ft.depth(0).dp(m);
         return rx.EMPTY;
       }
       return rx.merge(
-        parent.table.l.onDetached.pipe(
+        parent.latest.depth.pipe(
+          rx.map(([mp, d]) => ft.depth(d + 1).dp(mp))
+        ),
+        parent.latest.onDetached.pipe(
           rx.map(([m, d]) => {
-            s.ft.onDetached(d).dp(m);
+            ft.onDetached(d).dp(m);
           })
         ),
-        parent.table.l.hasOfflineCanvas.pipe(
+        parent.latest.hasOfflineCanvas.pipe(
           rx.switchMap(([, has]) => has ?
             rx.EMPTY :
-            parent.s.pt.bgCleared.pipe(
+            parent.pt.bgCleared.pipe(
               rx.map(([m, cleared]) => {
                 if (cleared) {
-                  s.ft.bgCleared(true).dp(m);
-                  s.ft.needRerender(true).dp(m);
+                  ft.bgCleared(true).dp(m);
+                  ft.needRerender(true).dp(m);
                 }
               })
             ))
         ),
-        parent.table.l.ofCanvas.pipe(
-          rx.map(([m, canvas]) => s.ft.ofCanvas(canvas).dp(m))
+        parent.latest.ofCanvas.pipe(
+          rx.map(([m, canvas]) => ft.ofCanvas(canvas).dp(m))
         ),
         service.error$.pipe(
-          rx.tap(errInfo => parent.s.ft.onChildError(service.s.logPrefix, errInfo))
+          rx.tap(errInfo => parent.ft.onChildError(service.s.logPrefix, errInfo))
         ),
         parent.destory$.pipe(
           rx.map(() => service.dispose())
+        ),
+        parent.pt.needRerenderTree.pipe(
+          rx.map(([m]) => ft.needRerenderTree().dp(m))
         )
       );
     })
   ));
   r('setParent,setBackground,parent.onBgChangeWithParent -> onBgChangeWithParent', rx.combineLatest([
-    table.l.setParent.pipe(
-      rx.switchMap(([, parent]) => parent?.table.l.onBgChangeWithParent ?? rx.of([null, null] as const))
+    latest.setParent.pipe(
+      rx.switchMap(([, parent]) => parent?.latest.onBgChangeWithParent ?? rx.of([null, null] as const))
     ),
-    table.l.setBackground
+    latest.setBackground
   ]).pipe(
     rx.map(([[m, pBg], [m2, ownBg]]) => {
       if (ownBg)
-        s.ft.onBgChangeWithParent(ownBg).dp(m2);
+        ft.onBgChangeWithParent(ownBg).dp(m2);
       else if (m && pBg)
-        s.ft.onBgChangeWithParent(pBg).dp(m, m2);
+        ft.onBgChangeWithParent(pBg).dp(m, m2);
       else
-        s.ft.onBgChangeWithParent(null).dp(m2);
+        ft.onBgChangeWithParent(null).dp(m2);
     })
   ));
-  // observe parent, when parent is a "offsetParent", set "offsetParent" to it,
-  // otherwise set offsetParent to parent's offsetParent
-  r('setParent, p.isOffsetParent, p.offsetParent -> offsetParent', s.pt.setParent.pipe(
-    rx.switchMap(([m, p]) => {
-      if (p) {
-        return rx.combineLatest([
-          p.table.l.isOffsetParent,
-          p.table.l.offsetParent
-        ]).pipe(
-          rx.map(([[m1, ofp], [m2, op]]) => {
-            if (ofp) {
-              s.ft.offsetParent(ofp).dp(m1);
-            } else {
-              s.ft.offsetParent(op).dp(m1, m2);
-            }
-          })
-        );
-      } else {
-        s.ft.offsetParent(null).dp(m);
-        return rx.EMPTY;
-      }
-    })
-  ));
-
   // dispatch onRectChange to offsetParent when setFocusable is not false or "isOffsetParent" is true
-  r('offsetParent, isOffsetParent, setFocusable -> onRectChange, removeFocusable', table.l.offsetParent.pipe(
+  /* r('offsetParent, isOffsetParent, setFocusable -> onRectChange, removeFocusable', latest.offsetParent.pipe(
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.switchMap(([m, op]) => {
       if (op) {
         return rx.combineLatest([
-          table.l.setFocusable,
-          table.l.isOffsetParent
+          latest.setFocusable,
+          latest.isOffsetParent
         ]).pipe(
           rx.switchMap(([[m2, focusable], [m1, isOffsetParent]]) => {
             // service.log('>>> dispatch onRectChange for', focusable, 'isOffsetParent', isOffsetParent);
             if (focusable) {
               if (focusable === true) {
                 // service.log('>>> let me queryAbsBounding');
-                return s.ft.queryAbsBounding(op as TerminalContainer & OffsetParent)
+                return ft.queryAbsBounding(op as TerminalContainer & OffsetParent)
                   .re(m, m2, m1)
-                  .od(s.pt.didQueryAbsBounding).pipe(
+                  .od(pt.didQueryAbsBounding).pipe(
                     rx.filter(([, r]) => r != null),
                     rx.map(([, r]) => {
                       // service.log('>>> onRectChange', r, service.opts?.name);
-                      op.focusService.s.ft.onRectChange(r!, service).dp(m1, m2, m);
+                      op.focusService.ft.onRectChange(r!, service).dp(m1, m2, m);
                     })
                   );
               } else {
-                return s.ft.queryAbsBounding(op as TerminalContainer & OffsetParent).re(
+                return ft.queryAbsBounding(op as TerminalContainer & OffsetParent).re(
                   m, m2, m1
                 ).od(
-                  s.pt.didQueryAbsBounding
+                  pt.didQueryAbsBounding
                 ).pipe(
                   rx.filter(([, r]) => r != null),
                   rx.map(([, r]) => {
                     const [x, y] = r!;
                     const rect = focusable;
-                    op.focusService.s.ft.onRectChange([rect[0] + x, rect[1] + y, rect[2], rect[3]], service).dp(m2, m1, m);
+                    op.focusService.ft.onRectChange([rect[0] + x, rect[1] + y, rect[2], rect[3]], service).dp(m2, m1, m);
                   })
                 );
               }
             } else if (isOffsetParent) {
-              return s.ft.queryAbsBounding(op as TerminalContainer & OffsetParent)
+              return ft.queryAbsBounding(op as TerminalContainer & OffsetParent)
                 .re(m, m2, m1).od(
-                  s.pt.didQueryAbsBounding
+                  pt.didQueryAbsBounding
                 ).pipe(
                   rx.filter(([, r]) => r != null),
                   rx.map(([, r]) => {
-                    op.focusService.s.ft.onRectChange(r!, service).dp(m1, m2, m);
+                    op.focusService.ft.onRectChange(r!, service).dp(m1, m2, m);
                   })
                 );
             } else {
-              op.focusService.s.ft.removeFocusable(service).dp(m, m1, m2);
+              op.focusService.ft.removeFocusable(service).dp(m, m1, m2);
               return rx.EMPTY;
             }
           }),
           rx.finalize(() => {
-            op.focusService.s.ft.removeFocusable(service).dp(m);
+            op.focusService.ft.removeFocusable(service).dp(m);
           })
         );
       }
       return rx.EMPTY;
     })
+  )); */
+  function disableParentFocusable(thisComp: BaseWidget, m: ActionMeta): rx.Observable<any> {
+    return thisComp.latest.setParent.pipe(
+      rx.switchMap(([, p]) => p ? rx.merge(
+        disableParentFocusable(p, m),
+        p.latest.setFocusable.pipe(
+          rx.take(1),
+          rx.map(([, isFocusable]) => {
+            if (isFocusable)
+              p.ft.setFocusable(false).dp(m);
+          })
+        )
+      ) : rx.EMPTY)
+    );
+  }
+  r('setFocusable', pt.setFocusable.pipe(
+    rx.switchMap(([m, focusable]) => focusable ?
+      rx.merge(
+        disableParentFocusable(service, m),
+        latest.focusService.pipe(
+          rx.switchMap(([, focusSvc]) => focusSvc.latest.forRootComp.pipe(
+            rx.map(([, rootComp]) => [focusSvc, rootComp] as const)
+          )),
+          rx.switchMap(([focusSvc, rootComp]) => ft.queryAbsBounding(
+            rootComp as TerminalContainer
+          ).re(m).od(pt.didQueryAbsBounding).pipe(
+            rx.switchMap(([, r]) => {
+              return new rx.Observable(() => {
+                if (r) {
+                  if (focusable) {
+                    focusSvc.ft.onRectChange(r, service).dp(m);
+                  } else {
+                    const [x, y] = r;
+                    const rect = focusable;
+                    focusSvc.ft.onRectChange([rect[0] + x, rect[1] + y, rect[2], rect[3]], service).dp(m);
+                  }
+                }
+                return () => {
+                  focusSvc.ft.removeFocusable(service).dp(m);
+                };
+              });
+            })
+          ))
+        )
+      ) :
+      rx.EMPTY
+    )
   ));
   // Refer "rootService" to offset parent's focusService's "rootService"
-  r('offsetParent, isOffsetParent... -> focusService.rootService', rx.combineLatest([
-    s.pt.offsetParent,
-    s.pt.isOffsetParent
-  ]).pipe(
-    rx.switchMap(([[, op], [, isOffsetParent]]) => {
-      return op && isOffsetParent
-        ? op.focusService.table.l.rootService.pipe(
-          rx.map(([m, rootFocus]) => isOffsetParent.focusService.s.ft.rootService(rootFocus).dp(m))
-        )
-        : rx.EMPTY;
-    })
-  ));
-  r('queryAbsBounding -> didQueryAbsBounding', s.pt.queryAbsBounding.pipe(
+  r('queryAbsBounding -> didQueryAbsBounding', pt.queryAbsBounding.pipe(
     rx.mergeMap(([m, topParent]) => rx.combineLatest([
-      table.l.setParent,
-      table.l.onPosition,
-      table.l.onSize.pipe(
+      latest.setParent,
+      latest.onPosition,
+      latest.onSize.pipe(
         rx.distinctUntilChanged(([, aw, ah], [, bw, bh]) => aw === bw && ah === bh)
       )
     ]).pipe(
       rx.switchMap(([[, p], [, x, y], [, w, h]]) => {
         if (x == null || y == null) {
-          s.ft.didQueryAbsBounding(null).dp(m);
+          ft.didQueryAbsBounding(null).dp(m);
           return rx.EMPTY;
         }
         if (p == null) {
-          s.ft.didQueryAbsBounding([x, y, w, h] as Rectangle).dp(m);
+          ft.didQueryAbsBounding([x, y, w, h] as Rectangle).dp(m);
           return rx.EMPTY;
         }
-        let left = x;
-        let top = y;
         if (topParent != null && topParent === p) {
-          s.ft.didQueryAbsBounding([left, top, w, h] as const).dp(m);
+          ft.didQueryAbsBounding([x, y, w, h] as const).dp(m);
           return rx.EMPTY;
         } else {
-          return p.s.ft.queryAbsBounding(topParent).re(m).od(
-            p.s.pt.didQueryAbsBounding
+          return p.ft.queryAbsBounding(topParent).re(m).od(
+            p.pt.didQueryAbsBounding
           ).pipe(
-            rx.map(([m2, r]) => {
+            rx.switchMap(([m2, r]) => {
               if (r == null) {
-                s.ft.didQueryAbsBounding([x, y, w, h] as Rectangle).dp(m, m2);
+                ft.didQueryAbsBounding([x, y, w, h] as Rectangle).dp(m, m2);
                 return rx.EMPTY;
               }
               const [px, py] = r;
@@ -500,12 +539,16 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
               // service.log('queryAbsBounding()', s.logPrefix, 'has scrollData', scrollData);
               // eslint-disable-next-line prefer-const
               if (scrollData?.[0] != null) {
-                const [sx, sy] = scrollData;
-                left -= sx;
-                top -= sy!;
+                return (p as Scrollable).latest.onValidScroll.pipe(
+                  rx.map(([, scrLeft, scrTop]) => {
+                    const res = [x + px - scrLeft, y + py - scrTop, w, h] as Rectangle;
+                    ft.didQueryAbsBounding(res).dp(m, m2);
+                  })
+                );
               }
-              const res = [left + px, top + py, w, h] as Rectangle;
-              s.ft.didQueryAbsBounding(res).dp(m, m2);
+              const res = [x + px, y + py, w, h] as Rectangle;
+              ft.didQueryAbsBounding(res).dp(m, m2);
+              return rx.EMPTY;
             })
           );
         }
@@ -514,51 +557,174 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     ))
   ));
 
-  r('onDetached -> focusService.removeFocusable', s.pt.onDetached.pipe(
-    rx.withLatestFrom(table.l.offsetParent),
-    rx.map(([[m], [m2, op]]) => {
-      if (op)
-        op.focusService.s.ft.removeFocusable(service).dp(m, m2);
+  r('onDetached -> focusService.removeFocusable', pt.onDetached.pipe(
+    rx.withLatestFrom(latest.setFocusable, latest.focusService),
+    rx.map(([[m], [, focusable], [, focusSvc]]) => {
+      if (focusable && focusSvc)
+        focusSvc.ft.removeFocusable(service).dp(m);
     })
   ));
-  r('setRenderChanges -> needRerender', s.pt.setRenderChanges.pipe(
+  r('setRenderChanges -> needRerender', pt.setRenderChanges.pipe(
     rx.switchMap(([, list]) => rx.merge(list.map(it => it.pipe(
       rx.skip(1)
     )))),
     rx.mergeMap(o => o),
-    rx.map(([m]) => s.ft.needRerender(true).dp(m))
+    rx.map(([m]) => ft.needRerender(true).dp(m))
+  ));
+  r('needRerenderTree -> needRerender', pt.needRerenderTree.pipe(
+    rx.map(([m]) => ft.needRerender(true).dp(m))
+  ));
+  let contextData: Map<string, any> | undefined;
+  r('provideContext', pt.provideContext.pipe(
+    rx.map(([, key, value]) => {
+      if (contextData == null)
+        contextData = new Map();
+      contextData.set(key, value);
+    })
+  ));
+  r('queryContext -> onContextChange', pt.queryContext.pipe(
+    rx.mergeMap(([m, key]) => {
+      return rx.concat(
+        rx.of(contextData?.has(key) ?
+          contextData.get(key) :
+          undefined),
+        pt.provideContext.pipe(
+          rx.filter(([, k]) => k === key),
+          rx.map(([, , v]) => v)
+        )
+      ).pipe(
+        rx.switchMap(value => value !== undefined ?
+          rx.of(value) :
+          latest.setParent.pipe(
+            rx.switchMap(([, p]) => p ?
+              p.ft.queryContext(key).re(m).od(
+                p.pt.onContextChange).pipe(
+                rx.map(([, , v]) => v)
+              ) :
+              rx.of(undefined)
+            )
+          )),
+        rx.map(v => ft.onContextChange(key, v).dp(m)),
+        rx.takeUntil(service.s.onCancelOf(m))
+      );
+    })
+  ));
+  r('provideFocusService', pt.provideFocusService.pipe(
+    rx.switchMap(([m, focusSvc]) => {
+      ft.provideContext('focusSvc', focusSvc).dp(m);
+      return latest.setParent.pipe(
+        rx.switchMap(([, p]) => p ? p.latest.focusService : rx.EMPTY),
+        rx.switchMap(([, pFocusSvc]) => {
+          // disableParentFocusable(service, m),
+          return pFocusSvc.latest.forRootComp.pipe(
+            rx.map(([, root]) => [pFocusSvc, root] as const)
+          );
+        }),
+        rx.switchMap(([pFocusSvc, root]) => {
+          return rx.merge(
+            pFocusSvc.pt.pauseHandleEvents.pipe(
+              rx.map(([ms]) => focusSvc.ft.pauseHandleEvents().dp(ms))
+            ),
+            pFocusSvc.pt.resumeHandleEvents.pipe(
+              rx.map(([ms]) => focusSvc.ft.resumeHandleEvents().dp(ms))
+            ),
+            ft.queryAbsBounding(root as TerminalContainer).re(m)
+              .od(pt.didQueryAbsBounding).pipe(
+                rx.filter(([, r]) => r != null),
+                rx.map(([, r]) => {
+                  service.log('--- onRectChange for context focusSvc', r, service.s.logPrefix);
+                  pFocusSvc.ft.onRectChange(r!, service).dp(m);
+                }),
+                rx.finalize(() => {
+                  pFocusSvc.ft.removeFocusable(service).dp(m);
+                })
+              )
+          );
+        })
+      );
+    })
+  ));
+
+  const lastStopFocusPropaAction = new Set<ActionMeta['i']>();
+  r('stopEventPropagation', pt.stopEventPropagation.pipe(
+    rx.map(([m]) => {
+      if (Array.isArray(m.r)) {
+        for (const i of m.r)
+          lastStopFocusPropaAction.add(i);
+      } else if (m.r != null) {
+        lastStopFocusPropaAction.add(m.r);
+      } else {
+        throw new Error('stopEventPropagation must be dispatched with related action meta');
+      }
+    })
+  ));
+  r('onFocus,stopEventPropagation -> parent.onFocus', rx.merge(
+    at.onFocus, at.onBlur
+  ).pipe(
+    rx.mergeMap(a => {
+      return new rx.Observable(sub => {
+        setTimeout(() => {
+          // service.log('-- lastStopFocusPropaAction', m.i, lastStopFocusPropaAction);
+          if (!lastStopFocusPropaAction.has(a.i)) {
+            // service.log('-- propagation', m.i);
+            sub.next();
+          } else {
+            lastStopFocusPropaAction.delete(a.i);
+          }
+          sub.complete();
+        }, 0);
+      }).pipe(
+        rx.switchMap(() => latest.setParent),
+        rx.take(1),
+        rx.map(([, p]) => {
+          if (p) {
+            const pa = s.createAction(a.t as any, a.p);
+            p.s.actionUpstream.next(pa);
+          }
+        })
+      );
+    })
   ));
   const renderData = [
-    table.l.setDisplay,
-    table.l.onSize,
-    table.l.setBackground
+    latest.setDisplay,
+    latest.onSize,
+    latest.setBackground
   ];
+  r('-> focusService', ft.queryContext('focusSvc').od(
+    pt.onContextChange
+  ).pipe(
+    rx.map((([m, , v]) => {
+      if (v != null)
+        ft.focusService(v as FocusService).dp(m);
+    }))
+  ));
 
   r('init', new rx.Observable<never>(() => {
-    s.ft.bgCleared(false).dp();
-    s.ft.onPosition(null, null).dp();
-    s.ft.isOffsetParent(false).dp();
-    s.ft.offsetParent(null).dp();
-    s.ft.setFlexGrow(0).dp();
-    s.ft.setFlexShrink(1).dp();
-    s.ft.setPreferredSize(null, null).dp();
-    s.ft.needRerender(true).dp();
-    s.ft.setParent(null).dp();
-    s.ft.ofCanvas(null).dp();
-    s.ft.setDisplay(DisplayMode.visible).dp();
-    s.ft.onBoundingBox([0, 0, 0, 0]).dp();
-    s.ft.setFocusable(false).dp();
-    s.ft.onDetached(true).dp();
-    s.ft.setBackground(null).dp();
-    s.ft.isContainer(false).dp();
-    s.ft.onBgChangeWithParent(null).dp();
-    s.ft.setRenderChanges(renderData).dp();
+    ft.depth(0).dp();
+    ft.bgCleared(false).dp();
+    ft.onPosition(null, null).dp();
+    // ft.isOffsetParent(false).dp();
+    // ft.offsetParent(null).dp();
+    ft.setFlexGrow(0).dp();
+    ft.setFlexShrink(1).dp();
+    ft.setPreferredSize(null, null).dp();
+    ft.needRerender(true).dp();
+    ft.setParent(null).dp();
+    ft.ofCanvas(null).dp();
+    ft.setDisplay(DisplayMode.visible).dp();
+    ft.onBoundingBox([0, 0, 0, 0]).dp();
+    ft.setFocusable(false).dp();
+    ft.onDetached(true).dp();
+    ft.setBackground(null).dp();
+    ft.isContainer(false).dp();
+    ft.onBgChangeWithParent(null).dp();
+    ft.setRenderChanges(renderData).dp();
   }));
 });
 
-export interface OffsetParent {
-  focusService: FocusService;
-}
+// export interface OffsetParent {
+//   focusService: FocusService;
+// }
 
 function isRectangeCover(covering: Rectangle, covered: Rectangle) {
   return covering[0] <= covered[0] && covering[0] + covering[2] >= covered[0] + covered[2] &&

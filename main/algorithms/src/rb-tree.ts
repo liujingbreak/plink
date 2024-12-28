@@ -52,7 +52,8 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
    * @param key
    * @returns existing tree node if key duplicates or a new empty node
    */
-  insert(key: T): Omit<RbTreeNode<T, V>, 'value'> & {value?: V} {
+  insert<Value extends [V] | []>(key: T, ...value: Value):
+  Value['length'] extends 0 ? RbTreeNode<T, V> : Omit<RbTreeNode<T, V>, 'value'> & {value?: V} {
     let y: RbTreeNode<T, V> = this.nil;
     let x = this.root;
     let cmp: number;

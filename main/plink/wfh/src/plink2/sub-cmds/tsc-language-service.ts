@@ -22,7 +22,7 @@ export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: Tsco
       s.pt.onSuggest.pipe(
         rx.map(([, file, diagnostics]) => {
           // eslint-disable-next-line no-console
-          console.log('[langService]', file, diagnostics);
+          console.log('[langService] suggests:', file, diagnostics);
         })
       ),
       s.ft.addSourceFile(file, true, content)
@@ -36,15 +36,15 @@ export function createTranspileFileWithTsCheck(ts: any = _ts, tsconfigJson: Tsco
               unknownOutputFile = outputFile;
             }
           }),
-          // rx.take(1),
+          rx.take(1),
           rx.takeUntil(s.pt.onEmitFailure.pipe(
             rx.map(([, file, diagnostics]) => {
-            // eslint-disable-next-line no-console
-              console.log('[langService]', file, diagnostics);
+              // eslint-disable-next-line no-console
+              console.log('[langService] failed:', file, diagnostics);
             })
           )),
           rx.catchError(err => {
-          // eslint-disable-next-line no-console
+            // eslint-disable-next-line no-console
             console.log('[tsc-util] catch error', err);
             error = err as Error;
             return rx.EMPTY;

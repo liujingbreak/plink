@@ -25,7 +25,7 @@ const config = {
     // Stop running tests after `n` failures
     // bail: 0,
     // The directory where Jest should store its cached dependency information
-    // cacheDirectory: "/private/var/folders/ls/28mw_hnx36g74hr0nms0tw000000gn/T/jest_dx",
+    cacheDirectory: path_1.default.resolve(init_plink_1.plinkRootDir, 'dist/jest-cache'),
     // Automatically clear mock calls, instances, contexts and results before every test
     // clearMocks: false,
     // Indicates whether the coverage information should be collected while executing the test

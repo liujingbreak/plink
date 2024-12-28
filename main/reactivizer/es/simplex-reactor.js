@@ -2,30 +2,29 @@ import * as rx from 'rxjs';
 import { RxController2 } from './control2';
 import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
+import { PostForkedRxController } from './post-forked-control';
 import { actionRelatedToAction } from './context-operators';
 const baseTableFor = ['__onError', '__onDisposed'];
 let SEQ = new Date().getUTCMilliseconds();
 export class SimplexReactor {
     constructor(opts) {
         var _a, _b;
+        // ft: RxController2<I & BaseActions>['ft'];
         this.r = (...params) => {
             if (typeof params[0] === 'string')
                 this.reactorSubj.next(params);
             else
                 this.reactorSubj.next(['', ...params]);
         };
-        // /** cast current SimplexReactor type to its logical super type for Typescript type assignable check */
-        // asBaseType = this as unknown as BaseType;
-        /** alias of "asBaseType",
-         * cast current SimplexReactor type to its logical super type for Typescript type assignable check
-         **/
-        // b = this as unknown as BaseType;
         this.id = SEQ++;
         this.reactorSubj = new rx.ReplaySubject();
         this.errorSubject = new rx.ReplaySubject(20);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.opts = opts;
         this.s = new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `@${this.id}` }));
+        this.pt = this.s.pt;
+        this.at = this.s.at;
+        this.ft = this.s.ft;
         const internalMsgCtl = this.s;
         const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsgCtl.pt.__onError.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
             throw err;
@@ -52,6 +51,7 @@ export class SimplexReactor {
             return src;
         })).subscribe();
         this.table = new ActionTable(this.s, [...(_b = opts === null || opts === void 0 ? void 0 : opts.tableFor) !== null && _b !== void 0 ? _b : [], ...baseTableFor]);
+        this.latest = this.table.l;
         const internalTable = this.table;
         this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), internalTable.l.__onError.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -95,7 +95,37 @@ export class SimplexReactor {
      * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
      **/
     forExtend() {
-        this.s = new ForkedRxController(this.s);
+        const baseS = this.s;
+        const s = this.s = new ForkedRxController(baseS);
+        const baseTable = this.table;
+        this.table = new ActionTable(s, [...this.table.actionNames]);
+        for (const [type, [m, ...p]] of baseTable.actionSnapshot) {
+            const latestAct = s.createAction(type, p);
+            latestAct.i = m.i;
+            latestAct.r = m.r;
+            s.forkedUpStream.next(latestAct);
+        }
+        this.pt = s.pt;
+        this.ft = s.ft;
+        this.at = s.at;
+        this.latest = this.table.l;
+        let cachePostBase;
+        function ensurePostBase() {
+            if (cachePostBase)
+                return cachePostBase;
+            cachePostBase = new PostForkedRxController(baseS);
+            return cachePostBase;
+        }
+        if (this.postBase == null) {
+            Object.defineProperty(this, 'postBase', {
+                get: ensurePostBase,
+                configurable: true
+            });
+            Object.defineProperty(this, 'p', {
+                get: ensurePostBase,
+                configurable: true
+            });
+        }
         return this;
     }
     /**
@@ -185,10 +215,6 @@ export class SimplexReactor {
         })));
         return resolveFuncKey;
     }
-    // init() {
-    //   this.s.ft.__onInit().dp();
-    //   return this;
-    // }
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll() {
         return this;
@@ -199,8 +225,8 @@ export class SimplexReactor {
     }
     logError(label, err) {
         var _a, _b;
-        const message = 'Error@' + (((_a = this.opts) === null || _a === void 0 ? void 0 : _a.name) ? this.opts.name + '::' : '') + label;
-        this.errorSubject.next([message, err]);
+        const message = 'Error@' + (this.s.logPrefix + '::') + label;
+        this.errorSubject.next([message, (_a = err.message) !== null && _a !== void 0 ? _a : err]);
         if ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.log)
             this.opts.log(message, err);
         else
@@ -213,15 +239,6 @@ export class SimplexReactor {
                 return rx.throwError(() => err instanceof Error ? err : new Error(err));
             return hehavior === 'continue' ? src : rx.EMPTY;
         }));
-    }
-}
-/** You should never create instance by constructor of this class,
- **/
-export class DerivedSimplexReactor extends SimplexReactor {
-    constructor(ancestor) {
-        super();
-        this.s = new ForkedRxController(ancestor.s);
-        this.table = new ActionTable(this.s, [...ancestor.table.actionNames]);
     }
 }
 //# sourceMappingURL=simplex-reactor.js.map

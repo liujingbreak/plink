@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.textWidgetFac = void 0;
 exports.createTextWidget = createTextWidget;
@@ -37,8 +47,8 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
 }).interceptorByType(ad => rx.merge(ad.at.setContent.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, initialText, opts) => {
     const service = init(opts);
     const spliter = (0, text_split_1.createWordSplitter)({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });
-    const { r, s, table } = service;
-    r('onRender', s.pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(table.l.onDisplayLines, table.l.onStyleWithParentBg, table.l.onSize, table.l.overflow, table.l.onBgChangeWithParent), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
+    const { r, s, ft, pt, table } = service;
+    r('onRender', pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(table.l.onDisplayLines, table.l.onStyleWithParentBg, table.l.onSize, table.l.overflow, table.l.onBgChangeWithParent), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
         const leftop = [0, 0];
         const [x, y0] = gl_matrix_1.vec2.transformMat4(leftop, leftop, trans);
         const lineCnt = Math.min(height, lines.length);
@@ -47,20 +57,20 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
             const line = lines[i];
             if (line.length < width) {
                 if (bg)
-                    canvas.s.ft.addString(x + line.length, y0 + i, ' '.repeat(width - line.length), [bg]).dp(m);
+                    canvas.ft.addString(x + line.length, y0 + i, ' '.repeat(width - line.length), [bg]).dp(m);
                 else
-                    canvas.s.ft.clearRect(x + line.length, y0 + i, width - line.length, 1).dp(m);
+                    canvas.ft.clearRect(x + line.length, y0 + i, width - line.length, 1).dp(m);
             }
-            canvas.s.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
+            canvas.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
         }
         if (overflow)
-            canvas.s.ft.addString(x + width - 3, y0 + lineCnt - 1, '...').dp(m);
+            canvas.ft.addString(x + width - 3, y0 + lineCnt - 1, '...').dp(m);
     })));
-    r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', s.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.preferredSize, table.l.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
+    r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(rx.withLatestFrom(table.l.preferredSize, table.l.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
         if (height != null) {
             if (height < 0)
                 throw new Error('querySizeOf can not accept negative parameter');
-            s.ft.prefWidthFor(prefWidth, height).dp(m);
+            ft.prefWidthFor(prefWidth, height).dp(m);
             return rx.EMPTY;
         }
         else if (width != null) {
@@ -69,18 +79,18 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
             }
             const [prevWidth, prevLines] = table.getData().onDisplayLinesForWidth;
             if (prevWidth === width && prevLines) {
-                s.ft.prefHeightFor(width, prevLines.length).dp(m);
+                ft.prefHeightFor(width, prevLines.length).dp(m);
                 return rx.EMPTY;
             }
             else {
                 return textInConstrainedWidth(width, content).pipe(rx.mergeMap(([countLines, lines$]) => {
-                    s.ft.prefHeightFor(width, countLines).dp(m);
+                    ft.prefHeightFor(width, countLines).dp(m);
                     return lines$;
                 }), rx.reduce((lines, it) => {
                     lines.push(it);
                     return lines;
                 }, []), rx.map(lines => {
-                    s.ft.onDisplayLinesForWidth(width, lines).dp(m);
+                    ft.onDisplayLinesForWidth(width, lines).dp(m);
                     return null;
                 }));
             }
@@ -93,10 +103,10 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         table.l.onSize,
         table.l.setContent.pipe(rx.map(([m, content]) => {
             const [lines, maxWidth] = preferLayoutText(content);
-            s.ft.onDisplayLinesForWidth().dp(m);
-            s.ft.onContentSizeChange(maxWidth, lines.length).dp(m);
+            ft.onDisplayLinesForWidth().dp(m);
+            ft.onContentSizeChange(maxWidth, lines.length).dp(m);
             const linesForPrefSize = lines.map(line => [...(0, canvas_1.getTextDisplayUnits)(line)]);
-            s.ft.onDisplayLinesForPrefSize(linesForPrefSize).dp(m);
+            ft.onDisplayLinesForPrefSize(linesForPrefSize).dp(m);
             return [m, maxWidth, lines.length, linesForPrefSize];
         }))
     ]).pipe(rx.mergeMap(([[m, width, height], [, prefWidth, prefHeight, linesOfPrefSize]]) => {
@@ -104,25 +114,25 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
             throw new Error(`Error: ${width} or ${height} is not valid value of "onSize [i: ${m.i}, r: ${JSON.stringify(m.r)}]" of ${s.logPrefix}`);
         // service.log('======', width, height, prefWidth, prefHeight, linesOfPrefSize);
         if (width === 0) {
-            s.ft.onDisplayLines([]).dp(m);
-            s.ft.overflow(false).dp(m);
+            ft.onDisplayLines([]).dp(m);
+            ft.overflow(false).dp(m);
             return rx.EMPTY;
         }
         const [cachedWidth, cachedLines] = table.getData().onDisplayLinesForWidth;
         if (cachedWidth === width && cachedLines) {
-            s.ft.onDisplayLines(cachedLines).dp(m);
-            s.ft.overflow(cachedLines.length > height).dp(m);
+            ft.onDisplayLines(cachedLines).dp(m);
+            ft.overflow(cachedLines.length > height).dp(m);
             return rx.EMPTY;
         }
         else if (width > prefWidth) {
-            s.ft.onDisplayLines(linesOfPrefSize).dp(m);
-            s.ft.overflow(prefHeight > height).dp(m);
+            ft.onDisplayLines(linesOfPrefSize).dp(m);
+            ft.overflow(prefHeight > height).dp(m);
             return rx.EMPTY;
         }
         else {
-            return s.ft.querySizeOf(width, null).re(m).od(s.pt.onDisplayLinesForWidth).pipe(rx.map(([, , lines]) => {
-                s.ft.overflow(lines.length > height).dp(m);
-                s.ft.onDisplayLines(lines).dp(m);
+            return ft.querySizeOf(width, null).re(m).od(pt.onDisplayLinesForWidth).pipe(rx.map(([, , lines]) => {
+                ft.overflow(lines.length > height).dp(m);
+                ft.onDisplayLines(lines).dp(m);
             }));
         }
     })));
@@ -131,9 +141,9 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         table.l.setStyle
     ]).pipe(rx.map(([[m, pBg], [m2, style]]) => {
         if (m && pBg)
-            s.ft.onStyleWithParentBg([...style, pBg]).dp(m, m2);
+            ft.onStyleWithParentBg([...style, pBg]).dp(m, m2);
         else
-            s.ft.onStyleWithParentBg(style).dp(m2);
+            ft.onStyleWithParentBg(style).dp(m2);
     })));
     const renderData = [
         table.l.setDisplay,
@@ -142,13 +152,14 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         table.l.setContent, table.l.setStyle
     ];
     r('init', new rx.Observable(() => {
-        s.ft.onContentSizeChange(0, 0).dp();
-        s.ft.onSize(0, 0).dp();
-        s.ft.setParent(null).dp();
-        s.ft.overflow(false).dp();
-        s.ft.setStyle([]).dp();
-        s.ft.setContent(initialText).dp();
-        s.ft.setRenderChanges(renderData).dp();
+        ft.onContentSizeChange(0, 0).dp();
+        ft.onSize(0, 0).dp();
+        ft.setParent(null).dp();
+        ft.overflow(false).dp();
+        ft.setStyle([]).dp();
+        ft.setContent(initialText).dp();
+        ft.setRenderChanges(renderData).dp();
+        ft.setFlexShrink(0).dp();
     }));
     function preferLayoutText(content) {
         const lines = content.split(/\r?\n/, 5000);
@@ -172,7 +183,7 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         const lines$ = new rx.ReplaySubject();
         let columnOffset = 0;
         let currLine = [];
-        return spliter.s.ft.setTextToSplit(content).od(spliter.s.pt.onWordRecorded).pipe(rx.take(1), rx.mergeMap(([, word$]) => word$), 
+        return spliter.ft.setTextToSplit(content).od(spliter.pt.onWordRecorded).pipe(rx.take(1), rx.mergeMap(([, word$]) => word$), 
         // in case length of single word is bigger than constrained width
         rx.concatMap(word => {
             const [text, type, displayLength] = word;

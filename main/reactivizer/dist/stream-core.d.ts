@@ -56,14 +56,14 @@ export declare class ControllerCore<I> {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.ReplaySubject<Set<"name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
+    configChange: rx.ReplaySubject<Set<"log" | "name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle">>;
     opts: CoreOptions<any>;
     interceptorList$: rx.BehaviorSubject<Interceptor[]>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
     private connectableAction$;
     constructor(opts?: CoreOptions<I>);
-    createAction<J = I, K extends keyof J = keyof J>(name: K, params?: InferPayload<J[K]>): Action<J[K]>;
+    createAction<J = I, K extends keyof J = keyof J>(name: K, params: InferPayload<J[K]>): Action<J[K]>;
     /** action id is also copied */
     copyActionFrom(source: Action<any>): Action<unknown>;
     /** change a debug convenient "name" as previous specified in CoreOptions of constructor */

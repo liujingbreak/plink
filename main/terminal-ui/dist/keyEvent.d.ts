@@ -37,7 +37,7 @@ export declare enum KeyEventEnum {
     focusDown = 11,
     focusNext = 12
 }
-interface keypressSignals extends KeyScrollingMsg, KeyEvents {
+export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
     onRawKeyInput(event: RawKeyEvent): SingleActionFactory;
     onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
     onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;

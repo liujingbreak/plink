@@ -17,7 +17,8 @@ export interface TerminalContainerInput {
     latestReflowData(data$: rx.Observable<InferMapParam<any>>): SingleActionFactory;
     requestReflow(reason?: string): SingleActionFactory;
     requestReflowOn<P extends [...(rx.Observable<Action<any>> | rx.Observable<InferMapParam<any>>)[]]>(...actionOrPayloads: P): SingleActionFactory;
-    /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent */
+    /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent (i.e value of onBoundingBox ).
+     * Use DFS to lookup all components including all ancestor containers */
     findOverlaps(...rect: Rectangle): SingleActionFactory;
 }
 export interface TermainlContainerEvents extends TerminalContainerInput {
@@ -62,6 +63,6 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
     /** In context of findOverlaps */
     didFindOverlaps(children: BaseWidget[]): SingleActionFactory;
 }
-export declare const baseContainerFac: import("@wfh/reactivizer").DerivedReactorFactory<TermainlContainerEvents, readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque", "latestReflowData", "isLayoutDirty", "setLayoutCheck"], [], import("./base").BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "offsetParent", "isOffsetParent", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer"], []>;
+export declare const baseContainerFac: import("@wfh/reactivizer").DerivedReactorFactory<TermainlContainerEvents, readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque", "latestReflowData", "isLayoutDirty", "setLayoutCheck"], [], import("./base").BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;
 export type TerminalContainerOpts = CreateOptsOfFac<typeof baseContainerFac>;
 export type TerminalContainer = SimplexReactorOfFac<typeof baseContainerFac>;

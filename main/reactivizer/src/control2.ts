@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
-import {Action, InferPayload, ActionMeta,
+import {Action, InferPayload, ActionMeta, assignActionReferParam,
   ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam} from './stream-core';
 import {PayloadByType, ActionByType} from './inferred-types';
 import {actionRelatedToAction} from './context-operators';
 import {ActionDataTable} from './action-table';
 import {ActionDispenser} from './stream-dispense';
 import type {ForkedRxController as ForkedRxControllerConst} from './forked-control';
+import type * as forkPost from './forked-post-control';
 import {SingleActionFactory, SingleActionFactoryImpl} from './action-factory';
 export {SingleActionFactory};
 
@@ -44,9 +45,6 @@ export class RxController2<I> extends ControllerCore<I> {
               const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key as string} #${a.i}"`;
               if (opts?.log) {
                 opts!.log(msg);
-              } else {
-                // eslint-disable-next-line no-console
-                console.log(msg);
               }
             }
           });
@@ -99,7 +97,7 @@ export class RxController2<I> extends ControllerCore<I> {
    * s.pt.searchAndKeepUpdate.pipe(
    *    rx.mergeMap(([m, keyword]) => {
    *      return aysncObtainOtherResource(keyword).pipe(
-   *        rx.takeUntil(s.onCancelOf(m)), // This is where you need "onCancelOf()" to tell when to stop relevant service for certain original action
+   *        rx.takeUntil(s.onCancelOf(m)), // This is where you need "onCancelOf()" to tell when to stop corresponding service for certain original action
    *        rx.map(result => s.ft.updateResult(result).dp(m))
    *      );
    *    )
@@ -110,6 +108,12 @@ export class RxController2<I> extends ControllerCore<I> {
     return this.pt.__cancel.pipe(
       actionRelatedToAction(actionMeta)
     );
+  }
+  /** Same as dispatching "__cancel" message */
+  cancelAction(queryAction: Action) {
+    const cancel = this.createAction('__cancel' as keyof I, [queryAction.t] as any);
+    assignActionReferParam(cancel, queryAction);
+    this.actionUpstream.next(cancel);
   }
   /**
    * This method create a new RxController2 which recieves exactly same action messages as the current controlle does.
@@ -125,6 +129,10 @@ export class RxController2<I> extends ControllerCore<I> {
    * Use forkController() instead */
   prependController() {
     return this.forkController();
+  }
+  forkPostController() {
+    const {ForkedPostRxController} = require('./forked-post-control') as typeof forkPost;
+    return new ForkedPostRxController<I>(this);
   }
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
   groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):

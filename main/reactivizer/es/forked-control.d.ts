@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { Action, Interceptor } from './stream-core';
+import { Interceptor, Action } from './stream-core';
 import { RxController2 } from './control2';
 /**
  * Use a forked RxController to extend functionality of existing reactors of another RxController or ForkedRxController.
@@ -9,11 +9,10 @@ import { RxController2 } from './control2';
  * subscription stream.
  *
  * A message interceptor of source RxController can impact all forked controller.
- * In a RxCntroller
- *
  */
 export declare class ForkedRxController<I> extends RxController2<I> {
     protected src: RxController2<I>;
+    /** Any message being emitted to this subject will not be dispatched to "base" controller */
     forkedUpStream: rx.Subject<Action<unknown>>;
     constructor(src: RxController2<I>);
     prependInterceptor(...interceptor: Interceptor[]): void;

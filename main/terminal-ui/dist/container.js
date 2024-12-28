@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.baseContainerFac = void 0;
 /* eslint-disable multiline-ternary */
@@ -36,7 +46,7 @@ const tableFor = [
 ];
 exports.baseContainerFac = base_1.baseComponentFac.forExtend({
     tableFor,
-    debugExcludeTypes: ['ofCanvas', '_saveTransform'
+    debugExcludeTypes: ['ofCanvas', '_saveTransform', 'renderChild'
         // 'queryAbsBounding', 'didQueryAbsBounding'
     ]
 }).interceptorByType(ad => rx.merge(ad.at.setLayoutValid.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor(init => {
@@ -169,37 +179,27 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
             canvas.s.ft.requestRender().dp(m);
     })))));
     r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
-        return rx.combineLatest([
-            table.l.isOffsetParent,
-            table.l.onSize
-        ]).pipe(rx.take(1), rx.switchMap(([[, asOp], [, w, h]]) => {
-            if (asOp) {
-                return table.l.onPosition.pipe(rx.filter(([, x]) => x != null), rx.take(1), rx.map(([, x, y]) => (0, canvas_1.rectIntersection)([x, y, w, h], [rect[0] - x, rect[1] - y, rect[2], rect[3]])));
-            }
-            else {
-                return rx.of((0, canvas_1.rectIntersection)([0, 0, w, h], rect));
-            }
-        }), rx.mergeMap(rect => {
-            if (rect != null)
-                return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chd]) => chd), rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(rx.take(1), rx.filter(([, bRect]) => {
-                    return (0, canvas_1.rectIntersection)(rect, bRect) != null;
-                }), rx.map(() => chr))), rx.mergeMap(chr => chr.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(isContainer => {
-                    if (isContainer) {
-                        return chr.s.ft.findOverlaps(...rect)
-                            .re(m).od(chr.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chr]));
-                    }
-                    return rx.of([chr]);
-                }))), rx.reduce((acc, it) => {
-                    acc.push(...it);
-                    return acc;
-                }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
-            else {
+        return table.l.onBoundingBox.pipe(rx.take(1), rx.mergeMap(([, [x, y, w, h]]) => {
+            const interction = (0, canvas_1.rectIntersection)([x, y, w, h], rect);
+            if (interction == null) {
                 s.ft.didFindOverlaps([]).dp(m);
                 return rx.EMPTY;
             }
+            return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chd]) => chd), rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(rx.take(1), rx.filter(([, bRect]) => {
+                return (0, canvas_1.rectIntersection)(rect, bRect) != null;
+            }), rx.map(() => chr))), rx.mergeMap(chr => chr.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(isContainer => {
+                if (isContainer) {
+                    return chr.s.ft.findOverlaps(...rect)
+                        .re(m).od(chr.s.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chr]));
+                }
+                return rx.of([chr]);
+            }))), rx.reduce((acc, it) => {
+                acc.push(...it);
+                return acc;
+            }, []), rx.map(found => s.ft.didFindOverlaps(found).dp(m)));
         }));
     })));
-    // is "setLayoutCheck" is changed, set "isLayoutDirty" to true
+    // When "setLayoutCheck" is changed, set "isLayoutDirty" to true
     r('isLayoutDirty(false),setLayoutCheck -> isLayoutDirty(true)', s.pt.isLayoutDirty.pipe(rx.switchMap(([, dirty]) => dirty ?
         rx.EMPTY :
         table.l.setLayoutCheck.pipe(rx.switchMap(([, target]) => target))), rx.map(([m]) => s.ft.isLayoutDirty(true).dp(m))));

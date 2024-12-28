@@ -2,10 +2,10 @@
 /* eslint-disable no-console */
 import * as rx from 'rxjs';
 import {describe, it, expect, jest}  from '@jest/globals';
-import {ActionDispenser, SimplexReactorOptions} from '../dist/index';
+import {ActionDispenser, SimplexReactorOptions} from '../src/index';
 import {formatToConcise} from '../dist/nodejs-utils';
 import {SingleActionFactory, RxController2, ReactorComposite2, actionRelatedToActionRelatives, SimplexReactor,
-  pairActionToActionStream} from '../dist';
+  pairActionToActionStream, PostForkedRxController} from '../src';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
@@ -403,7 +403,7 @@ describe('reactivizer2', () => {
       expect(mockfn.mock.calls.map(args => args[0])).toEqual([
         'base->pre2', 'base->pre', 'base->base',
         'pre->pre2', 'pre->pre', 'pre->base',
-        'pre2->pre2', 'pre2->pre', 'pre2->base',
+        'pre2->pre2', 'pre2->pre', 'pre2->base'
       ]);
       service.dispose();
     });
@@ -563,6 +563,39 @@ describe('reactivizer2', () => {
         'pre2->base']);
       service.dispose();
     });
+  });
+  describe('PostForkedRxController', () => {
+    const base = new RxController2<TestActions>();
+    const post = new PostForkedRxController(base);
+    const mock = jest.fn();
+    const mock2 = jest.fn();
+    post.pt.message1.pipe(
+      rx.map(() => {
+        mock('post');
+      })
+    ).subscribe();
+    base.pt.message1.pipe(
+      rx.map(() => {
+        mock('base');
+      })
+    ).subscribe();
+    base.pt.message2.subscribe(() => {
+      mock2('base');
+    });
+    post.pt.message2.subscribe(() => {
+      mock2('post');
+    });
+    base.ft.message1().dp();
+    post.ft.message2('').dp();
+    expect(mock.mock.calls.map(([a]) => a)).toEqual([
+      'base', 'post'
+    ]);
+    expect(mock.mock.calls.length).toEqual(2);
+
+    expect(mock2.mock.calls.map(([a]) => a)).toEqual([
+      'base', 'post'
+    ]);
+    expect(mock2.mock.calls.length).toEqual(2);
   });
 });
 

@@ -108,7 +108,7 @@ export function createBroker(workerController, opts) {
     r('letWorkerExit -> postMessage to thread worker', s.pt.letWorkerExit.pipe(rx.map(([, workerNo]) => {
         const prop = workerProps.get(workerNo);
         // eslint-disable-next-line @typescript-eslint/ban-types
-        prop.port.postMessage(serializeAction(s.createAction('exit')));
+        prop.port.postMessage(serializeAction(s.createAction('exit', [])));
         prop.state = 'exit';
     })));
     r('mainThreadInit', s.pt.mainThreadInit.pipe(rx.tap(() => {

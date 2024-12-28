@@ -130,10 +130,9 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
     }
     /** @param high is considered as an included endpoint value */
     searchMultipleOverlaps(low, high) {
-        const foundNodes = [];
         if (this.root === this.nil)
             return [];
-        this._searchMultipleOverlaps(foundNodes, low, high, this.root);
+        const foundNodes = this._searchMultipleOverlaps(low, high, this.root);
         return foundNodes.map(([l, h, hNode, n]) => {
             return [l, h, hNode ? hNode.value : n.value, hNode, n];
         });
@@ -168,45 +167,43 @@ class IntervalTree extends rb_tree_1.RedBlackTree {
             currNode = currNode.p;
         }
     }
-    _searchMultipleOverlaps(overlaps, low, high, node) {
+    _searchMultipleOverlaps(low, high, node) {
         if (node == null || node === this.nil) {
-            return 0;
+            return [];
         }
-        let numOverlaps = 0;
+        const currOverlaps = [];
         if (doesIntervalOverlap([node.key, node.maxHighOfMulti], [low, high])) {
             if (node.int) {
-                overlaps.push([...node.int, null, node]);
-                numOverlaps = 1;
+                currOverlaps.push([...node.int, null, node]);
             }
             else if (node.highValuesTree) {
                 if (low < node.key) {
                     for (const [n] of node.highValuesTree.allChildNodeInorder()) {
-                        overlaps.push([node.key, n.key, n, node]);
+                        currOverlaps.push([node.key, n.key, n, node]);
                     }
-                    numOverlaps = node.highValuesTree.size();
                 }
                 else {
-                    const beforeLen = overlaps.length;
+                    // const beforeLen = overlaps.length;
                     for (const hNode of node.highValuesTree.keysGreaterThan(low, true))
-                        overlaps.push([node.key, hNode.key, hNode, node]);
-                    numOverlaps = overlaps.length - beforeLen;
+                        currOverlaps.push([node.key, hNode.key, hNode, node]);
+                    // numOverlaps = overlaps.length - beforeLen;
                 }
             }
         }
         if (node.left !== this.nil && low <= node.left.max) {
-            const numOverlapsLeft = this._searchMultipleOverlaps(overlaps, low, high, node.left);
-            if (numOverlapsLeft > 0) {
-                numOverlaps += numOverlapsLeft;
-                numOverlaps += this._searchMultipleOverlaps(overlaps, low, high, node.right);
+            const overlapsLeft = this._searchMultipleOverlaps(low, high, node.left);
+            if (overlapsLeft.length > 0) {
+                currOverlaps.unshift(...overlapsLeft);
+                currOverlaps.push(...this._searchMultipleOverlaps(low, high, node.right));
             }
             // Skip right child, as if zero left child overlaps, then
             // target interval's high value must be even smaller than all left children's low values,
             // meaning entire left child tree is greater than target interval, so right child tree does the same
         }
         else {
-            numOverlaps += this._searchMultipleOverlaps(overlaps, low, high, node.right);
+            currOverlaps.push(...this._searchMultipleOverlaps(low, high, node.right));
         }
-        return numOverlaps;
+        return currOverlaps;
     }
 }
 exports.IntervalTree = IntervalTree;

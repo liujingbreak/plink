@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
-import { ControllerCore } from './stream-core';
+import { assignActionReferParam, ControllerCore } from './stream-core';
 import { actionRelatedToAction } from './context-operators';
 import { ActionDataTable } from './action-table';
 import { ActionDispenser } from './stream-dispense';
@@ -25,10 +25,6 @@ export class RxController2 extends ControllerCore {
                             const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key} #${a.i}"`;
                             if (opts === null || opts === void 0 ? void 0 : opts.log) {
                                 opts.log(msg);
-                            }
-                            else {
-                                // eslint-disable-next-line no-console
-                                console.log(msg);
                             }
                         }
                     });
@@ -74,7 +70,7 @@ export class RxController2 extends ControllerCore {
      * s.pt.searchAndKeepUpdate.pipe(
      *    rx.mergeMap(([m, keyword]) => {
      *      return aysncObtainOtherResource(keyword).pipe(
-     *        rx.takeUntil(s.onCancelOf(m)), // This is where you need "onCancelOf()" to tell when to stop relevant service for certain original action
+     *        rx.takeUntil(s.onCancelOf(m)), // This is where you need "onCancelOf()" to tell when to stop corresponding service for certain original action
      *        rx.map(result => s.ft.updateResult(result).dp(m))
      *      );
      *    )
@@ -84,9 +80,15 @@ export class RxController2 extends ControllerCore {
     onCancelOf(actionMeta) {
         return this.pt.__cancel.pipe(actionRelatedToAction(actionMeta));
     }
+    /** Same as dispatching "__cancel" message */
+    cancelAction(queryAction) {
+        const cancel = this.createAction('__cancel', [queryAction.t]);
+        assignActionReferParam(cancel, queryAction);
+        this.actionUpstream.next(cancel);
+    }
     /**
-     * This method create a new RxController2 which recieve exactly same action messages as the current controlle does.
-     * In short, subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always
+     * This method create a new RxController2 which recieves exactly same action messages as the current controlle does.
+     * i.e. subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always
      * recieves earlier than any subscribers of this controller.
      * It helps to conquer recursive message emitting problem when adding more reactors to existing message stream.
      */
@@ -94,7 +96,8 @@ export class RxController2 extends ControllerCore {
         const { ForkedRxController } = require('./forked-control'); // avoid cyclic import
         return new ForkedRxController(this);
     }
-    /** alias of forkController() */
+    /** @deprecated
+     * Use forkController() instead */
     prependController() {
         return this.forkController();
     }

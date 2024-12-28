@@ -83,6 +83,7 @@ export class ControllerCore<I> {
     this.setName(opts?.name);
     // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
     const upstream = this.actionUpstream;
+    // set logger as interceptor
     this.interceptorList$.next([
       a$ => this.opts.debug ?
         a$.pipe(
@@ -175,12 +176,12 @@ export class ControllerCore<I> {
     this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
   }
 
-  createAction<J = I, K extends keyof J = keyof J>(name: K, params?: InferPayload<J[K]>) {
+  createAction<J = I, K extends keyof J = keyof J>(name: K, params: InferPayload<J[K]>) {
     return {
       t: name as string,
       i: ACTION_SEQ++,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      p: params ?? []
+      p: params
     } as Action<J[K]>;
   }
 

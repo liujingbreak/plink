@@ -1,14 +1,18 @@
 import * as rx from 'rxjs';
 import {SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac} from '@wfh/reactivizer';
-import {borderFac, createFlexContainer, Scrollable, KeyEventServcie, DisplayMode, createTextWidget} from '../index';
+import {borderFac, createFlexContainer, Scrollable, KeyEventServcie,
+  DisplayMode, createTextWidget, TextStyle} from '../index';
 
-export interface StatusbarMessages {
+export interface StatusbarInput {
+  setMessage(text: string, style?: TextStyle): SingleActionFactory;
+}
+export interface StatusbarMessages extends StatusbarInput {
   trackScrollable(scrollable: Scrollable): SingleActionFactory;
   trackKeypressService(service: KeyEventServcie): SingleActionFactory;
   onScrollStatus(vertical: number | null, horizontal: number | null): SingleActionFactory;
   onKeypressStatus(text: string, isValid: boolean): SingleActionFactory;
 }
-const tableFor = ['trackKeypressService', 'trackScrollable'] as const;
+const tableFor = ['trackKeypressService', 'trackScrollable', 'setMessage'] as const;
 
 export type StatusbarOptions = CreateOptsInDef<StatusbarMessages, typeof borderFac>;
 export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableFor>({
@@ -23,10 +27,10 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.border'
   }, container);
-  statusbar.s.ft.setPadding(0, 0, 0, 1).dp();
-  statusbar.s.ft.setBorder('padding').dp();
-  statusbar.s.ft.setFlexShrink(0).dp();
-  const {r, s, table} = statusbar;
+  statusbar.ft.setPadding(0, 0, 0, 1).dp();
+  statusbar.ft.setBorder('padding').dp();
+  statusbar.ft.setFlexShrink(0).dp();
+  const {r, pt, ft, table} = statusbar;
   const labelScrollText = createTextWidget('scroll', {
     // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.label'
@@ -44,16 +48,21 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.key'
   });
-  labelKeypress.s.ft.setFlexGrow(1).dp();
 
-  statusbar.s.ft.setBackground('bgHsl(120,50,80)').dp();
-  labelKeypress.s.ft.setStyle(['hex(#000000)']).dp();
-  // labelKeypress.s.ft.setBackground('bgHsl(90,50,80)').dp();
-  labelScrollText.s.ft.setStyle(['hex(#000000)', 'bgHsl(90, 50, 70)']).dp();
-  labelScrollValueR.s.ft.setStyle(['hex(#000000)', 'bgHsl(140, 50, 70)']).dp();
-  labelScrollValueC.s.ft.setStyle(['hex(#000000)', 'bgHsl(150, 50, 70)']).dp();
-  container.s.ft.setBorderSpacing(0).dp();
-  container.s.ft.addChild(labelKeypress,
+  statusbar.ft.setBackground('bgHsl(120,50,80)').dp();
+  labelKeypress.ft.setStyle(['hex(#000000)']).dp();
+  // labelKeypress.ft.setBackground('bgHsl(90,50,80)').dp();
+  labelScrollText.ft.setStyle(['hex(#000000)', 'bgHsl(90, 50, 70)']).dp();
+  labelScrollValueR.ft.setStyle(['hex(#000000)', 'bgHsl(140, 50, 70)']).dp();
+  labelScrollValueC.ft.setStyle(['hex(#000000)', 'bgHsl(150, 50, 70)']).dp();
+  const customizedMsg = createTextWidget('', {
+    name: statusbar.s.logPrefix + '.msg', debug: opts?.debug, log: opts?.log
+  });
+  customizedMsg.ft.setFlexGrow(1).dp();
+  container.ft.setBorderSpacing(0).dp();
+  container.ft.addChild(
+    labelKeypress,
+    customizedMsg,
     labelScrollText,
     labelScrollValueR,
     labelScrollValueC
@@ -76,7 +85,7 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
           const vertRatio = scrollSpaceY < Number.EPSILON ? null : 1 - (cHeight - sTop - sHeight) / scrollSpaceY;
           const scrollSpaceX = cWidth - sWidth;
           const horizRatio = scrollSpaceX < Number.EPSILON ? null : 1 - (cWidth - sLeft - sWidth) / scrollSpaceX;
-          s.ft.onScrollStatus(vertRatio != null ? vertRatio < Number.EPSILON ? 0 : vertRatio : null,
+          ft.onScrollStatus(vertRatio != null ? vertRatio < Number.EPSILON ? 0 : vertRatio : null,
             horizRatio != null ? horizRatio < Number.EPSILON ? 0 : horizRatio : null).dp(m1, m2, m3);
         })
       );
@@ -87,7 +96,7 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     rx.switchMap(([, scrollable]) => scrollable.table.l.isScrollNeeded.pipe(
       rx.distinctUntilChanged(([, need0], [, need1]) => need0 === need1),
       rx.map(([m, need]) => {
-        labelScrollText.s.ft.setDisplay(need ? DisplayMode.visible : DisplayMode.none).dp(m);
+        labelScrollText.ft.setDisplay(need ? DisplayMode.visible : DisplayMode.none).dp(m);
       })
     ))
   ));
@@ -98,33 +107,36 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
         return rx.merge(
           keypress.table.l.onDisplayKeys.pipe(
             rx.map(([m, text, _isCompleted, isValid]) => {
-              s.ft.onKeypressStatus(text, isValid).dp(m);
+              ft.onKeypressStatus(text, isValid).dp(m);
             })
           ),
-          keypress.s.pt.onExit.pipe(
+          keypress.pt.onExit.pipe(
             rx.map(([m]) => {
-              s.ft.onKeypressStatus('Bye', true).dp(m);
+              ft.onKeypressStatus('Bye', true).dp(m);
             })
           )
         );
       })
     ));
 
-  r('onScrollStatus', s.pt.onScrollStatus.pipe(
+  r('onScrollStatus', pt.onScrollStatus.pipe(
     rx.map(([m, v, h]) => {
-      labelScrollValueR.s.ft.setContent(v != null ? ' row: ' + Math.floor(v * 100) + '%' : '').dp(m);
-      labelScrollValueC.s.ft.setContent(h != null ? ' col: ' + Math.floor(h * 100) + '%' : '').dp(m);
+      labelScrollValueR.ft.setContent(v != null ? ' row: ' + Math.floor(v * 100) + '%' : '').dp(m);
+      labelScrollValueC.ft.setContent(h != null ? ' col: ' + Math.floor(h * 100) + '%' : '').dp(m);
     })
   ));
-  r('onKeypressStatus', s.pt.onKeypressStatus.pipe(
+  r('onKeypressStatus', pt.onKeypressStatus.pipe(
     rx.map(([m, text, valid]) => {
-      labelKeypress.s.ft.setContent(text.length === 0 ? HELP_KEY_HINT : text).dp(m);
+      labelKeypress.ft.setContent(text.length === 0 ? HELP_KEY_HINT : text).dp(m);
       return valid;
     }),
     rx.distinctUntilChanged(),
     rx.map(valid => {
-      labelKeypress.s.ft.setStyle(valid ? ['green'] : ['hex(#000000)']).dp();
+      labelKeypress.ft.setStyle(valid ? ['green'] : ['hex(#000000)']).dp();
     })
+  ));
+  r('setMessage', table.l.setMessage.pipe(
+    rx.map(([m, t]) => customizedMsg.ft.setContent(t).dp(m))
   ));
 });
 export type Statusbar = SimplexReactorOfFac<typeof statusbarFac>;

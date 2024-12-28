@@ -6,10 +6,12 @@ const stream_dispense_1 = require("./stream-dispense");
 class BaseReactorFactory {
     constructor(protoOptions) {
         this.protoOptions = protoOptions;
-        this.reactorsFac = () => { };
+        this.reactorDefinition = (init, ...p) => { init(...p); };
     }
+    /** Define message subscription in this method will be able to be inherited by any derived SimplexRectors
+     **/
     defineReactor(fac) {
-        this.reactorsFac = fac;
+        this.reactorDefinition = fac;
         return this;
     }
     forExtend(newOpts) {
@@ -34,7 +36,7 @@ class BaseReactorFactory {
     /** do not call this method directly, use create() instead */
     _create(overrideOpts, param) {
         let service;
-        this.reactorsFac(instanceOpts => {
+        this.reactorDefinition(instanceOpts => {
             const mergedOpts = this.protoOptions ? Object.assign(Object.assign({}, this.protoOptions), instanceOpts) :
                 instanceOpts;
             service = new simplex_reactor_1.SimplexReactor(overrideOpts(mergedOpts));
@@ -49,7 +51,7 @@ exports.BaseReactorFactory = BaseReactorFactory;
 class DerivedReactorFactory {
     constructor(baseFactory, featOptions) {
         this.baseFactory = baseFactory;
-        this.reactorsFac = () => { };
+        this.reactorDefinition = (init, ...p) => { init(); };
         this.featTableForList = featOptions === null || featOptions === void 0 ? void 0 : featOptions.tableFor;
         if (featOptions) {
             this.featOpts = Object.assign({}, featOptions);
@@ -57,7 +59,7 @@ class DerivedReactorFactory {
         }
     }
     defineReactor(fac) {
-        this.reactorsFac = fac;
+        this.reactorDefinition = fac;
         return this;
     }
     /** New interceptors are appended to existing interceptors which is inherited from base factory */
@@ -93,7 +95,7 @@ class DerivedReactorFactory {
     /** do not call this method directly, use create() instead */
     _create(overrideOpts, params) {
         let service;
-        this.reactorsFac((instanceOpts, ...superParam) => {
+        this.reactorDefinition((instanceOpts, ...superParam) => {
             const mixed = Object.assign(Object.assign({}, this.featOpts), instanceOpts);
             service = this.baseFactory._create(baseOpts => overrideOpts(Object.assign(baseOpts, mixed)), superParam).config({
                 tableFor: this.featTableForList

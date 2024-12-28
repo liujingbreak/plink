@@ -18,6 +18,7 @@ export class ControllerCore {
         this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
         const upstream = this.actionUpstream;
+        // set logger as interceptor
         this.interceptorList$.next([
             a$ => this.opts.debug ?
                 a$.pipe(this.opts.log ?
@@ -98,7 +99,7 @@ export class ControllerCore {
             t: name,
             i: ACTION_SEQ++,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            p: params !== null && params !== void 0 ? params : []
+            p: params
         };
     }
     /** action id is also copied */

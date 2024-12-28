@@ -92,7 +92,7 @@ export class ReactorComposite<
       })
     ).subscribe();
     this.dispose = () => {
-      this.o.core.actionUpstream.next(this.o.core.createAction('Reactors finalized' as any));
+      this.o.core.actionUpstream.next(this.o.core.createAction('Reactors finalized' as any, [] as any));
       this.destory$.next();
     };
   }

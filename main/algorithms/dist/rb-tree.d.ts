@@ -30,7 +30,7 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = 
      * @param key
      * @returns existing tree node if key duplicates or a new empty node
      */
-    insert(key: T): Omit<RbTreeNode<T, V>, 'value'> & {
+    insert<Value extends [V] | []>(key: T, ...value: Value): Value['length'] extends 0 ? RbTreeNode<T, V> : Omit<RbTreeNode<T, V>, 'value'> & {
         value?: V;
     };
     /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0
@@ -54,10 +54,10 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = 
      * @return interator of existing nodes whose key are greater than specific key
      */
     keysSmallerThan(key: T, includeEqual?: boolean): Generator<RbTreeNode<T, V>, void, unknown>;
-    inorderWalk(callback: (node: ND, level: number) => void, node?: ND | RbTreeNode<T, V>, level?: number): void;
-    allChildNodeInorder(node?: ND | RbTreeNode<T, V>, level?: number): Generator<[node: ND, level: number]>;
-    minimum(node?: ND | RbTreeNode<T, V>): ND | null;
-    maximum(node?: ND | RbTreeNode<T, V>): ND | null;
+    inorderWalk(callback: (node: ND, level: number) => void, node?: RbTreeNode<T, V> | ND, level?: number): void;
+    allChildNodeInorder(node?: RbTreeNode<T, V> | ND, level?: number): Generator<[node: ND, level: number]>;
+    minimum(node?: RbTreeNode<T, V> | ND): ND | null;
+    maximum(node?: RbTreeNode<T, V> | ND): ND | null;
     size(): number;
     isRed(node: RbTreeNode<T, V> | null | undefined): boolean;
     isBlack(node: RbTreeNode<T, V> | null | undefined): boolean;

@@ -27,7 +27,7 @@ const config: Config = {
   // bail: 0,
 
   // The directory where Jest should store its cached dependency information
-  // cacheDirectory: "/private/var/folders/ls/28mw_hnx36g74hr0nms0tw000000gn/T/jest_dx",
+  cacheDirectory: Path.resolve(plinkRootDir, 'dist/jest-cache'),
 
   // Automatically clear mock calls, instances, contexts and results before every test
   // clearMocks: false,

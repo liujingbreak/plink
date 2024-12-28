@@ -8,6 +8,8 @@ export class SingleActionFactoryImpl {
         this.payload = payload;
         this.control = control;
         this.opts = opts;
+        this.dispatched = false;
+        this.action = control.createAction(type, payload);
     }
     /** Make this action become related to another action message
      */
@@ -16,13 +18,17 @@ export class SingleActionFactoryImpl {
         return this;
     }
     dp(...actionMetaRelated) {
+        if (this.dispatched) {
+            throw new Error('Message has already been dispatched');
+        }
         const metas = actionMetaRelated.filter(m => m != null);
-        if (metas.length > 0)
-            return this.control.dispatchForFactory(this.type)(metas.length > 1 ? metas : metas[0], ...this.payload);
-        else if (this.relateToAction && this.relateToAction.length > 0)
-            return this.control.dispatchForFactory(this.type)(this.relateToAction.length > 1 ? this.relateToAction : this.relateToAction[0], ...this.payload);
-        else
-            return this.control.dispatchFactory(this.type)(...this.payload);
+        const s = this.control.actionUpstream;
+        assignActionReferParam(this.action, this.relateToAction && this.relateToAction.length > 0 ?
+            this.relateToAction.concat(metas) :
+            metas);
+        s.next(this.action);
+        this.dispatched = true;
+        return this.action;
     }
     do(response$, referAction) {
         const action = this.control.createAction(this.type, this.payload);
@@ -37,7 +43,7 @@ export class SingleActionFactoryImpl {
         return r$.asObservable();
     }
     ddo(response$, referAction) {
-        const action = this.control.createAction(this.type, this.payload);
+        const action = this.action;
         if (referAction) {
             assignActionReferParam(action, referAction);
         }
@@ -54,12 +60,13 @@ export class SingleActionFactoryImpl {
             // rx.take(1)
             )), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
             // eslint-disable-next-line no-console
-            this.opts.slowLog ? () => this.opts.slowLog(action) : () => console.log('Slow observable action detected'))), new rx.Observable(() => {
+            this.opts.slowLog ? () => this.opts.slowLog(action) : () => { })), new rx.Observable(() => {
                 this.control.actionUpstream.next(action);
                 return () => {
-                    const cancel = this.control.createAction('__cancel', [action.t]);
-                    assignActionReferParam(cancel, action);
-                    this.control.actionUpstream.next(cancel);
+                    // const cancel = this.control.createAction('__cancel' as keyof I, [action.t] as any);
+                    // assignActionReferParam(cancel, action);
+                    // this.control.actionUpstream.next(cancel);
+                    this.control.cancelAction(action);
                 };
             }));
         }));
@@ -71,34 +78,34 @@ export class SingleActionFactoryImpl {
         }
         else {
             const responses = [response, ...moreResponses];
-            const action = this.control.createAction(this.type, this.payload);
             if (this.relateToAction && this.relateToAction.length > 0) {
-                assignActionReferParam(action, this.relateToAction);
+                assignActionReferParam(this.action, this.relateToAction);
             }
             // when all (counted) the returned streams are subscribed, dispatch the new action
             const onSubscribe$ = new rx.Subject();
             onSubscribe$.pipe(rx.distinct(), rx.take(responses.length)).subscribe({
                 complete: () => {
-                    this.control.actionUpstream.next(action);
+                    this.control.actionUpstream.next(this.action);
                 }
             });
             const onUnsubscribe$ = new rx.Subject();
             onUnsubscribe$.pipe(rx.distinct(), rx.take(responses.length)).subscribe({
                 complete: () => {
-                    const cancel = this.control.createAction('__cancel', [action.t]);
-                    assignActionReferParam(cancel, action);
-                    this.control.actionUpstream.next(cancel);
+                    // const cancel = this.control.createAction('__cancel' as keyof I, [action.t] as any);
+                    // assignActionReferParam(cancel, action);
+                    // this.control.actionUpstream.next(cancel);
+                    this.control.cancelAction(this.action);
                 }
             });
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return responses.map((res$, idx) => {
                 var _a;
-                return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(operator(action), actionRelatedToAction(action)
+                return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(operator(this.action), actionRelatedToAction(this.action)
                 // mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...any[]]>,
                 // rx.take(1)
                 )), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
                 // eslint-disable-next-line no-console
-                this.opts.slowLog ? () => this.opts.slowLog(action) : () => console.log('Slow observable action detected'))), new rx.Observable(() => {
+                this.opts.slowLog ? () => this.opts.slowLog(this.action) : () => console.log('Slow observable action detected'))), new rx.Observable(() => {
                     onSubscribe$.next(idx);
                 }));
             });

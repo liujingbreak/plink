@@ -33,7 +33,7 @@ export class RedBlackTree {
      * @param key
      * @returns existing tree node if key duplicates or a new empty node
      */
-    insert(key) {
+    insert(key, ...value) {
         let y = this.nil;
         let x = this.root;
         let cmp;

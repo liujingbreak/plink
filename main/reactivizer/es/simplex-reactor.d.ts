@@ -5,6 +5,7 @@ import { SingleActionFactory } from './action-factory';
 import { SimplexReactorOptions, SimplexReactorCfgOpts } from './reactor-base';
 import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
+import { PostForkedRxController } from './post-forked-control';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
     /** This event is when we can dispatch actions for initializing "action table" */
@@ -23,11 +24,16 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     dispose: () => void;
     /** default stream controller used also as Reactor's internal message stream */
     s: RxController2<I & BaseActions>;
+    /** shortcut to s.pt */
+    pt: RxController2<I & BaseActions>['pt'];
+    /** shortcut to s.at */
+    at: RxController2<I & BaseActions>['at'];
+    /** shortcut to s.ft */
+    ft: RxController2<I & BaseActions>['ft'];
+    /** shortcut to table.l */
+    latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
     r: (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => void;
     table: ActionTable<I & BaseActions<I>, LE<LI>>;
-    /** alias of "asBaseType",
-     * cast current SimplexReactor type to its logical super type for Typescript type assignable check
-     **/
     id: number;
     opts?: SimplexReactorOptions<unknown, readonly never[]>;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
@@ -78,8 +84,10 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
 }
 /** You should never create instance by constructor of this class,
  **/
-export declare class DerivedSimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> extends SimplexReactor<I, LI> {
+export interface DerivedSimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> extends SimplexReactor<I, LI> {
     s: ForkedRxController<I & BaseActions>;
-    private constructor();
+    postBase: PostForkedRxController<I & BaseActions>;
+    /** alias of postBase */
+    p: PostForkedRxController<I & BaseActions>;
 }
 export {};

@@ -2,7 +2,7 @@ import 'source-map-support/register';
 import fs from 'fs';
 // import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas, createFlexContainer, createTextWidget, createElevator, DisplayMode} from '../index';
+import {createTerminalCanvas, createFlexContainer, createTextWidget, createElevator, DisplayMode, createKeyEventService} from '../index';
 
 const debug = true;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
@@ -12,7 +12,8 @@ const canvas = createTerminalCanvas({debug, log});
 const root = createFlexContainer({name: 'root', debug, log});
 canvas.s.ft.autoHideCursor().dp();
 
-const ev = createElevator({default: {debug, log}});
+const keyEvtSvc = createKeyEventService({debug, log});
+const ev = createElevator(keyEvtSvc, {default: {debug, log}});
 const popupLayer = createFlexContainer({name: 'popup', debug, log});
 ev.s.ft.addChild(root, popupLayer).dp();
 

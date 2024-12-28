@@ -6,20 +6,23 @@ import {app, createFlexContainer, TableBorderType, createTable, MultiLineTextWid
 
 const debug = false;
 const fout = fs.createWriteStream('terminal-table-sample.log');
-const log = createSimpleIndentLogger(false, false, fout);
+const log = createSimpleIndentLogger(false, true, fout);
 const table = createTable({
   default: {
     debug, log
   },
   core: {
-    debug: true
+    debug
   },
   optsForCellComponent: {
-    debug: true
+    debug
   },
   lazy: {
     // default: {debug},
-    core: {debug, log}
+    core: {
+      debug: true,
+      debugIncludeTypes: ['dp_didLoad', 'dp_onLoadPage', 'dp_onCancelLoad']
+    }
     // headPlaceHolder: {debug: true},
     // tailPlaceHolder: {debug: true}
     // headPlaceHolderLabel: {
@@ -32,7 +35,7 @@ const table = createTable({
 });
 const SAMPLE_ROW_COUNT = 10;
 const SAMPLE_COLUMN_CNT = 2;
-table.s.ft.setLazyLoad(true, page => {
+table.ft.setLazyLoad(true, page => {
   table.log('*** handle onLoadPage', page);
   const out$ = new rx.Observable<[string, string[]]>(sub => {
     if (page > 5) {
@@ -52,26 +55,34 @@ table.s.ft.setLazyLoad(true, page => {
   });
   return out$;
 }).dp();
-table.s.pt.onRowAdded.pipe(
+
+table.pt.onRowAdded.pipe(
   rx.map(([, _idx, _id, cells]) => {
     cells.map(cell => {
-      // (cell as MultiLineTextWidget).s.ft.setStyle(['black']).dp();
-      cell.s.ft.setFocusable(true).dp();
-      (cell as MultiLineTextWidget).s.ft.setStyle(['rgb(0,0,0)']).dp();
+      // (cell as MultiLineTextWidget).ft.setStyle(['black']).dp();
+      cell.ft.setFocusable(true).dp();
+      cell.pt.onFocus.pipe(
+        rx.switchMap(() => (cell as MultiLineTextWidget).table.l.setContent),
+        rx.map(([, text]) => {
+          log('--- focus label', text);
+          // statusbar.ft.setMessage(' ' + text).dp();
+        })
+      ).subscribe();
+      (cell as MultiLineTextWidget).ft.setStyle(['rgb(0,0,0)']).dp();
     });
   })
 ).subscribe();
-table.s.ft.setBorderType(TableBorderType.rowSeparator, true).dp();
-table.s.ft.setBorderType(TableBorderType.border, true).dp();
+table.ft.setBorderType(TableBorderType.rowSeparator, true).dp();
+table.ft.setBorderType(TableBorderType.border, true).dp();
 
 const root = createFlexContainer({name: 'root', debug, log});
-root.s.ft.alignItems('center').dp();
-root.s.ft.justifyContent('center').dp();
-root.s.ft.addChild(table).dp();
+root.ft.alignItems('center').dp();
+root.ft.justifyContent('center').dp();
+root.ft.addChild(table).dp();
 
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
 const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
-table.s.ft.setCellBackground((col, row) => {
+table.ft.setCellBackground((col, row) => {
   let hue: number;
   if (row > SAMPLE_ROW_COUNT)
     hue = hueInterval * (row % SAMPLE_ROW_COUNT);
@@ -85,43 +96,39 @@ table.s.ft.setCellBackground((col, row) => {
     sat = saturation * col;
   return `bgHsl(${hue},${30 + sat},70)`;
 }).dp();
-const {canvas} = app.createApp(root, {
+const {ft} = app.createApp(root, true, {
   default: {
     debug, log
   },
   elevator: {
+    focusable: {
+      debug: true
+    },
     canvas: {
       debugIncludeTypes: ['render', 'requestRender', 'clearRect', 'copyRect']
     }
   },
-  focusable: {
-    debug: true,
-    debugExcludeTypes: ['removeFocusable']
-  },
   canvas: {
     name: 'outerCan',
-    debug: true,
     debugIncludeTypes: ['render', 'requestRender', 'clearRect']
   },
+  keyService: {debug: true},
   scrollable: {
+    core: {debug: true, log},
+    focus: {
+      debug: true,
+      cache: {debug}
+    }
     // default: {debug: true, log}
-    // core: {debug: true}
-    // focusable: {
-    //   debug: false,
-    //   debugExcludeTypes: ['removeFocusable']
-    // },
     // canvas: {
     //   debug
     // }
-  },
-  statusbar: {debug, log}
+  }
 });
 
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
-
-process.stdout.on('resize', () => {
-  canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
-});
-
+if (screenWidth && screenHeight)
+  ft.setSize(Number(screenWidth), Number(screenHeight)).dp();
+else
+  ft.setFullScreenMode().dp();

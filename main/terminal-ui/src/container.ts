@@ -21,7 +21,8 @@ export interface TerminalContainerInput {
   requestReflow(reason?: string): SingleActionFactory;
   requestReflowOn<P extends [...(rx.Observable<Action<any>> | rx.Observable<InferMapParam<any>>)[]]>(...actionOrPayloads: P): SingleActionFactory;
 
-  /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent */
+  /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent (i.e value of onBoundingBox ).
+   * Use DFS to lookup all components including all ancestor containers */
   findOverlaps(...rect: Rectangle): SingleActionFactory;
 }
 
@@ -76,7 +77,7 @@ const tableFor = [
 
 export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEvents, typeof tableFor>({
   tableFor,
-  debugExcludeTypes: ['ofCanvas', '_saveTransform'
+  debugExcludeTypes: ['ofCanvas', '_saveTransform', 'renderChild'
     // 'queryAbsBounding', 'didQueryAbsBounding'
   ]
 }).interceptorByType(ad => rx.merge(
@@ -285,65 +286,49 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
   ));
   r('findOverlaps -> didFindOverlaps', s.pt.findOverlaps.pipe(
     rx.mergeMap(([m, ...rect]) => {
-      return rx.combineLatest([
-        table.l.isOffsetParent,
-        table.l.onSize
-      ]).pipe(
+      return table.l.onBoundingBox.pipe(
         rx.take(1),
-        rx.switchMap(([[, asOp], [, w, h]]) => {
-          if (asOp) {
-            return table.l.onPosition.pipe(
-              rx.filter(([, x]) => x != null),
-              rx.take(1),
-              rx.map(([, x, y]) => rectIntersection([x!, y!, w, h],
-                [rect[0] - x!, rect[1] - y!, rect[2], rect[3]] as Rectangle))
-            );
-          } else {
-            return rx.of(rectIntersection([0, 0, w, h], rect));
-          }
-        }),
-        rx.mergeMap(rect => {
-          if (rect != null)
-            return  table.l.allDisplayChildren.pipe(
-              rx.take(1),
-              rx.mergeMap(([, chd]) => chd),
-              rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(
-                rx.take(1),
-                rx.filter(([, bRect]) => {
-                  return rectIntersection(rect, bRect) != null;
-                }),
-                rx.map(() => chr)
-              )),
-
-              rx.mergeMap(chr => chr.table.l.isContainer.pipe(
-                rx.take(1),
-                rx.mergeMap(isContainer => {
-                  if (isContainer) {
-                    return (chr as TerminalContainer).s.ft.findOverlaps(...rect)
-                      .re(m).od((chr as TerminalContainer).s.pt.didFindOverlaps).pipe(
-                        rx.take(1),
-                        rx.map(([, chdOfChd]) => chdOfChd),
-                        rx.endWith([chr])
-                      );
-                  }
-                  return rx.of([chr]);
-                })
-              )),
-              rx.reduce((acc, it) => {
-                acc.push(...it);
-                return acc;
-              }, [] as BaseWidget[]),
-              rx.map(found => s.ft.didFindOverlaps(found).dp(m))
-            );
-          else {
+        rx.mergeMap(([, [x, y, w, h]]) => {
+          const interction = rectIntersection([x, y, w, h], rect);
+          if (interction == null) {
             s.ft.didFindOverlaps([]).dp(m);
             return rx.EMPTY;
           }
+          return table.l.allDisplayChildren.pipe(
+            rx.take(1),
+            rx.mergeMap(([, chd]) => chd),
+            rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(
+              rx.take(1),
+              rx.filter(([, bRect]) => {
+                return rectIntersection(rect, bRect) != null;
+              }),
+              rx.map(() => chr)
+            )),
+            rx.mergeMap(chr => chr.table.l.isContainer.pipe(
+              rx.take(1),
+              rx.mergeMap(isContainer => {
+                if (isContainer) {
+                  return (chr as TerminalContainer).s.ft.findOverlaps(...rect)
+                    .re(m).od((chr as TerminalContainer).s.pt.didFindOverlaps).pipe(
+                      rx.take(1),
+                      rx.map(([, chdOfChd]) => chdOfChd),
+                      rx.endWith([chr])
+                    );
+                }
+                return rx.of([chr]);
+              })
+            )),
+            rx.reduce((acc, it) => {
+              acc.push(...it);
+              return acc;
+            }, [] as BaseWidget[]),
+            rx.map(found => s.ft.didFindOverlaps(found).dp(m))
+          );
         })
       );
     })
   ));
-  // is "setLayoutCheck" is changed, set "isLayoutDirty" to true
+  // When "setLayoutCheck" is changed, set "isLayoutDirty" to true
   r('isLayoutDirty(false),setLayoutCheck -> isLayoutDirty(true)', s.pt.isLayoutDirty.pipe(
     rx.switchMap(([, dirty]) => dirty ?
       rx.EMPTY :

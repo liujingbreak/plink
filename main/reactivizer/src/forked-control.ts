@@ -10,8 +10,6 @@ import {RxController2} from './control2';
  * subscription stream.
  *
  * A message interceptor of source RxController can impact all forked controller.
- * In a RxCntroller
- *
  */
 export class ForkedRxController<I> extends RxController2<I> {
   /** Any message being emitted to this subject will not be dispatched to "base" controller */

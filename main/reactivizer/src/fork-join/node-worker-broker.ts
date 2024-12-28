@@ -143,7 +143,7 @@ export function createBroker<
       const prop = workerProps.get(workerNo)!;
       // eslint-disable-next-line @typescript-eslint/ban-types
       prop.port.postMessage(serializeAction(
-        (s as unknown as RxController2<ForkWorkerInput>).createAction('exit')
+        (s as unknown as RxController2<ForkWorkerInput>).createAction('exit', [])
       ));
       prop.state = 'exit';
     })

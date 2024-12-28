@@ -33,7 +33,7 @@ export enum KeyEventEnum {
   scrollLeft, scrollRight, scrollUp, scrollDown, scrollTop, scrollBottom, home, end,
   focusLeft, focusRight, focusUp, focusDown, focusNext
 }
-interface keypressSignals extends KeyScrollingMsg, KeyEvents {
+export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
   onRawKeyInput(event: RawKeyEvent): SingleActionFactory;
   onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
   onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;

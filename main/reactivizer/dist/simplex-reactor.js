@@ -15,25 +15,37 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SimplexReactor = void 0;
 const rx = __importStar(require("rxjs"));
 const control2_1 = require("./control2");
 const action_table_1 = require("./action-table");
 const forked_control_1 = require("./forked-control");
+const forked_post_control_1 = require("./forked-post-control");
 const context_operators_1 = require("./context-operators");
 const baseTableFor = ['__onError', '__onDisposed'];
 let SEQ = new Date().getUTCMilliseconds();
 class SimplexReactor {
     constructor(opts) {
         var _a, _b;
+        // ft: RxController2<I & BaseActions>['ft'];
         this.r = (...params) => {
             if (typeof params[0] === 'string')
                 this.reactorSubj.next(params);
@@ -46,6 +58,9 @@ class SimplexReactor {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.opts = opts;
         this.s = new control2_1.RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `@${this.id}` }));
+        this.pt = this.s.pt;
+        this.at = this.s.at;
+        this.ft = this.s.ft;
         const internalMsgCtl = this.s;
         const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsgCtl.pt.__onError.pipe((0, context_operators_1.actionRelatedToAction)(dispatchingAction), rx.map(([, err]) => {
             throw err;
@@ -72,6 +87,7 @@ class SimplexReactor {
             return src;
         })).subscribe();
         this.table = new action_table_1.ActionTable(this.s, [...(_b = opts === null || opts === void 0 ? void 0 : opts.tableFor) !== null && _b !== void 0 ? _b : [], ...baseTableFor]);
+        this.latest = this.table.l;
         const internalTable = this.table;
         this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), internalTable.l.__onError.pipe(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -115,14 +131,36 @@ class SimplexReactor {
      * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
      **/
     forExtend() {
-        const s = this.s = new forked_control_1.ForkedRxController(this.s);
+        const baseS = this.s;
+        const s = this.s = new forked_control_1.ForkedRxController(baseS);
         const baseTable = this.table;
-        this.table = new action_table_1.ActionTable(this.s, [...this.table.actionNames]);
+        this.table = new action_table_1.ActionTable(s, [...this.table.actionNames]);
         for (const [type, [m, ...p]] of baseTable.actionSnapshot) {
-            const latestAct = this.s.createAction(type, p);
+            const latestAct = s.createAction(type, p);
             latestAct.i = m.i;
             latestAct.r = m.r;
             s.forkedUpStream.next(latestAct);
+        }
+        this.pt = s.pt;
+        this.ft = s.ft;
+        this.at = s.at;
+        this.latest = this.table.l;
+        let cachePostBase;
+        function ensurePostBase() {
+            if (cachePostBase)
+                return cachePostBase;
+            cachePostBase = new forked_post_control_1.ForkedPostRxController(baseS);
+            return cachePostBase;
+        }
+        if (this.postBase == null) {
+            Object.defineProperty(this, 'postBase', {
+                get: ensurePostBase,
+                configurable: true
+            });
+            Object.defineProperty(this, 'p', {
+                get: ensurePostBase,
+                configurable: true
+            });
         }
         return this;
     }
@@ -213,10 +251,6 @@ class SimplexReactor {
         })));
         return resolveFuncKey;
     }
-    // init() {
-    //   this.s.ft.__onInit().dp();
-    //   return this;
-    // }
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll() {
         return this;

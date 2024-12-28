@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.placeHolderFac = void 0;
 exports.createPlaceHolder = createPlaceHolder;
@@ -39,31 +49,31 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
     tableFor
 }).interceptorByType(ad => rx.merge(ad.at.onAfterPages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.onBeforePages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, before, after, opts) => {
     const service = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
-    const { r, s, table } = service;
+    const { r, ft, pt, table } = service;
     const labelBefore = (0, text_1.createTextWidget)('...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.headLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolderLabel));
     const labelAfter = (0, text_1.createTextWidget)('Loading...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.tailLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolderLabel));
     const loadedCompsByPage = new Map();
     const loadingPages = new Map();
-    const distinctAveragePageSize$ = s.pt.setAveragePageSize.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.share());
-    r('setLabel -> lable.setContent', s.pt.setLabel.pipe(rx.map(([m, text]) => {
-        labelBefore.s.ft.setContent(text).dp(m);
-        labelAfter.s.ft.setContent(text).dp(m);
+    const distinctAveragePageSize$ = pt.setAveragePageSize.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.share());
+    r('setLabel -> lable.setContent', pt.setLabel.pipe(rx.map(([m, text]) => {
+        labelBefore.ft.setContent(text).dp(m);
+        labelAfter.ft.setContent(text).dp(m);
     })));
     r('setViewportSize -> setMaxLoadedPages', rx.combineLatest([
-        s.pt.setViewportSize.pipe(rx.distinctUntilChanged(([, wa, ha], [, wb, hb]) => wa === wb && ha === hb)),
+        pt.setViewportSize.pipe(rx.distinctUntilChanged(([, wa, ha], [, wb, hb]) => wa === wb && ha === hb)),
         distinctAveragePageSize$
     ]).pipe(rx.switchMap(([[m, w, h], [m2, pageSize]]) => table.l.setExpandDir.pipe(rx.take(1), rx.map(([m3, dir]) => {
         if (pageSize > Number.EPSILON)
-            s.ft.setMaxLoadedPages(Math.ceil((dir === 'col' ? h : w) / pageSize) + 1)
+            ft.setMaxLoadedPages(Math.ceil((dir === 'col' ? h : w) / pageSize) + 1)
                 .dp(m, m2, m3);
     })))));
-    r('queryLoadedPages -> didQueryLoadedPages', s.pt.queryLoadedPages.pipe(rx.map(([m]) => {
+    r('queryLoadedPages -> didQueryLoadedPages', pt.queryLoadedPages.pipe(rx.map(([m]) => {
         const pages = [...loadedCompsByPage.keys()];
-        s.ft.didQueryLoadedPages(pages).dp(m);
+        ft.didQueryLoadedPages(pages).dp(m);
     })));
-    r('requestPage -> dp_onLoadPage | dp_didLoad -> onPagesLoaded, dp_setTotalPageNum', s.pt.requestPage.pipe(rx.mergeMap(([m, isHead, pIdx]) => {
-        const load$ = s.ft.dp_onLoadPage(pIdx, isHead ? 'prepend' : 'append')
-            .re(m, m.r).od(s.pt.dp_didLoad).pipe(rx.take(1), rx.takeUntil(s.pt.cancelRequestPage.pipe(rx.filter(([, idx]) => idx === pIdx))), rx.map(([, results]) => {
+    r('requestPage -> dp_onLoadPage | dp_didLoad -> onPagesLoaded, dp_setTotalPageNum', pt.requestPage.pipe(rx.mergeMap(([m, isHead, pIdx]) => {
+        const load$ = ft.dp_onLoadPage(pIdx, isHead ? 'prepend' : 'append')
+            .re(m, m.r).od(pt.dp_didLoad).pipe(rx.take(1), rx.takeUntil(pt.cancelRequestPage.pipe(rx.filter(([, idx]) => idx === pIdx))), rx.map(([, results]) => {
             loadedCompsByPage.set(pIdx, results);
             const state = loadingPages.get(pIdx);
             if (state) {
@@ -74,7 +84,7 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
                 service.log(`Error: Why loadingPages misses page #${pIdx}`);
                 throw new Error(`Why loadingPages misses page #${pIdx}`);
             }
-        }), rx.takeUntil(s.pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))), rx.catchError((err) => {
+        }), rx.takeUntil(pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))), rx.catchError((err) => {
             loadingPages.delete(pIdx);
             return rx.EMPTY;
         }));
@@ -94,7 +104,7 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
                 loadingPages.delete(emptyPageState[0]);
                 done$ = table.l.dp_setTotalPageNum.pipe(rx.take(1), rx.map(([, totalPage]) => {
                     if (totalPage === 'unknown' || totalPage > emptyPageState[0])
-                        s.ft.dp_setTotalPageNum(emptyPageState[0]).dp(m, m.r);
+                        ft.dp_setTotalPageNum(emptyPageState[0]).dp(m, m.r);
                 }));
             }
             const startIdx = states[0][0];
@@ -110,54 +120,54 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
             }
             // service.log('<<< startIdx', startIdx, 'endIdx', endIdx);
             if (comps.length > 0)
-                s.ft.onPagesLoaded(isHead, startIdx, endIdx, comps).dp(m, m.r);
+                ft.onPagesLoaded(isHead, startIdx, endIdx, comps).dp(m, m.r);
             return done$;
         }));
     })));
-    r('onPagesLoaded... -> beforePageRange, afterPageRange, dp_onUnload', s.pt.onPagesLoaded.pipe(rx.withLatestFrom(table.l.beforePageRange, table.l.afterPageRange, table.l.setMaxLoadedPages, table.l.dp_setTotalPageNum), rx.map(([[m, isHead, start, end], [, start1, end1], [, start2, end2], [, maxLoaded], [, totalPages]]) => {
+    r('onPagesLoaded... -> beforePageRange, afterPageRange, dp_onUnload', pt.onPagesLoaded.pipe(rx.withLatestFrom(table.l.beforePageRange, table.l.afterPageRange, table.l.setMaxLoadedPages, table.l.dp_setTotalPageNum), rx.map(([[m, isHead, start, end], [, start1, end1], [, start2, end2], [, maxLoaded], [, totalPages]]) => {
         if (!isHead) {
-            s.ft.afterPageRange(end, totalPages === 'unknown' ? end + 1 : totalPages).dp(m);
+            ft.afterPageRange(end, totalPages === 'unknown' ? end + 1 : totalPages).dp(m);
             if (start > start2) {
                 // In case the pages between start2 and start are skipped (not loaded)
-                s.ft.beforePageRange(start1, start).dp(m);
+                ft.beforePageRange(start1, start).dp(m);
                 // Unload some of previously visible and loaded rows between end1 and start2
                 rx.range(end1, start2 - end1).pipe(rx.map(pageIdx => {
                     const item = loadedCompsByPage.get(pageIdx);
-                    s.ft.dp_onUnload(pageIdx, item).dp(m);
+                    ft.dp_onUnload(pageIdx, item).dp(m);
                     loadingPages.delete(pageIdx);
                     loadedCompsByPage.delete(pageIdx);
                 })).subscribe();
             }
             else if (end - end1 > maxLoaded) {
                 const changedEnd1 = end - maxLoaded;
-                s.ft.beforePageRange(start1, changedEnd1).dp(m);
+                ft.beforePageRange(start1, changedEnd1).dp(m);
                 rx.range(end1, changedEnd1 - end1).pipe(rx.map(pageIdx => {
                     const item = loadedCompsByPage.get(pageIdx);
-                    s.ft.dp_onUnload(pageIdx, item).dp(m);
+                    ft.dp_onUnload(pageIdx, item).dp(m);
                     loadingPages.delete(pageIdx);
                     loadedCompsByPage.delete(pageIdx);
                 })).subscribe();
             }
         }
         else {
-            s.ft.beforePageRange(start1, start).dp(m);
+            ft.beforePageRange(start1, start).dp(m);
             if (end < end1) {
                 // In case the pages between end and end1 are skipped
-                s.ft.afterPageRange(end, end2).dp(m);
+                ft.afterPageRange(end, end2).dp(m);
                 // Unload some of previously visible and loaded rows between end1 and start2
                 rx.range(end1, start2 - end1).pipe(rx.map(pageIdx => {
                     const item = loadedCompsByPage.get(pageIdx);
-                    s.ft.dp_onUnload(pageIdx, item).dp(m);
+                    ft.dp_onUnload(pageIdx, item).dp(m);
                     loadingPages.delete(pageIdx);
                     loadedCompsByPage.delete(pageIdx);
                 })).subscribe();
             }
             else if (start2 - start > maxLoaded) {
                 const changedStart2 = maxLoaded + start;
-                s.ft.afterPageRange(changedStart2, end2).dp(m);
+                ft.afterPageRange(changedStart2, end2).dp(m);
                 rx.range(changedStart2, start2 - changedStart2).pipe(rx.map(pageIdx => {
                     const item = loadedCompsByPage.get(pageIdx);
-                    s.ft.dp_onUnload(pageIdx, item).dp(m);
+                    ft.dp_onUnload(pageIdx, item).dp(m);
                     loadingPages.delete(pageIdx);
                     loadedCompsByPage.delete(pageIdx);
                 })).subscribe();
@@ -166,17 +176,17 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
     })));
     // Turn cancelRequestPage to "dp_onCancelLoad" with action meta of "dp_onLoadPage" message, it's
     // more convenient for outside consumer to subsribe on "dp_onLoadPage" in the context of "dp_onLoadPage"
-    r('dp_onLoadPage, cancelRequestPage, dp_didLoad -> dp_onCancelLoad', s.pt.dp_onLoadPage.pipe(rx.mergeMap(([m, pIdx]) => s.pt.cancelRequestPage.pipe(rx.filter(([, i]) => i === pIdx), rx.take(1), rx.map(() => {
-        s.ft.dp_onCancelLoad(pIdx).dp(m);
-    }), rx.timeout(20000), rx.takeUntil(s.pt.dp_didLoad.pipe((0, reactivizer_1.actionRelatedToAction)(m))), rx.takeUntil(s.pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))), rx.takeUntil(s.pt.__onError.pipe((0, reactivizer_1.actionRelatedToAction)(m)))))));
+    r('dp_onLoadPage, cancelRequestPage, dp_didLoad -> dp_onCancelLoad', pt.dp_onLoadPage.pipe(rx.mergeMap(([m, pIdx]) => pt.cancelRequestPage.pipe(rx.filter(([, i]) => i === pIdx), rx.take(1), rx.map(() => {
+        ft.dp_onCancelLoad(pIdx).dp(m);
+    }), rx.timeout(20000), rx.takeUntil(pt.dp_didLoad.pipe((0, reactivizer_1.actionRelatedToAction)(m))), rx.takeUntil(pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))), rx.takeUntil(pt.__onError.pipe((0, reactivizer_1.actionRelatedToAction)(m)))))));
     // Avoid repeatitively request same page, also control to cancel abandonded request,
     // ensure there is only one ongoing request for each page
-    r('requestPages, "loadingPages" -> requestPage, cancelRequestPage, "loadingPages"', s.pt.requestPages.pipe(rx.map(([m2, isHeadPlaceHolder, tIdx, tNum]) => {
+    r('requestPages, "loadingPages" -> requestPage, cancelRequestPage, "loadingPages"', pt.requestPages.pipe(rx.map(([m2, isHeadPlaceHolder, tIdx, tNum]) => {
         service.log('>>> requestPages handling', isHeadPlaceHolder, tIdx, tNum);
         for (let i = tIdx, l = tIdx + tNum; i < l; i++) {
             if (!loadingPages.has(i)) {
                 loadingPages.set(i, { keep: true, isHead: isHeadPlaceHolder });
-                s.ft.requestPage(isHeadPlaceHolder, i).dp(m2);
+                ft.requestPage(isHeadPlaceHolder, i).dp(m2);
             }
             else {
                 const state = loadingPages.get(i);
@@ -186,7 +196,7 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
         }
         for (const [idx, state] of loadingPages.entries()) {
             if (state.isHead === isHeadPlaceHolder && !state.keep) {
-                s.ft.cancelRequestPage(idx).dp(m2);
+                ft.cancelRequestPage(idx).dp(m2);
                 loadingPages.delete(idx);
             }
             else {
@@ -195,61 +205,64 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
         }
         service.log('requestPages >>> loadingPages', ...[...loadingPages.entries()].map(([p, obj]) => `${p}: ${JSON.stringify(obj)}`));
     })));
-    r('onBeforePages, before.onRender -> requestPages', s.pt.onBeforePages.pipe(rx.map(([, pages]) => pages), rx.switchMap(pages => {
-        return pages > 0 ? before.s.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.beforePageRange, before.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
+    r('onBeforePages, before.onRender -> requestPages', pt.onBeforePages.pipe(rx.map(([, pages]) => pages), rx.switchMap(pages => {
+        return pages > 0 ? before.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.beforePageRange, before.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
             const pageSize = (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
             const [pIndex0, pIndex1] = clipRangeToPageIndex(dir, clips, pageSize);
             // service.log('>>> head clipRangeToPageIndex(): pIndex0', pIndex0, 'pIndex1', pIndex1, 'pageSize', pageSize, 'clips', clips.join());
             return [pIndex0 + pageRangeOpen, pIndex1 - pIndex0 + 1, m];
-        }), rx.distinctUntilChanged(([s1, e1], [s2, e2]) => s1 === s2 && e1 === e2), rx.map(([start, end, m]) => s.ft.requestPages(true, start, end).dp(m))) : rx.EMPTY;
+        }), rx.distinctUntilChanged(([s1, e1], [s2, e2]) => s1 === s2 && e1 === e2), rx.map(([start, end, m]) => ft.requestPages(true, start, end).dp(m))) : rx.EMPTY;
     })));
-    r('onAfterPages, after.onRender -> requestPages', s.pt.onAfterPages.pipe(rx.switchMap(([, pages]) => {
-        return pages > 0 ? after.s.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.afterPageRange, after.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
+    r('onAfterPages, after.onRender -> requestPages', pt.onAfterPages.pipe(rx.switchMap(([, pages]) => {
+        return pages > 0 ? after.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.afterPageRange, after.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
             const sizeForEachPage = (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
             const [pIndex0, pIndex1] = clipRangeToPageIndex(dir, clips, sizeForEachPage);
             // service.log('>>> tail clipRangeToPageIndex(): pIndex0', pIndex0, 'pIndex1', pIndex1, 'pageSize', sizeForEachPage, 'clips', clips.join());
             return [pIndex0 + pageRangeOpen, pIndex1 - pIndex0 + 1, m];
-        }), rx.distinctUntilChanged(([s1, e1], [s2, e2]) => s1 === s2 && e1 === e2), rx.map(([start, end, m]) => s.ft.requestPages(false, start, end).dp(m))) : rx.EMPTY;
+        }), rx.distinctUntilChanged(([s1, e1], [s2, e2]) => s1 === s2 && e1 === e2), rx.map(([start, end, m]) => ft.requestPages(false, start, end).dp(m))) : rx.EMPTY;
     })));
     r('setAveragePageSize... -> before.setPreferredSize, after.setPreferredSize', rx.combineLatest([
         distinctAveragePageSize$,
-        table.l.setExpandDir, before.s.pt.onContentSizeChange,
-        after.s.pt.onContentSizeChange, table.l.onBeforePages, table.l.onAfterPages
+        table.l.setExpandDir, before.pt.onContentSizeChange,
+        after.pt.onContentSizeChange, table.l.onBeforePages, table.l.onAfterPages
     ]).pipe(rx.map(([[m, size], [, dir], [, beforeW, beforeH], [, afterW, afterH], [, bPages], [, aPages]]) => {
         if (dir === 'col') {
             // service.log(`+++ setAveragePageSize: ${size}, head [w:${beforeW}, h:${beforeH}], tail [w:${afterW}, h:${afterH}], aPages: ${aPages}`);
-            before.s.ft.setPreferredSize(beforeW, bPages > 0 ? Math.max(size * bPages, beforeH) : 0).dp(m);
-            after.s.ft.setPreferredSize(afterW, aPages > 0 ? Math.max(size * aPages, afterH) : 0).dp(m);
+            before.ft.setPreferredSize(beforeW, bPages > 0 ? Math.max(size * bPages, beforeH) : 0).dp(m);
+            after.ft.setPreferredSize(afterW, aPages > 0 ? Math.max(size * aPages, afterH) : 0).dp(m);
         }
         else {
-            before.s.ft.setPreferredSize(bPages > 0 ? Math.max(size * bPages, beforeW) : 0, beforeH).dp(m);
-            after.s.ft.setPreferredSize(aPages > 0 ? Math.max(size * aPages, afterW) : 0, afterH).dp(m);
+            before.ft.setPreferredSize(bPages > 0 ? Math.max(size * bPages, beforeW) : 0, beforeH).dp(m);
+            after.ft.setPreferredSize(aPages > 0 ? Math.max(size * aPages, afterW) : 0, afterH).dp(m);
         }
     })));
-    r('afterPageRange -> onAfterPages', s.pt.afterPageRange.pipe(rx.map(([m, start, end]) => s.ft.onAfterPages(end - start).dp(m))));
-    r('dp_setTotalPageNum', s.pt.dp_setTotalPageNum.pipe(rx.map(([m, num]) => {
+    r('afterPageRange -> onAfterPages', pt.afterPageRange.pipe(rx.map(([m, start, end]) => ft.onAfterPages(end - start).dp(m))));
+    r('dp_setTotalPageNum', pt.dp_setTotalPageNum.pipe(rx.map(([m, num]) => {
         var _a;
         if (num !== 'unknown') {
-            s.ft.afterPageRange((_a = table.getData().afterPageRange[0]) !== null && _a !== void 0 ? _a : 0, num).dp(m);
+            ft.afterPageRange((_a = table.getData().afterPageRange[0]) !== null && _a !== void 0 ? _a : 0, num).dp(m);
         }
     })));
-    r('beforePageRange -> onBeforePages', s.pt.beforePageRange.pipe(rx.map(([m, start, end]) => s.ft.onBeforePages(end - start).dp(m))));
-    before.s.ft.justifyContent('center').dp();
-    before.s.ft.alignItems('end').dp();
-    after.s.ft.justifyContent('center').dp();
-    after.s.ft.alignItems('start').dp();
-    // before.s.ft.setBackground('bgGreen').dp();
-    // after.s.ft.setBackground('bgBlue').dp();
-    before.s.ft.addChild(labelBefore).dp();
-    after.s.ft.addChild(labelAfter).dp();
-    s.ft.beforePageRange(0, 0).dp();
-    s.ft.afterPageRange(0, 1).dp();
-    s.ft.setLabel('...').dp();
-    s.ft.setExpandDir('col').dp();
-    s.ft.setAveragePageSize(0).dp();
-    s.ft.onBeforePages(0).dp();
-    s.ft.setMaxLoadedPages(Number.MAX_SAFE_INTEGER).dp();
-    s.ft.dp_setTotalPageNum('unknown').dp();
+    r('beforePageRange -> onBeforePages', pt.beforePageRange.pipe(rx.map(([m, start, end]) => ft.onBeforePages(end - start).dp(m))));
+    r('dp_mgrFocusService', pt.dp_mgrFocusService.pipe(rx.switchMap(([m, focusSvc]) => focusSvc.table.l.forRootComp.pipe(rx.switchMap(([, r]) => r.table.l.ofCanvas), rx.filter(([, c]) => c != null), rx.switchMap(([m, canvas]) => rx.merge(pt.dp_onLoadPage.pipe(rx.map(([m]) => focusSvc.ft.pauseHandleEvents().dp(m))), rx.merge(pt.dp_didLoad, pt.dp_onCancelLoad, pt.dp_onLoadError).pipe(rx.exhaustMap(([m2]) => canvas.pt.render.pipe(rx.take(1), rx.switchMap(() => rx.timer(250)), rx.map(() => m2))), rx.map(m2 => {
+        focusSvc.ft.resumeHandleEvents().dp(m, m2);
+    }))))))));
+    before.ft.justifyContent('center').dp();
+    before.ft.alignItems('end').dp();
+    after.ft.justifyContent('center').dp();
+    after.ft.alignItems('start').dp();
+    // before.ft.setBackground('bgGreen').dp();
+    // after.ft.setBackground('bgBlue').dp();
+    before.ft.addChild(labelBefore).dp();
+    after.ft.addChild(labelAfter).dp();
+    ft.beforePageRange(0, 0).dp();
+    ft.afterPageRange(0, 1).dp();
+    ft.setLabel('...').dp();
+    ft.setExpandDir('col').dp();
+    ft.setAveragePageSize(0).dp();
+    ft.onBeforePages(0).dp();
+    ft.setMaxLoadedPages(Number.MAX_SAFE_INTEGER).dp();
+    ft.dp_setTotalPageNum('unknown').dp();
 });
 function createPlaceHolder(opts) {
     var _a, _b;

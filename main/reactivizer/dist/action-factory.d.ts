@@ -8,6 +8,7 @@ export type ActionOfUnknownType<P extends any[]> = {
 };
 export type ActionOrPayloadLike<P extends any[], A extends [ActionMeta, ...P] | ActionOfUnknownType<P>> = A;
 export interface SingleActionFactory {
+    action: Action;
     re(...actionMeta: ArrayOrTuple<ActionMeta | ActionMeta['r']>): this;
     /** Dispatch message */
     dp(...actionMetaRelated: ArrayOrTuple<ActionMeta | ActionMeta['r']>): Action<unknown>;
@@ -50,6 +51,8 @@ export declare class SingleActionFactoryImpl<I, K extends keyof I> implements Si
     private control;
     private opts;
     relateToAction: ArrayOrTuple<ActionMeta | ActionMeta['r']> | undefined;
+    action: Action<I[K]>;
+    private dispatched;
     constructor(type: K, payload: InferPayload<I[K]>, control: RxController2<I>, opts?: {
         /** default: 20000 ms */
         slowDispatchObservableTime?: number;

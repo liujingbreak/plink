@@ -59,12 +59,12 @@ export declare class IntervalTree<V = unknown> extends RedBlackTree<number, V, I
      */
     protected onRightChildChange(parent: IntervalTreeNode<V>, _child: IntervalTreeNode<V> | null | undefined): void;
     protected maintainNodeMaxValue<V>(node: IntervalTreeNode<V>): void;
-    protected _searchMultipleOverlaps<V>(overlaps: (readonly [
+    protected _searchMultipleOverlaps<V>(low: number, high: number, node: IntervalTreeNode<V> | null | undefined): (readonly [
         low: number,
         high: number,
         highValueNode: null | RbTreeNode<number, V>,
         intervalNode: IntervalTreeNode<V>
-    ])[], low: number, high: number, node: IntervalTreeNode<V> | null | undefined): number;
+    ])[];
 }
 /** A multi-value tree node can contain multiple intervals, in this case the tree node is assignable to type "DuplicateNode" */
 export declare function isDuplicateNode<V>(node: IntervalTreeNode<V>): node is DuplicateNode<V>;

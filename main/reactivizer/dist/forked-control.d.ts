@@ -9,8 +9,6 @@ import { RxController2 } from './control2';
  * subscription stream.
  *
  * A message interceptor of source RxController can impact all forked controller.
- * In a RxCntroller
- *
  */
 export declare class ForkedRxController<I> extends RxController2<I> {
     protected src: RxController2<I>;

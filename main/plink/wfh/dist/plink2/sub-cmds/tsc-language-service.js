@@ -24,7 +24,7 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson,
         let error;
         rx.merge(s.pt.onSuggest.pipe(rx.map(([, file, diagnostics]) => {
             // eslint-disable-next-line no-console
-            console.log('[langService]', file, diagnostics);
+            console.log('[langService] suggests:', file, diagnostics);
         })), s.ft.addSourceFile(file, true, content)
             .od(s.pt.emitFile).pipe(rx.map(([, outputFile, outputContent]) => {
             if (/\.[mc]?js/.test(outputFile)) {
@@ -36,11 +36,9 @@ function createTranspileFileWithTsCheck(ts = typescript_1.default, tsconfigJson,
             else {
                 unknownOutputFile = outputFile;
             }
-        }), 
-        // rx.take(1),
-        rx.takeUntil(s.pt.onEmitFailure.pipe(rx.map(([, file, diagnostics]) => {
+        }), rx.take(1), rx.takeUntil(s.pt.onEmitFailure.pipe(rx.map(([, file, diagnostics]) => {
             // eslint-disable-next-line no-console
-            console.log('[langService]', file, diagnostics);
+            console.log('[langService] failed:', file, diagnostics);
         }))), rx.catchError(err => {
             // eslint-disable-next-line no-console
             console.log('[tsc-util] catch error', err);

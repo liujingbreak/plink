@@ -63,7 +63,7 @@ export class ReactorComposite extends DuplexController {
             return src;
         })).subscribe();
         this.dispose = () => {
-            this.o.core.actionUpstream.next(this.o.core.createAction('Reactors finalized'));
+            this.o.core.actionUpstream.next(this.o.core.createAction('Reactors finalized', []));
             this.destory$.next();
         };
     }
