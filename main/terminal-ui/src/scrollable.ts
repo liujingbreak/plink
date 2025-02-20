@@ -377,11 +377,12 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
       })
     ))
   ));
-  r('onFocus -> keyEventService.bindToScrollable', pt.onFocus.pipe(
+  r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(
     rx.switchMap(([m]) => useAppContext(scrollable, m).pipe(
       rx.take(1),
-      rx.map(({keyEventService}) => {
+      rx.map(({keyEventService, statusbar}) => {
         keyEventService.ft.bindToScrollable(scrollable).dp(m);
+        statusbar.ft.trackScrollable(scrollable).dp(m);
       })
     ))
   ));

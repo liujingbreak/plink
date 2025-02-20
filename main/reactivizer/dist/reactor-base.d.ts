@@ -12,7 +12,7 @@ export type SimplexReactorOptions<I = Record<never, never>, LI extends readonly 
     tableFor: LI;
 };
 export type OptionsOfSmplxRctr<R extends SimplexReactor<any, any>> = SimplexReactorOptions<R extends SimplexReactor<infer I, any> ? I : never, R extends SimplexReactor<any, infer LI> ? LI : never>;
-export type SimplexReactorCfgOpts<IBase = Record<never, never>, IExt = Record<never, never>, LIExt extends readonly (keyof IExt)[] = []> = LIExt['length'] extends 0 ? CoreOptions<IBase & BaseActions<IBase & IExt> & IExt> & {
+export type SimplexReactorCfgOpts<IBase = Record<never, never>, IExt = Record<never, never>, LIExt extends readonly (keyof IExt | keyof IBase)[] = []> = LIExt['length'] extends 0 ? CoreOptions<IBase & BaseActions<IBase & IExt> & IExt> & {
     tableFor?: never[];
 } : LIExt extends never[] ? CoreOptions<IBase & IExt & BaseActions<IBase & IExt>> & {
     tableFor?: unknown[];

@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import { RxController2 } from './control2';
 import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
-import { PostForkedRxController } from './post-forked-control';
+import { ForkedPostRxController } from './forked-post-control';
 import { actionRelatedToAction } from './context-operators';
 const baseTableFor = ['__onError', '__onDisposed'];
 let SEQ = new Date().getUTCMilliseconds();
@@ -113,7 +113,7 @@ export class SimplexReactor {
         function ensurePostBase() {
             if (cachePostBase)
                 return cachePostBase;
-            cachePostBase = new PostForkedRxController(baseS);
+            cachePostBase = new ForkedPostRxController(baseS);
             return cachePostBase;
         }
         if (this.postBase == null) {

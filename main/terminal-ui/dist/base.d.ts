@@ -106,6 +106,8 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     bgCleared(hasCleared: boolean): SingleActionFactory;
     onFocus(src: BaseWidget): SingleActionFactory;
     onBlur(src: BaseWidget): SingleActionFactory;
+    onEnter(src: BaseWidget): SingleActionFactory;
+    onLeave(src: BaseWidget): SingleActionFactory;
     didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
     onContextChange<T>(key: string, value: T): SingleActionFactory;
     focusService(focusSvc: FocusService): SingleActionFactory;

@@ -11,7 +11,7 @@ import { RxController2 } from './control2';
  * Unlike ForkedRxController, the subscription to this stream controller always recieves same messages
  * later than subscriptions to the base stream controller
  */
-export declare class PostForkedRxController<I> extends RxController2<I> {
+export declare class ForkedPostRxController<I> extends RxController2<I> {
     protected src: RxController2<I>;
     /** Any message being emitted to this subject will not be dispatched to "base" controller */
     forkedUpStream: rx.Subject<Action<unknown>>;

@@ -4,6 +4,7 @@ import { PayloadByType, ActionByType } from './inferred-types';
 import { ActionDataTable } from './action-table';
 import { ActionDispenser } from './stream-dispense';
 import type { ForkedRxController as ForkedRxControllerConst } from './forked-control';
+import type * as forkPost from './forked-post-control';
 import { SingleActionFactory } from './action-factory';
 export { SingleActionFactory };
 export type ActionFactory = {
@@ -66,6 +67,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
     /** @deprecated
      * Use forkController() instead */
     prependController(): ForkedRxControllerConst<I>;
+    forkPostController(): forkPost.ForkedPostRxController<I>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**

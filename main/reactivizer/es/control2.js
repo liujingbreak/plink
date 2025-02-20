@@ -101,6 +101,10 @@ export class RxController2 extends ControllerCore {
     prependController() {
         return this.forkController();
     }
+    forkPostController() {
+        const { ForkedPostRxController } = require('./forked-post-control');
+        return new ForkedPostRxController(this);
+    }
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy(keySelector, groupedCtlOptionsFn) {
         return this.action$.pipe(rx.groupBy(keySelector), rx.map(grouped => {

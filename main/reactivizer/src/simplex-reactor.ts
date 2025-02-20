@@ -135,7 +135,7 @@ export class SimplexReactor<
    * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
    * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
    */
-  config<I2 = Record<string, never>, L2 extends(Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>) {
+  config<I2 = Record<string, never>, L2 extends(Array<keyof I2 | keyof I> | ReadonlyArray<keyof I2 | keyof I>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>) {
     if (this.opts) {
       Object.assign(this.opts, opts);
     } else {

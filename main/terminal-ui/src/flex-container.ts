@@ -21,7 +21,7 @@ export interface FlexContainerInput {
   setLazyLoad(enableLazy: boolean, handler?: (pageIndex: number) => rx.Observable<[key: unknown, comp: (BaseWidget | string)]>): SingleActionFactory;
 }
 
-export interface FlexContainerEvents {
+export interface FlexContainerEvents extends FlexContainerInput {
   onChangeChildrenSize(mainAxisSize: number[], crossAxisSize: number[]): SingleActionFactory;
 }
 
@@ -29,7 +29,7 @@ const tableForFlexContainer = [
   'setDirection', 'alignItems', 'justifyContent', 'setBorderSpacing', 'setBorderSeparator',
   'setBorderSeparatorStyle'
 ] as const;
-export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & FlexContainerEvents, typeof tableForFlexContainer>({
+export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, typeof tableForFlexContainer>({
   name: 'flexContainer',
   tableFor: tableForFlexContainer
 }).interceptorForBaseByType(ac => rx.merge(
@@ -294,7 +294,8 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & 
         );
       } else {
         chrCrossAxisSizes = [...chrCrossAxisPrefSizes];
-        chrMainAxisSizes = stretchEachSize(chrMainAxisPrefSizes, growOfEach, shrinkOfEach, mainAxis - margin * (children.length - 1));
+        chrMainAxisSizes = stretchEachSize(chrMainAxisPrefSizes, growOfEach, shrinkOfEach, mainAxis - margin * (children.length - 1), (...text) => listContainer.log(...text));
+        // listContainer.log('-- chrMainAxisSizes', chrMainAxisSizes);
         if (alignItems === 'stretch') {
           for (let i = 0, l = children.length; i < l; i++) {
             chrCrossAxisSizes[i] = crossAxis;
@@ -488,7 +489,7 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerInput & 
 });
 
 export type FlexContainer = SimplexReactorOfFac<typeof flexContainerFac>;
-export type FlexContainerOpts = CreateOptsInDef<FlexContainerInput & FlexContainerEvents, typeof baseContainerFac>;
+export type FlexContainerOpts = CreateOptsInDef<FlexContainerEvents, typeof baseContainerFac>;
 export function createFlexContainer(opts: FlexContainerOpts = {}) {
   return flexContainerFac.create(opts);
 }
@@ -502,7 +503,7 @@ export function shrinkEachSize(chdPrefSizes: number[], shrinkOfEach: number[], a
   const prefSizeTotal = chdPrefSizes.reduce((prev, curr) => prev + curr, 0);
   const spaceToShrink = prefSizeTotal - availableSpace;
   const numOfShrinkUnit = chdPrefSizes.reduce((prev, curr, i) => prev + (curr * shrinkOfEach[i]), 0);
-  const shrinkUnit = spaceToShrink / numOfShrinkUnit;
+  const shrinkUnit = numOfShrinkUnit > 0 ? spaceToShrink / numOfShrinkUnit : 0;
   const chrSizes = [] as number[];
   let floatGap = 0;
   let i = 0;
@@ -525,11 +526,13 @@ export function shrinkEachSize(chdPrefSizes: number[], shrinkOfEach: number[], a
   return chrSizes;
 }
 
-function stretchEachSize(prefSizes: number[], growOfEach: number[], shrinkOfEach: number[], availableSpace: number) {
+function stretchEachSize(prefSizes: number[], growOfEach: number[], shrinkOfEach: number[], availableSpace: number, log?: (...text: any[]) => void) {
   const remaining = availableSpace - prefSizes.reduce((sum, size) => {
     sum += size;
     return sum;
   }, 0);
+  // if (log)
+  //   log('--stretchEachSize remaining', remaining, shrinkOfEach, prefSizes, availableSpace);
   if (remaining <= 0)
     return shrinkEachSize(prefSizes, shrinkOfEach, availableSpace);
 

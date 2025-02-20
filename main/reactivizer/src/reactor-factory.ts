@@ -31,7 +31,7 @@ export class BaseReactorFactory<
   }
   forExtend<
     I2 = Record<never, never>,
-    LI2 extends readonly(keyof I2)[] | (keyof I2)[] = readonly [],
+    LI2 extends readonly(keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [],
     P2 extends readonly [...any[]] = [...any[]]
   >(newOpts?: SimplexReactorCfgOpts<I, I2, LI2>) {
     return new DerivedReactorFactory<I2, LI2, P2, I, LI, P>(this, newOpts);
@@ -75,7 +75,7 @@ export class BaseReactorFactory<
 
 export class DerivedReactorFactory<
   I = Record<never, never>,
-  LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
+  LI extends readonly (keyof I | keyof Ib)[] | (keyof I | keyof Ib)[] = readonly [],
   P extends readonly [...any[]] = [...any[]],
   Ib = Record<never, never>,
   LIb extends readonly (keyof Ib)[] | (keyof Ib)[] = readonly [],

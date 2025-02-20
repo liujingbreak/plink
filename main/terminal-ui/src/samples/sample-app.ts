@@ -2,13 +2,13 @@ import 'source-map-support/register';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {app, createFlexContainer, createTextWidget, DisplayMode, scrollableFac} from '../index';
+import {app, flexBoxFac, textFac, DisplayMode, scrollableFac} from '../index';
 
 const debug = true;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
-const panel = createFlexContainer({name: 'contentPanel', debug, log});
-const text = createTextWidget('Hello world', {debug, log});
+const panel = flexBoxFac.create({name: 'contentPanel', debug, log});
+const text = textFac.create('Hello world', {debug, log});
 // const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug, log});
 const {ft, pt} = app.createApp(panel, false, {
   default: {debug, log},
@@ -44,9 +44,14 @@ else
 panel.ft.setDirection('row').dp();
 panel.ft.alignItems('start').dp();
 panel.ft.justifyContent('center').dp();
-const scrollableText = createTextWidget('longlonglong text\n'.repeat(80));
+const scrollableText = textFac.create('longlonglong text\n'.repeat(80), {
+  debug, log,
+  border: {name: 'scrollableText'}
+});
 text.ft.setFlexShrink(0).dp();
 text.ft.setFocusable(true).dp();
+text.ft.setBorder('line').dp();
+text.ft.setPadding(0, 2, 0, 0).dp();
 const scrollable = scrollableFac.create(scrollableText);
 scrollable.ft.setFocusable(true).dp();
 

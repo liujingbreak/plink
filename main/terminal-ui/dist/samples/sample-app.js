@@ -44,8 +44,8 @@ const index_1 = require("../index");
 const debug = true;
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, log });
-const text = (0, index_1.createTextWidget)('Hello world', { debug, log });
+const panel = index_1.flexBoxFac.create({ name: 'contentPanel', debug, log });
+const text = index_1.textFac.create('Hello world', { debug, log });
 // const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug, log});
 const { ft, pt } = index_1.app.createApp(panel, false, {
     default: { debug, log },
@@ -80,9 +80,14 @@ else
 panel.ft.setDirection('row').dp();
 panel.ft.alignItems('start').dp();
 panel.ft.justifyContent('center').dp();
-const scrollableText = (0, index_1.createTextWidget)('longlonglong text\n'.repeat(80));
+const scrollableText = index_1.textFac.create('longlonglong text\n'.repeat(80), {
+    debug, log,
+    border: { name: 'scrollableText' }
+});
 text.ft.setFlexShrink(0).dp();
 text.ft.setFocusable(true).dp();
+text.ft.setBorder('line').dp();
+text.ft.setPadding(0, 2, 0, 0).dp();
 const scrollable = index_1.scrollableFac.create(scrollableText);
 scrollable.ft.setFocusable(true).dp();
 panel.ft.addChild(text, scrollable).dp();

@@ -10,4 +10,6 @@ export * from './scrollable';
 export * from './keyEvent';
 export * from './elevator-container';
 export * from './table';
+export * from './hoc/text';
+export * from './hoc/flex-box';
 export * as app from './app';

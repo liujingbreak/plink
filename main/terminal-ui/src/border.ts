@@ -8,7 +8,7 @@ import {TextStyle, TerminalCanvas} from './canvas';
 export interface BorderContainerActions {
   setBorderStyle(style: TextStyle): SingleActionFactory;
   setPadding(top: number, right: number, bottom: number, left: number): SingleActionFactory;
-  setBorder(type: 'padding' | 'line'): SingleActionFactory;
+  setBorder(type: 'none' | 'line'): SingleActionFactory;
 }
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'] as const;
 

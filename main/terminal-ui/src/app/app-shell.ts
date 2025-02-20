@@ -202,7 +202,7 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
   const coverLayerBorder = createBorderContainer(helpNote, {...opts?.default as any});
   coverLayerBorder.ft.setPadding(5, 5, 5, 5).dp();
   coverLayerBorder.ft.setBackground('bgGrey').dp();
-  coverLayerBorder.ft.setBorder('padding').dp();
+  coverLayerBorder.ft.setBorder('none').dp();
   coverLayer.ft.addChild(coverLayerBorder).dp();
   mainContainer.ft.setFlexGrow(1).dp();
   elevator.ft.addChild(

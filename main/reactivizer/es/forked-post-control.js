@@ -10,7 +10,7 @@ import { RxController2 } from './control2';
  * Unlike ForkedRxController, the subscription to this stream controller always recieves same messages
  * later than subscriptions to the base stream controller
  */
-export class PostForkedRxController extends RxController2 {
+export class ForkedPostRxController extends RxController2 {
     constructor(src) {
         super();
         this.src = src;
@@ -31,4 +31,4 @@ export class PostForkedRxController extends RxController2 {
         });
     }
 }
-//# sourceMappingURL=post-forked-control.js.map
+//# sourceMappingURL=forked-post-control.js.map

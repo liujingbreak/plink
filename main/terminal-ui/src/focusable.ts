@@ -29,7 +29,7 @@ export interface FocusMessages {
   forRootComp(rootComp: BaseWidget): SingleActionFactory;
   onFocus(compName: string, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
   /** Should only be dispatched on top level FocusService */
-  switchFocus(srcFocusSvc: FocusService | null, compName: string, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
+  switchFocus(srcFocusSvc: FocusService | null, compName: string | null, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
   /** Pointing to the only top level findFocusable service, which stores global states */
   removeFocusable(comp: BaseWidget): SingleActionFactory;
   onRectChange(rect: Rectangle, c: BaseWidget): SingleActionFactory;
@@ -763,9 +763,11 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
 });
 
 export type RootFocusServiceOpts = FocusServiceOpts;
-export const rootFocusSvcFac = focusServiceFac.forExtend({
+const tableForRoot = ['switchFocus'] as const;
+export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, typeof tableForRoot>({
   name: 'rootFocusSvc',
-  debugExcludeTypes: ['renderBypassFilter']
+  debugExcludeTypes: ['renderBypassFilter'],
+  tableFor: tableForRoot
 }).defineReactor((init, canvas: TerminalCanvas, opts?: RootFocusServiceOpts) => {
   const service = init(opts, canvas, opts);
   const {r, pt, ft} = service;
@@ -785,6 +787,49 @@ export const rootFocusSvcFac = focusServiceFac.forExtend({
         })
       );
     })
+  ));
+  r('switchFocus -> c.onLeave,c.onEnter', pt.switchFocus.pipe(
+    rx.scan((prev, curr) => {
+      if (prev == null) {
+        const [, , , p] = curr;
+        let c: BaseWidget | undefined | null = p;
+        while (c) {
+          c.ft.onEnter(p!).dp();
+          c = c.table.getData().setParent[0];
+        }
+      } else if (curr == null) {
+        let c: BaseWidget | undefined | null = prev[3];
+        while (c) {
+          c.ft.onLeave(prev[3]!).dp();
+          c = c.table.getData().setParent[0];
+        }
+      } else {
+        const blurAncestors = new Set<BaseWidget>();
+        let c: BaseWidget | undefined | null = prev[3];
+        while (c) {
+          blurAncestors.add(c);
+          c = c.table.getData().setParent[0];
+        }
+        // lookup for common ancestor
+        c = curr[3];
+        while (c) {
+          if (blurAncestors.has(c)) {
+            // found common ancestor
+            let leaveComp: undefined | typeof prev[3] = prev[3];
+            while (leaveComp && leaveComp !== c) {
+              // ancestors below the common ancestor should be "onLeave"
+              leaveComp.ft.onLeave(prev[3]!).dp(prev[0]);
+              leaveComp = leaveComp.table.getData().setParent[0];
+            }
+            break;
+          }
+          c.ft.onEnter(curr[3]!).dp(curr[0]);
+          c = c.table.getData().setParent[0];
+        }
+      }
+
+      return curr;
+    }, null as null | InferMapParam<FocusMessages['switchFocus']>)
   ));
 
   r('didNotFound', rx.merge(
@@ -822,6 +867,7 @@ export const rootFocusSvcFac = focusServiceFac.forExtend({
       return curr;
     }, null as InferMapParam<FocusMessages['didNotFound']> | null)
   ));
+  // ft.switchFocus(null, null, null, null).dp();
   return service;
 });
 

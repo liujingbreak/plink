@@ -146,7 +146,7 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
     const coverLayerBorder = (0, index_1.createBorderContainer)(helpNote, Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default));
     coverLayerBorder.ft.setPadding(5, 5, 5, 5).dp();
     coverLayerBorder.ft.setBackground('bgGrey').dp();
-    coverLayerBorder.ft.setBorder('padding').dp();
+    coverLayerBorder.ft.setBorder('none').dp();
     coverLayer.ft.addChild(coverLayerBorder).dp();
     mainContainer.ft.setFlexGrow(1).dp();
     elevator.ft.addChild(basePane, coverLayer).dp();

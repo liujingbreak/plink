@@ -46,7 +46,7 @@ exports.statusbarFac = index_1.borderFac.forExtend({
     const container = (0, index_1.createFlexContainer)(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'statusbar') + '.container' }));
     const statusbar = init(Object.assign(Object.assign({}, opts), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _b !== void 0 ? _b : 'statusbar') + '.border' }), container);
     statusbar.ft.setPadding(0, 0, 0, 1).dp();
-    statusbar.ft.setBorder('padding').dp();
+    statusbar.ft.setBorder('none').dp();
     statusbar.ft.setFlexShrink(0).dp();
     const { r, pt, ft, table } = statusbar;
     const labelScrollText = (0, index_1.createTextWidget)('scroll', {

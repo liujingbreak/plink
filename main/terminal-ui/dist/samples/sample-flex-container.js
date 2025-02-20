@@ -85,7 +85,7 @@ const demoCtn = (0, index_2.createFlexContainer)({
 demoCtn.s.ft.justifyContent('center').dp();
 demoCtn.s.ft.setBorderSpacing(2).dp();
 const demoCtnBorder = (0, index_2.createBorderContainer)(demoCtn, { debug, name: 'demoCtnBorder', log });
-demoCtnBorder.s.ft.setBorder('padding').dp();
+demoCtnBorder.s.ft.setBorder('none').dp();
 demoCtnBorder.s.ft.setPadding(1, 1, 1, 1).dp();
 demoCtnBorder.s.ft.setBackground('bgHsl(200, 45, 10)').dp();
 root.s.ft.addChild(demoCtnBorder).dp();

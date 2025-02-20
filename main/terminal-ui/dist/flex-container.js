@@ -228,7 +228,8 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
         }
         else {
             chrCrossAxisSizes = [...chrCrossAxisPrefSizes];
-            chrMainAxisSizes = stretchEachSize(chrMainAxisPrefSizes, growOfEach, shrinkOfEach, mainAxis - margin * (children.length - 1));
+            chrMainAxisSizes = stretchEachSize(chrMainAxisPrefSizes, growOfEach, shrinkOfEach, mainAxis - margin * (children.length - 1), (...text) => listContainer.log(...text));
+            // listContainer.log('-- chrMainAxisSizes', chrMainAxisSizes);
             if (alignItems === 'stretch') {
                 for (let i = 0, l = children.length; i < l; i++) {
                     chrCrossAxisSizes[i] = crossAxis;
@@ -387,7 +388,7 @@ function shrinkEachSize(chdPrefSizes, shrinkOfEach, availableSpace) {
     const prefSizeTotal = chdPrefSizes.reduce((prev, curr) => prev + curr, 0);
     const spaceToShrink = prefSizeTotal - availableSpace;
     const numOfShrinkUnit = chdPrefSizes.reduce((prev, curr, i) => prev + (curr * shrinkOfEach[i]), 0);
-    const shrinkUnit = spaceToShrink / numOfShrinkUnit;
+    const shrinkUnit = numOfShrinkUnit > 0 ? spaceToShrink / numOfShrinkUnit : 0;
     const chrSizes = [];
     let floatGap = 0;
     let i = 0;
@@ -409,11 +410,13 @@ function shrinkEachSize(chdPrefSizes, shrinkOfEach, availableSpace) {
     }
     return chrSizes;
 }
-function stretchEachSize(prefSizes, growOfEach, shrinkOfEach, availableSpace) {
+function stretchEachSize(prefSizes, growOfEach, shrinkOfEach, availableSpace, log) {
     const remaining = availableSpace - prefSizes.reduce((sum, size) => {
         sum += size;
         return sum;
     }, 0);
+    // if (log)
+    //   log('--stretchEachSize remaining', remaining, shrinkOfEach, prefSizes, availableSpace);
     if (remaining <= 0)
         return shrinkEachSize(prefSizes, shrinkOfEach, availableSpace);
     const totalGrow = growOfEach.reduce((total, grow) => {

@@ -319,8 +319,9 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
         if (toX !== scrollX || toY !== scrollY)
             ft.scrollTo(toX, toY).dp(m);
     })))));
-    r('onFocus -> keyEventService.bindToScrollable', pt.onFocus.pipe(rx.switchMap(([m]) => (0, app_shell_1.useAppContext)(scrollable, m).pipe(rx.take(1), rx.map(({ keyEventService }) => {
+    r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(rx.switchMap(([m]) => (0, app_shell_1.useAppContext)(scrollable, m).pipe(rx.take(1), rx.map(({ keyEventService, statusbar }) => {
         keyEventService.ft.bindToScrollable(scrollable).dp(m);
+        statusbar.ft.trackScrollable(scrollable).dp(m);
     })))));
     r('findOverlaps -> didFindOverlaps', pt.findOverlaps.pipe(rx.withLatestFrom(comp.table.l.isContainer, table.l.onBoundingBox, table.l.onValidScroll), rx.mergeMap(([[m, ...rect0], [, isContainer], [, bounding], [, left, top]]) => {
         if (!isContainer) {

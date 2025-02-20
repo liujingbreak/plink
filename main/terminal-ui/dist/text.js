@@ -33,17 +33,17 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.textWidgetFac = void 0;
+exports.textWidgetFac = exports.tableForMultiLineText = void 0;
 exports.createTextWidget = createTextWidget;
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
 const canvas_1 = require("./canvas");
 const base_1 = require("./base");
 const text_split_1 = require("./text-split");
-const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'];
+exports.tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'];
 exports.textWidgetFac = base_1.baseComponentFac.forExtend({
     name: 'text',
-    tableFor: tableForMultiLineText
+    tableFor: exports.tableForMultiLineText
 }).interceptorByType(ad => rx.merge(ad.at.setContent.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, initialText, opts) => {
     const service = init(opts);
     const spliter = (0, text_split_1.createWordSplitter)({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });

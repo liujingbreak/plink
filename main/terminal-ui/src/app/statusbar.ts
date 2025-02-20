@@ -28,7 +28,7 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     name: (opts?.name ?? 'statusbar') + '.border'
   }, container);
   statusbar.ft.setPadding(0, 0, 0, 1).dp();
-  statusbar.ft.setBorder('padding').dp();
+  statusbar.ft.setBorder('none').dp();
   statusbar.ft.setFlexShrink(0).dp();
   const {r, pt, ft, table} = statusbar;
   const labelScrollText = createTextWidget('scroll', {

@@ -5,7 +5,7 @@ import { SingleActionFactory } from './action-factory';
 import { SimplexReactorOptions, SimplexReactorCfgOpts } from './reactor-base';
 import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
-import { PostForkedRxController } from './post-forked-control';
+import { ForkedPostRxController } from './forked-post-control';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
     /** This event is when we can dispatch actions for initializing "action table" */
@@ -44,7 +44,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
      * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
      * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
      */
-    config<I2 = Record<string, never>, L2 extends (Array<keyof I2> | ReadonlyArray<keyof I2>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
+    config<I2 = Record<string, never>, L2 extends (Array<keyof I2 | keyof I> | ReadonlyArray<keyof I2 | keyof I>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
     /** Turn current reactors to extend mode,
      * fork a stream RxController2 to ForkedRxController, so that we can create new reactors by subscribing to
      * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
@@ -86,8 +86,8 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
  **/
 export interface DerivedSimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> extends SimplexReactor<I, LI> {
     s: ForkedRxController<I & BaseActions>;
-    postBase: PostForkedRxController<I & BaseActions>;
+    postBase: ForkedPostRxController<I & BaseActions>;
     /** alias of postBase */
-    p: PostForkedRxController<I & BaseActions>;
+    p: ForkedPostRxController<I & BaseActions>;
 }
 export {};

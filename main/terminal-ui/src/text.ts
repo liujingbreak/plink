@@ -5,11 +5,11 @@ import {getTextDisplayUnits, TextStyle} from './canvas';
 import {baseComponentFac} from './base';
 import {isCodePointFullWidth, createWordSplitter} from './text-split';
 
-export interface MultiLineTextActions {
+export interface MultiLineTextInput {
   setContent(text: string): SingleActionFactory;
   setStyle(style: TextStyle): SingleActionFactory;
-  // events
-
+}
+export interface MultiLineTextActions extends MultiLineTextInput {
   onDisplayLines(lines: number[][]): SingleActionFactory;
   /** display cache for specific width */
   onDisplayLinesForWidth(width?: number | null, lines?: number[][]): SingleActionFactory;
@@ -17,7 +17,7 @@ export interface MultiLineTextActions {
   onStyleWithParentBg(style: TextStyle): SingleActionFactory;
   // line number is most likely over 5000
 }
-const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'] as const;
+export const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'] as const;
 export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, typeof tableForMultiLineText>({
   name: 'text',
   tableFor: tableForMultiLineText

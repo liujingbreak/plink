@@ -16,7 +16,7 @@ export interface FocusMessages {
     forRootComp(rootComp: BaseWidget): SingleActionFactory;
     onFocus(compName: string, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
     /** Should only be dispatched on top level FocusService */
-    switchFocus(srcFocusSvc: FocusService | null, compName: string, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
+    switchFocus(srcFocusSvc: FocusService | null, compName: string | null, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
     /** Pointing to the only top level findFocusable service, which stores global states */
     removeFocusable(comp: BaseWidget): SingleActionFactory;
     onRectChange(rect: Rectangle, c: BaseWidget): SingleActionFactory;
@@ -44,12 +44,6 @@ export type FocusServiceOpts = CoreOptions<FocusMessages & CanvasFilterOutput & 
 };
 export declare const focusServiceFac: BaseReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ["didFound", "handleKeyEvents", "searchTree", "isPaused", "forRootComp"], [canvas: TerminalCanvas, opts?: FocusServiceOpts | undefined]>;
 export type RootFocusServiceOpts = FocusServiceOpts;
-export declare const rootFocusSvcFac: import("@wfh/reactivizer").DerivedReactorFactory<{
-    renderBypassFilter: any;
-} & {
-    renderBypassFilter: any;
-} & {
-    renderBypassFilter: any;
-}, readonly [], [canvas: TerminalCanvas, opts?: FocusServiceOpts | undefined], FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ["didFound", "handleKeyEvents", "searchTree", "isPaused", "forRootComp"], [canvas: TerminalCanvas, opts?: FocusServiceOpts | undefined]>;
+export declare const rootFocusSvcFac: import("@wfh/reactivizer").DerivedReactorFactory<Record<string, never>, readonly ["switchFocus"], [canvas: TerminalCanvas, opts?: FocusServiceOpts | undefined], FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ["didFound", "handleKeyEvents", "searchTree", "isPaused", "forRootComp"], [canvas: TerminalCanvas, opts?: FocusServiceOpts | undefined]>;
 export type RootFocusService = FocusService;
 export {};

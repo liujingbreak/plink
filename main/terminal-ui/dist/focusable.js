@@ -636,9 +636,11 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
     ft.didFound().dp();
     return service;
 });
+const tableForRoot = ['switchFocus'];
 exports.rootFocusSvcFac = exports.focusServiceFac.forExtend({
     name: 'rootFocusSvc',
-    debugExcludeTypes: ['renderBypassFilter']
+    debugExcludeTypes: ['renderBypassFilter'],
+    tableFor: tableForRoot
 }).defineReactor((init, canvas, opts) => {
     const service = init(opts, canvas, opts);
     const { r, pt, ft } = service;
@@ -654,6 +656,48 @@ exports.rootFocusSvcFac = exports.focusServiceFac.forExtend({
             };
         }));
     })));
+    r('switchFocus -> c.onLeave,c.onEnter', pt.switchFocus.pipe(rx.scan((prev, curr) => {
+        if (prev == null) {
+            const [, , , p] = curr;
+            let c = p;
+            while (c) {
+                c.ft.onEnter(p).dp();
+                c = c.table.getData().setParent[0];
+            }
+        }
+        else if (curr == null) {
+            let c = prev[3];
+            while (c) {
+                c.ft.onLeave(prev[3]).dp();
+                c = c.table.getData().setParent[0];
+            }
+        }
+        else {
+            const blurAncestors = new Set();
+            let c = prev[3];
+            while (c) {
+                blurAncestors.add(c);
+                c = c.table.getData().setParent[0];
+            }
+            // lookup for common ancestor
+            c = curr[3];
+            while (c) {
+                if (blurAncestors.has(c)) {
+                    // found common ancestor
+                    let leaveComp = prev[3];
+                    while (leaveComp && leaveComp !== c) {
+                        // ancestors below the common ancestor should be "onLeave"
+                        leaveComp.ft.onLeave(prev[3]).dp(prev[0]);
+                        leaveComp = leaveComp.table.getData().setParent[0];
+                    }
+                    break;
+                }
+                c.ft.onEnter(curr[3]).dp(curr[0]);
+                c = c.table.getData().setParent[0];
+            }
+        }
+        return curr;
+    }, null)));
     r('didNotFound', rx.merge(pt.didNotFound, pt.didFound.pipe(rx.map(() => null))).pipe(rx.scan((prev, curr) => {
         if (prev == null && curr != null) {
             const [m, dir] = curr;
@@ -682,6 +726,7 @@ exports.rootFocusSvcFac = exports.focusServiceFac.forExtend({
         }
         return curr;
     }, null)));
+    // ft.switchFocus(null, null, null, null).dp();
     return service;
 });
 function chooseClosestLeftOrRight(x, node1, node2) {

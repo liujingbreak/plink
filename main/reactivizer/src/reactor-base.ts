@@ -26,7 +26,7 @@ export type OptionsOfSmplxRctr<R extends SimplexReactor<any, any>> =
 export type SimplexReactorCfgOpts<
   IBase = Record<never, never>,
   IExt = Record<never, never>,
-  LIExt extends readonly (keyof IExt)[] = []
+  LIExt extends readonly (keyof IExt | keyof IBase)[] = []
 > = LIExt['length'] extends 0 ?
   CoreOptions<IBase & BaseActions<IBase & IExt> & IExt> & {tableFor?: never[]} :
   LIExt extends never[] ?
