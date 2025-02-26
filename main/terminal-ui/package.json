@@ -20,6 +20,10 @@
     "clean": "rm -rf dist/* tsconfig-node.tsbuildinfo",
     "test": "echo \"Error: test has to be run with @wfh/plink-test\" && exit 1"
   },
+  "dependencies": {
+    "rbush": "~4.0.1",
+    "@types/rbush": "~4.0.0"
+  },
   "peerDependencies": {
     "chalk": "^4.1.0",
     "@wfh/reactivizer": "^0.2.2"
