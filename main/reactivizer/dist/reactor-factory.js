@@ -30,6 +30,7 @@ class BaseReactorFactory {
         });
         return this;
     }
+    /** create SimplexReactor instance */
     create(...params) {
         return this._create(a => a, params);
     }
@@ -108,6 +109,7 @@ class DerivedReactorFactory {
         }, ...params);
         return service;
     }
+    /** create SimplexReactor instance */
     create(...params) {
         return this._create(a => a, params);
     }

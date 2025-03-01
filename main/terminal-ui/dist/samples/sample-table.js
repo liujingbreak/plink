@@ -54,16 +54,16 @@ function log(...args) {
 }
 const canvas = (0, index_1.createTerminalCanvas)({ debug, debugIncludeTypes: ['fillRect'], log });
 const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
-root.s.ft.alignItems('center').dp();
+root.ft.alignItems('center').dp();
 const table = (0, index_1.createTable)({
     core: { name: 'table', debug: true, log, debugExcludeTypes: ['onCellBgRender'] },
     default: { debug: false, log }
 });
 const SAMPLE_ROW_COUNT = 6;
 const SAMPLE_COLUMN_CNT = 7;
-table.s.pt.onRowAdded.pipe(rx.map(([, idx, id, cells]) => {
+table.pt.onRowAdded.pipe(rx.map(([, idx, id, cells]) => {
     cells.map(cell => {
-        cell.s.ft.setStyle(['black']).dp();
+        cell.ft.setStyle(['black']).dp();
     });
 })).subscribe();
 for (let r = 0; r < SAMPLE_ROW_COUNT; r++) {
@@ -71,25 +71,25 @@ for (let r = 0; r < SAMPLE_ROW_COUNT; r++) {
     for (let i = 0; i < 7; i++) {
         cells.push(`Cell ${r}:${i}`);
     }
-    table.s.ft.addRow(cells).dp();
+    table.ft.addRow(cells).dp();
 }
-table.s.ft.setBorderType(index_1.TableBorderType.rowSeparator, true).dp();
-table.s.ft.setBorderType(index_1.TableBorderType.border, true).dp();
+table.ft.setBorderType(index_1.TableBorderType.rowSeparator, true).dp();
+table.ft.setBorderType(index_1.TableBorderType.border, true).dp();
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
 const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
-table.s.ft.setCellBackground((col, row) => `bgHsl(${hueInterval * row},${30 + saturation * col},70)`).dp();
-root.s.ft.addChild(table).dp();
-root.s.ft.setDirection('col').dp();
-canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootComponent(root).dp();
+table.ft.setCellBackground((col, row) => `bgHsl(${hueInterval * row},${30 + saturation * col},70)`).dp();
+root.ft.addChild(table).dp();
+root.ft.setDirection('col').dp();
+canvas.ft.autoHideCursor().dp();
+canvas.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
     log('-----------------\n', label, util_1.default.inspect(err));
     process.exit(0);
 });
-canvas.s.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp();
-canvas.s.ft.render().dp();
+canvas.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp();
+canvas.ft.render().dp();
 canvas.dispose();
 root.dispose();
 //# sourceMappingURL=sample-table.js.map

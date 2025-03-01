@@ -1,9 +1,9 @@
 import 'source-map-support/register';
 import fs from 'fs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../canvas';
-import {createTextWidget} from '../text';
-import {createFlexContainer} from '../flex-container';
+import {createTerminalCanvas} from '../core/terminal-canvas';
+import {createTextWidget} from '../core/text';
+import {createFlexContainer} from '../core/flex-container';
 const fout = fs.createWriteStream('terminal-canvas-sample.log', {flush: true});
 const log = createSimpleIndentLogger(false, false, fout);
 const canvas = createTerminalCanvas({
@@ -12,7 +12,11 @@ const canvas = createTerminalCanvas({
 const text = createTextWidget('hello', {debug: true, log});
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-const container = createFlexContainer({debug: true, log});
+const container = createFlexContainer({
+  debug: true,
+  name: 'background',
+  log
+});
 container.s.ft.addChild(text).dp();
 container.s.ft.setBackground('bgHex(#303030)').dp();
 text.s.ft.setStyle(['hex(#ffd0d0)']).dp();
@@ -27,4 +31,4 @@ canvas.s.ft.requestRender().dp();
 setTimeout(() => {
   canvas.dispose();
   container.dispose();
-}, 250);
+}, 650);

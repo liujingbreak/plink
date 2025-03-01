@@ -3,7 +3,7 @@ import * as rx from 'rxjs';
 import {CoreOptions, SingleActionFactory, SimplexReactor, ActionMeta, BaseReactorFactory} from '@wfh/reactivizer';
 import {createScrollable, createFlexContainer, BaseWidget, createKeyEventService,
   createTerminalCanvas, createElevator, createTextWidget, createBorderContainer,
-  DisplayMode, ScrollableOptions, TerminalCanvasOptions, ElevatorOptions,
+  DisplayMode, ScrollableOptions, TerminalCanvasOpts, ElevatorOptions,
   FlexContainer, FlexContainerOpts, KeyEventOptions, TerminalCanvas, KeyEventServcie,
   app} from '../index';
 import {StatusbarOptions, createStatusbar} from './statusbar';
@@ -30,7 +30,7 @@ export interface AppOptions {
   keyService?: KeyEventOptions;
   scrollable?: ScrollableOptions;
   elevator?: ElevatorOptions;
-  canvas?: TerminalCanvasOptions;
+  canvas?: TerminalCanvasOpts;
   cover?: FlexContainerOpts;
   main?: FlexContainerOpts;
 }
@@ -82,18 +82,16 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
     statusbar.ft.trackScrollable(scrollable).dp();
   }
   const canvas = createTerminalCanvas({
-    ...opts?.default as TerminalCanvasOptions,
+    ...opts?.default as TerminalCanvasOpts,
     ...opts?.canvas
   });
   r('setFullScreen -> onReady', pt.setFullScreenMode.pipe(
     rx.exhaustMap(([m]) => {
-      const blankLines = '\n'.repeat(process.stdout.rows - 1);
-      return new rx.Observable(sub => {
-        process.stdout.write(blankLines, () => sub.next());
-      }).pipe(
+      return canvas.ft.setFullScreenMode().re(m).od(
+        canvas.pt.setBounding
+      ).pipe(
         rx.take(1),
-        rx.switchMap(() => {
-          canvas.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
+        rx.map(() => {
           ft.onReady({
             canvas,
             main: basePane,
@@ -101,36 +99,17 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
             keyEventService,
             statusbar
           }).dp(m);
-          return new rx.Observable(sub => {
-            const handleResize = () => {
-              canvas.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
-            };
-            process.stdout.on('resize', handleResize);
-            return () => {
-              process.stdout.off('resize', handleResize);
-            };
-          });
         })
       );
     })
   ));
-  r('setSize -> onReady', pt.setSize.pipe(
+  r('setSize... -> onReady', pt.setSize.pipe(
     rx.switchMap(([m, w, h]) => {
-      const cols = w > process.stdout.columns ? process.stdout.columns : w;
-      const rows = h > process.stdout.rows ? process.stdout.rows : h;
-      const blankLines = '\n'.repeat(rows - 1);
-      return canvas.ft.reportCursor(keyEventService).re(m).od(
-        canvas.pt.doneReportCursor
+      return canvas.ft.setSize(w, h, keyEventService).re(m).od(
+        canvas.pt.setBounding
       ).pipe(
         rx.take(1),
-        rx.switchMap(([, , top]) => new rx.Observable<number>(s => {
-          process.stdout.write(blankLines, () => s.next(top));
-        })),
-        rx.map((top) => {
-          if (top + rows > process.stdout.rows)
-            top = process.stdout.rows - rows;
-
-          canvas.ft.setBounding(0, top, cols, rows).dp(m);
+        rx.map(() => {
           ft.onReady({
             canvas,
             main: basePane,

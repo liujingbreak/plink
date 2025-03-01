@@ -37,8 +37,8 @@ exports.flexBoxFac = void 0;
 /* eslint-disable array-bracket-newline */
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
-const border_1 = require("../border");
-const flex_container_1 = require("../flex-container");
+const border_1 = require("../core/border");
+const flex_container_1 = require("../core/flex-container");
 const tableFor = [
     'setDirection', 'alignItems', 'justifyContent', 'setBorderSpacing', 'setBorderSeparator',
     'setBorderSeparatorStyle', 'setBorderSpacing'
@@ -47,9 +47,9 @@ exports.flexBoxFac = border_1.borderFac.forExtend({
     name: 'complex-flex',
     tableFor
 }).defineReactor((init, opts) => {
-    const flex = flex_container_1.flexContainerFac.create(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.flex' : 'HOC.flex', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.flexContainer));
+    const flex = flex_container_1.flexContainerFac.create(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.flex' : 'flexBox', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.flexContainer));
     const flexEvents = new rx.Subject();
-    const border = init(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.flex' : 'HOC.flex', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.border), flex);
+    const border = init(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.border' : 'flexBox.border', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.border), flex);
     const { ft } = border;
     border.s.prependInterceptor(a$ => {
         const ac = reactivizer_1.ActionDispenser.ofAction$(a$);

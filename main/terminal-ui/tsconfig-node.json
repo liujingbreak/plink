@@ -12,7 +12,7 @@
   "references": [
     {"path": "../reactivizer/tsconfig-node.json"}
   ],
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.cts"],
   "exclude": [
     "es/**/*.ts",
     "dist/**/*.ts"

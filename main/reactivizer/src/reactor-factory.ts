@@ -9,6 +9,7 @@ export interface ReactorFactory<
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
   P extends readonly [...any[]] = [...any[]]
 > {
+  /** create SimplexReactor instance */
   create(...params: P): SimplexReactor<I, LI>;
   _create(overrideOpts: (currOpts: SimplexReactorOptions<I, LI>) => SimplexReactorOptions<I, LI>, params: P): SimplexReactor<I, LI>;
 }
@@ -50,6 +51,7 @@ export class BaseReactorFactory<
     });
     return this;
   }
+  /** create SimplexReactor instance */
   create(...params: P): SimplexReactor<I, LI> {
     return this._create(a => a, params);
   }
@@ -172,6 +174,7 @@ export class DerivedReactorFactory<
     }, ...params);
     return service!;
   }
+  /** create SimplexReactor instance */
   create(...params: P) {
     return this._create(a => a, params);
   }

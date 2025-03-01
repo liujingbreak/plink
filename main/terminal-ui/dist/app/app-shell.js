@@ -65,11 +65,7 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
     }
     const canvas = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.canvas));
     r('setFullScreen -> onReady', pt.setFullScreenMode.pipe(rx.exhaustMap(([m]) => {
-        const blankLines = '\n'.repeat(process.stdout.rows - 1);
-        return new rx.Observable(sub => {
-            process.stdout.write(blankLines, () => sub.next());
-        }).pipe(rx.take(1), rx.switchMap(() => {
-            canvas.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
+        return canvas.ft.setFullScreenMode().re(m).od(canvas.pt.setBounding).pipe(rx.take(1), rx.map(() => {
             ft.onReady({
                 canvas,
                 main: basePane,
@@ -77,27 +73,10 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
                 keyEventService,
                 statusbar
             }).dp(m);
-            return new rx.Observable(sub => {
-                const handleResize = () => {
-                    canvas.ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
-                };
-                process.stdout.on('resize', handleResize);
-                return () => {
-                    process.stdout.off('resize', handleResize);
-                };
-            });
         }));
     })));
-    r('setSize -> onReady', pt.setSize.pipe(rx.switchMap(([m, w, h]) => {
-        const cols = w > process.stdout.columns ? process.stdout.columns : w;
-        const rows = h > process.stdout.rows ? process.stdout.rows : h;
-        const blankLines = '\n'.repeat(rows - 1);
-        return canvas.ft.reportCursor(keyEventService).re(m).od(canvas.pt.doneReportCursor).pipe(rx.take(1), rx.switchMap(([, , top]) => new rx.Observable(s => {
-            process.stdout.write(blankLines, () => s.next(top));
-        })), rx.map((top) => {
-            if (top + rows > process.stdout.rows)
-                top = process.stdout.rows - rows;
-            canvas.ft.setBounding(0, top, cols, rows).dp(m);
+    r('setSize... -> onReady', pt.setSize.pipe(rx.switchMap(([m, w, h]) => {
+        return canvas.ft.setSize(w, h, keyEventService).re(m).od(canvas.pt.setBounding).pipe(rx.take(1), rx.map(() => {
             ft.onReady({
                 canvas,
                 main: basePane,

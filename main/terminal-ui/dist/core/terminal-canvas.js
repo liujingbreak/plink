@@ -1,0 +1,118 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.terminalCanvasFac = void 0;
+exports.createTerminalCanvas = createTerminalCanvas;
+const node_readline_1 = __importDefault(require("node:readline"));
+const rx = __importStar(require("rxjs"));
+const canvas_1 = require("./canvas");
+exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
+    name: 'canvas'
+}).defineReactor((init, opts) => {
+    const service = init(opts);
+    const { pt, ft, r } = service;
+    r('autoHideCursor', pt.autoHideCursor.pipe(rx.map(() => {
+        process.stdout.write('\x1B[?25l');
+        const reset = () => process.stdout.write('\x1B[?25h');
+        process.on('exit', reset);
+        process.on('SIGINT', () => {
+            reset();
+            process.exit(0);
+        });
+    }), rx.take(1)));
+    r('scrollUp', pt.scrollUp.pipe(rx.map(([, lines]) => {
+        process.stdout.write('\x1B[' + lines + 'S');
+    })));
+    r('scrollDown', pt.scrollDown.pipe(rx.map(([, lines]) => {
+        process.stdout.write('\x1B[' + lines + 'T');
+    })));
+    // Refer to https://en.wikipedia.org/wiki/ANSI_escape_code
+    r('reportCursor -> doneReportCursor', pt.reportCursor.pipe(rx.switchMap(([m, keyEventService]) => {
+        return rx.merge(keyEventService.pt.onReportCursor.pipe(rx.take(1), rx.map(([, x, y]) => ft.doneReportCursor(x - 1, y - 1).dp(m))), new rx.Observable(sub => {
+            process.stdout.write('\x1B[6n');
+            sub.complete();
+        }));
+    })));
+    r('onPrintText', pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
+        node_readline_1.default.cursorTo(process.stdout, x, y);
+        process.stdout.write(text);
+    })));
+    r('onClearLine', pt.onClearLine.pipe(rx.map(([, y, x, dir]) => {
+        if (x != null) {
+            node_readline_1.default.cursorTo(process.stdout, x, y);
+            node_readline_1.default.clearLine(process.stdout, dir !== null && dir !== void 0 ? dir : 1);
+        }
+        else {
+            node_readline_1.default.cursorTo(process.stdout, 0, y);
+            node_readline_1.default.clearLine(process.stdout, 0);
+        }
+    })));
+    r('setFullScreen -> setBounding', pt.setFullScreenMode.pipe(rx.exhaustMap(([m]) => {
+        const blankLines = '\n'.repeat(process.stdout.rows - 1);
+        return new rx.Observable(sub => {
+            process.stdout.write(blankLines, () => sub.next());
+        }).pipe(rx.take(1), rx.switchMap(() => {
+            ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
+            return new rx.Observable(sub => {
+                const handleResize = () => {
+                    ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
+                };
+                process.stdout.on('resize', handleResize);
+                return () => {
+                    process.stdout.off('resize', handleResize);
+                };
+            });
+        }));
+    })));
+    r('setSize -> setBounding', pt.setSize.pipe(rx.switchMap(([m, w, h, keyEventService]) => {
+        const cols = w > process.stdout.columns ? process.stdout.columns : w;
+        const rows = h > process.stdout.rows ? process.stdout.rows : h;
+        const blankLines = '\n'.repeat(rows - 1);
+        return ft.reportCursor(keyEventService).re(m).od(pt.doneReportCursor).pipe(rx.take(1), rx.switchMap(([, , top]) => new rx.Observable(s => {
+            process.stdout.write(blankLines, () => s.next(top));
+        })), rx.map((top) => {
+            if (top + rows > process.stdout.rows)
+                top = process.stdout.rows - rows;
+            ft.setBounding(0, top, cols, rows).dp(m);
+        }));
+    })));
+});
+function createTerminalCanvas(opts) {
+    return exports.terminalCanvasFac.create(opts);
+}
+//# sourceMappingURL=terminal-canvas.js.map

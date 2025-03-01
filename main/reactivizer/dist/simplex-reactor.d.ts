@@ -20,6 +20,13 @@ type LE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof bas
 export declare class SimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> {
     /** All catched error goes here, including those from "dispatchErrorFor" */
     error$: rx.Observable<readonly [error: any, label: string | null]>;
+    /** When "dispose" method is invoked, __onDisposed message will be emitted,
+    * subscribing this observable is equivalent to subscribing "__onDisposed" message.
+    * Be aware, any subscription created through current service's `r()` is "rx.takeUntil(pt.__onDisposed)`,
+    * so don't define "reactor" against `destory$` or `pt.__onDisposed` through `r()`,
+    * any logic inside it will never be triggered. The subscription to destory$ will
+    * take effect if it is through plain observable `subscribe()` or another service's `r()` method.
+    **/
     destory$: rx.Observable<unknown>;
     dispose: () => void;
     /** default stream controller used also as Reactor's internal message stream */

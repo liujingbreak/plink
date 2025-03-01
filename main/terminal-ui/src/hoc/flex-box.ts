@@ -1,8 +1,8 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {CoreOptions, ActionDispenser, Action} from '@wfh/reactivizer';
-import {borderFac, BorderContainerOpts} from '../border';
-import {flexContainerFac as flexFac, FlexContainerInput, FlexContainerOpts as FlexOpts} from '../flex-container';
+import {borderFac, BorderContainerOpts} from '../core/border';
+import {flexContainerFac as flexFac, FlexContainerInput, FlexContainerOpts as FlexOpts} from '../core/flex-container';
 
 export interface FlexBoxOpts {
   name?: string;

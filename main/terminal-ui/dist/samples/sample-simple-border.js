@@ -6,13 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("source-map-support/register");
 const fs_1 = __importDefault(require("fs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const canvas_1 = require("../canvas");
-const text_1 = require("../text");
-const border_1 = require("../border");
-const flex_container_1 = require("../flex-container");
+const terminal_canvas_1 = require("../core/terminal-canvas");
+const text_1 = require("../core/text");
+const border_1 = require("../core/border");
+const flex_container_1 = require("../core/flex-container");
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log', { flush: true });
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const canvas = (0, canvas_1.createTerminalCanvas)({
+const canvas = (0, terminal_canvas_1.createTerminalCanvas)({
     debug: true, log
 });
 const text = (0, text_1.createTextWidget)('hello', { debug: true, log });

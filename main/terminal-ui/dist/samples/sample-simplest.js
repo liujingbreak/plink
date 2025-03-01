@@ -39,22 +39,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const canvas_1 = require("../canvas");
-const text_1 = require("../text");
+const terminal_canvas_1 = require("../core/terminal-canvas");
+const text_1 = require("../core/text");
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const canvas = (0, canvas_1.createTerminalCanvas)({
+const canvas = (0, terminal_canvas_1.createTerminalCanvas)({
     debug: true, log
 });
 const text = (0, text_1.createTextWidget)('hello', { debug: true, log });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
-canvas.s.ft.autoHideCursor().dp();
-canvas.s.ft.setRootComponent(text).dp();
-canvas.s.ft.setRenderOnRequest(true).dp();
-canvas.s.ft.requestRender().dp();
-canvas.s.pt.render.pipe(rx.debounceTime(1000), rx.take(1), rx.tap(() => {
+canvas.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
+canvas.ft.autoHideCursor().dp();
+canvas.ft.setRootComponent(text).dp();
+canvas.ft.setRenderOnRequest(true).dp();
+canvas.ft.requestRender().dp();
+canvas.pt.render.pipe(rx.debounceTime(1000), rx.take(1), rx.tap(() => {
     canvas.dispose();
     text.dispose();
 })).subscribe();

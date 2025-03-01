@@ -1,0 +1,13 @@
+import { CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory, ActionMeta } from '@wfh/reactivizer';
+import { BaseWidget } from './base';
+import { Canvas, TextStyle } from './canvas';
+export interface BorderContainerActions {
+    setBorderStyle(style: TextStyle): SingleActionFactory;
+    setPadding(top: number, right: number, bottom: number, left: number): SingleActionFactory;
+    setBorder(type: 'none' | 'line'): SingleActionFactory;
+}
+export declare const borderFac: import("@wfh/reactivizer").DerivedReactorFactory<BorderContainerActions, readonly ["setBorder", "setBorderStyle", "setPadding"], [child: BaseWidget, opts?: import("@wfh/reactivizer").CoreOptions<import("./container").TermainlContainerEvents & import("./base").BaseWidgetEvents & BorderContainerActions> | undefined], import("./container").TermainlContainerEvents & import("./base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck")[], []>;
+export type BorderContainerOpts = CreateOptsOfFac<typeof borderFac>;
+export type BorderContainer = SimplexReactorOfFac<typeof borderFac>;
+export declare function createBorderContainer(child: BaseWidget, opts?: BorderContainerOpts): import("@wfh/reactivizer").DerivedSimplexReactor<BorderContainerActions & import("./container").TermainlContainerEvents & import("./base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setBorder" | "setBorderStyle" | "setPadding")[]>;
+export declare function renderLineBorder(m: ActionMeta, canvas: Canvas, x: number, y: number, w: number, h: number, style: TextStyle): void;

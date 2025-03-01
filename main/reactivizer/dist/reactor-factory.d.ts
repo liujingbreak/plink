@@ -3,6 +3,7 @@ import { CoreOptions, Interceptor } from './stream-core';
 import { ActionInterceptor } from './control2';
 import { SimplexReactor, DerivedSimplexReactor } from './simplex-reactor';
 export interface ReactorFactory<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly [], P extends readonly [...any[]] = [...any[]]> {
+    /** create SimplexReactor instance */
     create(...params: P): SimplexReactor<I, LI>;
     _create(overrideOpts: (currOpts: SimplexReactorOptions<I, LI>) => SimplexReactorOptions<I, LI>, params: P): SimplexReactor<I, LI>;
 }
@@ -17,6 +18,7 @@ export declare class BaseReactorFactory<I = Record<never, never>, LI extends rea
     forExtend<I2 = Record<never, never>, LI2 extends readonly (keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [], P2 extends readonly [...any[]] = [...any[]]>(newOpts?: SimplexReactorCfgOpts<I, I2, LI2>): DerivedReactorFactory<I2, LI2, P2, I, LI, P>;
     interceptor(...interc: Interceptor[]): this;
     interceptorByType(inter: ActionInterceptor<I>): this;
+    /** create SimplexReactor instance */
     create(...params: P): SimplexReactor<I, LI>;
     /** do not call this method directly, use create() instead */
     _create(overrideOpts: (currOpts: SimplexReactorOptions<I, LI>) => SimplexReactorOptions<I, LI>, param: P): SimplexReactor<I, LI>;
@@ -38,6 +40,7 @@ export declare class DerivedReactorFactory<I = Record<never, never>, LI extends 
     forExtend<I2 = Record<never, never>, LI2 extends readonly (keyof I2)[] | (keyof I2)[] = readonly [], P2 extends readonly [...any[]] = [...any[]]>(newOpts: SimplexReactorCfgOpts<I & Ib, I2, LI2>): DerivedReactorFactory<I2, LI2, P2, I & Ib, readonly (LI[number] | LIb[number])[], P>;
     /** do not call this method directly, use create() instead */
     _create(overrideOpts: (currOpts: SimplexReactorOptions<I & Ib, readonly (LI[number] | LIb[number])[]>) => SimplexReactorOptions<I & Ib, readonly (LI[number] | LIb[number])[]>, params: P): DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>;
+    /** create SimplexReactor instance */
     create(...params: P): DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>;
 }
 /** Used in paramter type definition of ReactorFactory["defineReactor"] to avoid cyclic reference problem `CreateOptsOfFac` */

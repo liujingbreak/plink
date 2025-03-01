@@ -37,15 +37,15 @@ exports.textFac = exports.tableFor = void 0;
 /* eslint-disable array-bracket-newline */
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
-const border_1 = require("../border");
-const text_1 = require("../text");
+const border_1 = require("../core/border");
+const text_1 = require("../core/text");
 exports.tableFor = ['setContent', 'setStyle'];
 exports.textFac = border_1.borderFac.forExtend({
     name: 'complex-text',
     tableFor: exports.tableFor
 }).defineReactor((init, initialText, opts) => {
-    const oText = text_1.textWidgetFac.create(initialText, Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.text' : 'HOC.text', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.text));
-    const service = init(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.text' : 'HOC.border', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.border), oText);
+    const oText = text_1.textWidgetFac.create(initialText, Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.text' : 'text', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.text));
+    const service = init(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.text' : 'text.border', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.border), oText);
     const { s, ft } = service;
     const textEvents = new rx.Subject();
     s.prependInterceptor(a$ => {

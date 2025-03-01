@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import { CoreOptions, SingleActionFactory, SimplexReactor, ActionMeta } from '@wfh/reactivizer';
-import { BaseWidget, ScrollableOptions, TerminalCanvasOptions, ElevatorOptions, FlexContainer, FlexContainerOpts, KeyEventOptions, TerminalCanvas, KeyEventServcie, app } from '../index';
+import { BaseWidget, ScrollableOptions, TerminalCanvasOpts, ElevatorOptions, FlexContainer, FlexContainerOpts, KeyEventOptions, TerminalCanvas, KeyEventServcie, app } from '../index';
 import { StatusbarOptions } from './statusbar';
 export interface AppActions {
     setFullScreenMode(): SingleActionFactory;
@@ -23,7 +23,7 @@ export interface AppOptions {
     keyService?: KeyEventOptions;
     scrollable?: ScrollableOptions;
     elevator?: ElevatorOptions;
-    canvas?: TerminalCanvasOptions;
+    canvas?: TerminalCanvasOpts;
     cover?: FlexContainerOpts;
     main?: FlexContainerOpts;
 }

@@ -1,9 +1,9 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {CoreOptions, SingleActionFactory} from '@wfh/reactivizer';
-import {BaseWidget} from '../base';
-import {Rectangle} from '../canvas';
-import {baseContainerFac} from '../container';
+import {BaseWidget} from '../core/base';
+import {Rectangle} from '../core/canvas';
+import {baseContainerFac} from '../core/container';
 
 export interface PosPopupInput {
   setAbsPos(x: number, y: number): SingleActionFactory;
@@ -71,7 +71,8 @@ export const positionalFac = baseContainerFac.forExtend<PosPopupEvents, typeof t
         );
       } else {
         return table.l.setAbsPos.pipe(
-          rx.map(([, x, y]) => [] as ),
+          // TODO
+          // rx.map(([, x, y]) => []),
           rx.take(1)
         );
       }

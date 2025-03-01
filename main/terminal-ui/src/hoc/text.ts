@@ -1,8 +1,8 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {CoreOptions, ActionDispenser, Action} from '@wfh/reactivizer';
-import {borderFac, BorderContainerOpts} from '../border';
-import {MultiLineTextInput, textWidgetFac, MultiLineTextWidgetOpts} from '../text';
+import {borderFac, BorderContainerOpts} from '../core/border';
+import {MultiLineTextInput, textWidgetFac, MultiLineTextWidgetOpts} from '../core/text';
 
 export interface TextOptions {
   name?: string;
