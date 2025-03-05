@@ -13,7 +13,7 @@
  */
 import * as rx from 'rxjs';
 import {SimplexReactor, SingleActionFactory, actionRelatedToAction, ActionMeta,
-  BaseReactorFactory, CoreOptions, InferMapParam} from '@wfh/reactivizer';
+  BaseReactorFactory, CoreOptions, InferMapParam, SimplexReactorOfFac} from '@wfh/reactivizer';
 import {RedBlackTree} from '@wfh/algorithms';
 import {BaseWidget} from './base';
 import {TerminalContainer} from './container';
@@ -22,6 +22,7 @@ import {CanvasFilterOutput, CanvasFilterInput} from './canvas-filter';
 import {KeyEventServcie, KeyEventEnum} from './keyEvent';
 import {canvasCacheFac, CanvasCacheOptions} from './canvas-cache';
 
+export const ROOT_FOCUS_SERVICE_CONTEXT = '__rootFocus';
 export enum SearchDirection {
   down, up, right, left, tabNext
 }
@@ -29,12 +30,14 @@ export interface FocusMessages {
   forRootComp(rootComp: BaseWidget): SingleActionFactory;
   onFocus(compName: string, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
   /** Should only be dispatched on top level FocusService */
-  switchFocus(srcFocusSvc: FocusService | null, compName: string | null, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
+  switchFocus(srcFocusSvc: FocusService | null, compName: string | null, comp: BaseWidget | null): SingleActionFactory;
   /** Pointing to the only top level findFocusable service, which stores global states */
   removeFocusable(comp: BaseWidget): SingleActionFactory;
   onRectChange(rect: Rectangle, c: BaseWidget): SingleActionFactory;
   onRectRemoved(rect: Rectangle, c: BaseWidget): SingleActionFactory;
   findFocusable(direction: SearchDirection, handleKeyEventsAction: ActionMeta['i']): SingleActionFactory;
+  locateFocusable(locateTrace: (readonly [FocusService, BaseWidget])[], index: number): SingleActionFactory;
+  focusOnComponent(target: BaseWidget): SingleActionFactory;
   /** In context of "findFocusable", when next focusable is found */
   didFound(resultRect?: Rectangle, component?: BaseWidget, tabIndex?: number): SingleActionFactory;
   /** In context of "findFocusable" and handleKeyEvents, dispatched when
@@ -290,21 +293,111 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
       newXNode.value = [c];
     }
   }
+
+  function getAllParentFocusSvc(curr: FocusService, currComp: BaseWidget, untilRoot: FocusService):
+  rx.Observable<(readonly [FocusService, BaseWidget])[]> {
+    if (curr === untilRoot) {
+      return curr.latest.forRootComp.pipe(
+        rx.take(1),
+        rx.map(([, root]) => [[curr, currComp]])
+      );
+    }
+    return curr.latest.forRootComp.pipe(
+      rx.mergeMap(([, root]) => root.latest.setParent.pipe(
+        rx.map(([, p]) => [root, p] as const)
+      )),
+      rx.take(1),
+      rx.mergeMap(([root, p]) => p ? p.latest.focusService.pipe(
+        rx.switchMap(([, pf]) => getAllParentFocusSvc(pf, root, untilRoot).pipe(
+          rx.map(parentRoots => {
+            parentRoots.push([curr, currComp]);
+            return parentRoots;
+          })
+        )),
+        rx.take(1),
+      ) : rx.of([[curr, currComp] as const]))
+    );
+  }
+  r('focusOnComponent', pt.focusOnComponent.pipe(
+    rx.switchMap(([m, c]) => c.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT)
+      .re(m).od(
+        c.pt.onContextChange
+      ).pipe(
+        rx.mergeMap(([, , rootFocus]) => {
+          return getAllParentFocusSvc(service, c, rootFocus as FocusService).pipe(
+            rx.mergeMap(trace => {
+              service.log('-- focusOnComponent', trace.map(([f, c]) => f.s.logPrefix + ' -> ' + c.s.logPrefix));
+              // must wait for rendered once, so its rectangle is updated to focusService
+              return c.latest.render.pipe(
+                rx.take(1),
+                rx.map(() => {
+                  trace[0][0].ft.locateFocusable(trace, 0).dp(m);
+                })
+              );
+            })
+          );
+        })
+      ))
+  ));
+  r('locateFocusable -> locateFocusable,didFound,handleKeyEvents...', pt.locateFocusable.pipe(
+    rx.withLatestFrom(latest.handleKeyEvents),
+    rx.switchMap(([[m, trace, idx], [, keyService]]) => {
+      if (idx < trace.length) {
+        const [, comp] = trace[idx];
+        const data = rectByComponent.get(comp);
+        service.log('-- locateFocusable rectByComponent', data);
+        if (data) {
+          const [r, tabIdx] = data;
+          ft.didFound(r, comp, tabIdx).dp(m);
+          if (idx < trace.length - 1) {
+            const [subFocus] = trace[idx + 1];
+            ft.stopHandleKeyEvents().dp(m);
+            subFocus.ft.handleKeyEvents(keyService).dp(m);
+            return rx.merge(
+              subFocus.ft.locateFocusable(trace, idx + 1).re(m).od(
+                subFocus.pt.didNotFound
+              ).pipe(
+                rx.take(1),
+                rx.map(([, dir]) => {
+                  subFocus.ft.stopHandleKeyEvents().dp(m);
+                  ft.handleKeyEvents(keyService, dir).dp(m);
+                })
+              )
+            );
+          } else {
+            return comp.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m).od(
+              comp.pt.onContextChange
+            ).pipe(
+              rx.take(1),
+              rx.map(([, , rootFocus]) => {
+                (rootFocus as RootFocusService).ft.switchFocus(
+                  service, comp.s.logPrefix, comp).dp(m);
+              })
+            );
+          }
+        }
+      }
+      ft.didNotFound(SearchDirection.down).dp(m);
+      return rx.EMPTY;
+    })
+  ));
   // dispatch onFocus event according to didFound result,
   // when the target component is an offsetParent,
   // designate it to handle key events
-  r('findFocusable,didNotFound,handleKeyEvents... -> onFocus,rootFocus.switchFocus',
+  const forked = service.s.forkController();
+  r('findFocusable,didFound,didNotFound,handleKeyEvents... -> onFocus,rootFocus.switchFocus',
     pt.findFocusable.pipe(
       rx.withLatestFrom(latest.handleKeyEvents),
       rx.switchMap(([[m, dir], [, keySvc]]) => {
-        return pt.didFound.pipe(
+        return forked.pt.didFound.pipe(
           actionRelatedToAction(m),
-          rx.takeUntil(pt.didNotFound.pipe(
+          rx.takeUntil(forked.pt.didNotFound.pipe(
             actionRelatedToAction(m)
           )),
           rx.take(1),
+          // query whether current component is "focusable"
           rx.mergeMap(([, rect, c]) => {
-            if (rect != null && c) {
+            if (rect && c) {
               return c.latest.setFocusable.pipe(
                 rx.take(1),
                 rx.map(([, r]) => [c, r] as const)
@@ -315,16 +408,16 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
           rx.switchMap(([c, r]) => {
             if (r) {
               ft.onFocus(c.s.logPrefix, c, service).dp(m);
-              return c.ft.queryContext('rootFocus').re(m)
+              return c.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m)
                 .od(c.pt.onContextChange)
                 .pipe(
                   rx.take(1),
                   rx.map(([, , rootFocus]) => {
-                    (rootFocus as FocusService).ft.switchFocus(service, c.s.logPrefix, c, service).dp(m);
+                    (rootFocus as FocusService).ft.switchFocus(service, c.s.logPrefix, c).dp(m);
                   })
                 );
             } else {
-              // service.log('--focus found', c.s.logPrefix);
+              // If current component is not focusable,
               // delegate handling key events job to the sub focusService
               return c.latest.focusService.pipe(
                 rx.take(1),
@@ -332,9 +425,9 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
                   ft.stopHandleKeyEvents().dp(m);
                   return focusService.ft.handleKeyEvents(keySvc, dir)
                     .re(m).od(focusService.pt.didNotFound).pipe(
-                      rx.map(([, origDir]) => {
-                        focusService.ft.stopHandleKeyEvents().dp(m);
-                        ft.handleKeyEvents(keySvc, origDir).dp(m);
+                      rx.map(([m2, origDir]) => {
+                        focusService.ft.stopHandleKeyEvents().dp(m2);
+                        ft.handleKeyEvents(keySvc, origDir).dp( m2);
                       }),
                       rx.take(1)
                     );
@@ -770,17 +863,28 @@ export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, 
 }).defineReactor((init, canvas: Canvas, opts?: RootFocusServiceOpts) => {
   const service = init(opts, canvas, opts);
   const {r, pt, ft} = service;
-
   r('switchFocus... -> canvas.addRenderFilter...', pt.switchFocus.pipe(
     rx.switchMap(([m, srcFocus, , c]) => {
       if (c == null || srcFocus == null)
         return rx.EMPTY;
       return rx.merge(
+        c.latest.setFocusStyle.pipe(
+          rx.take(1),
+          rx.mergeMap(([, s]) => {
+            if (s === 'inverse') {
+              return new rx.Observable(() => {
+                srcFocus.ft.renderFor(c).dp(m);
+                return () => {
+                  srcFocus.ft.clearFor(c).dp(m);
+                };
+              });
+            }
+            return rx.EMPTY;
+          })
+        ),
         new rx.Observable(() => {
-          srcFocus.ft.renderFor(c).dp(m);
           c.ft.onFocus(c).dp(m);
           return () => {
-            srcFocus.ft.clearFor(c).dp(m);
             c.ft.onBlur(c).dp(m);
           };
         })
@@ -870,7 +974,7 @@ export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, 
   return service;
 });
 
-export type RootFocusService = FocusService;
+export type RootFocusService = SimplexReactorOfFac<typeof rootFocusSvcFac>;
 
 function chooseClosestLeftOrRight<N extends {key: number}>(x: number, node1: N | null | undefined, node2: N | null | undefined) {
   if (node1 != null && node2 == null)
@@ -881,4 +985,13 @@ function chooseClosestLeftOrRight<N extends {key: number}>(x: number, node1: N |
     return Math.abs(x - node1.key) > Math.abs(x - node2.key) ? node2 : node1;
   }
   return null;
+}
+
+export function queryRootFocusService(currComp: BaseWidget, m?: ActionMeta) {
+  let fac = currComp.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT);
+  if (m)
+    fac = fac.re(m);
+  return fac.od(currComp.pt.onContextChange).pipe(
+    rx.map(([, , v]) => v as RootFocusService)
+  );
 }

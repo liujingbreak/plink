@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { Action, ActionMeta, ActionFunctions } from './stream-core';
+import { Action, ActionMeta, ActionFunctions, InferMapParam } from './stream-core';
 import { RxController2, ControllerBaseActions } from './control2';
 import { SingleActionFactory } from './action-factory';
 import { SimplexReactorOptions, SimplexReactorCfgOpts } from './reactor-base';
@@ -17,6 +17,7 @@ export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly
 }
 declare const baseTableFor: readonly ["__onError", "__onDisposed"];
 type LE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;
+export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<any>;
 export declare class SimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> {
     /** All catched error goes here, including those from "dispatchErrorFor" */
     error$: rx.Observable<readonly [error: any, label: string | null]>;
@@ -37,14 +38,29 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     at: RxController2<I & BaseActions>['at'];
     /** shortcut to s.ft */
     ft: RxController2<I & BaseActions>['ft'];
+    /** Add a "pre-hook" of specific message type, all returned observable of provided hook functions
+     * of that specific message type will be `rx.concat()` together,
+     * thus the returned an Observable must be completed in the future, otherwise it will block
+     * messages being recieved by reactors.
+     * Any subscription to that specific message type (aka reactor) will recieved message after all
+     * pre-hooks completes.
+     *
+     * @return a function to remove pre-hook previously added.
+    **/
+    hooks: {
+        [K in keyof I]: (label: string, define: PreActionHook<I, K>) => () => void;
+    };
     /** shortcut to table.l */
     latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
+    /** Define an reactor (RxJS observable subscription) */
     r: (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => void;
     table: ActionTable<I & BaseActions<I>, LE<LI>>;
     id: number;
     opts?: SimplexReactorOptions<unknown, readonly never[]>;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
     protected errorSubject: rx.Subject<[label: string, originError: any]>;
+    private preActionHook$;
+    private removePreActionHook$;
     constructor(opts?: SimplexReactorOptions<I, LI>);
     /**
      * This method can be used to change "options" after SimplexReactor instanciation, e.g. `.change({debug: true})` to enable action tracing log for debug.
@@ -57,6 +73,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
      * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
      **/
     forExtend(): DerivedSimplexReactor<I, LI>;
+    private addPreHook;
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
@@ -87,7 +104,7 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     /** @deprecated call dispose() instead */
     destory(): void;
     protected logError(label: string, err: any): void;
-    protected handleError(upStream: rx.Observable<any>, label?: string, hehavior?: 'continue' | 'stop' | 'throw'): rx.Observable<any>;
+    protected handleErrorOp(label?: string, hehavior?: 'continue' | 'stop' | 'throw'): (upStream: rx.Observable<any>) => rx.Observable<any>;
 }
 /** You should never create instance by constructor of this class,
  **/

@@ -44,6 +44,14 @@ export interface SingleActionFactory {
     }]): TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{
         [K in keyof TA]: rx.Observable<TA[K]>;
     }];
+    /**
+     * Same effect as executing `.od(...).pipe(rx.take(1))`
+     */
+    odMono<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(response$: rx.Observable<T>, ...moreResponses: [...{
+        [K in keyof TA]: rx.Observable<TA[K]>;
+    }]): TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{
+        [K in keyof TA]: rx.Observable<TA[K]>;
+    }];
 }
 export declare class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFactory {
     private type;
@@ -66,6 +74,11 @@ export declare class SingleActionFactoryImpl<I, K extends keyof I> implements Si
     do<A extends [ActionMeta, ...any[]] | Action<any>>(response$: rx.Observable<A>, referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<A>;
     ddo<A extends [ActionMeta, ...any[]] | Action<any>>(response$: rx.Observable<A>, referAction?: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>): rx.Observable<A>;
     od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(response: rx.Observable<T>, ...moreResponses: [...{
+        [K in keyof TA]: rx.Observable<TA[K]>;
+    }]): TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{
+        [K in keyof TA]: rx.Observable<TA[K]>;
+    }];
+    odMono<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(response: rx.Observable<T>, ...moreResponses: [...{
         [K in keyof TA]: rx.Observable<TA[K]>;
     }]): TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{
         [K in keyof TA]: rx.Observable<TA[K]>;

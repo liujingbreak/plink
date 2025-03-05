@@ -10,6 +10,8 @@ export * from './core/text';
 export * from './core/scrollable';
 export * from './core/keyEvent';
 export * from './core/elevator-container';
+export * from './app/positional-popup';
+export { RootFocusService, queryRootFocusService, SearchDirection as FocusableSearchDir } from './core/focusable';
 export * from './core/table';
 export * from './hoc/text';
 export * from './hoc/flex-box';

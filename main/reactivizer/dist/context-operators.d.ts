@@ -20,6 +20,25 @@ export declare function actionOfContext<T extends [ActionMeta, ...any[]] | Actio
     r?: ActionMeta['r'];
 }): (up: rx.Observable<T>) => rx.Observable<T>;
 /**
+ * Combine multiple observables of action or mapped payload to create an observable whose values are calculated from
+ * the input observables in form of a tuple like:
+ *
+ * When a, b, c earch one is corresponding value of observable of input parameters,
+ * if c is related to b and b is related to a (latter parameter is under context of preceding parameter presented action observable)
+ * i.e. `a.i` or `a[0].i` equals values of `b.r` or `b[0].r` and
+ *    `b.i` or `b[0].i` equals values of `c.r` or `c[0].r`
+ *    then `[a, b, c]` is in the returned observable
+ *
+ * > Caution
+ *  Be aware of "problem of synchronous observation and the order of subscription",
+ *  when the actions in parameters are dispatched in synchronous mode by producer.
+ *  It is better the input parameters are "forked" controllers of producers.
+* */
+export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>): rx.Observable<[T, T2]>;
+export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>, T3 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>, relatedToRelated: rx.Observable<T3>): rx.Observable<[T, T2, T3]>;
+export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>, T3 extends [ActionMeta, ...any[]] | Action<any>, T4 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>, relatedToRelated: rx.Observable<T3>, relatedToRelatedToR: rx.Observable<T4>): rx.Observable<[T, T2, T3, T4]>;
+export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>, T3 extends [ActionMeta, ...any[]] | Action<any>, T4 extends [ActionMeta, ...any[]] | Action<any>, T5 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>, relatedToRelated: rx.Observable<T3>, relatedToRelatedToR: rx.Observable<T4>, relatedToR5: rx.Observable<T5>): rx.Observable<[T, T2, T3, T4, T5]>;
+/**
  * Return an Rx operator function, the upstream Observable is so call "contextAction" stream (observable of initial actions),
  * the parameter `responding$` is observable of any actions which is supposed to be filtered by this operator,
  * the downstream is an high-order observable of which the elements are nested observables of filted "responding event" actions,

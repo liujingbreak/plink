@@ -1,31 +1,48 @@
 import rl from 'node:readline';
 import * as rx from 'rxjs';
-import {SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac} from '@wfh/reactivizer';
+import {SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac, ActionMeta} from '@wfh/reactivizer';
 import {canvasFac} from './canvas';
-import {KeyEventServcie} from './keyEvent';
+import {KeyEventServcie, createKeyEventService} from './keyEvent';
 
 export interface TerminalCanvasInput {
-  setFullScreenMode(): SingleActionFactory;
+  setFullScreenMode(keyEventService?: KeyEventServcie): SingleActionFactory;
   /** If width or height is larger than the number of available columens and rows,
   * it is same effect as "setFullScreenMode" */
-  setSize(width: number, height: number, keyEventService: KeyEventServcie): SingleActionFactory;
+  setSize(width: number, height: number, keyEventService?: KeyEventServcie): SingleActionFactory;
   scrollUp(lines: number): SingleActionFactory;
   scrollDown(lines: number): SingleActionFactory;
   autoHideCursor(): SingleActionFactory;
   /** Replied by "doneReportCursor", Terminal-keyEvent service must be enabled before dispatching this action */
   reportCursor(keyEventService: KeyEventServcie): SingleActionFactory;
+  /**
+   * move cursor to right bottom corner of the canvas and print a line wrap character,
+  * so that when process exits, terminal's cursor will be right beginning of next empty line,
+  * this leaves a clear screen of previous printed content.
+  *
+  * There is a message "onPrintDescentEndFlushed" follows after `stdout.write()`'s callback is executed.
+  **/
+  printDescentEnd(): SingleActionFactory;
 }
 
 interface TerminalCanvasEvents extends TerminalCanvasInput {
   /** In context of action "reportCursor", 0 based number */
   doneReportCursor(col: number, row: number): SingleActionFactory;
+  onKeyEventService(keyEventService: KeyEventServcie): SingleActionFactory;
+  /** A event dispatched after all onPrintText messages for a single corresponding "render" event are
+   * handled and relavant process.stdout.write callbacks are called.
+  * This message is under context of "render" message */
+  onWriteFlushed(renderActionMeta: ActionMeta): SingleActionFactory;
+  /** In context of printDescentEnd */
+  onPrintDescentEndFlushed(): SingleActionFactory;
 }
+const tableFor = ['onKeyEventService'] as const;
 export type TerminalCanvasOpts = CreateOptsInDef<TerminalCanvasEvents, typeof canvasFac>;
-export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents>({
-  name: 'canvas'
+export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents, typeof tableFor>({
+  name: 'canvas',
+  tableFor
 }).defineReactor((init, opts?: TerminalCanvasOpts) => {
   const service = init(opts);
-  const {pt, ft, r} = service;
+  const {pt, ft, r, table} = service;
   r('autoHideCursor', pt.autoHideCursor.pipe(
     rx.map(() => {
       process.stdout.write('\x1B[?25l');
@@ -62,12 +79,6 @@ export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents>({
         }));
     })
   ));
-  r('onPrintText', pt.onPrintText.pipe(
-    rx.map(([, x, y, text]) => {
-      rl.cursorTo(process.stdout, x, y);
-      process.stdout.write(text);
-    })
-  ));
   r('onClearLine', pt.onClearLine.pipe(
     rx.map(([, y, x, dir]) => {
       if (x != null) {
@@ -79,8 +90,11 @@ export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents>({
       }
     })
   ));
-  r('setFullScreen -> setBounding', pt.setFullScreenMode.pipe(
-    rx.exhaustMap(([m]) => {
+  r('setFullScreen -> setBounding,onKeyEventService', pt.setFullScreenMode.pipe(
+    rx.exhaustMap(([m, keyEventService]) => {
+      if (keyEventService == null)
+        keyEventService = createKeyEventService({debug: opts?.debug, log: opts?.log});
+      ft.onKeyEventService(keyEventService).dp(m);
       const blankLines = '\n'.repeat(process.stdout.rows - 1);
       return new rx.Observable(sub => {
         process.stdout.write(blankLines, () => sub.next());
@@ -101,8 +115,11 @@ export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents>({
       );
     })
   ));
-  r('setSize -> setBounding', pt.setSize.pipe(
+  r('setSize -> setBounding,onKeyEventService', pt.setSize.pipe(
     rx.switchMap(([m, w, h, keyEventService]) => {
+      if (keyEventService == null)
+        keyEventService = createKeyEventService({debug: opts?.debug, log: opts?.log});
+      ft.onKeyEventService(keyEventService).dp(m);
       const cols = w > process.stdout.columns ? process.stdout.columns : w;
       const rows = h > process.stdout.rows ? process.stdout.rows : h;
       const blankLines = '\n'.repeat(rows - 1);
@@ -122,6 +139,61 @@ export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents>({
       );
     })
   ));
+  r('onKeyEventService,keyEventService.onExit|destory$ -> printDescentEnd,keyEventService.dispose',
+    table.l.onKeyEventService.pipe(
+      rx.switchMap(([, keyEventService]) => {
+        return rx.merge(
+          new rx.Observable(() => {
+            const remove = keyEventService.hooks.onExit('before onExit', (m) => {
+              return ft.printDescentEnd().re(m).od(pt.onPrintDescentEndFlushed).pipe(
+                rx.take(1)
+              );
+            });
+            return remove;
+          }),
+          service.destory$.pipe(
+            rx.map(() => keyEventService.dispose())
+          )
+        );
+      })
+    ));
+  r('printDescentEnd -> onPrintDescentEndFlushed', pt.printDescentEnd.pipe(
+    rx.mergeMap(([m]) => {
+      return table.l.setBounding.pipe(
+        rx.take(1),
+        rx.map(([, left, top, w, h]) => {
+          return rl.cursorTo(
+            process.stdout, left + w - 1, top + h - 1,
+            () => {
+              ft.onPrintDescentEndFlushed().dp(m);
+            }
+          );
+        })
+      );
+    })
+  ));
+  r('render,onPrintText... -> onWriteFlushed', pt.render.pipe(
+    rx.mergeMap(([m]) => {
+      const processCallbacks = new rx.ReplaySubject<void>();
+      return pt.onPrintText.pipe(
+        rx.map(([, x, y, text]) =>  {
+          rl.cursorTo(process.stdout, x, y);
+          process.stdout.write(text, () => processCallbacks.next());
+        }),
+        rx.takeUntil(pt.onRendered),
+        rx.count(),
+        rx.mergeMap(count => {
+          return processCallbacks.pipe(
+            rx.take(count),
+            rx.finalize(() => {
+              ft.onWriteFlushed(m).dp(m);
+            })
+          );
+        })
+      );
+    })
+  ));
+  ft.autoHideCursor().dp();
 });
 export type TerminalCanvas = SimplexReactorOfFac<typeof terminalCanvasFac>;
 

@@ -40,7 +40,7 @@ const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 const context_operators_1 = require("./context-operators");
 const action_table_1 = require("./action-table");
-const stream_dispense_1 = require("./stream-dispense");
+const action_dispenser_1 = require("./action-dispenser");
 const action_factory_1 = require("./action-factory");
 class RxController2 extends stream_core_1.ControllerCore {
     /** Action factory by type */
@@ -88,7 +88,7 @@ class RxController2 extends stream_core_1.ControllerCore {
          * */
         this.doOperator$ = new rx.BehaviorSubject((_dispatchingAction) => input => input);
         // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const actionDispenseByType = stream_dispense_1.ActionDispenser.ofRxController(this);
+        const actionDispenseByType = action_dispenser_1.ActionDispenser.ofRxController(this);
         this.at = actionDispenseByType.at;
         this.pt = actionDispenseByType.pt;
     }

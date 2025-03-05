@@ -60,7 +60,7 @@ panel.ft.addChild(text, scrollable).dp();
 pt.onReady.pipe(
   rx.take(1),
   rx.mergeMap(() => {
-    return app.useAppContext(panel);
+    return app.queryAppContext(panel);
   }),
   rx.map(({statusbar}) => {
     statusbar.ft.setDisplay(DisplayMode.visible).dp();

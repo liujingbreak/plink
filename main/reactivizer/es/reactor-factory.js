@@ -1,5 +1,5 @@
 import { SimplexReactor } from './simplex-reactor';
-import { ActionDispenser } from './stream-dispense';
+import { ActionDispenser } from './action-dispenser';
 export class BaseReactorFactory {
     constructor(protoOptions) {
         this.protoOptions = protoOptions;
@@ -27,6 +27,7 @@ export class BaseReactorFactory {
         });
         return this;
     }
+    /** create SimplexReactor instance */
     create(...params) {
         return this._create(a => a, params);
     }
@@ -104,6 +105,7 @@ export class DerivedReactorFactory {
         }, ...params);
         return service;
     }
+    /** create SimplexReactor instance */
     create(...params) {
         return this._create(a => a, params);
     }

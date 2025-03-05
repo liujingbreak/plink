@@ -111,5 +111,12 @@ export class SingleActionFactoryImpl {
             });
         }
     }
+    odMono(response, ...moreResponses) {
+        const res = this.od(response, ...moreResponses);
+        if (Array.isArray(res)) {
+            return res.map(i => i.pipe(rx.take(1)));
+        }
+        return res.pipe(rx.take(1));
+    }
 }
 //# sourceMappingURL=action-factory.js.map

@@ -7,7 +7,7 @@ export * from './utils';
 export * from './inferred-types';
 export * from './context-operators';
 export * from './reactor-composite';
-export * from './stream-dispense';
+export * from './action-dispenser';
 export * from './simplex-reactor';
 export * from './reactor-base';
 export * from './forked-control';

@@ -6,11 +6,13 @@ import {InferMapParam} from './stream-core';
 import {SimplexReactor} from './simplex-reactor';
 import {RxController2} from './control2';
 import {ForkedRxController} from './forked-control';
+import {ForkedPostRxController} from './forked-post-control';
 
 type InferInterface<X> = X extends SimplexReactor<infer Y, any> ?
   Y :
   X extends RxController2<infer I> ?
-    I : X extends ForkedRxController<infer I> ? I : never;
+    I : X extends ForkedRxController<infer I> ? I :
+      X extends ForkedPostRxController<infer I> ? I : X;
 /**
  * A very core functionality of @reactivizer is splitting action stream
  * by action types.

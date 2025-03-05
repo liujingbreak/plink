@@ -33,7 +33,8 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rootFocusSvcFac = exports.focusServiceFac = exports.SearchDirection = void 0;
+exports.rootFocusSvcFac = exports.focusServiceFac = exports.SearchDirection = exports.ROOT_FOCUS_SERVICE_CONTEXT = void 0;
+exports.queryRootFocusService = queryRootFocusService;
 /* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
 /**
@@ -52,6 +53,7 @@ const reactivizer_1 = require("@wfh/reactivizer");
 const algorithms_1 = require("@wfh/algorithms");
 const keyEvent_1 = require("./keyEvent");
 const canvas_cache_1 = require("./canvas-cache");
+exports.ROOT_FOCUS_SERVICE_CONTEXT = '__rootFocus';
 var SearchDirection;
 (function (SearchDirection) {
     SearchDirection[SearchDirection["down"] = 0] = "down";
@@ -272,33 +274,82 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
             newXNode.value = [c];
         }
     }
+    function getAllParentFocusSvc(curr, currComp, untilRoot) {
+        if (curr === untilRoot) {
+            return curr.latest.forRootComp.pipe(rx.take(1), rx.map(([, root]) => [[curr, currComp]]));
+        }
+        return curr.latest.forRootComp.pipe(rx.mergeMap(([, root]) => root.latest.setParent.pipe(rx.map(([, p]) => [root, p]))), rx.take(1), rx.mergeMap(([root, p]) => p ? p.latest.focusService.pipe(rx.switchMap(([, pf]) => getAllParentFocusSvc(pf, root, untilRoot).pipe(rx.map(parentRoots => {
+            parentRoots.push([curr, currComp]);
+            return parentRoots;
+        }))), rx.take(1)) : rx.of([[curr, currComp]])));
+    }
+    r('focusOnComponent', pt.focusOnComponent.pipe(rx.switchMap(([m, c]) => c.ft.queryContext(exports.ROOT_FOCUS_SERVICE_CONTEXT)
+        .re(m).od(c.pt.onContextChange).pipe(rx.mergeMap(([, , rootFocus]) => {
+        return getAllParentFocusSvc(service, c, rootFocus).pipe(rx.mergeMap(trace => {
+            service.log('-- focusOnComponent', trace.map(([f, c]) => f.s.logPrefix + ' -> ' + c.s.logPrefix));
+            // must wait for rendered once, so its rectangle is updated to focusService
+            return c.latest.render.pipe(rx.take(1), rx.map(() => {
+                trace[0][0].ft.locateFocusable(trace, 0).dp(m);
+            }));
+        }));
+    })))));
+    r('locateFocusable -> locateFocusable,didFound,handleKeyEvents...', pt.locateFocusable.pipe(rx.withLatestFrom(latest.handleKeyEvents), rx.switchMap(([[m, trace, idx], [, keyService]]) => {
+        if (idx < trace.length) {
+            const [, comp] = trace[idx];
+            const data = rectByComponent.get(comp);
+            service.log('-- locateFocusable rectByComponent', data);
+            if (data) {
+                const [r, tabIdx] = data;
+                ft.didFound(r, comp, tabIdx).dp(m);
+                if (idx < trace.length - 1) {
+                    const [subFocus] = trace[idx + 1];
+                    ft.stopHandleKeyEvents().dp(m);
+                    subFocus.ft.handleKeyEvents(keyService).dp(m);
+                    return rx.merge(subFocus.ft.locateFocusable(trace, idx + 1).re(m).od(subFocus.pt.didNotFound).pipe(rx.take(1), rx.map(([, dir]) => {
+                        subFocus.ft.stopHandleKeyEvents().dp(m);
+                        ft.handleKeyEvents(keyService, dir).dp(m);
+                    })));
+                }
+                else {
+                    return comp.ft.queryContext(exports.ROOT_FOCUS_SERVICE_CONTEXT).re(m).od(comp.pt.onContextChange).pipe(rx.take(1), rx.map(([, , rootFocus]) => {
+                        rootFocus.ft.switchFocus(service, comp.s.logPrefix, comp).dp(m);
+                    }));
+                }
+            }
+        }
+        ft.didNotFound(SearchDirection.down).dp(m);
+        return rx.EMPTY;
+    })));
     // dispatch onFocus event according to didFound result,
     // when the target component is an offsetParent,
     // designate it to handle key events
-    r('findFocusable,didNotFound,handleKeyEvents... -> onFocus,rootFocus.switchFocus', pt.findFocusable.pipe(rx.withLatestFrom(latest.handleKeyEvents), rx.switchMap(([[m, dir], [, keySvc]]) => {
-        return pt.didFound.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.takeUntil(pt.didNotFound.pipe((0, reactivizer_1.actionRelatedToAction)(m))), rx.take(1), rx.mergeMap(([, rect, c]) => {
-            if (rect != null && c) {
+    const forked = service.s.forkController();
+    r('findFocusable,didFound,didNotFound,handleKeyEvents... -> onFocus,rootFocus.switchFocus', pt.findFocusable.pipe(rx.withLatestFrom(latest.handleKeyEvents), rx.switchMap(([[m, dir], [, keySvc]]) => {
+        return forked.pt.didFound.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.takeUntil(forked.pt.didNotFound.pipe((0, reactivizer_1.actionRelatedToAction)(m))), rx.take(1), 
+        // query whether current component is "focusable"
+        rx.mergeMap(([, rect, c]) => {
+            if (rect && c) {
                 return c.latest.setFocusable.pipe(rx.take(1), rx.map(([, r]) => [c, r]));
             }
             return rx.EMPTY;
         }), rx.switchMap(([c, r]) => {
             if (r) {
                 ft.onFocus(c.s.logPrefix, c, service).dp(m);
-                return c.ft.queryContext('rootFocus').re(m)
+                return c.ft.queryContext(exports.ROOT_FOCUS_SERVICE_CONTEXT).re(m)
                     .od(c.pt.onContextChange)
                     .pipe(rx.take(1), rx.map(([, , rootFocus]) => {
-                    rootFocus.ft.switchFocus(service, c.s.logPrefix, c, service).dp(m);
+                    rootFocus.ft.switchFocus(service, c.s.logPrefix, c).dp(m);
                 }));
             }
             else {
-                // service.log('--focus found', c.s.logPrefix);
+                // If current component is not focusable,
                 // delegate handling key events job to the sub focusService
                 return c.latest.focusService.pipe(rx.take(1), rx.switchMap(([, focusService]) => {
                     ft.stopHandleKeyEvents().dp(m);
                     return focusService.ft.handleKeyEvents(keySvc, dir)
-                        .re(m).od(focusService.pt.didNotFound).pipe(rx.map(([, origDir]) => {
-                        focusService.ft.stopHandleKeyEvents().dp(m);
-                        ft.handleKeyEvents(keySvc, origDir).dp(m);
+                        .re(m).od(focusService.pt.didNotFound).pipe(rx.map(([m2, origDir]) => {
+                        focusService.ft.stopHandleKeyEvents().dp(m2);
+                        ft.handleKeyEvents(keySvc, origDir).dp(m2);
                     }), rx.take(1));
                 }));
             }
@@ -646,11 +697,19 @@ exports.rootFocusSvcFac = exports.focusServiceFac.forExtend({
     r('switchFocus... -> canvas.addRenderFilter...', pt.switchFocus.pipe(rx.switchMap(([m, srcFocus, , c]) => {
         if (c == null || srcFocus == null)
             return rx.EMPTY;
-        return rx.merge(new rx.Observable(() => {
-            srcFocus.ft.renderFor(c).dp(m);
+        return rx.merge(c.latest.setFocusStyle.pipe(rx.take(1), rx.mergeMap(([, s]) => {
+            if (s === 'inverse') {
+                return new rx.Observable(() => {
+                    srcFocus.ft.renderFor(c).dp(m);
+                    return () => {
+                        srcFocus.ft.clearFor(c).dp(m);
+                    };
+                });
+            }
+            return rx.EMPTY;
+        })), new rx.Observable(() => {
             c.ft.onFocus(c).dp(m);
             return () => {
-                srcFocus.ft.clearFor(c).dp(m);
                 c.ft.onBlur(c).dp(m);
             };
         }));
@@ -737,5 +796,11 @@ function chooseClosestLeftOrRight(x, node1, node2) {
         return Math.abs(x - node1.key) > Math.abs(x - node2.key) ? node2 : node1;
     }
     return null;
+}
+function queryRootFocusService(currComp, m) {
+    let fac = currComp.ft.queryContext(exports.ROOT_FOCUS_SERVICE_CONTEXT);
+    if (m)
+        fac = fac.re(m);
+    return fac.od(currComp.pt.onContextChange).pipe(rx.map(([, , v]) => v));
 }
 //# sourceMappingURL=focusable.js.map

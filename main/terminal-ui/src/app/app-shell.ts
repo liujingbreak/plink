@@ -1,4 +1,3 @@
-import rl from 'node:readline';
 import * as rx from 'rxjs';
 import {CoreOptions, SingleActionFactory, SimplexReactor, ActionMeta, BaseReactorFactory} from '@wfh/reactivizer';
 import {createScrollable, createFlexContainer, BaseWidget, createKeyEventService,
@@ -53,7 +52,7 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
   const {r, ft, pt} = appService;
   const basePane = createFlexContainer({
     ...opts?.default as FlexContainerOpts,
-    name: 'basePane',
+    name: 'main',
     ...opts?.main
   });
   basePane.ft.setDirection('col').dp();
@@ -87,7 +86,7 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
   });
   r('setFullScreen -> onReady', pt.setFullScreenMode.pipe(
     rx.exhaustMap(([m]) => {
-      return canvas.ft.setFullScreenMode().re(m).od(
+      return canvas.ft.setFullScreenMode(keyEventService).re(m).od(
         canvas.pt.setBounding
       ).pipe(
         rx.take(1),
@@ -141,11 +140,7 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
         rx.take(1)
       );
     }),
-    rx.switchMap(([, left, top, w, h]) => new rx.Observable(sink => {
-      rl.cursorTo(process.stdout, left + w - 1, top + h - 1, () => sink.next());
-    })),
     rx.map(() => {
-      // process.stdout.write('\n');
       basePane.dispose();
       canvas.dispose();
       keyEventService.dispose();
@@ -158,7 +153,7 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
       appService.log('>>> on help');
       coverLayer.ft.setDisplay(DisplayMode.visible).dp(m);
       appService.ft.onHelp(coverLayer).dp(m);
-      return keyEventService.pt.onBreak.pipe(
+      return keyEventService.pt.onEsc.pipe(
         rx.take(1),
         rx.map(([m]) => {
           coverLayer.ft.setDisplay(DisplayMode.none).dp(m);
@@ -196,7 +191,7 @@ export function createApp(mainComponent: BaseWidget, canScroll = true, opts?: Ap
 }
 
 
-export function useAppContext(currComp: BaseWidget, m?: ActionMeta) {
+export function queryAppContext(currComp: BaseWidget, m?: ActionMeta) {
   let fac = currComp.ft.queryContext('__appshell');
   if (m)
     fac = fac.re(m);

@@ -31,7 +31,11 @@ export interface BaseWidgetInput {
   setBackground(color: BackgroundStyle | null): SingleActionFactory;
   /** to override automatical "preferredSize" in layout calculation */
   setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
+  /** Set to true to allow current component to be focused by user */
   setFocusable(focusable: boolean | Rectangle): SingleActionFactory;
+  /** default 'inverse' */
+  setFocusStyle(style: 'inverse' | null): SingleActionFactory;
+  focus(): SingleActionFactory;
   /** observe the changes of absoulte bounding of component.
    * the change is kept reported by didQueryAbsBounding */
   queryAbsBounding(untilParent?: TerminalContainer): SingleActionFactory;
@@ -123,7 +127,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
 }
 export const tableForBase = [
   'onSize', 'onTransform', 'onPosition', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-  'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink',
+  'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink', 'render', 'setFocusStyle',
   'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer', 'depth', 'focusService'
 ] as const;
 export type BaseWidgetRenderData = readonly [
@@ -162,6 +166,9 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
       rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
     ),
     ad.at.setDisplay.pipe(
+      rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+    ),
+    ad.at.setFocusStyle.pipe(
       rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
     ),
     ad.at.needRerender.pipe(
@@ -269,17 +276,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
       }
     })
   ));
-  // r('needRerender, ofCanvas -> canvas.requestRender', pt.needRerender.pipe(
-  //   rx.filter(([, need]) => need),
-  //   rx.switchMap(([m]) => latest.ofCanvas.pipe(
-  //     rx.map(([, canvas]) => {
-  //       if (canvas)
-  //         canvas.ft.requestRender().dp(m);
-  //     })
-  //   ))
-  // ));
   let lastClips: Rectangle[] | undefined;
-  // let lastMasks: Rectangle[] | undefined;
   r('render -> needRerender, onRender, onBoundingBox', pt.render.pipe(
     rx.withLatestFrom(latest.needRerender, latest.onSize, latest.setDisplay),
     rx.map(([[m, canvas, trans, clips, masks], [, renderSelf], [, width, height], [, display]]) => {
@@ -300,6 +297,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         ft.beforeRender(canvas, trans, clips, masks ?? []).dp(m);
         const needRerender = !!table.getData().needRerender[0];
         if (!renderSelf && !needRerender) {
+          // service.log('--lastClips', lastClips, ',clips', clips);
           const isClipChanged = lastClips == null || (clips != null && (
             lastClips.length !== clips.length || !isRectangeCover(lastClips[0], clips[0])
           ));
@@ -614,7 +612,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
       );
     })
   ));
-  r('provideFocusService', pt.provideFocusService.pipe(
+  r('provideFocusService,parent.focusService,queryAbsBounding...', pt.provideFocusService.pipe(
     rx.switchMap(([m, focusSvc]) => {
       ft.provideContext('focusSvc', focusSvc).dp(m);
       return latest.setParent.pipe(
@@ -648,6 +646,13 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         })
       );
     })
+  ));
+  r('focus', pt.focus.pipe(
+    rx.exhaustMap(([m]) => table.l.focusService.pipe(
+      rx.take(1),
+      rx.map(([, focus]) =>
+        focus.ft.focusOnComponent(service).dp(m))
+    ))
   ));
 
   const lastStopFocusPropaAction = new Set<ActionMeta['i']>();
@@ -708,6 +713,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     ft.depth(0).dp();
     ft.bgCleared(false).dp();
     ft.onPosition(null, null).dp();
+    ft.setFocusStyle('inverse').dp();
     // ft.isOffsetParent(false).dp();
     // ft.offsetParent(null).dp();
     ft.setFlexGrow(0).dp();

@@ -6,15 +6,9 @@ import {ActionMeta, Action} from './stream-core';
  **/
 export function actionRelatedToAction<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i: ActionMeta['i']}): (up: rx.Observable<T>) => rx.Observable<T> {
   return function(up: rx.Observable<T>) {
-    let isPayload: boolean | undefined;
+    const helper = createActRelationshipPredHelper();
     return up.pipe(
-      rx.filter(a => {
-        if (isPayload == null)
-          isPayload = Array.isArray(a);
-        const m = isPayload ? (a as [ActionMeta])[0] : a as Action<any>;
-        return (m.r != null && m.r === actionOrMeta.i) || (
-          Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i));
-      })
+      rx.filter(a => helper(actionOrMeta, a))
     );
   };
 }
@@ -53,6 +47,17 @@ export function actionRelatedToActionRelatives<T extends [ActionMeta, ...any[]] 
   };
 }
 
+function createActRelationshipPredHelper() {
+  let isPayload: boolean | undefined;
+  return function(initialAct: {i: ActionMeta['i']}, related: [ActionMeta, ...any[]] | Action<any>) {
+    if (isPayload == null)
+      isPayload = Array.isArray(related);
+    const m = isPayload ? (related as [ActionMeta])[0] : related as Action<any>;
+    return (m.r != null && m.r === initialAct.i) || (
+      Array.isArray(m.r) && m.r.some(r => r === initialAct.i));
+  };
+}
+
 /**
  * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
  */
@@ -65,21 +70,89 @@ export function actionOfContext<T extends [ActionMeta, ...any[]] | Action<any>>(
   };
 }
 
-// export function groupMapRelatedAction<C extends ActionOrPayloadLike<any>, P extends [ActionMeta, ...any[]] | Action<any>, PA extends any[]>(
-//   responding: rx.Observable<P>,
-//   ...more: {[K in keyof PA]: rx.Observable<PA[K]>}
-// ) {
-//   return function(up: rx.Observable<C>): PA['length'] extends 0 ? rx.Observable<[C, rx.Observable<P>]> : {[K in keyof PA]: rx.Observable<PA[K]>} {
-//     const streams = [responding, ...more].map(r$ => up.pipe(
-//       rx.map(c => {
-//         return [
-//           c, (r$ as rx.Observable<P>).pipe(
-//             actionRelatedToAction(Array.isArray(c) ? c[0] : c)
-//           )
-//         ] as const;
-//       })
-//     ));
-//     return (streams.length > 1 ? streams : streams[0]) as any;
+/**
+ * Combine multiple observables of action or mapped payload to create an observable whose values are calculated from
+ * the input observables in form of a tuple like:
+ *
+ * When a, b, c earch one is corresponding value of observable of input parameters,
+ * if c is related to b and b is related to a (latter parameter is under context of preceding parameter presented action observable)
+ * i.e. `a.i` or `a[0].i` equals values of `b.r` or `b[0].r` and
+ *    `b.i` or `b[0].i` equals values of `c.r` or `c[0].r`
+ *    then `[a, b, c]` is in the returned observable
+ *
+ * > Caution
+ *  Be aware of "problem of synchronous observation and the order of subscription",
+ *  when the actions in parameters are dispatched in synchronous mode by producer.
+ *  It is better the input parameters are "forked" controllers of producers.
+* */
+export function combineLastestRelated<
+  T extends [ActionMeta, ...any[]] | Action<any>,
+  T2 extends [ActionMeta, ...any[]] | Action<any>
+>(
+  initial: rx.Observable<T>,
+  related: rx.Observable<T2>
+): rx.Observable<[T, T2]>;
+export function combineLastestRelated<
+  T extends [ActionMeta, ...any[]] | Action<any>,
+  T2 extends [ActionMeta, ...any[]] | Action<any>,
+  T3 extends [ActionMeta, ...any[]] | Action<any>
+>(
+  initial: rx.Observable<T>,
+  related: rx.Observable<T2>,
+  relatedToRelated: rx.Observable<T3>
+): rx.Observable<[T, T2, T3]>;
+export function combineLastestRelated<
+  T extends [ActionMeta, ...any[]] | Action<any>,
+  T2 extends [ActionMeta, ...any[]] | Action<any>,
+  T3 extends [ActionMeta, ...any[]] | Action<any>,
+  T4 extends [ActionMeta, ...any[]] | Action<any>
+>(
+  initial: rx.Observable<T>,
+  related: rx.Observable<T2>,
+  relatedToRelated: rx.Observable<T3>,
+  relatedToRelatedToR: rx.Observable<T4>
+): rx.Observable<[T, T2, T3, T4]>;
+export function combineLastestRelated<
+  T extends [ActionMeta, ...any[]] | Action<any>,
+  T2 extends [ActionMeta, ...any[]] | Action<any>,
+  T3 extends [ActionMeta, ...any[]] | Action<any>,
+  T4 extends [ActionMeta, ...any[]] | Action<any>,
+  T5 extends [ActionMeta, ...any[]] | Action<any>
+>(
+  initial: rx.Observable<T>,
+  related: rx.Observable<T2>,
+  relatedToRelated: rx.Observable<T3>,
+  relatedToRelatedToR: rx.Observable<T4>,
+  relatedToR5: rx.Observable<T5>
+): rx.Observable<[T, T2, T3, T4, T5]>;
+export function combineLastestRelated<
+  T extends [ActionMeta, ...any[]] | Action<any>,
+  TA extends [...([ActionMeta, ...any[]] | Action<any>)[]]
+>(
+  initial: rx.Observable<T>,
+  ...related: rx.Observable<TA[number]>[]
+): rx.Observable<[T, ...TA]> {
+  if (related.length === 0) {
+    return initial.pipe(
+      rx.map(a => [a] as unknown as [T, ...TA])
+    );
+  }
+  const isRelated = createActRelationshipPredHelper();
+  const relates = combineLastestRelated(...(related as [any, any]));
+  return initial.pipe(
+    rx.mergeMap(a => relates.pipe(
+      rx.filter(b => isRelated(Array.isArray(a) ? a[0] : a, b[0])),
+      rx.map(b => [a, ...b] as unknown as [T, ...TA])
+    )),
+    rx.share()
+  );
+}
+
+// export function withLatestRelated<T extends [ActionMeta, ...any[]] | Action<any>>(actionMeta: {i: ActionMeta['i']}) {
+//   return (up: rx.Observable<T>) => {
+//     return up.pipe(
+//       actionRelatedToAction(actionMeta)
+//     );
 //   };
 // }
 
@@ -115,34 +188,23 @@ export function pairActionToActionStream<T extends [ActionMeta, ...any[]] | Acti
     }
     // When up stream completes and all mapped down streams are unsubscribed (completed),
     // stop recording messages to replay subject, otherwise it will continue until the main output stream being explicitly unsubscribed
-    const upStreamDone = new rx.Subject<void>();
-    const downStreamUnsub = new rx.BehaviorSubject(0);
-    const countDownStream = new rx.BehaviorSubject(0);
-
-    const replay$ = new rx.ReplaySubject<T>(replayCnt);
-
-    return rx.merge(
-      responding$.pipe(
-        rx.tap(replay$),
-        rx.ignoreElements(),
-        rx.takeUntil(rx.combineLatest([upStreamDone, downStreamUnsub, countDownStream]).pipe(
-          rx.filter(([, unsub, count]) => unsub === count)
-        ))
-      ),
-      up.pipe(
-        rx.map((ctxAction, idx) => {
-          countDownStream.next(idx + 1);
-          const filted$ = replay$.pipe(
-            actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction),
-            rx.finalize(() => downStreamUnsub.next(downStreamUnsub.getValue() + 1))
-          );
-          return mapFn ? mapFn(ctxAction, filted$) : filted$ as R;
-        }),
-        rx.finalize(() => {
-          upStreamDone.next();
-          upStreamDone.complete();
-        })
-      )
+    return rx.defer(() => rx.of(new rx.ReplaySubject<T>(replayCnt))).pipe(
+      rx.switchMap(replay$ => {
+        return rx.merge(
+          responding$.pipe(
+            rx.tap(replay$),
+            rx.ignoreElements()
+          ),
+          up.pipe(
+            rx.map(ctxAction => {
+              const filted$ = replay$.pipe(
+                actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction)
+              );
+              return mapFn ? mapFn(ctxAction, filted$) : filted$ as R;
+            })
+          )
+        );
+      })
     );
   };
 }

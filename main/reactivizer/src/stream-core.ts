@@ -1,3 +1,4 @@
+/* eslint-disable multiline-ternary */
 import * as rx from 'rxjs';
 import {RxControlConfigType, defaultConfig} from './global-config';
 
@@ -84,70 +85,72 @@ export class ControllerCore<I> {
     // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
     const upstream = this.actionUpstream;
     // set logger as interceptor
-    this.interceptorList$.next([
-      a$ => this.opts.debug ?
-        a$.pipe(
-          this.opts.log ?
-            rx.tap(action => {
-              const type = action.t;
-              if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                this.opts.log!(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-              }
-            }) :
-            (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-              rx.tap(action => {
-                const type = action.t;
-                if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                  // eslint-disable-next-line no-console
-                  console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;',
-                    type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-                }
-              }) :
-              rx.tap(action => {
-                const type = action.t;
-                if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                  // eslint-disable-next-line no-console
-                  console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-                }
-              })
-        )
-        : a$
-    ]);
-    this.connectableAction$ = rx.connectable(
-      this.configChange.pipe(
-        rx.map((props, i) => {
-          let switchActionStream = i === 0; // always create action stream at first time
-          if (props.has('name')) {
-            this.setName(this.opts.name);
+    const logOperator = (a$: rx.Observable<Action>) => this.opts.debug ? a$.pipe(
+      this.opts.log ?
+        rx.tap(action => {
+          const type = action.t;
+          if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+            this.opts.log!(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
           }
-          if (props.has('debugIncludeTypes')) {
-            if (this.debugIncludeSet == null)
-              this.debugIncludeSet = this.opts?.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null;
-            if (this.debugIncludeSet && this.opts?.debugIncludeTypes) {
-              this.opts.debugIncludeTypes.forEach(item => this.debugIncludeSet!.add(item));
+        }) :
+        (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+          rx.tap(action => {
+            const type = action.t;
+            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+              // eslint-disable-next-line no-console
+              console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;',
+                type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
             }
-          }
-          if (props.has('debugExcludeTypes')) {
-            if (this.debugExcludeSet == null)
-              this.debugExcludeSet = new Set([]);
-            if (this.opts?.debugExcludeTypes) {
-              this.opts.debugExcludeTypes.forEach(item => this.debugExcludeSet.add(item));
+          }) :
+          rx.tap(action => {
+            const type = action.t;
+            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+              // eslint-disable-next-line no-console
+              console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
             }
+          })
+    ) : a$;
+    // ForkedRxController will always "append" interceptor to interceptorList$,
+    // user defined interceptors are usually "preprend" to interceptorList$,
+    // these help to making sure "logOperator" always print messages that dispatched
+    // by base and forked stream controller in correct order.
+    this.interceptorList$.next([logOperator]);
+    this.connectableAction$ = rx.connectable(this.configChange.pipe(
+      rx.map((props, i) => {
+        let switchActionStream = i === 0; // always create action stream at first time
+        if (props.has('name')) {
+          this.setName(this.opts.name);
+        }
+        if (props.has('debugIncludeTypes')) {
+          if (this.debugIncludeSet == null)
+            this.debugIncludeSet = this.opts?.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null;
+          if (this.debugIncludeSet && this.opts?.debugIncludeTypes) {
+            this.opts.debugIncludeTypes.forEach(item => this.debugIncludeSet!.add(item));
           }
-          if (props.has('debug') || props.has('log')) {
-            switchActionStream = true;
+        }
+        if (props.has('debugExcludeTypes')) {
+          if (this.debugExcludeSet == null)
+            this.debugExcludeSet = new Set([]);
+          if (this.opts?.debugExcludeTypes) {
+            this.opts.debugExcludeTypes.forEach(item => this.debugExcludeSet.add(item));
           }
-          return switchActionStream;
-        }),
-        rx.filter(needSwitch => needSwitch),
-        rx.switchMap(() => {
-          return this.interceptorList$.pipe(
-            rx.switchMap(interceptors => {
-              return upstream.pipe(...(interceptors as [Interceptor]));
-            })
-          );
-        })
-      ));
+        }
+        if (props.has('debug') || props.has('log')) {
+          switchActionStream = true;
+        }
+        return switchActionStream;
+      }),
+      rx.filter(needSwitch => needSwitch),
+      rx.switchMap(() => {
+        return this.interceptorList$.pipe(
+          rx.switchMap(interceptors => {
+            return interceptors.length > 0 ? upstream.pipe(
+              ...(interceptors as [Interceptor]),
+            ) : upstream;
+          })
+        );
+      }),
+    ));
 
     const actionSubDispatcher = new rx.ReplaySubject<void>();
     const actionUnsubDispatcher = new rx.ReplaySubject<void>();
@@ -218,14 +221,23 @@ export class ControllerCore<I> {
     const list = this.interceptorList$.getValue();
     list.unshift(...interceptor);
     this.interceptorList$.next(list);
+    return interceptor;
   }
   appendInterceptor(...interceptor: Interceptor[]) {
     const list = this.interceptorList$.getValue();
     list.push(...interceptor);
     this.interceptorList$.next(list);
+    return interceptor;
+  }
+  removeInterceptor(...interc: Interceptor[]) {
+    const interSet = new Set(interc);
+    const list = this.interceptorList$.getValue();
+    this.interceptorList$.next(list.filter(
+      it => !interSet.has(it)
+    ));
   }
 
-  /** This method is not meant to be used directly */
+  /** Obsolete: This method is not meant to be used directly */
   dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]> {
     if (has.call(this.dispatcher, type)) {
       return this.dispatcher[type];

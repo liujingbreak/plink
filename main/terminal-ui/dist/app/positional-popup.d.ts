@@ -1,12 +1,26 @@
-import { CoreOptions, SingleActionFactory } from '@wfh/reactivizer';
+import { ActionMeta, SingleActionFactory, SimplexReactorOfFac, CreateOptsInDef, CoreOptions } from '@wfh/reactivizer';
 import { BaseWidget } from '../core/base';
+import { TextOptions } from '../hoc/text';
 import { Rectangle } from '../core/canvas';
+import { baseContainerFac } from '../core/container';
 export interface PosPopupInput {
-    setAbsPos(x: number, y: number): SingleActionFactory;
+    setRelativePos(x: number, y: number): SingleActionFactory;
     dockTo(c: BaseWidget): SingleActionFactory;
+    show(): SingleActionFactory;
+    hide(): SingleActionFactory;
 }
 export interface PosPopupEvents extends PosPopupInput {
     isDocked(dockTarget: Rectangle | false): SingleActionFactory;
     onDockType(type: `${'up' | 'down'}${'Left' | 'Right'}`): SingleActionFactory;
 }
-export declare const positionalFac: import("@wfh/reactivizer").DerivedReactorFactory<PosPopupEvents, readonly ["setAbsPos", "isDocked"], [content: BaseWidget, opts?: CoreOptions<PosPopupInput> | undefined], import("../core/container").TermainlContainerEvents & import("../core/base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck")[], []>;
+export type PositionalPopupOpts = CreateOptsInDef<PosPopupInput, typeof baseContainerFac>;
+export declare const positionalFac: import("@wfh/reactivizer").DerivedReactorFactory<PosPopupEvents, readonly ["setRelativePos", "isDocked"], [content: BaseWidget, opts?: CoreOptions<import("../core/container").TermainlContainerEvents & import("../core/base").BaseWidgetEvents & PosPopupInput> | undefined], import("../core/container").TermainlContainerEvents & import("../core/base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck")[], []>;
+export type PositionalPopup = SimplexReactorOfFac<typeof positionalFac>;
+export declare function showPopupFor(dockTo: BaseWidget, content: BaseWidget, relativePos?: [number, number] | null, actionMeta?: ActionMeta | null, opts?: PositionalPopupOpts): import("@wfh/reactivizer").DerivedSimplexReactor<PosPopupEvents & import("../core/container").TermainlContainerEvents & import("../core/base").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setRelativePos" | "isDocked")[]>;
+export interface TooltipsOptions {
+    debug?: boolean;
+    log?: CoreOptions['log'];
+    positionalOpts?: PositionalPopupOpts;
+    textOpts?: TextOptions;
+}
+export declare function bindToolTipsTo(c: BaseWidget, tooltips: string, delayShowMs?: number, opts?: TooltipsOptions): void;

@@ -23,7 +23,7 @@ __exportStar(require("./utils"), exports);
 __exportStar(require("./inferred-types"), exports);
 __exportStar(require("./context-operators"), exports);
 __exportStar(require("./reactor-composite"), exports);
-__exportStar(require("./stream-dispense"), exports);
+__exportStar(require("./action-dispenser"), exports);
 __exportStar(require("./simplex-reactor"), exports);
 __exportStar(require("./reactor-base"), exports);
 __exportStar(require("./forked-control"), exports);

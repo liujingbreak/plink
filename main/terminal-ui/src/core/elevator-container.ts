@@ -1,16 +1,17 @@
+/* eslint-disable multiline-ternary */
 import * as rx from 'rxjs';
 import {CoreOptions, SingleActionFactory, SimplexReactorOfFac, CreateOptsOfFac, ActionMeta} from '@wfh/reactivizer';
 import {BaseWidget, Rectangle, Canvas, CanvasOptions,
   canvasFac, TextStyle} from '../index';
 import {DisplayMode} from './base';
 import {TerminalContainer} from './container';
-import {rootFocusSvcFac, RootFocusServiceOpts, RootFocusService} from './focusable';
+import {rootFocusSvcFac, RootFocusServiceOpts, RootFocusService, ROOT_FOCUS_SERVICE_CONTEXT} from './focusable';
 import {baseContainerFac} from './container';
 import {KeyEventServcie} from './keyEvent';
 
 interface ElevatorActions {
-  /** @param layerIndex 0 based number, this message simply triggers "setDisplay" on child component */
-  toggleLayer(layerIndex: number, visible: boolean): SingleActionFactory;
+  /** @param userEvents default `true` */
+  addLayer(content: BaseWidget, userEvents?: boolean): SingleActionFactory;
 }
 interface ElevatorEvents extends ElevatorActions {
   onFocusServieReady(chd: BaseWidget): SingleActionFactory;
@@ -33,6 +34,14 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
   /** Offline canvas by root component */
   const canvasMap = new Map<BaseWidget, Canvas>();
   const focusSvcMap = new Map<BaseWidget, RootFocusService>();
+  const noEventsLayer = new Set<BaseWidget>();
+  r('addLayer', pt.addLayer.pipe(
+    rx.map(([m, c, userEvents]) => {
+      if (userEvents === false)
+        noEventsLayer.add(c);
+      ft.addChild(c).dp(m);
+    })
+  ));
   r('addChild,insertChild, removeChild -> "canvasMap"', rx.merge(
     pt.addChild.pipe(
       rx.map(([m, ...chdn]) => [m, chdn] as const)
@@ -57,28 +66,49 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
         });
         focusSvcMap.set(chd, rootFoc);
         rootFoc.ft.forRootComp(chd).dp(m);
-        chd.ft.provideContext('rootFocus', rootFoc).dp(m);
+        chd.ft.provideContext(ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
         rootFoc.ft.handleKeyEvents(keyEventSvc).dp(m);
+        // const autoFocus$ = chd.pt.render.pipe(
+        //   rx.take(1),
+        //   rx.map(() => {
+        //     rootFoc.ft.findFocusable(SearchDirection.down, m.i).dp(m);
+        //   })
+        // );
         ft.onFocusServieReady(chd).dp(m);
         // Delete corresponding canvas when chd is removed
-        return pt.removeChild.pipe(
-          rx.filter(([, w]) => w === chd),
-          rx.take(1),
-          rx.map(() => {
-            canvasMap.delete(chd);
-            rootFoc.dispose();
-            cv.dispose();
-          })
+        return rx.merge(
+          // autoFocus$,
+          pt.removeChild.pipe(
+            rx.filter(([, w]) => w === chd),
+            rx.take(1),
+            rx.map(() => {
+              canvasMap.delete(chd);
+              rootFoc.dispose();
+              cv.dispose();
+            })
+          )
         );
       })
     ))
   ));
-  r('allDisplayChildren -> last.isOffsetParent', pt.allDisplayChildren.pipe(
+  r('allDisplayChildren,onFocusServieReady -> focusService.resumeHandleEvents...', pt.allDisplayChildren.pipe(
     rx.filter(([, childrn]) => childrn.length > 0),
-    rx.map(([, childrn]) => childrn[childrn.length - 1]),
+    rx.map(([, childrn]) => {
+      let lastIdx = childrn.length - 1;
+      while (lastIdx >= 0) {
+        const last = childrn[lastIdx];
+        if (noEventsLayer.has(last)) {
+          lastIdx--;
+        } else {
+          service.log('-- last layer handles events', last.s.logPrefix);
+          return last;
+        }
+      }
+      return null;
+    }),
     rx.distinctUntilChanged(),
     rx.switchMap(last => {
-      const waitForFocusService$ = rx.concat(
+      return last ? rx.concat(
         rx.of(focusSvcMap.get(last)),
         pt.onFocusServieReady.pipe(
           rx.filter(([, readyChd]) => readyChd === last),
@@ -87,16 +117,14 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
         )
       ).pipe(
         rx.filter(focusSvc => focusSvc != null),
-        rx.take(1)
-      );
-      return waitForFocusService$.pipe(
+        rx.take(1),
         rx.mergeMap(focusSvc => {
           focusSvc.ft.resumeHandleEvents().dp();
           return new rx.Observable(() => () => {
             focusSvc.ft.pauseHandleEvents().dp();
           });
         })
-      );
+      ) : rx.EMPTY;
     })
   ));
   r('querySizeOf', pt.querySizeOf.pipe(
@@ -253,6 +281,7 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
     );
   }
   ft.hasOfflineCanvas(true).dp();
+  ft.provideContext('__elevatorContainer', service).dp();
 });
 export interface ElevatorOptions {
   default?: CoreOptions;
@@ -302,6 +331,15 @@ export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]>
     })
   );
 }
+
+export function queryElevatorContainer(src: BaseWidget) {
+  return src.ft.queryContext('__elevatorContainer').od(
+    src.pt.onContextChange
+  ).pipe(
+    rx.map(([, , ctx]) => ctx as ElevatorContainer)
+  );
+}
+
 function isContainerWithoutOfflineCanvas(root: any): root is TerminalContainer {
   const container = (root as TerminalContainer).table.getData();
   return container.allChildren != null &&

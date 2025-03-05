@@ -39,35 +39,48 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("source-map-support/register");
 const fs_1 = __importDefault(require("fs"));
 const rx = __importStar(require("rxjs"));
+const reactivizer_1 = require("@wfh/reactivizer");
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const terminal_canvas_1 = require("../core/terminal-canvas");
 const text_1 = require("../core/text");
 const flex_container_1 = require("../core/flex-container");
+// import {waitForImport$} from '../core/rbush';
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log', { flush: true });
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, true, fout);
+const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const canvas = (0, terminal_canvas_1.createTerminalCanvas)({
     debug: true, log
 });
 const text = (0, text_1.createTextWidget)('long sentance', { debug: true, log });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-const container = (0, flex_container_1.createFlexContainer)({ debug: false, log });
+const container = (0, flex_container_1.createFlexContainer)({ debug: true, log });
 container.ft.addChild(text).dp();
 container.ft.justifyContent('center').dp();
 container.ft.alignItems('center').dp();
 // container.ft.setBackground('bgAnsi256(25)').dp();
-canvas.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
+if (screenWidth != null) {
+    canvas.ft.setSize(Number(screenWidth), Number(screenHeight)).dp();
+}
+else {
+    canvas.ft.setFullScreenMode().dp();
+}
 canvas.ft.autoHideCursor().dp();
 canvas.ft.setRootComponent(container).dp();
 canvas.ft.setRenderOnRequest(true).dp();
+const rendered = (0, reactivizer_1.combineLastestRelated)(canvas.pt.render, canvas.pt.onWriteFlushed);
 canvas.ft.requestRender().dp();
-rx.concat(rx.timer(1000), rx.merge(text.pt.render.pipe(rx.take(1)), new rx.Observable(sub => {
-    text.ft.setContent('short').dp();
-    sub.complete();
-})).pipe(rx.switchMap(() => new rx.Observable(sub => {
-    setImmediate(() => sub.complete());
-})), rx.finalize(() => {
-    canvas.dispose();
-    process.stdout.write('\n');
-}))).subscribe();
+canvas.log('---------', process.pid);
+rendered.pipe(rx.take(1), rx.mergeMap(() => {
+    return rx.concat(rx.timer(1000), rx.merge(canvas.pt.onWriteFlushed.pipe(rx.take(1)), new rx.Observable(sub => {
+        text.ft.setContent('short').dp();
+        sub.complete();
+    })).pipe(rx.concatMap(() => canvas.ft.printDescentEnd().odMono(canvas.pt.onPrintDescentEndFlushed)), rx.switchMap(() => new rx.Observable(sub => {
+        setImmediate(() => sub.complete());
+    })), rx.finalize(() => {
+        canvas.dispose();
+        setTimeout(() => {
+            process.exit();
+        }, 300);
+    })));
+})).subscribe();
 //# sourceMappingURL=sample-simple-container.js.map

@@ -43,6 +43,7 @@ exports.rectIntersection = rectIntersection;
 exports.treeNodeToStyleText = treeNodeToStyleText;
 exports.debugLineTrees = debugLineTrees;
 exports.debugLineTree = debugLineTree;
+/* eslint-disable array-bracket-newline */
 /* eslint-disable multiline-ternary */
 const rx = __importStar(require("rxjs"));
 const gl_matrix_1 = require("gl-matrix");
@@ -51,7 +52,6 @@ const reactivizer_1 = require("@wfh/reactivizer");
 const algorithms_1 = require("@wfh/algorithms");
 const rbush_1 = require("../core/rbush");
 const text_split_1 = require("./text-split");
-const rectangle_overlap_tree_1 = require("./rectangle-overlap-tree");
 const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl', 'hex', 'bgHex', 'ansi', 'bgAnsi', 'ansi256', 'bgAnsi256']);
 const tableFor = ['setBounding', 'setRootComponent', 'internalCache'];
 exports.canvasFac = new reactivizer_1.BaseReactorFactory({
@@ -70,6 +70,7 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
     // handling "onPrintText" is actually where to invoke text output through stand output stream.
     // To avoid screen flickering, we use space character to clear screen instead of using API to clear lines.
     let uncommited = [];
+    const rtree$ = (0, rbush_1.createRtreeInstance)();
     r('setRootComponent', pt.setRootComponent.pipe(rx.switchMap(([m, root]) => {
         if (root)
             return new rx.Observable(() => {
@@ -112,10 +113,12 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
     r('clearRect', pt.clearRect.pipe(rx.mergeMap(([, x, y, w, h]) => {
         return rx.range(y, h).pipe(rx.mergeMap(i => clearCodePointsFromCache(x, i, w)));
     })));
-    r('render... -> onPrintText', pt.render.pipe(rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent), rx.map(([[m, rects], [, x, y, w, h], [, root]], idx) => {
+    r('render... -> onPrintText', pt.render.pipe(rx.concatMap(([m, rects]) => rx.combineLatest([
+        table.l.setBounding, table.l.setRootComponent, rtree$
+    ]).pipe(rx.take(1), rx.map(([[, x, y, w, h], [, root]], idx) => {
         // canvas.log('>> before uncommited', debugLineTrees(uncommited));
         if (root)
-            root.ft.render(canvas, gl_matrix_1.mat4.create(), rects !== null && rects !== void 0 ? rects : [[0, 0, w, h]]).dp(m);
+            root.ft.render(canvas, gl_matrix_1.mat4.create(), rects && rects.length > 0 ? rects : [[0, 0, w, h]]).dp(m);
         // ft.takeSnapshot({noColor: true, type: 'uncommited'}).re(m).od(pt.didTakeSnapshot).pipe(
         //   rx.take(1),
         //   rx.map(([, lines]) => canvas.log('snapshot 1.5 uncommited\n' + [...lines].join('')))
@@ -172,7 +175,8 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
             }
         }
         ft.internalCache(lines, proLines, uncommited).dp();
-    })));
+        ft.onRendered().dp(m);
+    })))));
     r('takeSnapshot', pt.takeSnapshot.pipe(rx.map(([m, opts]) => {
         function* cachedLines() {
             let col = 0;
@@ -248,21 +252,29 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
             ft.didCopyRect(result).dp(m);
         }));
     })));
+    function mergeRTreeContent(a, _b) {
+        return a;
+    }
     r('setRenderOnRequest,waitForRbushImport$,requestRender -> render', pt.setRenderOnRequest.pipe(rx.switchMap(([, enabled]) => {
-        const rectTree = new rectangle_overlap_tree_1.RectangleOverlapTree();
+        let requestRenderMetas = [];
         // eslint-disable-next-line multiline-ternary
-        return enabled ? rx.concat(rbush_1.waitForImport$, pt.requestRender.pipe(rx.mergeMap(([m, rect]) => {
-            return table.l.setBounding.pipe(rx.take(1), rx.map(([, , , w, h]) => {
-                rectTree.addOrUnionRectOnOverlap(rect !== null && rect !== void 0 ? rect : [0, 0, w, h], null);
-                // canvas.log('rectTree', [...rectTree.allRectangles()].length);
-                return m;
-            }));
-        }), rx.throttleTime(150, rx.queueScheduler, { leading: false, trailing: true }), rx.exhaustMap(m => new rx.Observable(sub => {
-            const rects = [...rectTree.allRectangles()];
-            rectTree.clear();
-            ft.render(rects.map(([r]) => r)).dp(m);
-            sub.complete();
-        })))) : rx.EMPTY;
+        return enabled ?
+            pt.requestRender.pipe(rx.mergeMap(([m, rect]) => {
+                requestRenderMetas.push(m);
+                return rx.combineLatest([table.l.setBounding, rtree$]).pipe(rx.take(1), rx.map(([[, , , w, h], rtree]) => {
+                    rtree.addOrUnionRectOnOverlap(rect !== null && rect !== void 0 ? rect : [0, 0, w, h], null, mergeRTreeContent);
+                    // canvas.log('rectTree', [...rectTree.allRectangles()].length);
+                    return [m, rtree];
+                }));
+            }), rx.throttleTime(150, rx.queueScheduler, { leading: false, trailing: true }), rx.exhaustMap(([m, rtree]) => new rx.Observable(sub => {
+                const rects = rtree.all();
+                rtree.clear();
+                const requestRenderMetas0 = requestRenderMetas;
+                requestRenderMetas = [];
+                ft.render(rects.map(([r]) => r)).dp(m, ...requestRenderMetas0);
+                sub.complete();
+            })))
+            : rx.EMPTY;
     })));
     const filters = new Map();
     r('addRenderFilter,filter.renderBypassFilter... -> copyRect,addDisplayUnits...', pt.addRenderFilter.pipe(rx.mergeMap(([m, rect, filter]) => {

@@ -32,13 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createApp = createApp;
-exports.useAppContext = useAppContext;
-const node_readline_1 = __importDefault(require("node:readline"));
+exports.queryAppContext = queryAppContext;
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const index_1 = require("../index");
@@ -51,7 +47,7 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
     var _a;
     const appService = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
     const { r, ft, pt } = appService;
-    const basePane = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'basePane' }), opts === null || opts === void 0 ? void 0 : opts.main));
+    const basePane = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'main' }), opts === null || opts === void 0 ? void 0 : opts.main));
     basePane.ft.setDirection('col').dp();
     const statusbar = (0, statusbar_1.createStatusbar)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Statusbar' }), opts === null || opts === void 0 ? void 0 : opts.statusbar));
     const keyEventService = (0, index_1.createKeyEventService)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.keyService));
@@ -65,7 +61,7 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
     }
     const canvas = (0, index_1.createTerminalCanvas)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.canvas));
     r('setFullScreen -> onReady', pt.setFullScreenMode.pipe(rx.exhaustMap(([m]) => {
-        return canvas.ft.setFullScreenMode().re(m).od(canvas.pt.setBounding).pipe(rx.take(1), rx.map(() => {
+        return canvas.ft.setFullScreenMode(keyEventService).re(m).od(canvas.pt.setBounding).pipe(rx.take(1), rx.map(() => {
             ft.onReady({
                 canvas,
                 main: basePane,
@@ -98,10 +94,7 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
     r('keyEventService.onExit', keyEventService.pt.onExit.pipe(rx.concatMap(() => rx.timer(32)), rx.exhaustMap(() => {
         appService.ft.onExit().dp();
         return canvas.table.l.setBounding.pipe(rx.take(1));
-    }), rx.switchMap(([, left, top, w, h]) => new rx.Observable(sink => {
-        node_readline_1.default.cursorTo(process.stdout, left + w - 1, top + h - 1, () => sink.next());
-    })), rx.map(() => {
-        // process.stdout.write('\n');
+    }), rx.map(() => {
         basePane.dispose();
         canvas.dispose();
         keyEventService.dispose();
@@ -111,7 +104,7 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
         appService.log('>>> on help');
         coverLayer.ft.setDisplay(index_1.DisplayMode.visible).dp(m);
         appService.ft.onHelp(coverLayer).dp(m);
-        return keyEventService.pt.onBreak.pipe(rx.take(1), rx.map(([m]) => {
+        return keyEventService.pt.onEsc.pipe(rx.take(1), rx.map(([m]) => {
             coverLayer.ft.setDisplay(index_1.DisplayMode.none).dp(m);
         }));
     })));
@@ -134,7 +127,7 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
 function createApp(mainComponent, canScroll = true, opts) {
     return appServiceFac.create(mainComponent, canScroll, opts);
 }
-function useAppContext(currComp, m) {
+function queryAppContext(currComp, m) {
     let fac = currComp.ft.queryContext('__appshell');
     if (m)
         fac = fac.re(m);

@@ -1,35 +1,48 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
-import {CoreOptions, SingleActionFactory} from '@wfh/reactivizer';
-import {BaseWidget} from '../core/base';
+import {ActionMeta, SingleActionFactory, SimplexReactorOfFac, CreateOptsInDef, CoreOptions} from '@wfh/reactivizer';
+import {BaseWidget, DisplayMode} from '../core/base';
+import {textFac, TextOptions} from '../hoc/text';
 import {Rectangle} from '../core/canvas';
 import {baseContainerFac} from '../core/container';
+import {queryElevatorContainer} from '../core/elevator-container';
+import {queryAppContext} from './app-shell';
 
 export interface PosPopupInput {
-  setAbsPos(x: number, y: number): SingleActionFactory;
+  setRelativePos(x: number, y: number): SingleActionFactory;
   dockTo(c: BaseWidget): SingleActionFactory;
+  show(): SingleActionFactory;
+  hide(): SingleActionFactory;
 }
 export interface PosPopupEvents extends PosPopupInput {
   isDocked(dockTarget: Rectangle | false): SingleActionFactory;
   onDockType(type: `${'up' | 'down'}${'Left' | 'Right'}`): SingleActionFactory;
 }
-const tableFor = ['setAbsPos', 'isDocked'] as const;
+const tableFor = ['setRelativePos', 'isDocked'] as const;
+export type PositionalPopupOpts = CreateOptsInDef<PosPopupInput, typeof baseContainerFac>;
 export const positionalFac = baseContainerFac.forExtend<PosPopupEvents, typeof tableFor>({
   name: 'positional',
   tableFor
-}).defineReactor((init, content: BaseWidget, opts?: CoreOptions<PosPopupInput>) => {
-  const {ft, r, pt, table} = init(opts);
+}).defineReactor((init, content: BaseWidget, opts?: PositionalPopupOpts) => {
+  const service = init(opts);
+  const {ft, r, pt, table} = service;
   r('reflow -> c.onSize,onChildPositions', pt.reflow.pipe(
     rx.withLatestFrom(
       table.l.allDisplayChildren,
       table.l.isDocked,
-      table.l.onSize
+      table.l.setRelativePos,
+      table.l.onSize,
+      table.l.onChildPositions
     ),
-    rx.switchMap(([[m], [, children], [, isDocked], [, width, height]]) => {
+    rx.switchMap(([[m], [, children], [, isDocked], [, relX, relY], [, width, height], [, childPos]]) => {
       if (children.length === 0)
         return rx.EMPTY;
+      service.log('--relow: isDocked', isDocked);
       if (isDocked) {
-        const [x, y, w, h] = isDocked;
+        let [x, y] = isDocked;
+        const [, , w, h] = isDocked;
+        x += relX;
+        y += relY;
         const hor = x > width - x - w ? 'Left' : 'Right';
         const ver = y > height - y - h ? 'up' : 'down';
         ft.onDockType(`${ver}${hor}`).dp(m);
@@ -38,12 +51,11 @@ export const positionalFac = baseContainerFac.forExtend<PosPopupEvents, typeof t
         return rx.concat(
           children[0].table.l.preferredSize.pipe(
             rx.mergeMap(([, pw, ph]) => {
+              // service.log('--relow: child preferredSize', pw, ph, 'max size', maxWidth, maxHeight);
               if (pw <= maxWidth && ph <= maxHeight) {
-                children[0].ft.onSize(pw, ph).dp(m);
-                return rx.EMPTY;
+                return rx.of([null, pw, ph] as const);
               } else if (pw > maxWidth && ph > maxHeight) {
-                children[0].ft.onSize(maxWidth, maxHeight).dp(m);
-                return rx.EMPTY;
+                return rx.of([null, maxWidth, maxHeight] as const);
               } else if (pw > maxWidth) {
                 return children[0].ft.querySizeOf(maxWidth, null).re(m).od(
                   children[0].pt.prefHeightFor
@@ -53,33 +65,47 @@ export const positionalFac = baseContainerFac.forExtend<PosPopupEvents, typeof t
                   children[0].pt.prefWidthFor
                 );
               }
-              return rx.EMPTY;
+              return rx.of([null, pw, ph] as const);
             }),
-            rx.take(1),
             rx.map(([, cw, ch]) => {
               children[0].ft.onSize(cw > maxWidth ? maxWidth : cw, ch > maxHeight ? maxHeight : ch).dp(m);
-            })
+            }),
+            rx.take(1)
           ),
-          rx.defer(() => children[0].table.l.onSize).pipe(
+          rx.defer(() => {
+            service.log('-- >>> child set position start');
+            return children[0].table.l.onSize;
+          }).pipe(
             rx.map(([, cWidth, cHeight]) => {
               const posX = hor === 'Left' ? x + w - cWidth : x;
               const posY = ver === 'up' ? y - cHeight : y + h;
-              ft.onChildPositions(new Map([[children[0], [posX, posY]]])).dp(m);
+              childPos.set(children[0], [posX, posY]);
+              ft.onChildPositions(childPos).dp(m);
             }),
             rx.take(1)
           )
         );
       } else {
-        return table.l.setAbsPos.pipe(
-          // TODO
-          // rx.map(([, x, y]) => []),
+        return table.l.setRelativePos.pipe(
+          rx.map(([, x, y]) => {
+            children[0].ft.onSize(9, 1).dp(m);
+            childPos.set(children[0], [x, y]);
+            ft.onChildPositions(childPos).dp(m);
+          }),
           rx.take(1)
         );
       }
-      return rx.EMPTY;
     })
   ));
-  r('setAbsPos -> isDocked', pt.setAbsPos.pipe(
+  r('show -> setDisplay', pt.show.pipe(
+    rx.map(() => ft.setDisplay(DisplayMode.visible))
+  ));
+  r('hide -> setDisplay', pt.hide.pipe(
+    rx.map(() => {
+      ft.setDisplay(DisplayMode.hidden);
+    })
+  ));
+  r('setRelativePos -> isDocked', pt.setRelativePos.pipe(
     rx.map(([m]) => {
       ft.isDocked(false).dp(m);
     })
@@ -94,6 +120,92 @@ export const positionalFac = baseContainerFac.forExtend<PosPopupEvents, typeof t
       })
     ))
   ));
+  content.ft.setFocusable(true).dp();
+  content.ft.setFocusStyle(null).dp();
   ft.addChild(content).dp();
   ft.addReflowAction(pt.isDocked).dp();
+  ft.setRelativePos(0, 0).dp();
+  ft.isDocked(false).dp();
 });
+export type PositionalPopup = SimplexReactorOfFac<typeof positionalFac>;
+
+export function showPopupFor(
+  dockTo: BaseWidget,
+  content: BaseWidget,
+  attrs?: {
+    relativePos?: [number, number] | null;
+    actionMeta?: ActionMeta | null;
+    allowUserEvents?: boolean;
+  },
+  opts?: PositionalPopupOpts
+) {
+  const popup = positionalFac.create(content, opts);
+  if (attrs?.relativePos)
+    popup.ft.setRelativePos(...attrs.relativePos).dp(attrs?.actionMeta ?? undefined);
+  popup.ft.dockTo(dockTo).dp(attrs?.actionMeta ?? undefined);
+  popup.r('showPopupFor', queryElevatorContainer(dockTo).pipe(
+    rx.mergeMap(elevator => {
+      elevator.ft.addLayer(popup, attrs?.allowUserEvents).dp(attrs?.actionMeta ?? undefined);
+      popup.ft.show().dp();
+      return popup.pt.hide.pipe(
+        rx.map(([m]) => {
+          elevator.ft.removeChild(popup).dp(m);
+        })
+      );
+    }),
+    rx.take(1)
+  ));
+  return popup;
+}
+
+export interface TooltipsOptions {
+  debug?: boolean;
+  log?: CoreOptions['log'];
+  positionalOpts?: PositionalPopupOpts;
+  textOpts?: TextOptions;
+}
+
+export function bindToolTipsTo(c: BaseWidget, tooltips: string | BaseWidget, delayShowMs = 800, opts?: TooltipsOptions) {
+  c.r('c.onFocus -> "showPopupFor",popup.hide', c.pt.onFocus.pipe(
+    rx.switchMap(([m]) => {
+      return rx.timer(delayShowMs).pipe(
+        rx.takeUntil(c.pt.onLeave),
+        rx.map(() => {
+          const textComp = typeof tooltips === 'string' ?
+            textFac.create(tooltips, {
+              debug: opts?.debug,
+              log: opts?.log,
+              ...opts?.textOpts
+            }) :
+            tooltips;
+          const popup = showPopupFor(c, textComp, {
+            actionMeta: m,
+            allowUserEvents: false
+          },
+          {
+            debug: opts?.debug,
+            log: opts?.log,
+            ...opts?.positionalOpts
+          });
+          return popup;
+        }),
+        rx.mergeMap(popup => rx.merge(
+          queryAppContext(c, m).pipe(
+            rx.switchMap(({keyEventService}) => keyEventService.pt.onEsc.pipe(
+              rx.map(([m2]) => {
+                popup.ft.hide().dp(m2, m);
+              })
+            )),
+            rx.take(1)
+          ),
+          c.pt.onLeave.pipe(
+            rx.map(([m2]) => {
+              popup.ft.hide().dp(m2);
+            })
+          )
+        )),
+        rx.take(1)
+      );
+    })
+  ));
+}

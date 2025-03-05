@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DerivedReactorFactory = exports.BaseReactorFactory = void 0;
 const simplex_reactor_1 = require("./simplex-reactor");
-const stream_dispense_1 = require("./stream-dispense");
+const action_dispenser_1 = require("./action-dispenser");
 class BaseReactorFactory {
     constructor(protoOptions) {
         this.protoOptions = protoOptions;
@@ -25,7 +25,7 @@ class BaseReactorFactory {
         if (this._interceptors == null)
             this._interceptors = [];
         this._interceptors.push(a$ => {
-            const ac = stream_dispense_1.ActionDispenser.ofAction$(a$);
+            const ac = action_dispenser_1.ActionDispenser.ofAction$(a$);
             return inter(ac);
         });
         return this;
@@ -72,7 +72,7 @@ class DerivedReactorFactory {
         if (this._interceptors == null)
             this._interceptors = [];
         this._interceptors.push(a$ => {
-            const ac = stream_dispense_1.ActionDispenser.ofAction$(a$);
+            const ac = action_dispenser_1.ActionDispenser.ofAction$(a$);
             return inter(ac);
         });
         return this;
@@ -85,7 +85,7 @@ class DerivedReactorFactory {
         if (this.baseInterceptors == null)
             this.baseInterceptors = [];
         this.baseInterceptors.push(a$ => {
-            const ac = stream_dispense_1.ActionDispenser.ofAction$(a$);
+            const ac = action_dispenser_1.ActionDispenser.ofAction$(a$);
             return interc(ac);
         });
         return this;

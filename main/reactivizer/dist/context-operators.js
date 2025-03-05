@@ -37,6 +37,7 @@ exports.payloadRelatedToAction = void 0;
 exports.actionRelatedToAction = actionRelatedToAction;
 exports.actionRelatedToActionRelatives = actionRelatedToActionRelatives;
 exports.actionOfContext = actionOfContext;
+exports.combineLastestRelated = combineLastestRelated;
 exports.pairActionToActionStream = pairActionToActionStream;
 exports.throwErrorOnRelated = throwErrorOnRelated;
 const rx = __importStar(require("rxjs"));
@@ -45,13 +46,8 @@ const rx = __importStar(require("rxjs"));
  **/
 function actionRelatedToAction(actionOrMeta) {
     return function (up) {
-        let isPayload;
-        return up.pipe(rx.filter(a => {
-            if (isPayload == null)
-                isPayload = Array.isArray(a);
-            const m = isPayload ? a[0] : a;
-            return (m.r != null && m.r === actionOrMeta.i) || (Array.isArray(m.r) && m.r.some(r => r === actionOrMeta.i));
-        }));
+        const helper = createActRelationshipPredHelper();
+        return up.pipe(rx.filter(a => helper(actionOrMeta, a)));
     };
 }
 /** Rx operator function, filter action or payload stream by:
@@ -88,6 +84,15 @@ function actionRelatedToActionRelatives(actionOrMeta) {
         }));
     };
 }
+function createActRelationshipPredHelper() {
+    let isPayload;
+    return function (initialAct, related) {
+        if (isPayload == null)
+            isPayload = Array.isArray(related);
+        const m = isPayload ? related[0] : related;
+        return (m.r != null && m.r === initialAct.i) || (Array.isArray(m.r) && m.r.some(r => r === initialAct.i));
+    };
+}
 /**
  * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
  */
@@ -95,6 +100,14 @@ function actionOfContext(actionOrMeta) {
     return function (up) {
         return rx.merge(actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta)) : rx.EMPTY, up.pipe(actionRelatedToActionRelatives(actionOrMeta)));
     };
+}
+function combineLastestRelated(initial, ...related) {
+    if (related.length === 0) {
+        return initial.pipe(rx.map(a => [a]));
+    }
+    const isRelated = createActRelationshipPredHelper();
+    const relates = combineLastestRelated(...related);
+    return initial.pipe(rx.mergeMap(a => relates.pipe(rx.filter(b => isRelated(Array.isArray(a) ? a[0] : a, b[0])), rx.map(b => [a, ...b]))), rx.share());
 }
 function pairActionToActionStream(responding$, syncCacheSize, mapFn) {
     return function (up) {
@@ -108,18 +121,12 @@ function pairActionToActionStream(responding$, syncCacheSize, mapFn) {
         }
         // When up stream completes and all mapped down streams are unsubscribed (completed),
         // stop recording messages to replay subject, otherwise it will continue until the main output stream being explicitly unsubscribed
-        const upStreamDone = new rx.Subject();
-        const downStreamUnsub = new rx.BehaviorSubject(0);
-        const countDownStream = new rx.BehaviorSubject(0);
-        const replay$ = new rx.ReplaySubject(replayCnt);
-        return rx.merge(responding$.pipe(rx.tap(replay$), rx.ignoreElements(), rx.takeUntil(rx.combineLatest([upStreamDone, downStreamUnsub, countDownStream]).pipe(rx.filter(([, unsub, count]) => unsub === count)))), up.pipe(rx.map((ctxAction, idx) => {
-            countDownStream.next(idx + 1);
-            const filted$ = replay$.pipe(actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction), rx.finalize(() => downStreamUnsub.next(downStreamUnsub.getValue() + 1)));
-            return mapFn ? mapFn(ctxAction, filted$) : filted$;
-        }), rx.finalize(() => {
-            upStreamDone.next();
-            upStreamDone.complete();
-        })));
+        return rx.defer(() => rx.of(new rx.ReplaySubject(replayCnt))).pipe(rx.switchMap(replay$ => {
+            return rx.merge(responding$.pipe(rx.tap(replay$), rx.ignoreElements()), up.pipe(rx.map(ctxAction => {
+                const filted$ = replay$.pipe(actionRelatedToAction(Array.isArray(ctxAction) ? ctxAction[0] : ctxAction));
+                return mapFn ? mapFn(ctxAction, filted$) : filted$;
+            })));
+        }));
     };
 }
 function throwErrorOnRelated(actionOrMeta) {

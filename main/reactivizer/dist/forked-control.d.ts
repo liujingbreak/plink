@@ -15,8 +15,12 @@ export declare class ForkedRxController<I> extends RxController2<I> {
     /** Any message being emitted to this subject will not be dispatched to "base" controller */
     forkedUpStream: rx.Subject<Action<unknown>>;
     constructor(src: RxController2<I>);
-    prependInterceptor(...interceptor: Interceptor[]): void;
+    /** @override */
+    prependInterceptor(...interceptor: Interceptor[]): Interceptor[];
+    /** @override */
+    removeInterceptor(...interc: Interceptor[]): void;
     /** append interceptor to all source controllers */
-    appendInterceptorToSrc(...interceptors: Interceptor[]): void;
+    appendInterceptorToSrc(...interceptors: Interceptor[]): Interceptor[];
+    removeInterceptorFromSrc(...interceptors: Interceptor[]): void;
 }
 export declare function isForked<I>(t: RxController2<I>): t is ForkedRxController<I>;

@@ -56,7 +56,7 @@ export declare class ControllerCore<I> {
     actionSubscribed$: rx.Observable<void>;
     /** Event when `action$` is entirely unsubscribed by all observers */
     actionUnsubscribed$: rx.Observable<void>;
-    configChange: rx.ReplaySubject<Set<"log" | "name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle">>;
+    configChange: rx.ReplaySubject<Set<"name" | "debug" | "debugIncludeTypes" | "debugExcludeTypes" | "logStyle" | "log">>;
     opts: CoreOptions<any>;
     interceptorList$: rx.BehaviorSubject<Interceptor[]>;
     protected dispatcher: { [K in keyof I]: Dispatch<I[K]>; };
@@ -72,9 +72,10 @@ export declare class ControllerCore<I> {
      * Only changed properties are merged to current options */
     config(opts: RxControlConfigType<I>): void;
     /** Insert action "interceptor" operator function */
-    prependInterceptor(...interceptor: Interceptor[]): void;
-    appendInterceptor(...interceptor: Interceptor[]): void;
-    /** This method is not meant to be used directly */
+    prependInterceptor(...interceptor: Interceptor[]): Interceptor[];
+    appendInterceptor(...interceptor: Interceptor[]): Interceptor[];
+    removeInterceptor(...interc: Interceptor[]): void;
+    /** Obsolete: This method is not meant to be used directly */
     dispatchFactory<K extends keyof I>(type: K): Dispatch<I[K]>;
     /** This method is not meant to be used directly */
     dispatchForFactory<K extends keyof I>(type: K): DispatchFor<I[K]>;

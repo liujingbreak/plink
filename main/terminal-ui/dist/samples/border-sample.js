@@ -9,8 +9,6 @@ const fs_1 = __importDefault(require("fs"));
 const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
 const index_1 = require("../index");
 const index_2 = require("../index");
-const index_3 = require("../index");
-const index_4 = require("../index");
 const screenWidth = process.argv[2];
 const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
@@ -23,8 +21,8 @@ function log(...args) {
     fout.write('\n');
 }
 const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
-const root = (0, index_3.createFlexContainer)({ name: 'root', debug: true, log });
-canvas.s.ft.setRootComponent(root).dp();
+const root = (0, index_2.createFlexContainer)({ name: 'root', debug: true, log });
+canvas.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
@@ -35,31 +33,31 @@ canvas.error$.subscribe(([err, label]) => {
     fout.close();
     process.exit(0);
 });
-root.s.ft.justifyContent('center').dp();
-root.s.ft.alignItems('center').dp();
+root.ft.justifyContent('center').dp();
+root.ft.alignItems('center').dp();
 const label = (0, index_2.createTextWidget)('8', { debug: true, log });
-const border = (0, index_4.createBorderContainer)(label, { debug: true, log });
-root.s.ft.addChild(border).dp();
-canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-canvas.s.ft.render().dp();
+const border = (0, index_2.createBorderContainer)(label, { debug: true, log });
+root.ft.addChild(border).dp();
+canvas.ft.setSize(screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1, (0, index_2.createKeyEventService)()).dp();
+canvas.ft.render().dp();
 process.stdout.on('resize', () => {
-    canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-    canvas.s.ft.render().dp();
+    canvas.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
+    canvas.ft.render().dp();
 });
 setTimeout(() => {
     label.log('HERE WE GO ---> 18');
-    label.s.ft.setContent('18').dp();
-    canvas.s.ft.render().dp();
+    label.ft.setContent('18').dp();
+    canvas.ft.render().dp();
     canvas.dispose();
     root.dispose();
 }, 1000);
 // setTimeout(() => {
-//   label.s.ft.setContent('8').dp();
-//   canvas.s.ft.render().dp();
+//   label.ft.setContent('8').dp();
+//   canvas.ft.render().dp();
 // }, 1500);
 // setTimeout(() => {
-//   label.s.ft.setContent('12').dp();
-//   canvas.s.ft.render().dp();
+//   label.ft.setContent('12').dp();
+//   canvas.ft.render().dp();
 //   canvas.dispose();
 //   root.dispose();
 // }, 2000);

@@ -2,7 +2,7 @@ import * as rx from 'rxjs';
 import { Action, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
 import { ActionDataTable } from './action-table';
-import { ActionDispenser } from './stream-dispense';
+import { ActionDispenser } from './action-dispenser';
 import type { ForkedRxController as ForkedRxControllerConst } from './forked-control';
 import type * as forkPost from './forked-post-control';
 import { SingleActionFactory } from './action-factory';

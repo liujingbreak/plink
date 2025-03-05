@@ -1,13 +1,13 @@
+/* eslint-disable array-bracket-newline */
 /* eslint-disable multiline-ternary */
 import * as rx from 'rxjs';
 import {mat4} from 'gl-matrix';
 import chalk from 'chalk';
 import {BaseReactorFactory, SingleActionFactory, ActionMeta, SimplexReactor, CoreOptions, actionRelatedToAction} from '@wfh/reactivizer';
 import {IntervalTree} from '@wfh/algorithms';
-import {waitForImport$ as waitForRbushImport$} from '../core/rbush';
+import {createRtreeInstance} from '../core/rbush';
 import {isCodePointFullWidth as isFullWidth} from './text-split';
 import {BaseWidget} from './base';
-import {RectangleOverlapTree} from './rectangle-overlap-tree';
 import {CanvasFilter} from './canvas-filter';
 
 export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` |
@@ -61,6 +61,8 @@ export interface CanvasInput {
 export interface CanvasEvents extends CanvasInput {
   /** In context of "render", x, y are both absolute 0 based coordinates value */
   onPrintText(x: number, y: number, text: string): SingleActionFactory;
+  /** In context of "render", this message is dispatched after a single frame is `rendered` */
+  onRendered(): SingleActionFactory;
   /** Invoke TTY API to actually clear line from the screen immediately */
   onClearLine(y: number, x?: number, dir?: 0 | 1 | -1): SingleActionFactory;
   didCopyRect(paintables: Array<[xLow: number, xHigh: number, y: number, units: number[], style: string]>): SingleActionFactory;
@@ -92,6 +94,7 @@ export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
   // handling "onPrintText" is actually where to invoke text output through stand output stream.
   // To avoid screen flickering, we use space character to clear screen instead of using API to clear lines.
   let uncommited = [] as (LineElement | undefined)[];
+  const rtree$ = createRtreeInstance<null>();
   r('setRootComponent', pt.setRootComponent.pipe(
     rx.switchMap(([m, root]) => {
       if (root)
@@ -154,67 +157,71 @@ export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
     })
   ));
   r('render... -> onPrintText', pt.render.pipe(
-    rx.withLatestFrom(table.l.setBounding, table.l.setRootComponent),
-    rx.map(([[m, rects], [, x, y, w, h], [, root]], idx) => {
+    rx.concatMap(([m, rects]) => rx.combineLatest([
+      table.l.setBounding, table.l.setRootComponent, rtree$
+    ]).pipe(
+      rx.take(1),
+      rx.map(([[, x, y, w, h], [, root]], idx) => {
       // canvas.log('>> before uncommited', debugLineTrees(uncommited));
-
-      if (root)
-        root.ft.render(canvas, mat4.create(), rects ?? [[0, 0, w, h] as const]).dp(m);
-      // ft.takeSnapshot({noColor: true, type: 'uncommited'}).re(m).od(pt.didTakeSnapshot).pipe(
-      //   rx.take(1),
-      //   rx.map(([, lines]) => canvas.log('snapshot 1.5 uncommited\n' + [...lines].join('')))
-      // ).subscribe();
-      // ft.takeSnapshot({noColor: true, type: 'pro'}).re(m).od(pt.didTakeSnapshot).pipe(
-      //   rx.take(1),
-      //   rx.map(([, lines]) => canvas.log('snapshot 1.6 proLines\n' + [...lines].join('')))
-      // ).subscribe();
-      let lineIdx = 0;
-      // canvas.log('>> after uncommited', debugLineTrees(uncommited));
-      // canvas.log('>> lines', debugLineTrees(lines));
-      for (const line of uncommited) {
-        if (line == null) {
-          lineIdx++;
-          continue;
-        }
-        let prevPrintable = '';
-        let prevPrintEnd = 0;
-        let prevPrintStart = 0;
-        for (const [eLow, eHigh, data] of line.allIntervals()) {
-          const text = treeNodeToStyleText(data);
-          // canvas.log('- unc', eLow, eHigh, text);
-          if (eLow === prevPrintEnd) {
+        if (root)
+          root.ft.render(canvas, mat4.create(), rects && rects.length > 0 ? rects : [[0, 0, w, h] as const]).dp(m);
+        // ft.takeSnapshot({noColor: true, type: 'uncommited'}).re(m).od(pt.didTakeSnapshot).pipe(
+        //   rx.take(1),
+        //   rx.map(([, lines]) => canvas.log('snapshot 1.5 uncommited\n' + [...lines].join('')))
+        // ).subscribe();
+        // ft.takeSnapshot({noColor: true, type: 'pro'}).re(m).od(pt.didTakeSnapshot).pipe(
+        //   rx.take(1),
+        //   rx.map(([, lines]) => canvas.log('snapshot 1.6 proLines\n' + [...lines].join('')))
+        // ).subscribe();
+        let lineIdx = 0;
+        // canvas.log('>> after uncommited', debugLineTrees(uncommited));
+        // canvas.log('>> lines', debugLineTrees(lines));
+        for (const line of uncommited) {
+          if (line == null) {
+            lineIdx++;
+            continue;
+          }
+          let prevPrintable = '';
+          let prevPrintEnd = 0;
+          let prevPrintStart = 0;
+          for (const [eLow, eHigh, data] of line.allIntervals()) {
+            const text = treeNodeToStyleText(data);
+            // canvas.log('- unc', eLow, eHigh, text);
+            if (eLow === prevPrintEnd) {
             // In case there are contiguous printables with different style (according
             // to the logic of "uniteDisplayUnits()"),
             // current printable is contiguous to previous one,
             // concatenate them
-            prevPrintable += text;
+              prevPrintable += text;
+            } else {
+              if (prevPrintable)
+                ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
+              prevPrintable = text;
+              prevPrintStart = eLow;
+            }
+            prevPrintEnd = eHigh + 1;
+          }
+          if (prevPrintable)
+            ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
+          lineIdx++;
+        }
+        uncommited = [];
+        // clone proLines as new "lines"
+        lines = new Array<LineElement | undefined>(proLines.length);
+        for (let i = 0, l = lines.length; i < l; i++) {
+          if (proLines[i]) {
+            const line = lines[i] = new IntervalTree();
+            for (const [l, h, value] of proLines[i]!.allIntervals()) {
+              line.insertInterval(l, h).value = value;
+            }
           } else {
-            if (prevPrintable)
-              ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
-            prevPrintable = text;
-            prevPrintStart = eLow;
+            lines[i] = undefined;
           }
-          prevPrintEnd = eHigh + 1;
         }
-        if (prevPrintable)
-          ft.onPrintText(x + prevPrintStart, y + lineIdx, prevPrintable).dp(m);
-        lineIdx++;
-      }
-      uncommited = [];
-      // clone proLines as new "lines"
-      lines = new Array<LineElement | undefined>(proLines.length);
-      for (let i = 0, l = lines.length; i < l; i++) {
-        if (proLines[i]) {
-          const line = lines[i] = new IntervalTree();
-          for (const [l, h, value] of proLines[i]!.allIntervals()) {
-            line.insertInterval(l, h).value = value;
-          }
-        } else {
-          lines[i] = undefined;
-        }
-      }
-      ft.internalCache(lines, proLines, uncommited).dp();
-    })
+        ft.internalCache(lines, proLines, uncommited).dp();
+        ft.onRendered().dp(m);
+      })
+    ))
   ));
   r('takeSnapshot', pt.takeSnapshot.pipe(
     rx.map(([m, opts]) => {
@@ -298,32 +305,37 @@ export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
       );
     })
   ));
+  function mergeRTreeContent<T>(a: T, _b: T) {
+    return a;
+  }
   r('setRenderOnRequest,waitForRbushImport$,requestRender -> render', pt.setRenderOnRequest.pipe(
     rx.switchMap(([, enabled]) => {
-      const rectTree = new RectangleOverlapTree();
+      let requestRenderMetas = [] as ActionMeta[];
       // eslint-disable-next-line multiline-ternary
-      return enabled ? rx.concat(
-        waitForRbushImport$,
+      return enabled ?
         pt.requestRender.pipe(
           rx.mergeMap(([m, rect]) => {
-            return table.l.setBounding.pipe(
+            requestRenderMetas.push(m);
+            return rx.combineLatest([table.l.setBounding, rtree$]).pipe(
               rx.take(1),
-              rx.map(([, , , w, h]) => {
-                rectTree.addOrUnionRectOnOverlap(rect ?? [0, 0, w, h], null);
+              rx.map(([[, , , w, h], rtree]) => {
+                rtree.addOrUnionRectOnOverlap(rect ?? [0, 0, w, h], null, mergeRTreeContent);
                 // canvas.log('rectTree', [...rectTree.allRectangles()].length);
-                return m;
+                return [m, rtree] as const;
               })
             );
           }),
           rx.throttleTime(150, rx.queueScheduler, {leading: false, trailing: true}),
-          rx.exhaustMap(m => new rx.Observable(sub => {
-            const rects = [...rectTree.allRectangles()];
-            rectTree.clear();
-            ft.render(rects.map(([r]) => r)).dp(m);
+          rx.exhaustMap(([m, rtree]) => new rx.Observable(sub => {
+            const rects = rtree.all();
+            rtree.clear();
+            const requestRenderMetas0 = requestRenderMetas;
+            requestRenderMetas = [];
+            ft.render(rects.map(([r]) => r)).dp(m, ...requestRenderMetas0);
             sub.complete();
           }))
         )
-      ) : rx.EMPTY;
+        : rx.EMPTY;
     })
   ));
   const filters = new Map<number, [Rectangle, CanvasFilter]>();

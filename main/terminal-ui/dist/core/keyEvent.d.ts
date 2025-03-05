@@ -21,6 +21,7 @@ interface KeyEvents {
     onHome(): SingleActionFactory;
     onEnd(): SingleActionFactory;
     onExit(): SingleActionFactory;
+    onEsc(): SingleActionFactory;
 }
 export declare enum KeyEventEnum {
     scrollLeft = 0,
@@ -42,7 +43,6 @@ export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
     onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
     onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
     onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
-    onBreak(): SingleActionFactory;
     onDigital(chr: string): SingleActionFactory;
     consumeMultiKey(evt: RawKeyEvent): SingleActionFactory;
     didConsumeMultiKey(action: KeyEventEnum | null, amount: number): SingleActionFactory;

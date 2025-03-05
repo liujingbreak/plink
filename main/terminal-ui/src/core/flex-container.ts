@@ -407,18 +407,15 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
 
       listContainer.log('-- cbt searching clips', clips.join(), cbt.all().map(([, [, c]]) => c.s.logPrefix));
       let chrToRender = clips.flatMap(
-        ([x, y, w, h]) => cbt.search({minX: x, minY: y, maxX: x + w, maxY: y + h})
+        r => cbt.searchOverlaps(r)
       ).map(([, c]) => c);
-      listContainer.log('-- cbt founds', chrToRender.map(([, c]) => c.s.logPrefix));
-      // let chrToRender = clips.flatMap(clip => [...childBoundingTree.searchOverlaps(clip)])
-      //   .map(([, c]) => c);
+      // listContainer.log('-- cbt founds', chrToRender.map(([, c]) => c.s.logPrefix));
+      // listContainer.log('-- masks', masks.join());
       const excluded = new Set(masks ?
-        masks.flatMap(([x, y, w, h]) => cbt.search({
-          minX: x, minY: y, maxX: x + w, maxY: y + h
-        }).map(([, [, c]]) => c)) :
+        masks.flatMap(r => cbt.searchForCovered(r).map(([, [, c]]) => c)) :
         []);
       chrToRender = chrToRender.filter(([, c]) => !excluded.has(c));
-      // listContainer.log('--chrToRender', chrToRender, clips.join(), [...childBoundingTree.allRectangles()]);
+      listContainer.log('-- chrToRender', chrToRender.map(([, c]) => c.s.logPrefix), clips.join());
       for (let i = 0, l = chrToRender.length; i < l; i++) {
         const [idx, chr] = chrToRender[i];
         ft.renderChild(idx, chr, canvas, trans, clips, masks).dp(m);

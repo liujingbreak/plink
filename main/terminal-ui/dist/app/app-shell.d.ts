@@ -35,4 +35,4 @@ export interface AppContext {
     statusbar: app.Statusbar;
 }
 export declare function createApp(mainComponent: BaseWidget, canScroll?: boolean, opts?: AppOptions): SimplexReactor<app.AppSignals, readonly ["onReady"]>;
-export declare function useAppContext(currComp: BaseWidget, m?: ActionMeta): rx.Observable<app.AppContext>;
+export declare function queryAppContext(currComp: BaseWidget, m?: ActionMeta): rx.Observable<app.AppContext>;

@@ -2,7 +2,7 @@ import {SimplexReactorOptions, SimplexReactorCfgOpts} from './reactor-base';
 import {CoreOptions, Interceptor} from './stream-core';
 import {ActionInterceptor, RxController2} from './control2';
 import {SimplexReactor, DerivedSimplexReactor} from './simplex-reactor';
-import {ActionDispenser} from './stream-dispense';
+import {ActionDispenser} from './action-dispenser';
 
 export interface ReactorFactory<
   I = Record<never, never>,

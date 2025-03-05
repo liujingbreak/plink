@@ -26,7 +26,11 @@ export interface BaseWidgetInput {
     setBackground(color: BackgroundStyle | null): SingleActionFactory;
     /** to override automatical "preferredSize" in layout calculation */
     setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
+    /** Set to true to allow current component to be focused by user */
     setFocusable(focusable: boolean | Rectangle): SingleActionFactory;
+    /** default 'inverse' */
+    setFocusStyle(style: 'inverse' | null): SingleActionFactory;
+    focus(): SingleActionFactory;
     /** observe the changes of absoulte bounding of component.
      * the change is kept reported by didQueryAbsBounding */
     queryAbsBounding(untilParent?: TerminalContainer): SingleActionFactory;
@@ -113,7 +117,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     onContextChange<T>(key: string, value: T): SingleActionFactory;
     focusService(focusSvc: FocusService): SingleActionFactory;
 }
-export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"];
+export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"];
 export type BaseWidgetRenderData = readonly [
     InferMapParam<BaseWidgetInput['setDisplay']>,
     InferMapParam<BaseWidgetEvents['onSize']>,
@@ -122,4 +126,4 @@ export type BaseWidgetRenderData = readonly [
 export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
 export type BaseWidgetOptions = CoreOptions<BaseWidgetEvents>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare const baseComponentFac: BaseReactorFactory<BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;
+export declare const baseComponentFac: BaseReactorFactory<BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;

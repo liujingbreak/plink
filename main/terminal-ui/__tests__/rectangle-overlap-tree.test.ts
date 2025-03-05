@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
 import {describe, it, expect}  from '@jest/globals';
 import {stringifyIntervalTree} from '@wfh/algorithms';
-import {RectangleOverlapTree} from '../dist/rectangle-overlap-tree';
-import {Rectangle} from '../dist/canvas';
+import {RectangleOverlapTree} from '../dist/core/rectangle-overlap-tree';
+import {Rectangle} from '../dist/core/canvas';
 
 function createMockTree() {
   const rects = [

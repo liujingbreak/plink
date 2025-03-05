@@ -45,6 +45,8 @@ export interface CanvasInput {
 export interface CanvasEvents extends CanvasInput {
     /** In context of "render", x, y are both absolute 0 based coordinates value */
     onPrintText(x: number, y: number, text: string): SingleActionFactory;
+    /** In context of "render", this message is dispatched after a single frame is `rendered` */
+    onRendered(): SingleActionFactory;
     /** Invoke TTY API to actually clear line from the screen immediately */
     onClearLine(y: number, x?: number, dir?: 0 | 1 | -1): SingleActionFactory;
     didCopyRect(paintables: Array<[xLow: number, xHigh: number, y: number, units: number[], style: string]>): SingleActionFactory;

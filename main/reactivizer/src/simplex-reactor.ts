@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {Action, ActionMeta, ActionFunctions} from './stream-core';
+import {Action, ActionMeta, ActionFunctions, InferMapParam, InferPayload} from './stream-core';
 import {RxController2, ControllerBaseActions} from './control2';
 import {SingleActionFactory} from './action-factory';
 import {SimplexReactorOptions, SimplexReactorCfgOpts} from './reactor-base';
@@ -22,9 +22,11 @@ export interface BaseActions<
   /** extends ControllerBaseActions */
   __cancel: ControllerBaseActions['__cancel'];
 }
+const baseActionTypeSet: Set<keyof BaseActions> = new Set(['__onError', '__onDisposed', '__cancel', '__config']);
 const baseTableFor = ['__onError', '__onDisposed'] as const;
 type LE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;
 let SEQ = new Date().getUTCMilliseconds();
+export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<any>;
 
 export class SimplexReactor<
   I = Record<never, never>,
@@ -49,22 +51,36 @@ export class SimplexReactor<
   at: RxController2<I & BaseActions>['at'];
   /** shortcut to s.ft */
   ft: RxController2<I & BaseActions>['ft'];
+  /** Add a "pre-hook" of specific message type, all returned observable of provided hook functions
+   * of that specific message type will be `rx.concat()` together,
+   * thus the returned an Observable must be completed in the future, otherwise it will block
+   * messages being recieved by reactors.
+   * Any subscription to that specific message type (aka reactor) will recieved message after all
+   * pre-hooks completes.
+   *
+   * @return a function to remove pre-hook previously added.
+  **/
+  hooks: {[K in keyof I]: (label: string, define: PreActionHook<I, K>) => () => void};
   /** shortcut to table.l */
   latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
   // ft: RxController2<I & BaseActions>['ft'];
 
+  /** Define an reactor (RxJS observable subscription) */
   r = (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => {
     if (typeof params[0] === 'string')
       this.reactorSubj.next(params as [label: string, stream: rx.Observable<any>, disableCatchError?: boolean]);
     else
       this.reactorSubj.next(['', ...params as [stream: rx.Observable<any>, disableCatchError?: boolean]]);
   };
+
   table: ActionTable<I & BaseActions<I>, LE<LI>>;
   id = SEQ++;
   opts?: SimplexReactorOptions<unknown, readonly never[]>;
   protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]> = new rx.ReplaySubject();
   protected errorSubject: rx.Subject<[label: string, originError: any]> =
     new rx.ReplaySubject(20);
+  private preActionHook$ = new rx.Subject<[type: string, hookFn: PreActionHook<I>, label: string]>();
+  private removePreActionHook$ = new rx.Subject<[type: string, hookFn: PreActionHook<I>]>();
 
   constructor(opts?: SimplexReactorOptions<I, LI>) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -73,6 +89,19 @@ export class SimplexReactor<
     this.pt = this.s.pt;
     this.at = this.s.at;
     this.ft = this.s.ft;
+    const self = this;
+    this.hooks = new Proxy({} as {[K in keyof I]: (label: string, define: PreActionHook<I, K>) => () => void}, {
+      get(_target, key, _rec) {
+        return (label: string, define: PreActionHook<I>) => self.addPreHook(label, key as keyof I, define);
+      },
+      has(_target, key) {
+        return typeof key === 'string';
+      },
+      ownKeys() {
+        return [];
+      }
+    });
+
     const internalMsgCtl = this.s as unknown as RxController2<BaseActions>;
 
     const doOperator = <A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.merge(
@@ -84,7 +113,39 @@ export class SimplexReactor<
         })
       )
     );
+
+    const hooksByType = new Map<string, [PreActionHook<I>, string][]>();
+
     this.s.doOperator$.next(doOperator);
+    this.s.appendInterceptor(a$ => {
+      return rx.concat(
+        rx.of(null), // the observable content is not important
+        rx.merge(
+          this.preActionHook$,
+          this.removePreActionHook$
+        )
+      ).pipe(
+        rx.switchMap(() => a$.pipe(
+          rx.mergeMap(a => {
+            const {t, p} = a;
+            const hooks = hooksByType.get(t);
+            if (hooks) {
+              return rx.concat(
+                ...hooks.map(
+                  ([hook, label]) => hook(a, ...(p as InferPayload<I[keyof I]>)).pipe(
+                    this.handleErrorOp(label, 'stop'),
+                    rx.ignoreElements()
+                  )
+                ),
+                rx.of(a)
+              );
+            } else {
+              return rx.of(a);
+            }
+          })
+        ))
+      );
+    });
     // Everthing internally observables should goes here
     rx.merge(
       internalMsgCtl.pt.__onError.pipe(
@@ -98,9 +159,32 @@ export class SimplexReactor<
       this.reactorSubj.pipe(
         rx.mergeMap(([label, downStream, noError]) => {
           if (noError == null || !noError) {
-            downStream = this.handleError(downStream, label);
+            return downStream.pipe(
+              this.handleErrorOp(label)
+            );
           }
           return downStream;
+        })
+      ),
+      this.preActionHook$.pipe(
+        rx.map(([type, hook, label]) => {
+          let hooks = hooksByType.get(type as string);
+          if (hooks == null) {
+            hooks = [] as [PreActionHook<I>, string][];
+            hooksByType.set(type as string, hooks);
+          }
+          hooks.push([hook, label]);
+        })
+      ),
+      this.removePreActionHook$.pipe(
+        rx.map(([type, hook]) => {
+          let hooks = hooksByType.get(type as string);
+          if (hooks) {
+            hooks = hooks.filter(([h]) => h !== hook);
+            if (hooks.length === 0) {
+              hooksByType.delete(type as string);
+            }
+          }
         })
       )
     ).pipe(
@@ -203,6 +287,14 @@ export class SimplexReactor<
       });
     }
     return this as unknown as DerivedSimplexReactor<I, LI>;
+  }
+  private addPreHook<K extends keyof I>(label: string, type: K, hook: PreActionHook<I, K>) {
+    if (baseActionTypeSet.has(type as keyof BaseActions))
+      return () => {};
+    this.preActionHook$.next([type as string, hook, label]);
+    return () => {
+      this.removePreActionHook$.next([type as string, hook]);
+    };
   }
   /**
    * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
@@ -329,8 +421,8 @@ export class SimplexReactor<
       console.error(message, err);
   }
 
-  protected handleError(upStream: rx.Observable<any>, label = '', hehavior: 'continue' | 'stop' | 'throw' = 'continue') {
-    return upStream.pipe(
+  protected handleErrorOp(label = '', hehavior: 'continue' | 'stop' | 'throw' = 'continue') {
+    return (upStream: rx.Observable<any>) => upStream.pipe(
       rx.catchError((err, src) => {
         this.logError(label, err);
         if (hehavior === 'throw')

@@ -2,7 +2,7 @@
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SimplexReactorOfFac, CreateOptsOfFac, SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
-import {useAppContext} from '../app/app-shell';
+import {queryAppContext} from '../app/app-shell';
 import {BaseWidget} from './base';
 import {TerminalContainer, baseContainerFac} from './container';
 import {CanvasOptions, canvasFac, TextStyle, rectIntersection} from './canvas';
@@ -378,7 +378,7 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
     ))
   ));
   r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(
-    rx.switchMap(([m]) => useAppContext(scrollable, m).pipe(
+    rx.switchMap(([m]) => queryAppContext(scrollable, m).pipe(
       rx.take(1),
       rx.map(({keyEventService, statusbar}) => {
         keyEventService.ft.bindToScrollable(scrollable).dp(m);

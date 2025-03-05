@@ -3,7 +3,7 @@ import * as rx from 'rxjs';
 import { assignActionReferParam, ControllerCore } from './stream-core';
 import { actionRelatedToAction } from './context-operators';
 import { ActionDataTable } from './action-table';
-import { ActionDispenser } from './stream-dispense';
+import { ActionDispenser } from './action-dispenser';
 import { SingleActionFactoryImpl } from './action-factory';
 export class RxController2 extends ControllerCore {
     /** Action factory by type */

@@ -319,7 +319,7 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
         if (toX !== scrollX || toY !== scrollY)
             ft.scrollTo(toX, toY).dp(m);
     })))));
-    r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(rx.switchMap(([m]) => (0, app_shell_1.useAppContext)(scrollable, m).pipe(rx.take(1), rx.map(({ keyEventService, statusbar }) => {
+    r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(rx.switchMap(([m]) => (0, app_shell_1.queryAppContext)(scrollable, m).pipe(rx.take(1), rx.map(({ keyEventService, statusbar }) => {
         keyEventService.ft.bindToScrollable(scrollable).dp(m);
         statusbar.ft.trackScrollable(scrollable).dp(m);
     })))));

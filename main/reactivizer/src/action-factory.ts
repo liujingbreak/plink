@@ -52,6 +52,12 @@ export interface SingleActionFactory {
   od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(
     response$: rx.Observable<T>, ...moreResponses: [...{[K in keyof TA]: rx.Observable<TA[K]>}]
   ):  TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{[K in keyof TA]: rx.Observable<TA[K]>}];
+  /**
+   * Same effect as executing `.od(...).pipe(rx.take(1))`
+   */
+  odMono<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(
+    response$: rx.Observable<T>, ...moreResponses: [...{[K in keyof TA]: rx.Observable<TA[K]>}]
+  ):  TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{[K in keyof TA]: rx.Observable<TA[K]>}];
 }
 
 export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActionFactory {
@@ -155,7 +161,7 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
 
   od<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(
     response: rx.Observable<T>, ...moreResponses: [...{[K in keyof TA]: rx.Observable<TA[K]>}]
-  ):  TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{[K in keyof TA]: rx.Observable<TA[K]>}] {
+  ): TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{[K in keyof TA]: rx.Observable<TA[K]>}] {
     if (moreResponses.length === 0) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return this.ddo(response) as any;
@@ -208,5 +214,15 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
         })
       )) as any;
     }
+  }
+
+  odMono<T extends [ActionMeta, ...any[]] | Action<any>, TA extends Array<[ActionMeta, ...any[]] | Action<any>>>(
+    response: rx.Observable<T>, ...moreResponses: [...{[K in keyof TA]: rx.Observable<TA[K]>}]
+  ): TA['length'] extends 0 ? rx.Observable<T> : [rx.Observable<T>, ...{[K in keyof TA]: rx.Observable<TA[K]>}]{
+    const res = this.od(response, ...moreResponses);
+    if (Array.isArray(res)) {
+      return res.map(i => (i as rx.Observable<any>).pipe(rx.take(1))) as any;
+    }
+    return res.pipe(rx.take(1)) as any;
   }
 }

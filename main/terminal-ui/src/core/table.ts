@@ -3,7 +3,7 @@ import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {SingleActionFactory, actionRelatedToAction, SimplexReactorOfFac,
   CoreOptions, CreateOptsInDef} from '@wfh/reactivizer';
-import {RectangleOverlapTree} from './rectangle-overlap-tree';
+import {createRtreeInstance} from './rbush';
 import {createPlaceHolder, LazyLoadPlaceHolder, LazyLoadPlaceHolderOpts} from './lazy-load-placeholder';
 import {createTextWidget, MultiLineTextWidgetOpts} from './text';
 import {baseContainerFac} from './container';
@@ -83,8 +83,8 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
   const preContrl = s.forkController();
   const rows = new Map<unknown, BaseWidget[]>();
   const rowIds = [] as unknown[];
-  const childBoundingTree = new RectangleOverlapTree<[number, BaseWidget]>();
-  const cellBoundingTree = new RectangleOverlapTree<[col: number, row: number, rect: Rectangle]>();
+  const childBoundingTree$ = createRtreeInstance<[number, BaseWidget]>();
+  const cellBoundingTree$ = createRtreeInstance<[col: number, row: number, rect: Rectangle]>();
   let rowIdSeed = 0;
   const moreIndicator = createFlexContainer({
     ...opts?.default as any,
@@ -262,8 +262,12 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
     })
   ));
   r('reflow,calcSize,didCalcSize..->"cellBoundingTree"', pt.reflow.pipe(
+    rx.mergeMap(a => cellBoundingTree$.pipe(
+      rx.take(1),
+      rx.map(b => [...a, b] as const)
+    )),
     // preContrl here makes sure the later subscription to "calcSize" will recieve message earlier than other subscriber
-    rx.switchMap(([m]) => preContrl.pt.calcSize.pipe(
+    rx.switchMap(([m, , , cellBoundingTree]) => preContrl.pt.calcSize.pipe(
       actionRelatedToAction(m),
       rx.mergeMap(([m2]) => preContrl.pt.didCalcSize.pipe(
         actionRelatedToAction(m2)
@@ -287,7 +291,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
             colW += calcCellSpaceSize(border.has(TableBorderType.border),
               border.has(TableBorderType.columnSeparator), colIdx, colWidths.length, paddingX, colSpc);
             const r = [x, y, colW, rowH] as Rectangle;
-            cellBoundingTree.addContent(r, [colIdx, rowIdx, r] as const);
+            cellBoundingTree.insert([r, [colIdx, rowIdx, r]] as const);
             // service.log('>>> cellBoundingTree add', r, cellBoundingTree.xIntervalTree.minimum()?.value.size());
             colIdx++;
             x += colW;
@@ -498,7 +502,11 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
     rx.map(([m, idx]) => ft.didGetRowByIndex(rows.get(rowIds[idx]) ?? []).dp(m))
   ));
   r('reflow, onChildPositions, child.onSize -> "childBoundingTree"', pt.reflow.pipe(
-    rx.switchMap(([m]) => {
+    rx.mergeMap(a => childBoundingTree$.pipe(
+      rx.take(1),
+      rx.map(b => [...a, b] as const)
+    )),
+    rx.switchMap(([m, , , childBoundingTree]) => {
       childBoundingTree.clear();
       return rx.combineLatest([
         pt.onChildPositions.pipe(
@@ -516,7 +524,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
           rx.take(1),
           rx.map(([, w, h]) => {
             const [x, y] = pos!;
-            childBoundingTree.addContent([x, y, w, h], [idx, chd]);
+            childBoundingTree.insert([[x, y, w, h], [idx, chd]]);
             // service.log('add child', idx, 'bounding box to tree', x, y, w, h);
           })
         ))
@@ -667,7 +675,11 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
     table.l.onChildPreferredSizeChange
   ] as const;
   r('onRender', pt.onRender.pipe(
-    rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks]) => {
+    rx.mergeMap(a => rx.combineLatest([cellBoundingTree$, childBoundingTree$]).pipe(
+      rx.take(1),
+      rx.map(b => [...a, ...b] as const)
+    )),
+    rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks, cellBoundingTree, childBoundingTree]) => {
       return rx.combineLatest(renderData).pipe(
         rx.take(1),
         rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height]]) => {
@@ -687,7 +699,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
           }
           let childToRender = clips.flatMap(clip => [...childBoundingTree.searchOverlaps(clip)].map(([, c]) => c));
           // service.log('>>>>> childToRender', childToRender.length);
-          const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, w]) => w)).flat() : []);
+          const excluded = new Set(masks ? masks.map(c => childBoundingTree.searchForCovered(c).map(([, [, w]]) => w)).flat() : []);
           childToRender = childToRender.filter(([, c]) => !excluded.has(c));
           if (bType.size > 0) {
             const [colWidths, rowHeights, , , beforePhHeight, afterPhHeight] = table.getData().didCalcSize;
@@ -882,18 +894,18 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
   ));
   r('findOverlaps -> didFindOverlaps', pt.findOverlaps.pipe(
     rx.mergeMap(([m, ...rect]) => {
-      return table.l.onBoundingBox.pipe(
+      return rx.combineLatest([table.l.onBoundingBox, childBoundingTree$]).pipe(
         rx.take(1),
-        rx.switchMap(([, [x, y, w, h]]) => {
+        rx.switchMap(([[, [x, y, w, h]], childBoundingTree]) => {
           const r = rectIntersection([x, y, w, h], rect);
           if (r == null) {
             ft.didFindOverlaps([]).dp(m);
             return rx.EMPTY;
           }
-          return rx.of([r[0] - x, r[1] - y, r[2], r[3]] as Rectangle);
+          return rx.of([[r[0] - x, r[1] - y, r[2], r[3]] as Rectangle, childBoundingTree] as const);
         }),
-        rx.mergeMap(relativeR => {
-          service.log('findOverlaps in childBoundingTree', [...childBoundingTree.allRectangles()].map(([r, [[, w]]]) => `${r.join()}: ${w.s.logPrefix}`));
+        rx.mergeMap(([relativeR, childBoundingTree]) => {
+          service.log('findOverlaps in childBoundingTree', [...childBoundingTree.all()].map(([r, [, w]]) => `${r.join()}: ${w.s.logPrefix}`));
           const children = childBoundingTree.searchOverlaps(relativeR);
           return rx.from(children).pipe(
             rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(

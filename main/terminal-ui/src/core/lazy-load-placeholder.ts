@@ -5,7 +5,7 @@ import {CoreOptions, SingleActionFactory, SimplexReactor, actionRelatedToAction,
 import {FlexContainer, createFlexContainer, FlexContainerOpts} from './flex-container';
 import {Rectangle} from './canvas';
 import {createTextWidget, MultiLineTextWidgetOpts} from './text';
-import {RootFocusService} from './focusable';
+import {FocusService} from './focusable';
 
 /** The consumer container should interect with messages defined by this interface.
  * In this file the term "page" is meant to the bunch of data which is filled by a single time
@@ -30,7 +30,7 @@ export interface LazyLoadDataProviderActions {
   dp_setTotalPageNum(numOfPages: number | 'unknown'): SingleActionFactory;
   dp_onLoadError(err: unknown, pageIdx: number): SingleActionFactory;
   /** during loading, focusService's event handling will be paused until loading succeeded */
-  dp_mgrFocusService(focus: RootFocusService): SingleActionFactory;
+  dp_mgrFocusService(focus: FocusService): SingleActionFactory;
 }
 /** The consumer container should also interect with messages defined by this interface */
 export interface PlaceHolderInput extends LazyLoadDataProviderActions {

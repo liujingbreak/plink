@@ -37,16 +37,25 @@ export class ForkedRxController<I> extends RxController2<I> {
     });
   }
 
-  /* @override */
-  prependInterceptor(...interceptor: Interceptor[]): void {
-    this.src.prependInterceptor(...interceptor);
+  /** @override */
+  prependInterceptor(...interceptor: Interceptor[]) {
+    return this.src.prependInterceptor(...interceptor);
   }
-
+  /** @override */
+  removeInterceptor(...interc: Interceptor[]) {
+    this.src.removeInterceptor(...interc);
+  }
   /** append interceptor to all source controllers */
-  appendInterceptorToSrc(...interceptors: Interceptor[]): void {
+  appendInterceptorToSrc(...interceptors: Interceptor[]) {
     if (isForked(this.src))
       this.src.appendInterceptorToSrc(...interceptors);
     this.src.appendInterceptor(...interceptors);
+    return interceptors;
+  }
+  removeInterceptorFromSrc(...interceptors: Interceptor[]) {
+    if (isForked(this.src))
+      this.src.removeInterceptorFromSrc(...interceptors);
+    this.src.removeInterceptor(...interceptors);
   }
 }
 

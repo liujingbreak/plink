@@ -3,9 +3,7 @@ import util from 'util';
 import fs from 'fs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas} from '../index';
-import {createTextWidget} from '../index';
-import {createFlexContainer} from '../index';
-import {createBorderContainer} from '../index';
+import {createTextWidget, createFlexContainer, createBorderContainer, createKeyEventService} from '../index';
 
 const screenWidth = process.argv[2];
 
@@ -23,7 +21,7 @@ function log(...args: any[]) {
 const canvas = createTerminalCanvas({debug: true, log});
 
 const root = createFlexContainer({name: 'root', debug: true, log});
-canvas.s.ft.setRootComponent(root).dp();
+canvas.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
   process.stdout.clearScreenDown();
   console.error(label, err);
@@ -34,37 +32,41 @@ canvas.error$.subscribe(([err, label]) => {
   fout.close();
   process.exit(0);
 });
-root.s.ft.justifyContent('center').dp();
-root.s.ft.alignItems('center').dp();
+root.ft.justifyContent('center').dp();
+root.ft.alignItems('center').dp();
 
 const label = createTextWidget('8', {debug: true, log});
 const border = createBorderContainer(label, {debug: true, log});
 
-root.s.ft.addChild(border).dp();
-canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-canvas.s.ft.render().dp();
+root.ft.addChild(border).dp();
+canvas.ft.setSize(
+  screenWidth ? Number(screenWidth) : process.stdout.columns,
+  process.stdout.rows - 1,
+  createKeyEventService()
+).dp();
+canvas.ft.render().dp();
 
 process.stdout.on('resize', () => {
-  canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
-  canvas.s.ft.render().dp();
+  canvas.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();
+  canvas.ft.render().dp();
 });
 
 setTimeout(() => {
   label.log('HERE WE GO ---> 18');
-  label.s.ft.setContent('18').dp();
-  canvas.s.ft.render().dp();
+  label.ft.setContent('18').dp();
+  canvas.ft.render().dp();
   canvas.dispose();
   root.dispose();
 }, 1000);
 
 // setTimeout(() => {
-//   label.s.ft.setContent('8').dp();
-//   canvas.s.ft.render().dp();
+//   label.ft.setContent('8').dp();
+//   canvas.ft.render().dp();
 // }, 1500);
 
 // setTimeout(() => {
-//   label.s.ft.setContent('12').dp();
-//   canvas.s.ft.render().dp();
+//   label.ft.setContent('12').dp();
+//   canvas.ft.render().dp();
 //   canvas.dispose();
 //   root.dispose();
 // }, 2000);

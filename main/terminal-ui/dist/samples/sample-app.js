@@ -93,7 +93,7 @@ scrollable.ft.setFocusable(true).dp();
 panel.ft.addChild(text, scrollable).dp();
 // const post = s.forkPostController();
 pt.onReady.pipe(rx.take(1), rx.mergeMap(() => {
-    return index_1.app.useAppContext(panel);
+    return index_1.app.queryAppContext(panel);
 }), rx.map(({ statusbar }) => {
     statusbar.ft.setDisplay(index_1.DisplayMode.visible).dp();
 })).subscribe();

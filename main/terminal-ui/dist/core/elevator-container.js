@@ -36,6 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.elevatorFac = void 0;
 exports.createElevator = createElevator;
 exports.getBoundingOfCompTree = getBoundingOfCompTree;
+exports.queryElevatorContainer = queryElevatorContainer;
+/* eslint-disable multiline-ternary */
 const rx = __importStar(require("rxjs"));
 const index_1 = require("../index");
 const base_1 = require("./base");
@@ -50,6 +52,12 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
     /** Offline canvas by root component */
     const canvasMap = new Map();
     const focusSvcMap = new Map();
+    const noEventsLayer = new Set();
+    r('addLayer', pt.addLayer.pipe(rx.map(([m, c, userEvents]) => {
+        if (userEvents === false)
+            noEventsLayer.add(c);
+        ft.addChild(c).dp(m);
+    })));
     r('addChild,insertChild, removeChild -> "canvasMap"', rx.merge(pt.addChild.pipe(rx.map(([m, ...chdn]) => [m, chdn])), pt.insertChild.pipe(rx.map(([m, , chdn]) => [m, chdn]))).pipe(rx.mergeMap(([m, chd]) => rx.from(chd).pipe(rx.mergeMap(chd => {
         const cv = index_1.canvasFac.create(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Elevator.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
         canvasMap.set(chd, cv);
@@ -57,24 +65,44 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
         const rootFoc = focusable_1.rootFocusSvcFac.create(cv, Object.assign(Object.assign({ name: s.logPrefix + '.focus' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
         focusSvcMap.set(chd, rootFoc);
         rootFoc.ft.forRootComp(chd).dp(m);
-        chd.ft.provideContext('rootFocus', rootFoc).dp(m);
+        chd.ft.provideContext(focusable_1.ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
         rootFoc.ft.handleKeyEvents(keyEventSvc).dp(m);
+        // const autoFocus$ = chd.pt.render.pipe(
+        //   rx.take(1),
+        //   rx.map(() => {
+        //     rootFoc.ft.findFocusable(SearchDirection.down, m.i).dp(m);
+        //   })
+        // );
         ft.onFocusServieReady(chd).dp(m);
         // Delete corresponding canvas when chd is removed
-        return pt.removeChild.pipe(rx.filter(([, w]) => w === chd), rx.take(1), rx.map(() => {
+        return rx.merge(
+        // autoFocus$,
+        pt.removeChild.pipe(rx.filter(([, w]) => w === chd), rx.take(1), rx.map(() => {
             canvasMap.delete(chd);
             rootFoc.dispose();
             cv.dispose();
-        }));
+        })));
     })))));
-    r('allDisplayChildren -> last.isOffsetParent', pt.allDisplayChildren.pipe(rx.filter(([, childrn]) => childrn.length > 0), rx.map(([, childrn]) => childrn[childrn.length - 1]), rx.distinctUntilChanged(), rx.switchMap(last => {
-        const waitForFocusService$ = rx.concat(rx.of(focusSvcMap.get(last)), pt.onFocusServieReady.pipe(rx.filter(([, readyChd]) => readyChd === last), rx.take(1), rx.map(() => focusSvcMap.get(last)))).pipe(rx.filter(focusSvc => focusSvc != null), rx.take(1));
-        return waitForFocusService$.pipe(rx.mergeMap(focusSvc => {
+    r('allDisplayChildren,onFocusServieReady -> focusService.resumeHandleEvents...', pt.allDisplayChildren.pipe(rx.filter(([, childrn]) => childrn.length > 0), rx.map(([, childrn]) => {
+        let lastIdx = childrn.length - 1;
+        while (lastIdx >= 0) {
+            const last = childrn[lastIdx];
+            if (noEventsLayer.has(last)) {
+                lastIdx--;
+            }
+            else {
+                service.log('-- last layer handles events', last.s.logPrefix);
+                return last;
+            }
+        }
+        return null;
+    }), rx.distinctUntilChanged(), rx.switchMap(last => {
+        return last ? rx.concat(rx.of(focusSvcMap.get(last)), pt.onFocusServieReady.pipe(rx.filter(([, readyChd]) => readyChd === last), rx.take(1), rx.map(() => focusSvcMap.get(last)))).pipe(rx.filter(focusSvc => focusSvc != null), rx.take(1), rx.mergeMap(focusSvc => {
             focusSvc.ft.resumeHandleEvents().dp();
             return new rx.Observable(() => () => {
                 focusSvc.ft.pauseHandleEvents().dp();
             });
-        }));
+        })) : rx.EMPTY;
     })));
     r('querySizeOf', pt.querySizeOf.pipe(rx.mergeMap(([m, w, h]) => {
         return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chdn]) => {
@@ -172,6 +200,7 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
         }), rx.take(1));
     }
     ft.hasOfflineCanvas(true).dp();
+    ft.provideContext('__elevatorContainer', service).dp();
 });
 function createElevator(keyEventSvc, opts) {
     return exports.elevatorFac.create(keyEventSvc, opts);
@@ -195,6 +224,9 @@ function getBoundingOfCompTree(c) {
                 rx.of([])), rx.map(chrdArr => chrdArr.flat()));
         }
     }));
+}
+function queryElevatorContainer(src) {
+    return src.ft.queryContext('__elevatorContainer').od(src.pt.onContextChange).pipe(rx.map(([, , ctx]) => ctx));
 }
 function isContainerWithoutOfflineCanvas(root) {
     const container = root.table.getData();

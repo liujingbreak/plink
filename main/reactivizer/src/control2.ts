@@ -5,7 +5,7 @@ import {Action, InferPayload, ActionMeta, assignActionReferParam,
 import {PayloadByType, ActionByType} from './inferred-types';
 import {actionRelatedToAction} from './context-operators';
 import {ActionDataTable} from './action-table';
-import {ActionDispenser} from './stream-dispense';
+import {ActionDispenser} from './action-dispenser';
 import type {ForkedRxController as ForkedRxControllerConst} from './forked-control';
 import type * as forkPost from './forked-post-control';
 import {SingleActionFactory, SingleActionFactoryImpl} from './action-factory';

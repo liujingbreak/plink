@@ -37,6 +37,7 @@ exports.ControllerCore = exports.has = void 0;
 exports.nameOfAction = nameOfAction;
 exports.actionMetaToStr = actionMetaToStr;
 exports.assignActionReferParam = assignActionReferParam;
+/* eslint-disable multiline-ternary */
 const rx = __importStar(require("rxjs"));
 const global_config_1 = require("./global-config");
 let SEQ = 0;
@@ -58,32 +59,33 @@ class ControllerCore {
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
         const upstream = this.actionUpstream;
         // set logger as interceptor
-        this.interceptorList$.next([
-            a$ => this.opts.debug ?
-                a$.pipe(this.opts.log ?
-                    rx.tap(action => {
-                        const type = action.t;
-                        if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                            this.opts.log(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-                        }
-                    }) :
-                    (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-                        rx.tap(action => {
-                            const type = action.t;
-                            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                                // eslint-disable-next-line no-console
-                                console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-                            }
-                        }) :
-                        rx.tap(action => {
-                            const type = action.t;
-                            if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                                // eslint-disable-next-line no-console
-                                console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
-                            }
-                        }))
-                : a$
-        ]);
+        const logOperator = (a$) => this.opts.debug ? a$.pipe(this.opts.log ?
+            rx.tap(action => {
+                const type = action.t;
+                if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                    this.opts.log(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                }
+            }) :
+            (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+                rx.tap(action => {
+                    const type = action.t;
+                    if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                        // eslint-disable-next-line no-console
+                        console.log(`%c ${this.logPrefix}`, 'color: #e0f0e0; background: #8c61ff;', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                    }
+                }) :
+                rx.tap(action => {
+                    const type = action.t;
+                    if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
+                        // eslint-disable-next-line no-console
+                        console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                    }
+                })) : a$;
+        // ForkedRxController will always "append" interceptor to interceptorList$,
+        // user defined interceptors are usually "preprend" to interceptorList$,
+        // these help to making sure "logOperator" always print messages that dispatched
+        // by base and forked stream controller in correct order.
+        this.interceptorList$.next([logOperator]);
         this.connectableAction$ = rx.connectable(this.configChange.pipe(rx.map((props, i) => {
             var _a, _b, _c;
             let switchActionStream = i === 0; // always create action stream at first time
@@ -110,7 +112,7 @@ class ControllerCore {
             return switchActionStream;
         }), rx.filter(needSwitch => needSwitch), rx.switchMap(() => {
             return this.interceptorList$.pipe(rx.switchMap(interceptors => {
-                return upstream.pipe(...interceptors);
+                return interceptors.length > 0 ? upstream.pipe(...interceptors) : upstream;
             }));
         })));
         const actionSubDispatcher = new rx.ReplaySubject();
@@ -172,13 +174,20 @@ class ControllerCore {
         const list = this.interceptorList$.getValue();
         list.unshift(...interceptor);
         this.interceptorList$.next(list);
+        return interceptor;
     }
     appendInterceptor(...interceptor) {
         const list = this.interceptorList$.getValue();
         list.push(...interceptor);
         this.interceptorList$.next(list);
+        return interceptor;
     }
-    /** This method is not meant to be used directly */
+    removeInterceptor(...interc) {
+        const interSet = new Set(interc);
+        const list = this.interceptorList$.getValue();
+        this.interceptorList$.next(list.filter(it => !interSet.has(it)));
+    }
+    /** Obsolete: This method is not meant to be used directly */
     dispatchFactory(type) {
         if (exports.has.call(this.dispatcher, type)) {
             return this.dispatcher[type];

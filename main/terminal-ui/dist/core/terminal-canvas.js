@@ -41,11 +41,14 @@ exports.createTerminalCanvas = createTerminalCanvas;
 const node_readline_1 = __importDefault(require("node:readline"));
 const rx = __importStar(require("rxjs"));
 const canvas_1 = require("./canvas");
+const keyEvent_1 = require("./keyEvent");
+const tableFor = ['onKeyEventService'];
 exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
-    name: 'canvas'
+    name: 'canvas',
+    tableFor
 }).defineReactor((init, opts) => {
     const service = init(opts);
-    const { pt, ft, r } = service;
+    const { pt, ft, r, table } = service;
     r('autoHideCursor', pt.autoHideCursor.pipe(rx.map(() => {
         process.stdout.write('\x1B[?25l');
         const reset = () => process.stdout.write('\x1B[?25h');
@@ -68,10 +71,6 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
             sub.complete();
         }));
     })));
-    r('onPrintText', pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
-        node_readline_1.default.cursorTo(process.stdout, x, y);
-        process.stdout.write(text);
-    })));
     r('onClearLine', pt.onClearLine.pipe(rx.map(([, y, x, dir]) => {
         if (x != null) {
             node_readline_1.default.cursorTo(process.stdout, x, y);
@@ -82,7 +81,10 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
             node_readline_1.default.clearLine(process.stdout, 0);
         }
     })));
-    r('setFullScreen -> setBounding', pt.setFullScreenMode.pipe(rx.exhaustMap(([m]) => {
+    r('setFullScreen -> setBounding,onKeyEventService', pt.setFullScreenMode.pipe(rx.exhaustMap(([m, keyEventService]) => {
+        if (keyEventService == null)
+            keyEventService = (0, keyEvent_1.createKeyEventService)({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
+        ft.onKeyEventService(keyEventService).dp(m);
         const blankLines = '\n'.repeat(process.stdout.rows - 1);
         return new rx.Observable(sub => {
             process.stdout.write(blankLines, () => sub.next());
@@ -99,7 +101,10 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
             });
         }));
     })));
-    r('setSize -> setBounding', pt.setSize.pipe(rx.switchMap(([m, w, h, keyEventService]) => {
+    r('setSize -> setBounding,onKeyEventService', pt.setSize.pipe(rx.switchMap(([m, w, h, keyEventService]) => {
+        if (keyEventService == null)
+            keyEventService = (0, keyEvent_1.createKeyEventService)({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
+        ft.onKeyEventService(keyEventService).dp(m);
         const cols = w > process.stdout.columns ? process.stdout.columns : w;
         const rows = h > process.stdout.rows ? process.stdout.rows : h;
         const blankLines = '\n'.repeat(rows - 1);
@@ -111,6 +116,33 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
             ft.setBounding(0, top, cols, rows).dp(m);
         }));
     })));
+    r('onKeyEventService,keyEventService.onExit|destory$ -> printDescentEnd,keyEventService.dispose', table.l.onKeyEventService.pipe(rx.switchMap(([, keyEventService]) => {
+        return rx.merge(new rx.Observable(() => {
+            const remove = keyEventService.hooks.onExit('before onExit', (m) => {
+                return ft.printDescentEnd().re(m).od(pt.onPrintDescentEndFlushed).pipe(rx.take(1));
+            });
+            return remove;
+        }), service.destory$.pipe(rx.map(() => keyEventService.dispose())));
+    })));
+    r('printDescentEnd -> onPrintDescentEndFlushed', pt.printDescentEnd.pipe(rx.mergeMap(([m]) => {
+        return table.l.setBounding.pipe(rx.take(1), rx.map(([, left, top, w, h]) => {
+            return node_readline_1.default.cursorTo(process.stdout, left + w - 1, top + h - 1, () => {
+                ft.onPrintDescentEndFlushed().dp(m);
+            });
+        }));
+    })));
+    r('render,onPrintText... -> onWriteFlushed', pt.render.pipe(rx.mergeMap(([m]) => {
+        const processCallbacks = new rx.ReplaySubject();
+        return pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
+            node_readline_1.default.cursorTo(process.stdout, x, y);
+            process.stdout.write(text, () => processCallbacks.next());
+        }), rx.takeUntil(pt.onRendered), rx.count(), rx.mergeMap(count => {
+            return processCallbacks.pipe(rx.take(count), rx.finalize(() => {
+                ft.onWriteFlushed(m).dp(m);
+            }));
+        }));
+    })));
+    ft.autoHideCursor().dp();
 });
 function createTerminalCanvas(opts) {
     return exports.terminalCanvasFac.create(opts);

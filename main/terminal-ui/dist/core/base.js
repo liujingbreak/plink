@@ -49,7 +49,7 @@ var DisplayMode;
 })(DisplayMode || (exports.DisplayMode = DisplayMode = {}));
 exports.tableForBase = [
     'onSize', 'onTransform', 'onPosition', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
-    'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink',
+    'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink', 'render', 'setFocusStyle',
     'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer', 'depth', 'focusService'
 ];
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
@@ -66,7 +66,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         return ax === bx && ay === by;
     })), ad.at.onContentSizeChange.pipe(rx.distinctUntilChanged(({ p: [ax, ay] }, { p: [bx, by] }) => {
         return ax === bx && ay === by;
-    })), ad.at.setBackground.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setDisplay.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.needRerender.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.bgCleared.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setFocusable.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => {
+    })), ad.at.setBackground.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setDisplay.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setFocusStyle.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.needRerender.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.bgCleared.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setFocusable.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => {
         return a === b;
     })), ad.at.setFlexGrow.pipe(rx.distinctUntilChanged(({ p: [v1] }, { p: [v2] }) => v1 === v2)), ad.at.setFlexShrink.pipe(rx.distinctUntilChanged(({ p: [v1] }, { p: [v2] }) => v1 === v2)), ad.ofOtherTypes());
 }).defineReactor(init => {
@@ -120,17 +120,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
             return rx.EMPTY;
         }
     })));
-    // r('needRerender, ofCanvas -> canvas.requestRender', pt.needRerender.pipe(
-    //   rx.filter(([, need]) => need),
-    //   rx.switchMap(([m]) => latest.ofCanvas.pipe(
-    //     rx.map(([, canvas]) => {
-    //       if (canvas)
-    //         canvas.ft.requestRender().dp(m);
-    //     })
-    //   ))
-    // ));
     let lastClips;
-    // let lastMasks: Rectangle[] | undefined;
     r('render -> needRerender, onRender, onBoundingBox', pt.render.pipe(rx.withLatestFrom(latest.needRerender, latest.onSize, latest.setDisplay), rx.map(([[m, canvas, trans, clips, masks], [, renderSelf], [, width, height], [, display]]) => {
         ft._saveTransform(trans).dp(m);
         if (renderSelf) {
@@ -150,6 +140,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
             ft.beforeRender(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
             const needRerender = !!table.getData().needRerender[0];
             if (!renderSelf && !needRerender) {
+                // service.log('--lastClips', lastClips, ',clips', clips);
                 const isClipChanged = lastClips == null || (clips != null && (lastClips.length !== clips.length || !isRectangeCover(lastClips[0], clips[0])));
                 if (isClipChanged) {
                     renderSelf = true;
@@ -357,7 +348,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
                 p.ft.queryContext(key).re(m).od(p.pt.onContextChange).pipe(rx.map(([, , v]) => v)) :
                 rx.of(undefined)))), rx.map(v => ft.onContextChange(key, v).dp(m)), rx.takeUntil(service.s.onCancelOf(m)));
     })));
-    r('provideFocusService', pt.provideFocusService.pipe(rx.switchMap(([m, focusSvc]) => {
+    r('provideFocusService,parent.focusService,queryAbsBounding...', pt.provideFocusService.pipe(rx.switchMap(([m, focusSvc]) => {
         ft.provideContext('focusSvc', focusSvc).dp(m);
         return latest.setParent.pipe(rx.switchMap(([, p]) => p ? p.latest.focusService : rx.EMPTY), rx.switchMap(([, pFocusSvc]) => {
             // disableParentFocusable(service, m),
@@ -372,6 +363,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
             })));
         }));
     })));
+    r('focus', pt.focus.pipe(rx.exhaustMap(([m]) => table.l.focusService.pipe(rx.take(1), rx.map(([, focus]) => focus.ft.focusOnComponent(service).dp(m))))));
     const lastStopFocusPropaAction = new Set();
     r('stopEventPropagation', pt.stopEventPropagation.pipe(rx.map(([m]) => {
         if (Array.isArray(m.r)) {
@@ -418,6 +410,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         ft.depth(0).dp();
         ft.bgCleared(false).dp();
         ft.onPosition(null, null).dp();
+        ft.setFocusStyle('inverse').dp();
         // ft.isOffsetParent(false).dp();
         // ft.offsetParent(null).dp();
         ft.setFlexGrow(0).dp();

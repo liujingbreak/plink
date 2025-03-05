@@ -28,6 +28,7 @@ interface KeyEvents {
   onHome(): SingleActionFactory;
   onEnd(): SingleActionFactory;
   onExit(): SingleActionFactory;
+  onEsc(): SingleActionFactory;
 }
 export enum KeyEventEnum {
   scrollLeft, scrollRight, scrollUp, scrollDown, scrollTop, scrollBottom, home, end,
@@ -38,7 +39,6 @@ export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
   onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
   onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
   onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
-  onBreak(): SingleActionFactory;
   onDigital(chr: string): SingleActionFactory;
   consumeMultiKey(evt: RawKeyEvent): SingleActionFactory;
   didConsumeMultiKey(action: KeyEventEnum | null, amount: number): SingleActionFactory;
@@ -94,19 +94,19 @@ export function createKeyEventService(opts?: KeyEventOptions) {
       });
     })
   ));
-  r('onKeypress -> onDisplayKeys, onBreak', s.pt.onKeypress.pipe(
+  r('onKeypress -> onDisplayKeys, onEsc', s.pt.onKeypress.pipe(
     rx.filter(([, , fallback]) => !fallback),
     rx.concatMap(payload => {
       const [m, evt] = payload;
       if (evt.sequence === '\x1B') {
-        ft.onBreak().dp(m);
+        ft.onEsc().dp(m);
         ft.onDisplayKeys('', false, false).dp(m);
         return rx.EMPTY;
       }
       return rx.of(payload);
     }),
     rx.window(rx.merge(
-      s.pt.onBreak,
+      s.pt.onEsc,
       s.pt.onInputCompleted.pipe(
         rx.distinctUntilChanged(([, a], [, b]) => a === b),
         rx.filter(([, completed]) => completed)
@@ -150,13 +150,13 @@ export function createKeyEventService(opts?: KeyEventOptions) {
               ))
             );
           }),
-          rx.takeUntil(s.pt.onBreak)
+          rx.takeUntil(s.pt.onEsc)
         ) :
         (kname === 'z' || kname === 'd' || kname === 'f' || kname === 'u' || kname === 'b') ?
           ft.consumePageAction(evt).od(s.pt.doneConsumePageAction).pipe(
             rx.take(1),
             rx.map(([, act, quantity]) => ft.didConsumeMultiKey(act, quantity ?? 1).dp(m)),
-            rx.takeUntil(s.pt.onBreak)
+            rx.takeUntil(s.pt.onEsc)
           ) :
           evt.sequence === 'g' ?
             s.pt.onKeypress.pipe(
@@ -219,7 +219,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
           return false;
         }),
         rx.takeWhile(yes => yes),
-        // rx.takeUntil(s.pt.onBreak),
+        // rx.takeUntil(s.pt.onEsc),
         rx.finalize(() => {
           ft.doneConsumeDigital(Number(word)).dp(m);
           if (lastEvt)
@@ -240,7 +240,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
             else if (evt2.name === 'h')
               ft.doneConsumePageAction(KeyEventEnum.scrollLeft, w >> 1).dp(m);
             else {
-              ft.onBreak().dp(m);
+              ft.onEsc().dp(m);
               ft.onKeypress(evt2, true).dp(m);
             }
           })
@@ -263,7 +263,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
       ft.onInputCompleted(false, false).dp(m);
       return ft.consumeMultiKey(evt).od(s.pt.didConsumeMultiKey).pipe(
         rx.take(1),
-        rx.takeUntil(s.pt.onBreak),
+        rx.takeUntil(s.pt.onEsc),
         rx.map(([, act, amount]) => {
           let valid = true;
           if (act === KeyEventEnum.scrollLeft)

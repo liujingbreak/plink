@@ -29,15 +29,25 @@ export class ForkedRxController extends RxController2 {
             }));
         });
     }
-    /* @override */
+    /** @override */
     prependInterceptor(...interceptor) {
-        this.src.prependInterceptor(...interceptor);
+        return this.src.prependInterceptor(...interceptor);
+    }
+    /** @override */
+    removeInterceptor(...interc) {
+        this.src.removeInterceptor(...interc);
     }
     /** append interceptor to all source controllers */
     appendInterceptorToSrc(...interceptors) {
         if (isForked(this.src))
             this.src.appendInterceptorToSrc(...interceptors);
         this.src.appendInterceptor(...interceptors);
+        return interceptors;
+    }
+    removeInterceptorFromSrc(...interceptors) {
+        if (isForked(this.src))
+            this.src.removeInterceptorFromSrc(...interceptors);
+        this.src.removeInterceptor(...interceptors);
     }
 }
 export function isForked(t) {

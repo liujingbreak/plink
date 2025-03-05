@@ -5,7 +5,9 @@ import {describe, it, expect, jest}  from '@jest/globals';
 import {ActionDispenser, SimplexReactorOptions} from '../src/index';
 import {formatToConcise} from '../dist/nodejs-utils';
 import {SingleActionFactory, RxController2, ReactorComposite2, actionRelatedToActionRelatives, SimplexReactor,
-  pairActionToActionStream, PostForkedRxController} from '../src';
+  pairActionToActionStream, ForkedPostRxController,
+  combineLastestRelated
+} from '../src';
 // import inspector from 'inspector';
 // inspector.open(9222, '0.0.0.0', true);
 
@@ -566,7 +568,7 @@ describe('reactivizer2', () => {
   });
   describe('PostForkedRxController', () => {
     const base = new RxController2<TestActions>();
-    const post = new PostForkedRxController(base);
+    const post = new ForkedPostRxController(base);
     const mock = jest.fn();
     const mock2 = jest.fn();
     post.pt.message1.pipe(
@@ -597,7 +599,100 @@ describe('reactivizer2', () => {
     ]);
     expect(mock2.mock.calls.length).toEqual(2);
   });
+  it('prehook', async () => {
+    const c = new SimplexReactor<TestGroupBy>({debug: true});
+    const {hooks, r, pt, ft} = c;
+    const mock = jest.fn();
+
+    r('foobar1 -> foobar2', pt.foobar1.pipe(
+      rx.map(([m, k]) => {
+        mock('reactor', k);
+        ft.foobar2(k, '').dp(m);
+      })
+    ));
+    const removePreHook = hooks.foobar1('prehook', (m, key, v) => {
+      mock('preHook', key);
+      return new rx.Observable(s => {
+        setTimeout(() => {
+          s.complete();
+        }, 50);
+      });
+    });
+
+    ft.foobar1('test1', 0).dp();
+    await rx.firstValueFrom(
+      ft.foobar1('test2', 1).od(pt.foobar2)
+    );
+    expect(mock.mock.calls.length).toEqual(4);
+    expect(mock.mock.calls).toEqual([
+      ['preHook', 'test1'],
+      ['preHook', 'test2'],
+      ['reactor', 'test1'],
+      ['reactor', 'test2']
+    ]);
+    removePreHook();
+    await rx.firstValueFrom(
+      ft.foobar1('test3', 1).od(pt.foobar2)
+    );
+    expect(mock.mock.calls.length).toEqual(5);
+    console.log(mock.mock.calls);
+  }, 4000);
+  it('combineLastestRelated', () => {
+    const testCtrl = new SimplexReactor<TestActions & TestResponse>({
+      name: 'test combineLastestRelated',
+      debug: true
+    });
+    const {pt, ft, r} = testCtrl;
+    r('', pt.message1.pipe(
+      rx.map(([m]) => {
+        ft.message2('message2', '1').dp(m);
+        ft.message2('message2', '2').dp(m);
+      })
+    ));
+    r('', pt.message2.pipe(
+      rx.map(([m]) => {
+        ft.message3('message3', '1').dp(m);
+        ft.message3('message3', '2').dp(m);
+      })
+    ));
+    r('', pt.message3.pipe(
+      rx.map(([m]) => ft.message4('greeting', 8, true).dp(m))
+    ));
+    const forked = testCtrl.s.forkController();
+    const mock = jest.fn();
+    r('', combineLastestRelated(
+      forked.pt.message1,
+      forked.pt.message2,
+      forked.pt.message3,
+      forked.pt.message4
+    ).pipe(
+      rx.map(([[, ...a], [, ...b], [, ...c], [, ...d]]) => {
+        console.log('-- test', a, b, c, d);
+        mock(a, b, c, d);
+      })
+    ));
+    ft.message1('message1').dp();
+    expect(mock.mock.calls.length).toEqual(4);
+  });
 });
+
+describe('stream-core', () => {
+  it('log', () => {
+    const mock = jest.fn();
+    const c = new SimplexReactor<TestActions>({
+      debug: true,
+      log(...msgs) {
+        mock(...msgs);
+        console.log('--', ...msgs);
+      }
+    });
+    c.ft.message1('hello').dp();
+    expect(mock.mock.calls.length).toEqual(1);
+  });
+});
+
+// describe('temp', () => {
+// });
 
 interface TestActions {
   message1(byWhom?: string): SingleActionFactory;
