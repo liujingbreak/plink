@@ -52,10 +52,10 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
     name: 'scrollable',
     tableFor
 }).defineReactor((init, comp, opts) => {
-    var _a, _b;
-    const scrollable = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
+    var _a;
+    const scrollable = init(Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: opts === null || opts === void 0 ? void 0 : opts.name }, opts === null || opts === void 0 ? void 0 : opts.container));
     const { r, ft, pt, table } = scrollable;
-    const canvas = canvas_1.canvasFac.create(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'scrollable.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
+    const canvas = canvas_1.canvasFac.create(Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'scrollable.canvas' }, opts === null || opts === void 0 ? void 0 : opts.canvas));
     canvas.ft.setRootComponent(comp).dp();
     r('onRender,canvas.clearRect -> outerCanvas.clearRect', pt.onRender.pipe(rx.withLatestFrom(table.l.onValidScroll, table.l.onViewPortSize), rx.switchMap(([[mR, oCanvas, trans], [, left, top], [, sw, sh]]) => canvas.pt.clearRect.pipe(rx.map(([m, x, y, w, h]) => {
         const x1 = x + left;
@@ -340,7 +340,7 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
         return c.ft.findOverlaps(x, y, rect[2], rect[3])
             .re(m).od(c.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([m2, found]) => ft.didFindOverlaps(found.concat(comp)).dp(m, m2)));
     })));
-    const focusSvc = focusable_1.focusServiceFac.create(canvas, Object.assign({ name: scrollable.s.logPrefix + '.focus', debug: (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.debug, log: (_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.log }, opts === null || opts === void 0 ? void 0 : opts.focus));
+    const focusSvc = focusable_1.focusServiceFac.create(canvas, Object.assign({ name: scrollable.s.logPrefix + '.focus', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.focus));
     focusSvc.ft.forRootComp(scrollable).dp();
     r('init', new rx.Observable(() => {
         ft.onContentSizeChange(2, 2).dp();

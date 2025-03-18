@@ -714,19 +714,19 @@ exports.rootFocusSvcFac = exports.focusServiceFac.forExtend({
             };
         }));
     })));
-    r('switchFocus -> c.onLeave,c.onEnter', pt.switchFocus.pipe(rx.scan((prev, curr) => {
+    r('switchFocus -> c.onLeave,c.onEnter', pt.switchFocus.pipe(rx.distinctUntilChanged(([, , , a], [, , , b]) => a === b), rx.scan((prev, curr) => {
         if (prev == null) {
             const [, , , p] = curr;
             let c = p;
             while (c) {
-                c.ft.onEnter(p).dp();
+                c.ft.onEnter(p).dp(curr[0]);
                 c = c.table.getData().setParent[0];
             }
         }
         else if (curr == null) {
             let c = prev[3];
             while (c) {
-                c.ft.onLeave(prev[3]).dp();
+                c.ft.onLeave(prev[3]).dp(prev[0]);
                 c = c.table.getData().setParent[0];
             }
         }
@@ -743,7 +743,7 @@ exports.rootFocusSvcFac = exports.focusServiceFac.forExtend({
                 if (blurAncestors.has(c)) {
                     // found common ancestor
                     let leaveComp = prev[3];
-                    while (leaveComp && leaveComp !== c) {
+                    while (leaveComp) {
                         // ancestors below the common ancestor should be "onLeave"
                         leaveComp.ft.onLeave(prev[3]).dp(prev[0]);
                         leaveComp = leaveComp.table.getData().setParent[0];

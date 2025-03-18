@@ -5,6 +5,7 @@ import {createScrollable, createFlexContainer, BaseWidget, createKeyEventService
   DisplayMode, ScrollableOptions, TerminalCanvasOpts, ElevatorOptions,
   FlexContainer, FlexContainerOpts, KeyEventOptions, TerminalCanvas, KeyEventServcie,
   app} from '../index';
+import {ColorTheme, colorThemeFac, ColorThemeOpts, CONTEXT_KEY as colorThemeCtxKey, querySchemeForComponent} from './color-theme';
 import {StatusbarOptions, createStatusbar} from './statusbar';
 
 export interface AppActions {
@@ -32,6 +33,7 @@ export interface AppOptions {
   canvas?: TerminalCanvasOpts;
   cover?: FlexContainerOpts;
   main?: FlexContainerOpts;
+  colorTheme?: ColorThemeOpts;
 }
 export interface AppContext {
   canvas: TerminalCanvas;
@@ -39,6 +41,7 @@ export interface AppContext {
   app: SimplexReactor<AppSignals>;
   keyEventService: KeyEventServcie;
   statusbar: app.Statusbar;
+  colorTheme: ColorTheme;
 }
 
 const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
@@ -69,11 +72,9 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
   if (canScroll) {
     const scrollable = createScrollable(mainComponent, {
       ...opts?.scrollable,
-      default: {
-        ...opts?.default as ScrollableOptions['default'],
-        name: 'AppScrollable',
-        ...opts?.scrollable?.default
-      }
+      debug: opts?.default?.debug,
+      log: opts?.default?.log,
+      name: 'AppScrollable'
     });
     scrollable.ft.setFlexGrow(1).dp();
     // main.ft.addChild(scrollable, statusbar).dp();
@@ -96,7 +97,8 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
             main: basePane,
             app: appService,
             keyEventService,
-            statusbar
+            statusbar,
+            colorTheme: colors
           }).dp(m);
         })
       );
@@ -114,7 +116,8 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
             main: basePane,
             app: appService,
             keyEventService,
-            statusbar
+            statusbar,
+            colorTheme: colors
           }).dp(m);
         })
       );
@@ -161,6 +164,18 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
       );
     })
   ));
+  r('"theming"', querySchemeForComponent(statusbar).pipe(
+    rx.map(([colors, ...m]) => {
+      mainContainer.ft.setForeground([`hex(${colors.onSurface})`]).dp(...m);
+      mainContainer.ft.setBackground(`bgHex(${colors.surface})`).dp(...m);
+    })
+  ));
+
+  const colors = colorThemeFac.create({
+    ...opts?.default,
+    ...opts?.colorTheme
+  });
+  basePane.ft.provideContext(colorThemeCtxKey, colors).dp();
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const elevator = createElevator(keyEventService, {default: opts?.default as any, ...opts?.elevator});
   const coverLayer = createFlexContainer({
@@ -178,12 +193,12 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
   coverLayerBorder.ft.setBackground('bgGrey').dp();
   coverLayerBorder.ft.setBorder('none').dp();
   coverLayer.ft.addChild(coverLayerBorder).dp();
+  coverLayer.ft.setDisplay(DisplayMode.none).dp();
   mainContainer.ft.setFlexGrow(1).dp();
   elevator.ft.addChild(
     basePane,
     coverLayer
   ).dp();
-  coverLayer.ft.setDisplay(DisplayMode.none).dp();
 });
 
 export function createApp(mainComponent: BaseWidget, canScroll = true, opts?: AppOptions) {

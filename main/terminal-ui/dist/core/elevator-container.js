@@ -62,24 +62,22 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
         const cv = index_1.canvasFac.create(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Elevator.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
         canvasMap.set(chd, cv);
         cv.ft.setRootComponent(chd).dp(m);
-        const rootFoc = focusable_1.rootFocusSvcFac.create(cv, Object.assign(Object.assign({ name: s.logPrefix + '.focus' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
-        focusSvcMap.set(chd, rootFoc);
-        rootFoc.ft.forRootComp(chd).dp(m);
-        chd.ft.provideContext(focusable_1.ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
-        rootFoc.ft.handleKeyEvents(keyEventSvc).dp(m);
-        // const autoFocus$ = chd.pt.render.pipe(
-        //   rx.take(1),
-        //   rx.map(() => {
-        //     rootFoc.ft.findFocusable(SearchDirection.down, m.i).dp(m);
-        //   })
-        // );
-        ft.onFocusServieReady(chd).dp(m);
+        let rootFoc;
+        if (!noEventsLayer.has(chd)) {
+            rootFoc = focusable_1.rootFocusSvcFac.create(cv, Object.assign(Object.assign({ name: s.logPrefix + '.focus' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
+            focusSvcMap.set(chd, rootFoc);
+            rootFoc.ft.forRootComp(chd).dp(m);
+            chd.ft.provideContext(focusable_1.ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
+            rootFoc.ft.handleKeyEvents(keyEventSvc).dp(m);
+            ft.onFocusServieReady(chd).dp(m);
+        }
         // Delete corresponding canvas when chd is removed
         return rx.merge(
         // autoFocus$,
         pt.removeChild.pipe(rx.filter(([, w]) => w === chd), rx.take(1), rx.map(() => {
             canvasMap.delete(chd);
-            rootFoc.dispose();
+            if (rootFoc)
+                rootFoc.dispose();
             cv.dispose();
         })));
     })))));

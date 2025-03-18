@@ -31,7 +31,7 @@ canvas.error$.subscribe(([err, label]) => {
 
 const label = createTextWidget('Hello border container', {debug: true, log});
 const border = createBorderContainer(label, {debug, log});
-const scrollable = createScrollable(border, {default: {debug: true, log}});
+const scrollable = createScrollable(border, {debug: true, log});
 scrollable.ft.setScrollable(false, true).dp();
 canvas.ft.setRootComponent(scrollable).dp();
 

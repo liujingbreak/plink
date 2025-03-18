@@ -16,7 +16,8 @@ class Configurable {
       '**/dist/**/*',
       '**/*.d.ts',
       '**/*.d.mts',
-      '**/*.d.cts'
+      '**/*.d.cts',
+      '**/node_modules/**'
     ],
     // settings: {
     //   react: {

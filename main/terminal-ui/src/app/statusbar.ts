@@ -1,18 +1,26 @@
 import * as rx from 'rxjs';
 import {SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac} from '@wfh/reactivizer';
 import {borderFac, createFlexContainer, Scrollable, KeyEventServcie,
-  DisplayMode, createTextWidget, TextStyle} from '../index';
+  DisplayMode, createTextWidget, TextStyle, querySchemeForComponent} from '../index';
+import {textFac} from '../hoc/text';
 
 export interface StatusbarInput {
   setMessage(text: string, style?: TextStyle): SingleActionFactory;
 }
-export interface StatusbarMessages extends StatusbarInput {
+export interface StatusbarTheme {
+  /** default is MaterialScheme['surfaceContainer'] */
+  setBgSurfaceColor(color: string) : SingleActionFactory;
+  /** defautlt is MaterialScheme['onSurface'] */
+  setBgOnSurfaceColor(color: string): SingleActionFactory;
+}
+export interface StatusbarMessages extends StatusbarInput, StatusbarTheme {
   trackScrollable(scrollable: Scrollable): SingleActionFactory;
   trackKeypressService(service: KeyEventServcie): SingleActionFactory;
   onScrollStatus(vertical: number | null, horizontal: number | null): SingleActionFactory;
   onKeypressStatus(text: string, isValid: boolean): SingleActionFactory;
 }
-const tableFor = ['trackKeypressService', 'trackScrollable', 'setMessage'] as const;
+const tableFor = ['trackKeypressService', 'trackScrollable', 'setMessage',
+  'setBgOnSurfaceColor', 'setBgSurfaceColor'] as const;
 
 export type StatusbarOptions = CreateOptsInDef<StatusbarMessages, typeof borderFac>;
 export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableFor>({
@@ -30,16 +38,16 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
   statusbar.ft.setPadding(0, 0, 0, 1).dp();
   statusbar.ft.setBorder('none').dp();
   statusbar.ft.setFlexShrink(0).dp();
-  const {r, pt, ft, table} = statusbar;
-  const labelScrollText = createTextWidget('scroll', {
+  const {r, pt, ft, latest} = statusbar;
+  const labelScrollText = textFac.create('scroll', {
     // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.label'
   });
-  const labelScrollValueR = createTextWidget('0%', {
+  const labelScrollValueR = textFac.create('0%', {
     // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.v1'
   });
-  const labelScrollValueC = createTextWidget('0%', {
+  const labelScrollValueC = textFac.create('0%', {
     // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.v2'
   });
@@ -49,12 +57,6 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     name: (opts?.name ?? 'statusbar') + '.key'
   });
 
-  statusbar.ft.setBackground('bgHsl(120,50,80)').dp();
-  labelKeypress.ft.setStyle(['hex(#000000)']).dp();
-  // labelKeypress.ft.setBackground('bgHsl(90,50,80)').dp();
-  labelScrollText.ft.setStyle(['hex(#000000)', 'bgHsl(90, 50, 70)']).dp();
-  labelScrollValueR.ft.setStyle(['hex(#000000)', 'bgHsl(140, 50, 70)']).dp();
-  labelScrollValueC.ft.setStyle(['hex(#000000)', 'bgHsl(150, 50, 70)']).dp();
   const customizedMsg = createTextWidget('', {
     name: statusbar.s.logPrefix + '.msg', debug: opts?.debug, log: opts?.log
   });
@@ -67,15 +69,15 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     labelScrollValueR,
     labelScrollValueC
   ).dp();
-  r('trackScrollable, scrollable.onValidScroll -> onScrollStatus', table.l.trackScrollable.pipe(
+  r('trackScrollable, scrollable.onValidScroll -> onScrollStatus', latest.trackScrollable.pipe(
     rx.switchMap(([, scrollable]) => {
       return rx.combineLatest([
-        scrollable.table.l.onValidScroll,
-        scrollable.table.l.onSize.pipe(
+        scrollable.latest.onValidScroll,
+        scrollable.latest.onSize.pipe(
           rx.distinctUntilChanged(([, aW, aH], [, bW, bH]) => aW === bW && aH === bH)
         ),
-        scrollable.table.l.onContent.pipe(
-          rx.switchMap(([, compotent]) => compotent.table.l.onSize.pipe(
+        scrollable.latest.onContent.pipe(
+          rx.switchMap(([, compotent]) => compotent.latest.onSize.pipe(
             rx.distinctUntilChanged(([, aW, aH], [, bW, bH]) => aW === bW && aH === bH)
           ))
         )
@@ -92,8 +94,8 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     })
   ));
 
-  r('trackScrollable, scrollable.isScrollNeeded -> "labelScrollText"', table.l.trackScrollable.pipe(
-    rx.switchMap(([, scrollable]) => scrollable.table.l.isScrollNeeded.pipe(
+  r('trackScrollable, scrollable.isScrollNeeded -> "labelScrollText"', latest.trackScrollable.pipe(
+    rx.switchMap(([, scrollable]) => scrollable.latest.isScrollNeeded.pipe(
       rx.distinctUntilChanged(([, need0], [, need1]) => need0 === need1),
       rx.map(([m, need]) => {
         labelScrollText.ft.setDisplay(need ? DisplayMode.visible : DisplayMode.none).dp(m);
@@ -102,10 +104,10 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
   ));
 
   r('trackKeypressService, keyEventServcie.onDisplayKeys, keyEventServcie.onInputCompleted -> onKeypressStatus',
-    table.l.trackKeypressService.pipe(
+    latest.trackKeypressService.pipe(
       rx.switchMap(([, keypress]) => {
         return rx.merge(
-          keypress.table.l.onDisplayKeys.pipe(
+          keypress.latest.onDisplayKeys.pipe(
             rx.map(([m, text, _isCompleted, isValid]) => {
               ft.onKeypressStatus(text, isValid).dp(m);
             })
@@ -125,19 +127,43 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
       labelScrollValueC.ft.setContent(h != null ? ' col: ' + Math.floor(h * 100) + '%' : '').dp(m);
     })
   ));
+  const colors$ = querySchemeForComponent(statusbar);
   r('onKeypressStatus', pt.onKeypressStatus.pipe(
     rx.map(([m, text, valid]) => {
       labelKeypress.ft.setContent(text.length === 0 ? HELP_KEY_HINT : text).dp(m);
       return valid;
     }),
     rx.distinctUntilChanged(),
-    rx.map(valid => {
-      labelKeypress.ft.setStyle(valid ? ['green'] : ['hex(#000000)']).dp();
+    rx.withLatestFrom(colors$),
+    rx.map(([valid, [colors]]) => {
+      labelKeypress.ft.setStyle(
+        valid ?
+          [`hex(${colors.onPrimary})`] :
+          [`hex(${colors.onPrimaryContainer})`]
+      ).dp();
+      statusbar.ft.setBackground(
+        valid ?
+          `bgHex(${colors.primary})` :
+          `bgHex(${colors.primaryContainer})`
+      ).dp();
     })
   ));
-  r('setMessage', table.l.setMessage.pipe(
+  r('setMessage', latest.setMessage.pipe(
     rx.map(([m, t]) => customizedMsg.ft.setContent(t).dp(m))
   ));
+  r('"theming"', colors$.pipe(
+    rx.map(([colors, m1, m2]) => {
+      statusbar.ft.setBackground(`bgHex(${colors.primary})`).dp(m1, m2);
+      labelKeypress.ft.setStyle([`hex(${colors.onPrimary})`]).dp(m1, m2);
+      labelScrollText.ft.setForeground([`hex(${colors.onSecondary})`]).dp(m1, m2);
+      labelScrollText.ft.setBackground(`bgHex(${colors.secondary})`).dp(m1, m2);
+      labelScrollValueR.ft.setBackground(`bgHex(${colors.secondaryContainer})`).dp(m1, m2);
+      labelScrollValueR.ft.setForeground([`hex(${colors.onSecondaryContainer})`]).dp(m1, m2);
+      labelScrollValueC.ft.setBackground(`bgHex(${colors.tertiaryContainer})`).dp(m1, m2);
+      labelScrollValueC.ft.setForeground([`hex(${colors.onTertiaryContainer})`]).dp(m1, m2);
+    })
+  ));
+  labelScrollText.ft.setPadding(0, 1, 0, 1).dp();
 });
 export type Statusbar = SimplexReactorOfFac<typeof statusbarFac>;
 export function createStatusbar(opts?: StatusbarOptions) {

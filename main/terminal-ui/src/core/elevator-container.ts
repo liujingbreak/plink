@@ -59,22 +59,19 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
         });
         canvasMap.set(chd, cv);
         cv.ft.setRootComponent(chd).dp(m);
-        const rootFoc = rootFocusSvcFac.create(cv, {
-          name: s.logPrefix + '.focus',
-          ...(opts?.default as RootFocusServiceOpts | undefined),
-          ...opts?.focusable
-        });
-        focusSvcMap.set(chd, rootFoc);
-        rootFoc.ft.forRootComp(chd).dp(m);
-        chd.ft.provideContext(ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
-        rootFoc.ft.handleKeyEvents(keyEventSvc).dp(m);
-        // const autoFocus$ = chd.pt.render.pipe(
-        //   rx.take(1),
-        //   rx.map(() => {
-        //     rootFoc.ft.findFocusable(SearchDirection.down, m.i).dp(m);
-        //   })
-        // );
-        ft.onFocusServieReady(chd).dp(m);
+        let rootFoc: RootFocusService | undefined;
+        if (!noEventsLayer.has(chd)) {
+          rootFoc = rootFocusSvcFac.create(cv, {
+            name: s.logPrefix + '.focus',
+            ...(opts?.default as RootFocusServiceOpts | undefined),
+            ...opts?.focusable
+          });
+          focusSvcMap.set(chd, rootFoc);
+          rootFoc.ft.forRootComp(chd).dp(m);
+          chd.ft.provideContext(ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
+          rootFoc.ft.handleKeyEvents(keyEventSvc).dp(m);
+          ft.onFocusServieReady(chd).dp(m);
+        }
         // Delete corresponding canvas when chd is removed
         return rx.merge(
           // autoFocus$,
@@ -83,7 +80,8 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
             rx.take(1),
             rx.map(() => {
               canvasMap.delete(chd);
-              rootFoc.dispose();
+              if (rootFoc)
+                rootFoc.dispose();
               cv.dispose();
             })
           )

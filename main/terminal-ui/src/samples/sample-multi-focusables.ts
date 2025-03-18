@@ -25,8 +25,9 @@ panel.ft.alignItems('start').dp();
 const right = createFlexContainer({name: 'list', debug: true, log});
 right.ft.setDirection('col').dp();
 const rightScroll = createScrollable(right, {
-  default: {debug, log},
-  core: {debug: true, name: 'rightScroll'},
+  debug,
+  log,
+  container: {debug: true, name: 'rightScroll'},
   focus: {
     debug: true,
     cache: {

@@ -15,4 +15,5 @@ export {RootFocusService, queryRootFocusService, SearchDirection as FocusableSea
 export * from './core/table';
 export * from './hoc/text';
 export * from './hoc/flex-box';
+export * from './app/color-theme';
 export * as app from './app';

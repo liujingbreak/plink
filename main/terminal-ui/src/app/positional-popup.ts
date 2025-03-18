@@ -7,6 +7,7 @@ import {Rectangle} from '../core/canvas';
 import {baseContainerFac} from '../core/container';
 import {queryElevatorContainer} from '../core/elevator-container';
 import {queryAppContext} from './app-shell';
+import {querySchemeForComponent} from './color-theme';
 
 export interface PosPopupInput {
   setRelativePos(x: number, y: number): SingleActionFactory;
@@ -143,7 +144,7 @@ export function showPopupFor(
   if (attrs?.relativePos)
     popup.ft.setRelativePos(...attrs.relativePos).dp(attrs?.actionMeta ?? undefined);
   popup.ft.dockTo(dockTo).dp(attrs?.actionMeta ?? undefined);
-  popup.r('showPopupFor', queryElevatorContainer(dockTo).pipe(
+  popup.r('"showPopupFor"', queryElevatorContainer(dockTo).pipe(
     rx.mergeMap(elevator => {
       elevator.ft.addLayer(popup, attrs?.allowUserEvents).dp(attrs?.actionMeta ?? undefined);
       popup.ft.show().dp();
@@ -159,6 +160,7 @@ export function showPopupFor(
 }
 
 export interface TooltipsOptions {
+  name?: string;
   debug?: boolean;
   log?: CoreOptions['log'];
   positionalOpts?: PositionalPopupOpts;
@@ -166,45 +168,52 @@ export interface TooltipsOptions {
 }
 
 export function bindToolTipsTo(c: BaseWidget, tooltips: string | BaseWidget, delayShowMs = 800, opts?: TooltipsOptions) {
-  c.r('c.onFocus -> "showPopupFor",popup.hide', c.pt.onFocus.pipe(
+  c.r('c.onEnter -> "showPopupFor",popup.hide', c.pt.onEnter.pipe(
     rx.switchMap(([m]) => {
       return rx.timer(delayShowMs).pipe(
         rx.takeUntil(c.pt.onLeave),
         rx.map(() => {
-          const textComp = typeof tooltips === 'string' ?
-            textFac.create(tooltips, {
+          let textComp: BaseWidget;
+          if (typeof tooltips === 'string') {
+            const bordedText = textFac.create(tooltips, {
+              name: opts?.name ? opts.name + '.label' : 'popup.label',
               debug: opts?.debug,
               log: opts?.log,
               ...opts?.textOpts
-            }) :
-            tooltips;
-          const popup = showPopupFor(c, textComp, {
+            });
+            bordedText.ft.setPadding(0, 1, 0, 1).dp(m);
+            textComp = bordedText;
+          } else {
+            textComp = tooltips;
+          }
+          const popup = showPopupFor(c, textComp!, {
             actionMeta: m,
             allowUserEvents: false
           },
           {
             debug: opts?.debug,
             log: opts?.log,
+            name: opts?.name,
             ...opts?.positionalOpts
           });
-          return popup;
+          return [popup, textComp!] as const;
         }),
-        rx.mergeMap(popup => rx.merge(
-          queryAppContext(c, m).pipe(
-            rx.switchMap(({keyEventService}) => keyEventService.pt.onEsc.pipe(
-              rx.map(([m2]) => {
-                popup.ft.hide().dp(m2, m);
-              })
-            )),
-            rx.take(1)
-          ),
-          c.pt.onLeave.pipe(
+        rx.mergeMap(([popup, textComp]) => querySchemeForComponent(textComp).pipe(
+          rx.map(([colors]) => {
+            textComp.ft.setBackground(`bgHex(${colors.inverseSurface})`).dp();
+            textComp.ft.setForeground([`hex(${colors.inverseOnSurface})`]).dp();
+          }),
+          rx.takeUntil(rx.merge(
+            queryAppContext(c, m).pipe(
+              rx.switchMap(({keyEventService}) => keyEventService.pt.onEsc)
+            ),
+            c.pt.onLeave
+          ).pipe(
             rx.map(([m2]) => {
-              popup.ft.hide().dp(m2);
+              popup.ft.hide().dp(m2, m);
             })
-          )
-        )),
-        rx.take(1)
+          ))
+        ))
       );
     })
   ));

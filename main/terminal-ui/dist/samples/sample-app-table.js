@@ -142,7 +142,7 @@ const { ft } = index_1.app.createApp(root, true, {
     },
     keyService: { debug: true },
     scrollable: {
-        core: { debug: true, log },
+        container: { debug: true, log },
         focus: {
             debug: true,
             cache: { debug }

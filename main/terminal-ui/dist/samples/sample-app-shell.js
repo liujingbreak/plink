@@ -46,27 +46,27 @@ const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
 const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
 const panel = (0, index_1.createFlexContainer)({ name: 'contentPanel', debug, log });
 const border = (0, index_1.createBorderContainer)(panel, { name: 'contentPanelBorder', debug, log });
-const { ft } = index_1.app.createApp(border, true, {
+const { ft, pt } = index_1.app.createApp(border, true, {
     default: { debug, log },
     core: { debug },
     main: {
         debug
     },
     elevator: {
-        core: { debug, log },
+        core: { debug: true, log },
         canvas: { debug, log },
         focusable: { debug, cache: { debug } }
     },
-    scrollable: {
-        core: { debug },
-        focus: { debug }
-    },
     keyService: {
-        debug: true,
-        debugIncludeTypes: ['onRawKeyInput']
+        debug: true
     },
     cover: { debug },
-    canvas: { debug }
+    canvas: { debug },
+    colorTheme: { debug: true },
+    statusbar: { debug },
+    scrollable: {
+        focus: { debug }
+    }
 });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
@@ -74,7 +74,15 @@ if (screenWidth && screenHeight)
     ft.setSize(Number(screenWidth), Number(screenHeight)).dp();
 else
     ft.setFullScreenMode().dp();
-setTimeout(() => {
+pt.onReady.pipe(rx.map(([, { colorTheme }]) => {
+    const scheme = process.env.PLINK_TERM_COLOR;
+    if (scheme)
+        colorTheme.ft.setScheme(scheme).dp();
+})).subscribe();
+rx.combineLatest([
+    rx.timer(1000),
+    rx.from(import('@material/material-color-utilities'))
+]).pipe(rx.take(1), rx.mergeMap(([, { Hct, hexFromArgb }]) => {
     log('>>>>>>>>>>>>>>>>>>>>>> load data');
     panel.s.ft.removeChild(welcome).dp();
     panel.s.ft.setDirection('col').dp();
@@ -82,10 +90,16 @@ setTimeout(() => {
     const hueInterval = Math.round(360 / num);
     // let firstLable: BaseWidget;
     for (let i = 0; i < num; i++) {
-        const label = (0, index_1.createTextWidget)('TEST LABEL ~~~~~~~~~~~ ' + i, {
+        // Refer to https://m3.material.io/styles/color/system/how-the-system-works#e1e92a3b-8702-46b6-8132-58321aa600bd
+        // Chroma is how colorful or neutral (grey, black or white) a color appears.
+        // Chroma is quantified by a number ranging from 0 (completely grey, black or white) to infinity (most vibrant),
+        // though Chroma values in HCT top out at roughly 120.
+        const color = Hct.from(hueInterval * i, 120, 50);
+        const sColor = hexFromArgb(color.toInt());
+        const label = (0, index_1.createTextWidget)('TEST LABEL ~~~~~~~~~~~ ' + sColor, {
             name: 'LABEL' + i,
-            debug: true,
-            debugIncludeTypes: ['onFocus', 'onLeave'],
+            debug: i === 0,
+            debugIncludeTypes: ['onFocus', 'onLeave', 'onEnter', 'onBlur'],
             log
         });
         // if (i === 0)
@@ -95,19 +109,20 @@ setTimeout(() => {
                 label.ft.stopEventPropagation().dp(m);
             })).subscribe();
         }
-        label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
+        label.s.ft.setStyle(['hex(' + sColor + ')']).dp();
         label.s.ft.setFocusable(true).dp();
-        const tips = index_1.textFac.create(`Hello, this is label #${i}`, { debug, log, name: 'tips' });
-        tips.ft.setPadding(0, 1, 0, 1).dp();
-        tips.ft.setBackground('bgBlue').dp();
-        (0, index_1.bindToolTipsTo)(label, 'this is label ' + i);
+        (0, index_1.bindToolTipsTo)(label, 'this is label ' + i, undefined, {
+            debug: true,
+            name: 'tipsFor#' + i,
+            log,
+            textOpts: { debug: false }
+        });
         panel.ft.addChild(label).dp();
     }
-    panel.postBase.pt.render.pipe(rx.mergeMap(([m]) => {
+    return panel.postBase.pt.render.pipe(rx.mergeMap(([m]) => {
         return (0, index_1.queryRootFocusService)(panel).pipe(rx.map(focusService => focusService.ft.findFocusable(index_1.FocusableSearchDir.down, 0).dp(m)));
-    }), rx.take(1)).subscribe();
-    // firstLable!.ft.focus().dp();
-}, 1000);
+    }), rx.take(1));
+})).subscribe();
 const welcome = (0, index_1.createTextWidget)('loading...');
 welcome.s.ft.setStyle(['cyan']).dp();
 panel.s.ft.addChild(welcome).dp();

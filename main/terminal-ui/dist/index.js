@@ -56,5 +56,6 @@ Object.defineProperty(exports, "FocusableSearchDir", { enumerable: true, get: fu
 __exportStar(require("./core/table"), exports);
 __exportStar(require("./hoc/text"), exports);
 __exportStar(require("./hoc/flex-box"), exports);
+__exportStar(require("./app/color-theme"), exports);
 exports.app = __importStar(require("./app"));
 //# sourceMappingURL=index.js.map

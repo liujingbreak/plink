@@ -43,6 +43,7 @@ const text_1 = require("../hoc/text");
 const container_1 = require("../core/container");
 const elevator_container_1 = require("../core/elevator-container");
 const app_shell_1 = require("./app-shell");
+const color_theme_1 = require("./color-theme");
 const tableFor = ['setRelativePos', 'isDocked'];
 exports.positionalFac = container_1.baseContainerFac.forExtend({
     name: 'positional',
@@ -98,7 +99,6 @@ exports.positionalFac = container_1.baseContainerFac.forExtend({
                 ft.onChildPositions(childPos).dp(m);
             }), rx.take(1));
         }
-        return rx.EMPTY;
     })));
     r('show -> setDisplay', pt.show.pipe(rx.map(() => ft.setDisplay(base_1.DisplayMode.visible))));
     r('hide -> setDisplay', pt.hide.pipe(rx.map(() => {
@@ -118,13 +118,15 @@ exports.positionalFac = container_1.baseContainerFac.forExtend({
     ft.setRelativePos(0, 0).dp();
     ft.isDocked(false).dp();
 });
-function showPopupFor(dockTo, content, relativePos, actionMeta, opts) {
+function showPopupFor(dockTo, content, attrs, opts) {
+    var _a, _b;
     const popup = exports.positionalFac.create(content, opts);
-    if (relativePos)
-        popup.ft.setRelativePos(...relativePos).dp(actionMeta !== null && actionMeta !== void 0 ? actionMeta : undefined);
-    popup.ft.dockTo(dockTo).dp(actionMeta !== null && actionMeta !== void 0 ? actionMeta : undefined);
-    popup.r('showPopupFor', (0, elevator_container_1.queryElevatorContainer)(dockTo).pipe(rx.mergeMap(elevator => {
-        elevator.ft.addLayer(popup, false).dp(actionMeta !== null && actionMeta !== void 0 ? actionMeta : undefined);
+    if (attrs === null || attrs === void 0 ? void 0 : attrs.relativePos)
+        popup.ft.setRelativePos(...attrs.relativePos).dp((_a = attrs === null || attrs === void 0 ? void 0 : attrs.actionMeta) !== null && _a !== void 0 ? _a : undefined);
+    popup.ft.dockTo(dockTo).dp((_b = attrs === null || attrs === void 0 ? void 0 : attrs.actionMeta) !== null && _b !== void 0 ? _b : undefined);
+    popup.r('"showPopupFor"', (0, elevator_container_1.queryElevatorContainer)(dockTo).pipe(rx.mergeMap(elevator => {
+        var _a;
+        elevator.ft.addLayer(popup, attrs === null || attrs === void 0 ? void 0 : attrs.allowUserEvents).dp((_a = attrs === null || attrs === void 0 ? void 0 : attrs.actionMeta) !== null && _a !== void 0 ? _a : undefined);
         popup.ft.show().dp();
         return popup.pt.hide.pipe(rx.map(([m]) => {
             elevator.ft.removeChild(popup).dp(m);
@@ -133,16 +135,28 @@ function showPopupFor(dockTo, content, relativePos, actionMeta, opts) {
     return popup;
 }
 function bindToolTipsTo(c, tooltips, delayShowMs = 800, opts) {
-    c.r('c.onFocus -> "showPopupFor",popup.hide', c.pt.onFocus.pipe(rx.switchMap(([m]) => {
+    c.r('c.onEnter -> "showPopupFor",popup.hide', c.pt.onEnter.pipe(rx.switchMap(([m]) => {
         return rx.timer(delayShowMs).pipe(rx.takeUntil(c.pt.onLeave), rx.map(() => {
-            const textComp = text_1.textFac.create(tooltips, Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.textOpts));
-            const popup = showPopupFor(c, textComp, null, m, Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.positionalOpts));
-            return popup;
-        }), rx.mergeMap(popup => rx.merge((0, app_shell_1.queryAppContext)(c, m).pipe(rx.switchMap(({ keyEventService }) => keyEventService.pt.onEsc.pipe(rx.map(([m2]) => {
+            let textComp;
+            if (typeof tooltips === 'string') {
+                const bordedText = text_1.textFac.create(tooltips, Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.label' : 'popup.label', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.textOpts));
+                bordedText.ft.setPadding(0, 1, 0, 1).dp(m);
+                textComp = bordedText;
+            }
+            else {
+                textComp = tooltips;
+            }
+            const popup = showPopupFor(c, textComp, {
+                actionMeta: m,
+                allowUserEvents: false
+            }, Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: opts === null || opts === void 0 ? void 0 : opts.name }, opts === null || opts === void 0 ? void 0 : opts.positionalOpts));
+            return [popup, textComp];
+        }), rx.mergeMap(([popup, textComp]) => (0, color_theme_1.querySchemeForComponent)(textComp).pipe(rx.map(([colors]) => {
+            textComp.ft.setBackground(`bgHex(${colors.inverseSurface})`).dp();
+            textComp.ft.setForeground([`hex(${colors.inverseOnSurface})`]).dp();
+        }), rx.takeUntil(rx.merge((0, app_shell_1.queryAppContext)(c, m).pipe(rx.switchMap(({ keyEventService }) => keyEventService.pt.onEsc)), c.pt.onLeave).pipe(rx.map(([m2]) => {
             popup.ft.hide().dp(m2, m);
-        }))), rx.take(1)), c.pt.onLeave.pipe(rx.map(([m2]) => {
-            popup.ft.hide().dp(m2);
-        })))), rx.take(1));
+        }))))));
     })));
 }
 //# sourceMappingURL=positional-popup.js.map

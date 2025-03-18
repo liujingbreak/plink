@@ -11,6 +11,8 @@ export interface KeyScrollingMsg {
 }
 interface KeyEvents {
     onMouseEvent(evt: MouseEventOpts, x: number, y: number, evtSequence: string): SingleActionFactory;
+    /** Individual keyboard press event */
+    onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
     onFocusChange(dir: KeyEventEnum.focusLeft | KeyEventEnum.focusRight | KeyEventEnum.focusUp | KeyEventEnum.focusDown | KeyEventEnum.focusNext, amount: number): SingleActionFactory;
     onRight(amount: number): SingleActionFactory;
     onLeft(amount: number): SingleActionFactory;
@@ -40,7 +42,6 @@ export declare enum KeyEventEnum {
 }
 export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
     onRawKeyInput(event: RawKeyEvent): SingleActionFactory;
-    onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
     onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
     onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
     onDigital(chr: string): SingleActionFactory;

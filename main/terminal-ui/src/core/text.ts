@@ -7,6 +7,7 @@ import {isCodePointFullWidth, createWordSplitter} from './text-split';
 
 export interface MultiLineTextInput {
   setContent(text: string): SingleActionFactory;
+  /** same as "setForegournd" message */
   setStyle(style: TextStyle): SingleActionFactory;
 }
 export interface MultiLineTextActions extends MultiLineTextInput {
@@ -29,10 +30,10 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
 )).defineReactor((init, initialText: string, opts?: CreateOptsInDef<MultiLineTextActions, typeof baseComponentFac>) => {
   const service = init(opts);
   const spliter = createWordSplitter({debug: false, log: opts?.log});
-  const {r, s, ft, pt, table} = service;
+  const {r, s, ft, pt, table, latest} = service;
   r('onRender', pt.onRender.pipe(
     rx.filter(([, , , needRerender]) => needRerender),
-    rx.withLatestFrom(table.l.onDisplayLines, table.l.onStyleWithParentBg, table.l.onSize, table.l.overflow, table.l.onBgChangeWithParent),
+    rx.withLatestFrom(latest.onDisplayLines, latest.onStyleWithParentBg, latest.onSize, latest.overflow, latest.onBgChangeWithParent),
     rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
       const leftop = [0, 0] as vec2;
       const [x, y0] = vec2.transformMat4(leftop, leftop, trans);
@@ -53,7 +54,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
     })
   ));
   r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(
-    rx.withLatestFrom(table.l.preferredSize, table.l.setContent),
+    rx.withLatestFrom(latest.preferredSize, latest.setContent),
     rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
       if (height != null) {
         if (height < 0)
@@ -90,8 +91,8 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
     })
   ));
   r('onSize, setContent -> preferredSize, onDisplayLines, overflow, onDisplayLinesForWidth', rx.combineLatest([
-    table.l.onSize,
-    table.l.setContent.pipe(
+    latest.onSize,
+    latest.setContent.pipe(
       rx.map(([m, content]) => {
         const [lines, maxWidth] = preferLayoutText(content);
         ft.onDisplayLinesForWidth().dp(m);
@@ -130,24 +131,25 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
       }
     })
   ));
-  r('setParent, setStyle, parent.setBackground -> onStyleWithParentBg', rx.combineLatest([
-    table.l.onBgChangeWithParent,
-    table.l.setStyle
+  r('setParent, onFgChangeWithParent, parent.setBackground -> onStyleWithParentBg', rx.combineLatest([
+    latest.onBgChangeWithParent,
+    latest.onFgChangeWithParent
   ]).pipe(
     rx.map(([[m, pBg], [m2, style]]) => {
-      if (m && pBg)
+      if (m && pBg && style)
         ft.onStyleWithParentBg([...style, pBg]).dp(m, m2);
-      else
+      else if (style)
         ft.onStyleWithParentBg(style).dp(m2);
     })
   ));
   const renderData = [
-    table.l.setDisplay,
-    table.l.onSize.pipe(
+    latest.onBgChangeWithParent,
+    latest.onFgChangeWithParent,
+    latest.setDisplay,
+    latest.onSize.pipe(
       rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
     ),
-    table.l.setBackground,
-    table.l.setContent, table.l.setStyle
+    latest.setContent
   ];
   r('init', new rx.Observable<never>(() => {
     ft.onContentSizeChange(0, 0).dp();
@@ -159,6 +161,9 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
     ft.setRenderChanges(renderData).dp();
     ft.setFlexShrink(1).dp();
   }));
+  r('setStyle -> setForeground', latest.setStyle.pipe(
+    rx.map(([m, s]) => ft.setForeground(s).dp(m))
+  ));
 
   function preferLayoutText(content: string) {
     const lines = content.split(/\r?\n/, 5000);

@@ -16,6 +16,8 @@ export interface KeyScrollingMsg {
 }
 interface KeyEvents {
   onMouseEvent(evt: MouseEventOpts, x: number, y: number, evtSequence: string): SingleActionFactory;
+  /** Individual keyboard press event */
+  onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
   onFocusChange(
     dir: KeyEventEnum.focusLeft | KeyEventEnum.focusRight | KeyEventEnum.focusUp | KeyEventEnum.focusDown | KeyEventEnum.focusNext,
     amount: number): SingleActionFactory;
@@ -36,7 +38,6 @@ export enum KeyEventEnum {
 }
 export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
   onRawKeyInput(event: RawKeyEvent): SingleActionFactory;
-  onKeypress(event: RawKeyEvent, fallback: boolean): SingleActionFactory;
   onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
   onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
   onDigital(chr: string): SingleActionFactory;
@@ -66,9 +67,8 @@ export function createKeyEventService(opts?: KeyEventOptions) {
     ...opts,
     tableFor
   });
-  const {r, s, table} = service;
-  const {ft} = s;
-  r('setInputStream -> onRawKeyInput', s.pt.setInputStream.pipe(
+  const {r, latest, ft, pt} = service;
+  r('setInputStream -> onRawKeyInput', pt.setInputStream.pipe(
     rx.switchMap(([m, stdin, tty]) => {
       if (tty) {
         rl.emitKeypressEvents(stdin);
@@ -94,7 +94,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
       });
     })
   ));
-  r('onKeypress -> onDisplayKeys, onEsc', s.pt.onKeypress.pipe(
+  r('onKeypress -> onDisplayKeys, onEsc', pt.onKeypress.pipe(
     rx.filter(([, , fallback]) => !fallback),
     rx.concatMap(payload => {
       const [m, evt] = payload;
@@ -106,8 +106,8 @@ export function createKeyEventService(opts?: KeyEventOptions) {
       return rx.of(payload);
     }),
     rx.window(rx.merge(
-      s.pt.onEsc,
-      s.pt.onInputCompleted.pipe(
+      pt.onEsc,
+      pt.onInputCompleted.pipe(
         rx.distinctUntilChanged(([, a], [, b]) => a === b),
         rx.filter(([, completed]) => completed)
       ))
@@ -121,8 +121,8 @@ export function createKeyEventService(opts?: KeyEventOptions) {
         }, '')
       ),
       rx.combineLatest([
-        table.l.onInputCompleted,
-        table.l.onDisplayKeys
+        latest.onInputCompleted,
+        latest.onDisplayKeys
       ]).pipe(
         rx.take(1),
         rx.map(([[m, isCompleted, isValid], [m2, text]]) => {
@@ -132,34 +132,34 @@ export function createKeyEventService(opts?: KeyEventOptions) {
       )
     ))
   ));
-  r('consumeMultiKey -> consumeDigital, consumePageAction, didConsumeMultiKey, onEscOrQuit', s.pt.consumeMultiKey.pipe(
+  r('consumeMultiKey -> consumeDigital, consumePageAction, didConsumeMultiKey, onEscOrQuit', pt.consumeMultiKey.pipe(
     rx.mergeMap(([m, evt]) => {
       const kname = evt.name ?? evt.sequence;
       return (/[0-9]/.test(kname)) ?
-        ft.consumeDigital(kname).re(m).od(s.pt.doneConsumeDigital).pipe(
+        ft.consumeDigital(kname).re(m).od(pt.doneConsumeDigital).pipe(
           rx.take(1),
           rx.mergeMap(([, times]) => {
-            return s.pt.onKeypress.pipe(
+            return pt.onKeypress.pipe(
               rx.observeOn(rx.queueScheduler),
               rx.take(1),
               rx.mergeMap(([, nextEvt]) => ft.consumeMultiKey(nextEvt).re(m).od(
-                s.pt.didConsumeMultiKey
+                pt.didConsumeMultiKey
               ).pipe(
                 rx.take(1),
                 rx.map(([, act, amount]) => ft.didConsumeMultiKey(act, amount * times).dp(m))
               ))
             );
           }),
-          rx.takeUntil(s.pt.onEsc)
+          rx.takeUntil(pt.onEsc)
         ) :
         (kname === 'z' || kname === 'd' || kname === 'f' || kname === 'u' || kname === 'b') ?
-          ft.consumePageAction(evt).od(s.pt.doneConsumePageAction).pipe(
+          ft.consumePageAction(evt).od(pt.doneConsumePageAction).pipe(
             rx.take(1),
             rx.map(([, act, quantity]) => ft.didConsumeMultiKey(act, quantity ?? 1).dp(m)),
-            rx.takeUntil(s.pt.onEsc)
+            rx.takeUntil(pt.onEsc)
           ) :
           evt.sequence === 'g' ?
-            s.pt.onKeypress.pipe(
+            pt.onKeypress.pipe(
               rx.take(1),
               rx.map(([m2, evt]) => {
                 if (evt.sequence === 'g') {
@@ -204,11 +204,11 @@ export function createKeyEventService(opts?: KeyEventOptions) {
             });
     })
   ));
-  r('consumeDigital, onKeypress -> doneConsumeDigital, onKeypress', s.pt.consumeDigital.pipe(
+  r('consumeDigital, onKeypress -> doneConsumeDigital, onKeypress', pt.consumeDigital.pipe(
     rx.mergeMap(([m, c]) => {
       let word = c;
       let lastEvt: RawKeyEvent | undefined;
-      return s.pt.onKeypress.pipe(
+      return pt.onKeypress.pipe(
         rx.observeOn(rx.queueScheduler),
         rx.map(([, evt]) => {
           if (/[0-9]/.test(evt.name ?? evt.sequence)) {
@@ -219,7 +219,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
           return false;
         }),
         rx.takeWhile(yes => yes),
-        // rx.takeUntil(s.pt.onEsc),
+        // rx.takeUntil(pt.onEsc),
         rx.finalize(() => {
           ft.doneConsumeDigital(Number(word)).dp(m);
           if (lastEvt)
@@ -228,11 +228,11 @@ export function createKeyEventService(opts?: KeyEventOptions) {
       );
     })
   ));
-  r('consumePageAction -> doneConsumePageAction', s.pt.consumePageAction.pipe(
-    rx.withLatestFrom(table.l.setPageSize),
+  r('consumePageAction -> doneConsumePageAction', pt.consumePageAction.pipe(
+    rx.withLatestFrom(latest.setPageSize),
     rx.mergeMap(([[m, evt], [, w, h]]) => {
       if (evt.name === 'z')
-        return s.pt.onKeypress.pipe(
+        return pt.onKeypress.pipe(
           rx.take(1),
           rx.map(([, evt2]) => {
             if (evt2.name === 'l')
@@ -257,13 +257,13 @@ export function createKeyEventService(opts?: KeyEventOptions) {
   ft.onDisplayKeys('', false, false).dp();
   ft.onInputCompleted(false, false).dp();
 
-  r('onKeypress -> consumeMultiKey, onInputCompleted...', s.pt.onKeypress.pipe(
+  r('onKeypress -> consumeMultiKey, onInputCompleted...', pt.onKeypress.pipe(
     rx.observeOn(rx.queueScheduler),
     rx.exhaustMap(([m, evt]) => {
       ft.onInputCompleted(false, false).dp(m);
-      return ft.consumeMultiKey(evt).od(s.pt.didConsumeMultiKey).pipe(
+      return ft.consumeMultiKey(evt).od(pt.didConsumeMultiKey).pipe(
         rx.take(1),
-        rx.takeUntil(s.pt.onEsc),
+        rx.takeUntil(pt.onEsc),
         rx.map(([, act, amount]) => {
           let valid = true;
           if (act === KeyEventEnum.scrollLeft)
@@ -287,51 +287,51 @@ export function createKeyEventService(opts?: KeyEventOptions) {
       );
     })
   ));
-  r('bindToScrollable', s.pt.bindToScrollable.pipe(
+  r('bindToScrollable', pt.bindToScrollable.pipe(
     rx.switchMap(([m, scrollable]) => {
       return rx.merge(
-        scrollable.table.l.onSize.pipe(
+        scrollable.latest.onSize.pipe(
           rx.map(([, w, h]) => {
             return ft.setPageSize(w, h).dp(m);
           })
         ),
-        s.pt.onLeft.pipe(
+        pt.onLeft.pipe(
           rx.map(([m, amount]) => {
-            scrollable.s.ft.scroll(-amount, 0).dp(m);
+            scrollable.ft.scroll(-amount, 0).dp(m);
           })
         ),
-        s.pt.onUp.pipe(
+        pt.onUp.pipe(
           rx.map(([m, amount]) => {
-            scrollable.s.ft.scroll(0, -amount).dp(m);
+            scrollable.ft.scroll(0, -amount).dp(m);
           })
         ),
-        s.pt.onRight.pipe(
+        pt.onRight.pipe(
           rx.map(([m, amount]) => {
-            scrollable.s.ft.scroll(amount, 0).dp(m);
+            scrollable.ft.scroll(amount, 0).dp(m);
           })
         ),
-        s.pt.onDown.pipe(
+        pt.onDown.pipe(
           rx.map(([m, amount]) => {
-            scrollable.s.ft.scroll(0, amount).dp(m);
+            scrollable.ft.scroll(0, amount).dp(m);
           })
         ),
-        s.pt.didConsumeMultiKey.pipe(
-          rx.withLatestFrom(scrollable.table.l.onValidScroll),
+        pt.didConsumeMultiKey.pipe(
+          rx.withLatestFrom(scrollable.latest.onValidScroll),
           rx.map(([[m, act], [, x, y]]) => {
             if (act === KeyEventEnum.scrollTop)
-              scrollable.s.ft.scrollTo(x, 0).dp(m);
+              scrollable.ft.scrollTo(x, 0).dp(m);
             else if (act === KeyEventEnum.scrollBottom)
-              scrollable.s.ft.scrollTo(x, Number.MAX_VALUE).dp(m);
+              scrollable.ft.scrollTo(x, Number.MAX_VALUE).dp(m);
             else if (act === KeyEventEnum.home)
-              scrollable.s.ft.scrollTo(0, y).dp(m);
+              scrollable.ft.scrollTo(0, y).dp(m);
             else if (act === KeyEventEnum.end)
-              scrollable.s.ft.scrollTo(Number.MAX_VALUE, y).dp(m);
+              scrollable.ft.scrollTo(Number.MAX_VALUE, y).dp(m);
           })
         )
       );
     })
   ));
-  r('onRawKeyInput -> onKeypress,onMouseEvent', s.pt.onRawKeyInput.pipe(
+  r('onRawKeyInput -> onKeypress,onMouseEvent', pt.onRawKeyInput.pipe(
     rx.exhaustMap(([m1, evt]) => {
       if (evt.sequence) {
         const m = /^\x1B\[(\d+);(\d+)R?/.exec(evt.sequence);
@@ -344,8 +344,8 @@ export function createKeyEventService(opts?: KeyEventOptions) {
             ft.onReportCursor(col, row).dp(m1);
             return rx.EMPTY;
           } else {
-            return s.pt.onRawKeyInput.pipe(
-              rx.takeUntil(s.pt.onReportCursor),
+            return pt.onRawKeyInput.pipe(
+              rx.takeUntil(pt.onReportCursor),
               rx.map(([m2, evt2]) => {
                 const match = /^(\d*)R$/.exec(evt2.sequence);
                 if (match == null) {
@@ -369,7 +369,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
               service.log('>> mouse code c:', evt, m[1]);
               return rx.EMPTY;
             } else {
-              return s.pt.onRawKeyInput.pipe(
+              return pt.onRawKeyInput.pipe(
                 rx.tap(([, evt]) => buf += evt.sequence),
                 rx.takeWhile(([, evt]) => !/[mM]$/.test(evt.sequence)),
                 rx.finalize(() => {
@@ -377,10 +377,10 @@ export function createKeyEventService(opts?: KeyEventOptions) {
                   const [b, x, y] = conjSequence.split(';').map(it => Number(it));
                   if (buf.charAt(buf.length - 1) === 'm') {
                     const evt = parseMouseButton(b, true);
-                    s.ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
+                    ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
                   } else {
                     const evt = parseMouseButton(b, false);
-                    s.ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
+                    ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
 
                   }
                 })
@@ -394,7 +394,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
                 service.log('Device attributes', m[1]);
                 return rx.EMPTY;
               } else {
-                return s.pt.onRawKeyInput.pipe(
+                return pt.onRawKeyInput.pipe(
                   rx.tap(([, evt]) => buf += evt.sequence),
                   rx.takeWhile(([, evt]) => !evt.sequence.endsWith('c')),
                   rx.finalize(() => {

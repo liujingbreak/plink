@@ -47,8 +47,8 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
 }).interceptorByType(ad => rx.merge(ad.at.setContent.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, initialText, opts) => {
     const service = init(opts);
     const spliter = (0, text_split_1.createWordSplitter)({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });
-    const { r, s, ft, pt, table } = service;
-    r('onRender', pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(table.l.onDisplayLines, table.l.onStyleWithParentBg, table.l.onSize, table.l.overflow, table.l.onBgChangeWithParent), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
+    const { r, s, ft, pt, table, latest } = service;
+    r('onRender', pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(latest.onDisplayLines, latest.onStyleWithParentBg, latest.onSize, latest.overflow, latest.onBgChangeWithParent), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
         const leftop = [0, 0];
         const [x, y0] = gl_matrix_1.vec2.transformMat4(leftop, leftop, trans);
         const lineCnt = Math.min(height, lines.length);
@@ -66,7 +66,7 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         if (overflow)
             canvas.ft.addString(x + width - 3, y0 + lineCnt - 1, '...').dp(m);
     })));
-    r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(rx.withLatestFrom(table.l.preferredSize, table.l.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
+    r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(rx.withLatestFrom(latest.preferredSize, latest.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
         if (height != null) {
             if (height < 0)
                 throw new Error('querySizeOf can not accept negative parameter');
@@ -100,8 +100,8 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         }
     })));
     r('onSize, setContent -> preferredSize, onDisplayLines, overflow, onDisplayLinesForWidth', rx.combineLatest([
-        table.l.onSize,
-        table.l.setContent.pipe(rx.map(([m, content]) => {
+        latest.onSize,
+        latest.setContent.pipe(rx.map(([m, content]) => {
             const [lines, maxWidth] = preferLayoutText(content);
             ft.onDisplayLinesForWidth().dp(m);
             ft.onContentSizeChange(maxWidth, lines.length).dp(m);
@@ -137,19 +137,20 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         }
     })));
     r('setParent, setStyle, parent.setBackground -> onStyleWithParentBg', rx.combineLatest([
-        table.l.onBgChangeWithParent,
-        table.l.setStyle
+        latest.onBgChangeWithParent,
+        latest.onFgChangeWithParent
     ]).pipe(rx.map(([[m, pBg], [m2, style]]) => {
-        if (m && pBg)
+        if (m && pBg && style)
             ft.onStyleWithParentBg([...style, pBg]).dp(m, m2);
-        else
+        else if (style)
             ft.onStyleWithParentBg(style).dp(m2);
     })));
     const renderData = [
-        table.l.setDisplay,
-        table.l.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)),
-        table.l.setBackground,
-        table.l.setContent, table.l.setStyle
+        latest.onBgChangeWithParent,
+        latest.onFgChangeWithParent,
+        latest.setDisplay,
+        latest.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)),
+        latest.setContent
     ];
     r('init', new rx.Observable(() => {
         ft.onContentSizeChange(0, 0).dp();
@@ -161,6 +162,7 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         ft.setRenderChanges(renderData).dp();
         ft.setFlexShrink(1).dp();
     }));
+    r('setStyle -> setForeground', latest.setStyle.pipe(rx.map(([m, s]) => ft.setForeground(s).dp(m))));
     function preferLayoutText(content) {
         const lines = content.split(/\r?\n/, 5000);
         let maxWidth = 0;

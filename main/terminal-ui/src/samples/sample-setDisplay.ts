@@ -13,8 +13,8 @@ const {ft} = app.createApp(border, true, {
   default: {debug, log},
   core: {debug: true},
   scrollable: {
-    default: {
-      debug,
+    debug,
+    canvas: {
       debugIncludeTypes: ['clearRect', 'render']
     }
   },

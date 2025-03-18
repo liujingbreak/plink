@@ -50,7 +50,7 @@ var DisplayMode;
 exports.tableForBase = [
     'onSize', 'onTransform', 'onPosition', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
     'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink', 'render', 'setFocusStyle',
-    'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer', 'depth', 'focusService'
+    'setBackground', 'setForeground', 'onFgChangeWithParent', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer', 'depth', 'focusService'
 ];
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
 exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
@@ -66,7 +66,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         return ax === bx && ay === by;
     })), ad.at.onContentSizeChange.pipe(rx.distinctUntilChanged(({ p: [ax, ay] }, { p: [bx, by] }) => {
         return ax === bx && ay === by;
-    })), ad.at.setBackground.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setDisplay.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setFocusStyle.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.needRerender.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.bgCleared.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setFocusable.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => {
+    })), ad.at.setBackground.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setForeground.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setDisplay.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setFocusStyle.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.needRerender.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.bgCleared.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.setFocusable.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => {
         return a === b;
     })), ad.at.setFlexGrow.pipe(rx.distinctUntilChanged(({ p: [v1] }, { p: [v2] }) => v1 === v2)), ad.at.setFlexShrink.pipe(rx.distinctUntilChanged(({ p: [v1] }, { p: [v2] }) => v1 === v2)), ad.ofOtherTypes());
 }).defineReactor(init => {
@@ -196,6 +196,11 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
             ft.onBgChangeWithParent(pBg).dp(m, m2);
         else
             ft.onBgChangeWithParent(null).dp(m2);
+    })));
+    r('foreground...-> onFgChangeWithParent', latest.setForeground.pipe(rx.switchMap(v => v[1] ?
+        rx.of(v) :
+        latest.setParent.pipe(rx.switchMap(([m, p]) => p ? p.latest.onFgChangeWithParent : rx.of([m, null])))), rx.map(([m, style]) => {
+        ft.onFgChangeWithParent(style).dp(m);
     })));
     // dispatch onRectChange to offsetParent when setFocusable is not false or "isOffsetParent" is true
     /* r('offsetParent, isOffsetParent, setFocusable -> onRectChange, removeFocusable', latest.offsetParent.pipe(
@@ -399,8 +404,8 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
     })));
     const renderData = [
         latest.setDisplay,
-        // latest.onSize,
-        latest.setBackground
+        latest.onBgChangeWithParent,
+        latest.onFgChangeWithParent
     ];
     r('-> focusService', ft.queryContext('focusSvc').od(pt.onContextChange).pipe(rx.map((([m, , v]) => {
         if (v != null)

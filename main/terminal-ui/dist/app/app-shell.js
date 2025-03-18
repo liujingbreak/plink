@@ -38,13 +38,14 @@ exports.queryAppContext = queryAppContext;
 const rx = __importStar(require("rxjs"));
 const reactivizer_1 = require("@wfh/reactivizer");
 const index_1 = require("../index");
+const color_theme_1 = require("./color-theme");
 const statusbar_1 = require("./statusbar");
 const tableFor = ['onReady'];
 const appServiceFac = new reactivizer_1.BaseReactorFactory({
     name: 'App',
     tableFor
 }).defineReactor((init, mainComponent, canScroll, opts) => {
-    var _a;
+    var _a, _b;
     const appService = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
     const { r, ft, pt } = appService;
     const basePane = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'main' }), opts === null || opts === void 0 ? void 0 : opts.main));
@@ -53,7 +54,7 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
     const keyEventService = (0, index_1.createKeyEventService)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.keyService));
     let mainContainer = mainComponent;
     if (canScroll) {
-        const scrollable = (0, index_1.createScrollable)(mainComponent, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.scrollable), { default: Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'AppScrollable' }), (_a = opts === null || opts === void 0 ? void 0 : opts.scrollable) === null || _a === void 0 ? void 0 : _a.default) }));
+        const scrollable = (0, index_1.createScrollable)(mainComponent, Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.scrollable), { debug: (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.debug, log: (_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.log, name: 'AppScrollable' }));
         scrollable.ft.setFlexGrow(1).dp();
         // main.ft.addChild(scrollable, statusbar).dp();
         mainContainer = scrollable;
@@ -67,7 +68,8 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
                 main: basePane,
                 app: appService,
                 keyEventService,
-                statusbar
+                statusbar,
+                colorTheme: colors
             }).dp(m);
         }));
     })));
@@ -78,7 +80,8 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
                 main: basePane,
                 app: appService,
                 keyEventService,
-                statusbar
+                statusbar,
+                colorTheme: colors
             }).dp(m);
         }));
     })));
@@ -108,6 +111,12 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
             coverLayer.ft.setDisplay(index_1.DisplayMode.none).dp(m);
         }));
     })));
+    r('"theming"', (0, color_theme_1.querySchemeForComponent)(statusbar).pipe(rx.map(([colors, ...m]) => {
+        mainContainer.ft.setForeground([`hex(${colors.onSurface})`]).dp(...m);
+        mainContainer.ft.setBackground(`bgHex(${colors.surface})`).dp(...m);
+    })));
+    const colors = color_theme_1.colorThemeFac.create(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.colorTheme));
+    basePane.ft.provideContext(color_theme_1.CONTEXT_KEY, colors).dp();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const elevator = (0, index_1.createElevator)(keyEventService, Object.assign({ default: opts === null || opts === void 0 ? void 0 : opts.default }, opts === null || opts === void 0 ? void 0 : opts.elevator));
     const coverLayer = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'coverLayer' }), opts === null || opts === void 0 ? void 0 : opts.cover));
@@ -120,9 +129,9 @@ const appServiceFac = new reactivizer_1.BaseReactorFactory({
     coverLayerBorder.ft.setBackground('bgGrey').dp();
     coverLayerBorder.ft.setBorder('none').dp();
     coverLayer.ft.addChild(coverLayerBorder).dp();
+    coverLayer.ft.setDisplay(index_1.DisplayMode.none).dp();
     mainContainer.ft.setFlexGrow(1).dp();
     elevator.ft.addChild(basePane, coverLayer).dp();
-    coverLayer.ft.setDisplay(index_1.DisplayMode.none).dp();
 });
 function createApp(mainComponent, canScroll = true, opts) {
     return appServiceFac.create(mainComponent, canScroll, opts);

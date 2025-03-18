@@ -34,11 +34,17 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
   name: 'scrollable',
   tableFor
 }).defineReactor((init, comp: BaseWidget, opts?: ScrollableOptions) => {
-  const scrollable = init({...opts?.default as any, ...opts?.core});
+  const scrollable = init({
+    debug: opts?.debug,
+    log: opts?.log,
+    name: opts?.name,
+    ...opts?.container
+  });
   const {r, ft, pt, table} = scrollable;
   const canvas = canvasFac.create({
-    ...opts?.default as CanvasOptions,
-    name: 'scrollable.canvas',
+    debug: opts?.debug,
+    log: opts?.log,
+    name: opts?.name ?? 'scrollable.canvas',
     ...opts?.canvas
   });
   canvas.ft.setRootComponent(comp).dp();
@@ -414,8 +420,8 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
   ));
   const focusSvc = focusServiceFac.create(canvas, {
     name: scrollable.s.logPrefix + '.focus',
-    debug: opts?.default?.debug,
-    log: opts?.default?.log,
+    debug: opts?.debug,
+    log: opts?.log,
     ...opts?.focus
   });
   focusSvc.ft.forRootComp(scrollable).dp();
@@ -447,8 +453,10 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
 });
 export type Scrollable = SimplexReactorOfFac<typeof scrollableFac>;
 export interface ScrollableOptions {
-  default?: CoreOptions;
-  core?: CreateOptsOfFac<typeof scrollableFac>;
+  debug?: boolean;
+  log?: CoreOptions['log'];
+  name?: string;
+  container?: CreateOptsOfFac<typeof scrollableFac>;
   canvas?: CanvasOptions;
   focus?: FocusServiceOpts;
 }

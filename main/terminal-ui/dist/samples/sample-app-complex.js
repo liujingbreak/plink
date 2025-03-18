@@ -142,7 +142,7 @@ const { ft } = index_1.app.createApp(root, true, {
     // },
     scrollable: {
         // default: {debug},
-        core: {
+        container: {
             debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender']
         },
         focus: {

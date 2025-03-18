@@ -4,8 +4,7 @@ import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SingleActionFactory, SimplexReactor, ActionMeta, Action, InferMapParam,
   BaseReactorFactory, CoreOptions} from '@wfh/reactivizer';
-import {Rectangle, BackgroundStyle} from './canvas';
-import {Canvas} from './canvas';
+import {Canvas, Rectangle, BackgroundStyle, TextStyle} from './canvas';
 import {FocusService} from './focusable';
 import {TerminalContainer} from './container';
 import {Scrollable} from './scrollable';
@@ -28,7 +27,10 @@ export interface BaseWidgetInput {
   setFlexGrow(value: number): SingleActionFactory;
   setFlexShrink(value: number): SingleActionFactory;
   setDisplay(mode: DisplayMode): SingleActionFactory;
+  /** If value is null, the actual background color will inherit parents' color */
   setBackground(color: BackgroundStyle | null): SingleActionFactory;
+  /** If value is null, the actual foreground color will inherit parents' color */
+  setForeground(color: TextStyle | null): SingleActionFactory;
   /** to override automatical "preferredSize" in layout calculation */
   setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
   /** Set to true to allow current component to be focused by user */
@@ -115,6 +117,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   onBoundingBox(rect: Rectangle): SingleActionFactory;
   onDetached(isDettached: boolean): SingleActionFactory;
   onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
+  onFgChangeWithParent(style: TextStyle | null): SingleActionFactory;
   /** track whether current component has its background being cleared or rerendered by its parents */
   bgCleared(hasCleared: boolean): SingleActionFactory;
   onFocus(src: BaseWidget): SingleActionFactory;
@@ -122,13 +125,13 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   onEnter(src: BaseWidget): SingleActionFactory;
   onLeave(src: BaseWidget): SingleActionFactory;
   didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
-  onContextChange<T>(key: string, value: T): SingleActionFactory;
+  onContextChange<T>(key: string, value: T | undefined): SingleActionFactory;
   focusService(focusSvc: FocusService): SingleActionFactory;
 }
 export const tableForBase = [
   'onSize', 'onTransform', 'onPosition', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
   'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink', 'render', 'setFocusStyle',
-  'setBackground', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer', 'depth', 'focusService'
+  'setBackground', 'setForeground', 'onFgChangeWithParent', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer', 'depth', 'focusService'
 ] as const;
 export type BaseWidgetRenderData = readonly [
   InferMapParam<BaseWidgetInput['setDisplay']>,
@@ -163,6 +166,9 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
       })
     ),
     ad.at.setBackground.pipe(
+      rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
+    ),
+    ad.at.setForeground.pipe(
       rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
     ),
     ad.at.setDisplay.pipe(
@@ -391,6 +397,17 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         ft.onBgChangeWithParent(pBg).dp(m, m2);
       else
         ft.onBgChangeWithParent(null).dp(m2);
+    })
+  ));
+  r('foreground...-> onFgChangeWithParent', latest.setForeground.pipe(
+    rx.switchMap(v => v[1] ?
+      rx.of(v) :
+      latest.setParent.pipe(
+        rx.switchMap(([m, p]) => p ? p.latest.onFgChangeWithParent : rx.of([m, null] as const))
+      )
+    ),
+    rx.map(([m, style]) => {
+      ft.onFgChangeWithParent(style).dp(m);
     })
   ));
   // dispatch onRectChange to offsetParent when setFocusable is not false or "isOffsetParent" is true
@@ -697,8 +714,8 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
   ));
   const renderData = [
     latest.setDisplay,
-    // latest.onSize,
-    latest.setBackground
+    latest.onBgChangeWithParent,
+    latest.onFgChangeWithParent
   ];
   r('-> focusService', ft.queryContext('focusSvc').od(
     pt.onContextChange

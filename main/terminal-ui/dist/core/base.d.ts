@@ -1,8 +1,7 @@
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
 import { SingleActionFactory, SimplexReactor, Action, InferMapParam, BaseReactorFactory, CoreOptions } from '@wfh/reactivizer';
-import { Rectangle, BackgroundStyle } from './canvas';
-import { Canvas } from './canvas';
+import { Canvas, Rectangle, BackgroundStyle, TextStyle } from './canvas';
 import { FocusService } from './focusable';
 import { TerminalContainer } from './container';
 export declare enum DisplayMode {
@@ -23,7 +22,10 @@ export interface BaseWidgetInput {
     setFlexGrow(value: number): SingleActionFactory;
     setFlexShrink(value: number): SingleActionFactory;
     setDisplay(mode: DisplayMode): SingleActionFactory;
+    /** If value is null, the actual background color will inherit parents' color */
     setBackground(color: BackgroundStyle | null): SingleActionFactory;
+    /** If value is null, the actual foreground color will inherit parents' color */
+    setForeground(color: TextStyle | null): SingleActionFactory;
     /** to override automatical "preferredSize" in layout calculation */
     setPreferredSize(width: number | null, height: number | null): SingleActionFactory;
     /** Set to true to allow current component to be focused by user */
@@ -107,6 +109,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     onBoundingBox(rect: Rectangle): SingleActionFactory;
     onDetached(isDettached: boolean): SingleActionFactory;
     onBgChangeWithParent(color: BackgroundStyle | null | undefined): SingleActionFactory;
+    onFgChangeWithParent(style: TextStyle | null): SingleActionFactory;
     /** track whether current component has its background being cleared or rerendered by its parents */
     bgCleared(hasCleared: boolean): SingleActionFactory;
     onFocus(src: BaseWidget): SingleActionFactory;
@@ -114,10 +117,10 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     onEnter(src: BaseWidget): SingleActionFactory;
     onLeave(src: BaseWidget): SingleActionFactory;
     didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
-    onContextChange<T>(key: string, value: T): SingleActionFactory;
+    onContextChange<T>(key: string, value: T | undefined): SingleActionFactory;
     focusService(focusSvc: FocusService): SingleActionFactory;
 }
-export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"];
+export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"];
 export type BaseWidgetRenderData = readonly [
     InferMapParam<BaseWidgetInput['setDisplay']>,
     InferMapParam<BaseWidgetEvents['onSize']>,
@@ -126,4 +129,4 @@ export type BaseWidgetRenderData = readonly [
 export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
 export type BaseWidgetOptions = CoreOptions<BaseWidgetEvents>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare const baseComponentFac: BaseReactorFactory<BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;
+export declare const baseComponentFac: BaseReactorFactory<BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;
