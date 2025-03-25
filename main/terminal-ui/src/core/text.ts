@@ -8,17 +8,16 @@ import {isCodePointFullWidth, createWordSplitter} from './text-split';
 export interface MultiLineTextInput {
   setContent(text: string): SingleActionFactory;
   /** same as "setForegournd" message */
-  setStyle(style: TextStyle): SingleActionFactory;
+  setStyle(style: TextStyle | null): SingleActionFactory;
 }
 export interface MultiLineTextActions extends MultiLineTextInput {
   onDisplayLines(lines: number[][]): SingleActionFactory;
   /** display cache for specific width */
   onDisplayLinesForWidth(width?: number | null, lines?: number[][]): SingleActionFactory;
   onDisplayLinesForPrefSize(lines: number[][]): SingleActionFactory;
-  onStyleWithParentBg(style: TextStyle): SingleActionFactory;
   // line number is most likely over 5000
 }
-export const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'] as const;
+export const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'] as const;
 export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, typeof tableForMultiLineText>({
   name: 'text',
   tableFor: tableForMultiLineText
@@ -33,7 +32,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
   const {r, s, ft, pt, table, latest} = service;
   r('onRender', pt.onRender.pipe(
     rx.filter(([, , , needRerender]) => needRerender),
-    rx.withLatestFrom(latest.onDisplayLines, latest.onStyleWithParentBg, latest.onSize, latest.overflow, latest.onBgChangeWithParent),
+    rx.withLatestFrom(latest.onDisplayLines, latest.onFgChangeWithParent, latest.onSize, latest.overflow, latest.onBgChangeWithParent),
     rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
       const leftop = [0, 0] as vec2;
       const [x, y0] = vec2.transformMat4(leftop, leftop, trans);
@@ -131,6 +130,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
       }
     })
   ));
+  /*
   r('setParent, onFgChangeWithParent, parent.setBackground -> onStyleWithParentBg', rx.combineLatest([
     latest.onBgChangeWithParent,
     latest.onFgChangeWithParent
@@ -142,6 +142,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
         ft.onStyleWithParentBg(style).dp(m2);
     })
   ));
+  */
   const renderData = [
     latest.onBgChangeWithParent,
     latest.onFgChangeWithParent,
@@ -156,7 +157,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
     ft.onSize(0, 0).dp();
     ft.setParent(null).dp();
     ft.overflow(false).dp();
-    ft.setStyle([]).dp();
+    ft.setStyle(null).dp();
     ft.setContent(initialText).dp();
     ft.setRenderChanges(renderData).dp();
     ft.setFlexShrink(1).dp();

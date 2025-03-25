@@ -81,7 +81,7 @@ rx.combineLatest([
           })
         ).subscribe();
       }
-      label.s.ft.setStyle(['hex(' + sColor + ')' as any]).dp();
+      label.s.ft.setForeground([`hex(${sColor})`]).dp();
       label.s.ft.setFocusable(true).dp();
       bindToolTipsTo(label, 'this is label ' + i, undefined, {
         debug: true,

@@ -43,7 +43,8 @@ export const textFac = borderFac.forExtend<TextInput, typeof tableFor>({
     return rx.merge(
       rx.merge(
         ac.at.setContent,
-        ac.at.setStyle
+        ac.at.setStyle,
+        ac.at.setForeground
       ).pipe(
         rx.tap(oText.s.actionUpstream),
         rx.ignoreElements()

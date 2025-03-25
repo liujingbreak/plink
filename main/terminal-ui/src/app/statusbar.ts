@@ -19,8 +19,10 @@ export interface StatusbarMessages extends StatusbarInput, StatusbarTheme {
   onScrollStatus(vertical: number | null, horizontal: number | null): SingleActionFactory;
   onKeypressStatus(text: string, isValid: boolean): SingleActionFactory;
 }
-const tableFor = ['trackKeypressService', 'trackScrollable', 'setMessage',
-  'setBgOnSurfaceColor', 'setBgSurfaceColor'] as const;
+const tableFor = [
+  'trackKeypressService', 'trackScrollable', 'setMessage',
+  'setBgOnSurfaceColor', 'setBgSurfaceColor'
+] as const;
 
 export type StatusbarOptions = CreateOptsInDef<StatusbarMessages, typeof borderFac>;
 export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableFor>({
@@ -44,11 +46,9 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     name: (opts?.name ?? 'statusbar') + '.label'
   });
   const labelScrollValueR = textFac.create('0%', {
-    // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.v1'
   });
   const labelScrollValueC = textFac.create('0%', {
-    // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.v2'
   });
   const HELP_KEY_HINT = 'Press <Enter> for help';
@@ -123,8 +123,8 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
 
   r('onScrollStatus', pt.onScrollStatus.pipe(
     rx.map(([m, v, h]) => {
-      labelScrollValueR.ft.setContent(v != null ? ' row: ' + Math.floor(v * 100) + '%' : '').dp(m);
-      labelScrollValueC.ft.setContent(h != null ? ' col: ' + Math.floor(h * 100) + '%' : '').dp(m);
+      labelScrollValueR.ft.setContent(v != null ? ' row: ' + Math.floor(v * 100) + '% ' : '').dp(m);
+      labelScrollValueC.ft.setContent(h != null ? ' col: ' + Math.floor(h * 100) + '% ' : '').dp(m);
     })
   ));
   const colors$ = querySchemeForComponent(statusbar);
@@ -143,8 +143,8 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
       ).dp();
       statusbar.ft.setBackground(
         valid ?
-          `bgHex(${colors.primary})` :
-          `bgHex(${colors.primaryContainer})`
+          `bgHex(${colors.tertiary})` :
+          `bgHex(${colors.tertiaryContainer})`
       ).dp();
     })
   ));
@@ -153,14 +153,17 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
   ));
   r('"theming"', colors$.pipe(
     rx.map(([colors, m1, m2]) => {
-      statusbar.ft.setBackground(`bgHex(${colors.primary})`).dp(m1, m2);
-      labelKeypress.ft.setStyle([`hex(${colors.onPrimary})`]).dp(m1, m2);
-      labelScrollText.ft.setForeground([`hex(${colors.onSecondary})`]).dp(m1, m2);
-      labelScrollText.ft.setBackground(`bgHex(${colors.secondary})`).dp(m1, m2);
+      statusbar.ft.setBackground(`bgHex(${colors.tertiary})`).dp(m1, m2);
+      labelKeypress.ft.setForeground([`hex(${colors.onTertiary})`]).dp(m1, m2);
+
+      labelScrollText.ft.setForeground([`hex(${colors.onTertiaryContainer})`]).dp(m1, m2);
+      labelScrollText.ft.setBackground(`bgHex(${colors.tertiaryContainer})`).dp(m1, m2);
+
       labelScrollValueR.ft.setBackground(`bgHex(${colors.secondaryContainer})`).dp(m1, m2);
       labelScrollValueR.ft.setForeground([`hex(${colors.onSecondaryContainer})`]).dp(m1, m2);
-      labelScrollValueC.ft.setBackground(`bgHex(${colors.tertiaryContainer})`).dp(m1, m2);
-      labelScrollValueC.ft.setForeground([`hex(${colors.onTertiaryContainer})`]).dp(m1, m2);
+
+      labelScrollValueC.ft.setBackground(`bgHex(${colors.secondaryContainer})`).dp(m1, m2);
+      labelScrollValueC.ft.setForeground([`hex(${colors.onSecondaryContainer})`]).dp(m1, m2);
     })
   ));
   labelScrollText.ft.setPadding(0, 1, 0, 1).dp();

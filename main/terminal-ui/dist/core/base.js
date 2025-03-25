@@ -85,10 +85,6 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
     }), rx.distinctUntilChanged((a, b) => a[0] === b[0] && a[1] === b[1]), rx.map(([w, h]) => {
         ft.preferredSize(w, h).dp();
     })));
-    r('addRerenderAction', rx.merge(pt.addRerenderAction.pipe(rx.mergeMap(([, action$]) => action$))).pipe(rx.map(actionOrPayload => {
-        const m = Array.isArray(actionOrPayload) ? actionOrPayload[0] : actionOrPayload;
-        ft.needRerender(true).dp(m);
-    })));
     r('setSize,onSize,setParent -> setPreferredSize', pt.setSize.pipe(rx.switchMap(([m, w, h]) => {
         if (typeof w === 'string' && typeof h === 'string') {
             const percW = /(\d+)%/.exec(w)[0];
@@ -197,8 +193,11 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         else
             ft.onBgChangeWithParent(null).dp(m2);
     })));
-    r('foreground...-> onFgChangeWithParent', latest.setForeground.pipe(rx.switchMap(v => v[1] ?
-        rx.of(v) :
+    r('foreground,onBgChangeWithParent...-> onFgChangeWithParent', rx.combineLatest([
+        latest.setForeground,
+        latest.onBgChangeWithParent
+    ]).pipe(rx.switchMap(([v, [, bg]]) => v[1] && v[1].length > 0 ?
+        rx.of([v[0], [...v[1], bg]]) :
         latest.setParent.pipe(rx.switchMap(([m, p]) => p ? p.latest.onFgChangeWithParent : rx.of([m, null])))), rx.map(([m, style]) => {
         ft.onFgChangeWithParent(style).dp(m);
     })));
@@ -331,9 +330,15 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         if (focusable && focusSvc)
             focusSvc.ft.removeFocusable(service).dp(m);
     })));
-    r('setRenderChanges -> needRerender', pt.setRenderChanges.pipe(rx.switchMap(([, list]) => rx.merge(list.map(it => it.pipe(rx.skip(1))))), rx.mergeMap(o => o), rx.map(([m]) => {
-        ft.needRerender(true).dp(m);
-        return m;
+    r('setRenderChanges -> needRerender', pt.setRenderChanges.pipe(rx.switchMap(([, list]) => rx.merge(list.map(it => it.pipe(rx.skip(1))), pt.addRerenderAction.pipe(rx.mergeMap(([, ...a$s]) => a$s.map(it => it.pipe(rx.skip(1))))))), rx.mergeMap(o => o), rx.map(actionOrPayload => {
+        if (Array.isArray(actionOrPayload)) {
+            ft.needRerender(true).dp(actionOrPayload[0]);
+            return actionOrPayload[0];
+        }
+        else {
+            ft.needRerender(true).dp(actionOrPayload);
+            return actionOrPayload;
+        }
     }), rx.withLatestFrom(table.l.ofCanvas), rx.map(([m, [, canvas]]) => {
         canvas === null || canvas === void 0 ? void 0 : canvas.ft.requestRender().dp(m);
     })));
@@ -416,8 +421,6 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         ft.bgCleared(false).dp();
         ft.onPosition(null, null).dp();
         ft.setFocusStyle('inverse').dp();
-        // ft.isOffsetParent(false).dp();
-        // ft.offsetParent(null).dp();
         ft.setFlexGrow(0).dp();
         ft.setFlexShrink(1).dp();
         ft.setPreferredSize(null, null).dp();
@@ -434,9 +437,6 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         ft.setRenderChanges(renderData).dp();
     }));
 });
-// export interface OffsetParent {
-//   focusService: FocusService;
-// }
 function isRectangeCover(covering, covered) {
     return covering[0] <= covered[0] && covering[0] + covering[2] >= covered[0] + covered[2] &&
         covering[1] <= covered[1] && covering[1] + covering[3] >= covered[1] + covered[3];

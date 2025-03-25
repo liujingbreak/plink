@@ -109,7 +109,7 @@ rx.combineLatest([
                 label.ft.stopEventPropagation().dp(m);
             })).subscribe();
         }
-        label.s.ft.setStyle(['hex(' + sColor + ')']).dp();
+        label.s.ft.setForeground([`hex(${sColor})`]).dp();
         label.s.ft.setFocusable(true).dp();
         (0, index_1.bindToolTipsTo)(label, 'this is label ' + i, undefined, {
             debug: true,

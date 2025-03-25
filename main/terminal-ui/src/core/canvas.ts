@@ -10,10 +10,10 @@ import {isCodePointFullWidth as isFullWidth} from './text-split';
 import {BaseWidget} from './base';
 import {CanvasFilter} from './canvas-filter';
 
-export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` |
-                         `bgHsl(${string})` | `bgRgb(${number},${number},${number})` | `hex(${string})` | `bgHex(${string})` |
-                         `ansi(${string})` | `ansi256(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})`)[];
 export type BackgroundStyle = typeof chalk.BackgroundColor | `bgRgb(${number},${number},${number})` | `bgHex(${string})` | `bgHsl(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})`;
+export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` |
+  `bgHsl(${string})` | `bgRgb(${number},${number},${number})` | `hex(${string})` | `bgHex(${string})` |
+  `ansi(${string})` | `ansi256(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})` | BackgroundStyle)[];
 
 const CHALK_NUMBER_FN = new Set<string>(['rgb', 'bgRgb', 'bgHsl', 'hsl', 'hex', 'bgHex', 'ansi', 'bgAnsi', 'ansi256', 'bgAnsi256']);
 
@@ -24,7 +24,7 @@ export interface CanvasInput {
   setBounding(left: number, top: number, width: number, height: number): SingleActionFactory;
   setRootComponent(rootWidget: BaseWidget | null): SingleActionFactory;
   addString(x: number, y: number, text: string, style?: TextStyle, byPassFilter?: boolean): SingleActionFactory;
-  addDisplayUnits(x: number, y: number, units: number[], style?: TextStyle, byPassFilter?: boolean): SingleActionFactory;
+  addDisplayUnits(x: number, y: number, units: number[], style?: TextStyle | null, byPassFilter?: boolean): SingleActionFactory;
   /** Unlike print ' ' (space), this action only remove existing "code point" from buffer for rendering */
   clearRect(x: number, y: number, width: number, height: number): SingleActionFactory;
   /** Set to `true`, canvas will automatically execute render() in setImmediate phase as response to previous message "requestRender",

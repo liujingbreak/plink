@@ -40,7 +40,7 @@ const gl_matrix_1 = require("gl-matrix");
 const canvas_1 = require("./canvas");
 const base_1 = require("./base");
 const text_split_1 = require("./text-split");
-exports.tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize', 'onStyleWithParentBg'];
+exports.tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'];
 exports.textWidgetFac = base_1.baseComponentFac.forExtend({
     name: 'text',
     tableFor: exports.tableForMultiLineText
@@ -48,7 +48,7 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
     const service = init(opts);
     const spliter = (0, text_split_1.createWordSplitter)({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });
     const { r, s, ft, pt, table, latest } = service;
-    r('onRender', pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(latest.onDisplayLines, latest.onStyleWithParentBg, latest.onSize, latest.overflow, latest.onBgChangeWithParent), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
+    r('onRender', pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(latest.onDisplayLines, latest.onFgChangeWithParent, latest.onSize, latest.overflow, latest.onBgChangeWithParent), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
         const leftop = [0, 0];
         const [x, y0] = gl_matrix_1.vec2.transformMat4(leftop, leftop, trans);
         const lineCnt = Math.min(height, lines.length);
@@ -136,15 +136,19 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
             }));
         }
     })));
-    r('setParent, setStyle, parent.setBackground -> onStyleWithParentBg', rx.combineLatest([
-        latest.onBgChangeWithParent,
-        latest.onFgChangeWithParent
-    ]).pipe(rx.map(([[m, pBg], [m2, style]]) => {
+    /*
+    r('setParent, onFgChangeWithParent, parent.setBackground -> onStyleWithParentBg', rx.combineLatest([
+      latest.onBgChangeWithParent,
+      latest.onFgChangeWithParent
+    ]).pipe(
+      rx.map(([[m, pBg], [m2, style]]) => {
         if (m && pBg && style)
-            ft.onStyleWithParentBg([...style, pBg]).dp(m, m2);
+          ft.onStyleWithParentBg([...style, pBg]).dp(m, m2);
         else if (style)
-            ft.onStyleWithParentBg(style).dp(m2);
-    })));
+          ft.onStyleWithParentBg(style).dp(m2);
+      })
+    ));
+    */
     const renderData = [
         latest.onBgChangeWithParent,
         latest.onFgChangeWithParent,
@@ -157,7 +161,7 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         ft.onSize(0, 0).dp();
         ft.setParent(null).dp();
         ft.overflow(false).dp();
-        ft.setStyle([]).dp();
+        ft.setStyle(null).dp();
         ft.setContent(initialText).dp();
         ft.setRenderChanges(renderData).dp();
         ft.setFlexShrink(1).dp();

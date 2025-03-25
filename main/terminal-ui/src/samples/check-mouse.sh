@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Enable mouse event reporting
-echo -e "\e[?1000h"
+echo -e "\e[?1005h"
 echo -e "\e[?1003h" # Enable all mouse events (including drag)
 
 # Function to disable mouse event reporting and exit
 cleanup() {
-    echo -e "\e[?1000l"
+    echo -e "\e[?1005l"
     echo -e "\e[?1003l"
     stty sane
     exit

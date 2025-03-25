@@ -105,9 +105,8 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
    * asynchrouse waiting.
    */
   setRenderChanges(renderDataList: readonly rx.Observable<InferMapParam<any>>[]): SingleActionFactory;
-  /** @deprecated use addRenderData or latestRenderData instead
-   * If following action is dispatched, the next render message must not be skipped on current widget */
-  addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
+  /** If following action is dispatched, the next render message must not be skipped on current widget */
+  addRerenderAction(...actionOrPayloads: rx.Observable<Action<any> | InferMapParam<any>>[]): SingleActionFactory;
   /** Get bounding rectangle that is calculated when the lastest "render" message is handled,
    * the coordinate of rectangle is relative to canvas which is attached with closest offset parent,
    * in case of child component of "scrollable" container,
@@ -219,16 +218,6 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     rx.distinctUntilChanged((a, b) => a[0] === b[0] && a[1] === b[1]),
     rx.map(([w, h]) => {
       ft.preferredSize(w, h).dp();
-    })
-  ));
-  r('addRerenderAction', rx.merge(
-    pt.addRerenderAction.pipe(
-      rx.mergeMap(([, action$]) => action$)
-    )
-  ).pipe(
-    rx.map(actionOrPayload => {
-      const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;
-      ft.needRerender(true).dp(m);
     })
   ));
   r('setSize,onSize,setParent -> setPreferredSize', pt.setSize.pipe(
@@ -399,9 +388,12 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         ft.onBgChangeWithParent(null).dp(m2);
     })
   ));
-  r('foreground...-> onFgChangeWithParent', latest.setForeground.pipe(
-    rx.switchMap(v => v[1] ?
-      rx.of(v) :
+  r('foreground,onBgChangeWithParent...-> onFgChangeWithParent', rx.combineLatest([
+    latest.setForeground,
+    latest.onBgChangeWithParent
+  ]).pipe(
+    rx.switchMap(([v, [, bg]]) => v[1] && v[1].length > 0 ?
+      rx.of([v[0], [...v[1], bg]] as typeof v) :
       latest.setParent.pipe(
         rx.switchMap(([m, p]) => p ? p.latest.onFgChangeWithParent : rx.of([m, null] as const))
       )
@@ -578,13 +570,23 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     })
   ));
   r('setRenderChanges -> needRerender', pt.setRenderChanges.pipe(
-    rx.switchMap(([, list]) => rx.merge(list.map(it => it.pipe(
-      rx.skip(1)
-    )))),
+    rx.switchMap(([, list]) => rx.merge(
+      list.map(it => it.pipe(
+        rx.skip(1)
+      )),
+      pt.addRerenderAction.pipe(
+        rx.mergeMap(([, ...a$s]) => a$s.map(it => it.pipe(rx.skip(1))))
+      )
+    )),
     rx.mergeMap(o => o),
-    rx.map(([m]) => {
-      ft.needRerender(true).dp(m);
-      return m;
+    rx.map(actionOrPayload => {
+      if (Array.isArray(actionOrPayload)) {
+        ft.needRerender(true).dp(actionOrPayload[0]);
+        return actionOrPayload[0];
+      } else {
+        ft.needRerender(true).dp(actionOrPayload);
+        return actionOrPayload;
+      }
     }),
     rx.withLatestFrom(table.l.ofCanvas),
     rx.map(([m, [, canvas]]) => {
@@ -731,8 +733,6 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     ft.bgCleared(false).dp();
     ft.onPosition(null, null).dp();
     ft.setFocusStyle('inverse').dp();
-    // ft.isOffsetParent(false).dp();
-    // ft.offsetParent(null).dp();
     ft.setFlexGrow(0).dp();
     ft.setFlexShrink(1).dp();
     ft.setPreferredSize(null, null).dp();
@@ -749,10 +749,6 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     ft.setRenderChanges(renderData).dp();
   }));
 });
-
-// export interface OffsetParent {
-//   focusService: FocusService;
-// }
 
 function isRectangeCover(covering: Rectangle, covered: Rectangle) {
   return covering[0] <= covered[0] && covering[0] + covering[2] >= covered[0] + covered[2] &&

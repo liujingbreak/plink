@@ -50,7 +50,7 @@ exports.textFac = border_1.borderFac.forExtend({
     const textEvents = new rx.Subject();
     s.prependInterceptor(a$ => {
         const ac = reactivizer_1.ActionDispenser.ofAction$(a$);
-        return rx.merge(rx.merge(ac.at.setContent, ac.at.setStyle).pipe(rx.tap(oText.s.actionUpstream), rx.ignoreElements()), ac.ofOtherTypes(), textEvents // initial table values of MultiLineTextWidget
+        return rx.merge(rx.merge(ac.at.setContent, ac.at.setStyle, ac.at.setForeground).pipe(rx.tap(oText.s.actionUpstream), rx.ignoreElements()), ac.ofOtherTypes(), textEvents // initial table values of MultiLineTextWidget
         );
     });
     ft.setBorder('none').dp();

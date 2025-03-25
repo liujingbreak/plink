@@ -97,9 +97,8 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
      * asynchrouse waiting.
      */
     setRenderChanges(renderDataList: readonly rx.Observable<InferMapParam<any>>[]): SingleActionFactory;
-    /** @deprecated use addRenderData or latestRenderData instead
-     * If following action is dispatched, the next render message must not be skipped on current widget */
-    addRerenderAction(actionOrPayload$: rx.Observable<Action<any> | InferMapParam<any>>): SingleActionFactory;
+    /** If following action is dispatched, the next render message must not be skipped on current widget */
+    addRerenderAction(...actionOrPayloads: rx.Observable<Action<any> | InferMapParam<any>>[]): SingleActionFactory;
     /** Get bounding rectangle that is calculated when the lastest "render" message is handled,
      * the coordinate of rectangle is relative to canvas which is attached with closest offset parent,
      * in case of child component of "scrollable" container,

@@ -362,7 +362,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
           }
         } else {
           // keys of SGR extended mouse
-          const m = /^\x1B\[<(.*?)[mM]?$/i.exec(evt.sequence);
+          const m = /^\x1B\[<(.*?)[M]?$/i.exec(evt.sequence);
           if (m) {
             let buf = m[1] ?? '';
             if (m[0].endsWith('c')) {
@@ -387,7 +387,24 @@ export function createKeyEventService(opts?: KeyEventOptions) {
               );
             }
           } else {
-            const m = /^\x1b\[\?(.*?)c?$/i.exec(evt.sequence);
+            let m = /^\x1B\[M(.*)$/i.exec(evt.sequence);
+            if (m) {
+              const rest = m[1];
+              return rest.length === 0
+                ? pt.onRawKeyInput.pipe(
+                  rx.take(3),
+                  rx.map(evt2 => {
+                    service.log(' -- mouse code cont', evt2);
+                  })
+                )
+                : rx.EMPTY;
+              // const buttonCode = m[1].charCodeAt(0) - 33;
+              // const x = m[2].charCodeAt(0) - 33;
+              // const y = m[3].charCodeAt(0) - 33;
+              // service.log('>> mouse code:', evt, buttonCode, x, y);
+              // ft.onMouseEvent({}, x, y, evtSequence)
+            }
+            m = /^\x1b\[\?(.*?)c?$/i.exec(evt.sequence);
             if (m) {
               let buf = m[1] ?? '';
               if (m[0].endsWith('c')) {
@@ -413,7 +430,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
 
   // Enable and disable Mouse device
   const reset = () => {
-    process.stdout.write('\x1b[?1000;1002;1003;1005;1015l');
+    process.stdout.write('\x1b[?1000;1003l;1005l');
   };
   process.on('exit', reset);
   process.on('SIGINT', () => {
@@ -423,11 +440,11 @@ export function createKeyEventService(opts?: KeyEventOptions) {
   setImmediate(() => {
     // enable mouse event and SGR mode, refer to "blessed" program.js or tty-events.js
     process.stdout.write('\x1b[?1000h');
-    process.stdout.write('\x1b[?1001h');
-    process.stdout.write('\x1b[?1002h');
+    // process.stdout.write('\x1b[?1001h');
+    // process.stdout.write('\x1b[?1002h');
     process.stdout.write('\x1b[?1003h');
     process.stdout.write('\x1b[?1005h');
-    process.stdout.write('\x1b[?1015h');
+    // process.stdout.write('\x1b[?1015h');
     process.stdout.write('\x1b[1;2\'z\x1b[1;3\'{');
     process.stdout.write('\x1b[>1h\x1b[>6h\x1b[>7h\x1b[>1h\x1b[>9l');
     // process.stdout.write('\x1b[0~ZwLMRK+1Q\x1b\\'); jsbtermMouse
