@@ -3,10 +3,10 @@ import fs from 'fs';
 import * as rx from 'rxjs';
 import {combineLastestRelated} from '@wfh/reactivizer';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../core/terminal-canvas';
-import {createTextWidget} from '../core/text';
-import {createFlexContainer} from '../core/flex-container';
-// import {waitForImport$} from '../core/rbush';
+import {createTerminalCanvas} from '../core/terminal-canvas.js';
+import {createTextWidget} from '../core/text.js';
+import {createFlexContainer} from '../core/flex-container.js';
+// import {waitForImport$} from '../core/rbush.js';
 const fout = fs.createWriteStream('terminal-canvas-sample.log', {flush: true});
 const log = createSimpleIndentLogger(false, false, fout);
 const canvas = createTerminalCanvas({

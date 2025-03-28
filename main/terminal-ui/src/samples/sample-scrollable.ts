@@ -3,11 +3,11 @@ import util from 'util';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../index';
-import {createTextWidget} from '../index';
-import {createBorderContainer} from '../index';
-import {createScrollable} from '../index';
-import {createKeyEventService} from '../index';
+import {createTerminalCanvas} from '../index.js';
+import {createTextWidget} from '../index.js';
+import {createBorderContainer} from '../index.js';
+import {createScrollable} from '../index.js';
+import {createKeyEventService} from '../index.js';
 
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];

@@ -5,10 +5,10 @@ import {mat4} from 'gl-matrix';
 import chalk from 'chalk';
 import {BaseReactorFactory, SingleActionFactory, ActionMeta, SimplexReactor, CoreOptions, actionRelatedToAction} from '@wfh/reactivizer';
 import {IntervalTree} from '@wfh/algorithms';
-import {createRtreeInstance} from '../core/rbush';
-import {isCodePointFullWidth as isFullWidth} from './text-split';
-import {BaseWidget} from './base';
-import {CanvasFilter} from './canvas-filter';
+import {createRtreeInstance} from '../core/rbush.js';
+import {isCodePointFullWidth as isFullWidth} from './text-split.js';
+import {BaseWidget} from './base.js';
+import {CanvasFilter} from './canvas-filter.js';
 
 export type BackgroundStyle = typeof chalk.BackgroundColor | `bgRgb(${number},${number},${number})` | `bgHex(${string})` | `bgHsl(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})`;
 export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` |

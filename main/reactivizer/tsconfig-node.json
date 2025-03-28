@@ -5,7 +5,6 @@
   ],
   "compilerOptions": {
     "rootDir": "src",
-    "target": "ES2017",
     "outDir": "dist",
     "declaration": true,
     "sourceMap": true,

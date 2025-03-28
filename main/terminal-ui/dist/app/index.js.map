@@ -1,1 +1,1 @@
-{"version":3,"file":"index.js","sourceRoot":"","sources":["../../src/app/index.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;AAAA,8CAA4B;AAC5B,8CAA4B","sourcesContent":["export * from './statusbar';\nexport * from './app-shell';\n"]}
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../src/app/index.ts"],"names":[],"mappings":"AAAA,cAAc,gBAAgB,CAAC;AAC/B,cAAc,gBAAgB,CAAC","sourcesContent":["export * from './statusbar.js';\nexport * from './app-shell.js';\n"]}

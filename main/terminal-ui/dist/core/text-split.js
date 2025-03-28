@@ -1,42 +1,5 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.createWordSplitter = createWordSplitter;
-exports.isCodePointFullWidth = isCodePointFullWidth;
-const rx = __importStar(require("rxjs"));
-const reactivizer_1 = require("@wfh/reactivizer");
+import * as rx from 'rxjs';
+import { SimplexReactor, actionRelatedToAction } from '@wfh/reactivizer';
 const tableForWordSplitter = ['requestToken', 'onWordRecorded'];
 const WHITE_SPACE_CODE_POINT = new Set((function* () {
     for (const chr of ' \r')
@@ -48,14 +11,14 @@ const LETTERS_CODE_POINT = new Set((function* () {
     for (const chr of 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890')
         yield chr.codePointAt(0);
 })());
-function createWordSplitter(opts) {
-    const service = new reactivizer_1.SimplexReactor(Object.assign({ name: 'wordSplitter', debug: false, debugExcludeTypes: ['codePointState'], tableFor: tableForWordSplitter }, opts));
+export function createWordSplitter(opts) {
+    const service = new SimplexReactor(Object.assign({ name: 'wordSplitter', debug: false, debugExcludeTypes: ['codePointState'], tableFor: tableForWordSplitter }, opts));
     const { r, s, table } = service;
     r('setTextToSplit, codePointState -> onWordRecorded, onLexerToken, codePointState, requestToken, onWord', s.pt.setTextToSplit.pipe(rx.switchMap(([m, text]) => {
         let lastState;
         let lexTokenStart = 0;
         let lexTokenBuf = [];
-        const fallbackableLexToken$ = s.pt.onLexerToken.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.takeWhile(([, type]) => type !== 'eof', true), rx.concatMap((tk) => rx.concat(rx.of(tk), table.l.requestToken.pipe((0, reactivizer_1.actionRelatedToAction)(tk[0]), rx.take(1), rx.mergeMap(([, ...payloads]) => payloads)))), 
+        const fallbackableLexToken$ = s.pt.onLexerToken.pipe(actionRelatedToAction(m), rx.takeWhile(([, type]) => type !== 'eof', true), rx.concatMap((tk) => rx.concat(rx.of(tk), table.l.requestToken.pipe(actionRelatedToAction(tk[0]), rx.take(1), rx.mergeMap(([, ...payloads]) => payloads)))), 
         // rx.observeOn(rx.queueScheduler),
         rx.share());
         const wordRecord$ = new rx.ReplaySubject();
@@ -175,7 +138,7 @@ const CJK_CODE_RANGE = [
  * Simply guessing any code point that is greater than 16-bit (might be Surrogate pairs) is full-width character,
  * and code point within CJK range is also full-width
  */
-function isCodePointFullWidth(codePoint) {
+export function isCodePointFullWidth(codePoint) {
     return codePoint > 0xffff || CJK_CODE_RANGE.some(([low, high]) => codePoint >= low && codePoint <= high);
 }
 //# sourceMappingURL=text-split.js.map

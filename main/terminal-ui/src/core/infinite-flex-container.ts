@@ -1,9 +1,9 @@
 import * as rx from 'rxjs';
 import {CreateOptsInDef, CoreOptions, SingleActionFactory} from '@wfh/reactivizer';
-import {LazyLoadPlaceHolderOpts, createPlaceHolder} from './lazy-load-placeholder';
-import {flexContainerFac} from './flex-container';
-import {textWidgetFac, MultiLineTextWidgetOpts} from './text';
-import {BaseWidget} from './base';
+import {LazyLoadPlaceHolderOpts, createPlaceHolder} from './lazy-load-placeholder.js';
+import {flexContainerFac} from './flex-container.js';
+import {textWidgetFac, MultiLineTextWidgetOpts} from './text.js';
+import {BaseWidget} from './base.js';
 
 export type PageLoader = (pageIndex: number) => rx.Observable<[key: unknown, comp: (BaseWidget | string)]>;
 export interface InfiniteFlexEvents {

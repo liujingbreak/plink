@@ -1,27 +1,22 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-require("source-map-support/register");
-const util_1 = __importDefault(require("util"));
-const fs_1 = __importDefault(require("fs"));
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const index_1 = require("../index");
-const index_2 = require("../index");
+import 'source-map-support/register';
+import util from 'util';
+import fs from 'fs';
+import { formatToConciseNoColor } from '@wfh/reactivizer/dist/nodejs-utils';
+import { createTerminalCanvas } from '../index.js';
+import { createTextWidget, createFlexContainer, createBorderContainer, createKeyEventService } from '../index.js';
 const screenWidth = process.argv[2];
-const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
+const fout = fs.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
     const date = new Date();
     fout.write(date.toLocaleTimeString());
     // console.log(formatToConciseNoColor(...args));
     fout.write('.');
     fout.write(date.getMilliseconds() + ' - ');
-    fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
+    fout.write(formatToConciseNoColor(...args));
     fout.write('\n');
 }
-const canvas = (0, index_1.createTerminalCanvas)({ debug: true, log });
-const root = (0, index_2.createFlexContainer)({ name: 'root', debug: true, log });
+const canvas = createTerminalCanvas({ debug: true, log });
+const root = createFlexContainer({ name: 'root', debug: true, log });
 canvas.ft.setRootComponent(root).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
@@ -29,16 +24,16 @@ canvas.error$.subscribe(([err, label]) => {
     fout.write('-----------------\n');
     fout.write(label);
     fout.write('\n');
-    fout.write(util_1.default.inspect(err));
+    fout.write(util.inspect(err));
     fout.close();
     process.exit(0);
 });
 root.ft.justifyContent('center').dp();
 root.ft.alignItems('center').dp();
-const label = (0, index_2.createTextWidget)('8', { debug: true, log });
-const border = (0, index_2.createBorderContainer)(label, { debug: true, log });
+const label = createTextWidget('8', { debug: true, log });
+const border = createBorderContainer(label, { debug: true, log });
 root.ft.addChild(border).dp();
-canvas.ft.setSize(screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1, (0, index_2.createKeyEventService)()).dp();
+canvas.ft.setSize(screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1, createKeyEventService()).dp();
 canvas.ft.render().dp();
 process.stdout.on('resize', () => {
     canvas.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, process.stdout.rows - 1).dp();

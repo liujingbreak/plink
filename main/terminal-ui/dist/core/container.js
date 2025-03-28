@@ -1,50 +1,14 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.baseContainerFac = void 0;
 /* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
-const rx = __importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
-const canvas_1 = require("./canvas");
-const base_1 = require("./base");
+import * as rx from 'rxjs';
+import { mat4 } from 'gl-matrix';
+import { rectIntersection } from './canvas.js';
+import { baseComponentFac, DisplayMode } from './base.js';
 const tableFor = [
     'allChildren', 'allDisplayChildren', 'setLayoutValid', 'onChildPreferredSizeChange', 'hasOfflineCanvas', 'onChildPositions',
     'isOpaque', 'latestReflowData', 'isLayoutDirty', 'setLayoutCheck'
 ];
-exports.baseContainerFac = base_1.baseComponentFac.forExtend({
+export const baseContainerFac = baseComponentFac.forExtend({
     tableFor,
     debugExcludeTypes: ['ofCanvas', '_saveTransform', 'renderChild'
         // 'queryAbsBounding', 'didQueryAbsBounding'
@@ -82,7 +46,7 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
         '-> onChildPreferredSizeChange, setLayoutValid, allDisplayChildren', rx.merge(pt.addChild, pt.insertChild, pt.removeChild).pipe(rx.switchMap(([m]) => table.l.allChildren.pipe(rx.switchMap(([, children]) => {
         return rx.merge(
         // -> allDisplayChildren
-        rx.combineLatest(children.map(c => c.table.l.setDisplay.pipe(rx.map(([, d]) => d === base_1.DisplayMode.none ? null : c)))).pipe(rx.map(chdn => chdn.filter((c) => c != null)), rx.switchMap(chdn => {
+        rx.combineLatest(children.map(c => c.table.l.setDisplay.pipe(rx.map(([, d]) => d === DisplayMode.none ? null : c)))).pipe(rx.map(chdn => chdn.filter((c) => c != null)), rx.switchMap(chdn => {
             ft.allDisplayChildren(chdn).dp();
             return rx.combineLatest(chdn.map(c => {
                 return c.table.l.preferredSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2));
@@ -139,7 +103,7 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
         // listContainer.log('.renderChild', index, ': childrenPosition:', ...childrenPosition[index]);
         const [x, y] = childrenPosition.get(chr);
         const clipsOfCh = clips.map(cp => {
-            const intersection = (0, canvas_1.rectIntersection)([x, y, width, height], cp);
+            const intersection = rectIntersection([x, y, width, height], cp);
             if (intersection) {
                 intersection[0] -= x;
                 intersection[1] -= y;
@@ -147,7 +111,7 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
             return intersection;
         }).filter((c) => c != null);
         const masksOfCh = masks.map(mk => {
-            const intersection = (0, canvas_1.rectIntersection)([x, y, width, height], mk);
+            const intersection = rectIntersection([x, y, width, height], mk);
             if (intersection) {
                 intersection[0] -= x;
                 intersection[1] -= y;
@@ -155,8 +119,8 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
             return intersection;
         }).filter((c) => c != null);
         if (clipsOfCh.length > 0) {
-            const tranOfChild = gl_matrix_1.mat4.fromTranslation(gl_matrix_1.mat4.create(), [x, y, 0]);
-            gl_matrix_1.mat4.mul(tranOfChild, trans, tranOfChild);
+            const tranOfChild = mat4.fromTranslation(mat4.create(), [x, y, 0]);
+            mat4.mul(tranOfChild, trans, tranOfChild);
             chr.ft.render(canvas, tranOfChild, clipsOfCh, masksOfCh).re(m).dp();
         }
     })))));
@@ -174,13 +138,13 @@ exports.baseContainerFac = base_1.baseComponentFac.forExtend({
     })))));
     r('findOverlaps -> didFindOverlaps', pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
         return table.l.onBoundingBox.pipe(rx.take(1), rx.mergeMap(([, [x, y, w, h]]) => {
-            const interction = (0, canvas_1.rectIntersection)([x, y, w, h], rect);
+            const interction = rectIntersection([x, y, w, h], rect);
             if (interction == null) {
                 ft.didFindOverlaps([]).dp(m);
                 return rx.EMPTY;
             }
             return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chd]) => chd), rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(rx.take(1), rx.filter(([, bRect]) => {
-                return (0, canvas_1.rectIntersection)(rect, bRect) != null;
+                return rectIntersection(rect, bRect) != null;
             }), rx.map(() => chr))), rx.mergeMap(chr => chr.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(isContainer => {
                 if (isContainer) {
                     return chr.ft.findOverlaps(...rect)

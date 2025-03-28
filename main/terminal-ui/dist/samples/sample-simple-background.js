@@ -1,23 +1,18 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-require("source-map-support/register");
-const fs_1 = __importDefault(require("fs"));
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const terminal_canvas_1 = require("../core/terminal-canvas");
-const text_1 = require("../core/text");
-const flex_container_1 = require("../core/flex-container");
-const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log', { flush: true });
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const canvas = (0, terminal_canvas_1.createTerminalCanvas)({
+import 'source-map-support/register';
+import fs from 'fs';
+import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
+import { createTerminalCanvas } from '../core/terminal-canvas.js';
+import { createTextWidget } from '../core/text.js';
+import { createFlexContainer } from '../core/flex-container.js';
+const fout = fs.createWriteStream('terminal-canvas-sample.log', { flush: true });
+const log = createSimpleIndentLogger(false, false, fout);
+const canvas = createTerminalCanvas({
     debug: true, log
 });
-const text = (0, text_1.createTextWidget)('hello', { debug: true, log });
+const text = createTextWidget('hello', { debug: true, log });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-const container = (0, flex_container_1.createFlexContainer)({
+const container = createFlexContainer({
     debug: true,
     name: 'background',
     log

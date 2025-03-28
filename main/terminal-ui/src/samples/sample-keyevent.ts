@@ -4,7 +4,7 @@ import fs from 'fs';
 import * as rx from 'rxjs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTerminalCanvas, KeyEventEnum, createTextWidget, createKeyEventService, createFlexContainer,
-  createBorderContainer} from '../index';
+  createBorderContainer} from '../index.js';
 
 const screenWidth = process.argv[2];
 

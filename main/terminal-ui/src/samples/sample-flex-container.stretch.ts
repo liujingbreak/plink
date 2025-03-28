@@ -4,10 +4,10 @@ import fs from 'fs';
 import * as rx from 'rxjs';
 // import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas, debugLineTrees} from '../index';
-import {createTextWidget} from '../index';
-import {createFlexContainer} from '../index';
-import {createBorderContainer} from '../index';
+import {createTerminalCanvas, debugLineTrees} from '../index.js';
+import {createTextWidget} from '../index.js';
+import {createFlexContainer} from '../index.js';
+import {createBorderContainer} from '../index.js';
 
 const screenWidth = process.argv[2];
 

@@ -1,62 +1,24 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.flexContainerFac = exports.FlexBorderSeparator = void 0;
-exports.createFlexContainer = createFlexContainer;
-exports.shrinkEachSize = shrinkEachSize;
-const rx = __importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
-const reactivizer_1 = require("@wfh/reactivizer");
-const container_1 = require("./container");
-const canvas_1 = require("./canvas");
-const rbush_1 = require("./rbush");
-var FlexBorderSeparator;
+import * as rx from 'rxjs';
+import { vec2 } from 'gl-matrix';
+import { actionRelatedToAction } from '@wfh/reactivizer';
+import { baseContainerFac } from './container.js';
+import { rectIntersection } from './canvas.js';
+import { createRtreeInstance } from './rbush.js';
+export var FlexBorderSeparator;
 (function (FlexBorderSeparator) {
     FlexBorderSeparator[FlexBorderSeparator["none"] = 0] = "none";
     FlexBorderSeparator[FlexBorderSeparator["line"] = 1] = "line";
-})(FlexBorderSeparator || (exports.FlexBorderSeparator = FlexBorderSeparator = {}));
+})(FlexBorderSeparator || (FlexBorderSeparator = {}));
 const tableForFlexContainer = [
     'setDirection', 'alignItems', 'justifyContent', 'setBorderSpacing', 'setBorderSeparator',
     'setBorderSeparatorStyle'
 ];
-exports.flexContainerFac = container_1.baseContainerFac.forExtend({
+export const flexContainerFac = baseContainerFac.forExtend({
     name: 'flexContainer',
     tableFor: tableForFlexContainer
 }).interceptorForBaseByType(ac => rx.merge(ac.at.onRender.pipe(rx.ignoreElements()), ac.at.findOverlaps.pipe(rx.ignoreElements()), ac.ofOtherTypes())).defineReactor((init, opts) => {
     const listContainer = init(opts);
-    const childBoundingRTree$ = (0, rbush_1.createRtreeInstance)();
+    const childBoundingRTree$ = createRtreeInstance();
     const { r, table, pt, ft } = listContainer;
     const separatorPos = [];
     r('querySizeOf,... -> prefHeightFor, prefWidthFor', listContainer.pt.querySizeOf.pipe(rx.withLatestFrom(table.l.allDisplayChildren, table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator), rx.switchMap(([[m, w, h], [, children], [, chrPreferredSizes], [, _justifyContent], [, _alignItems], [, pWidth, pHeight], [, dir], [, marginWidth], [, borderSep]]) => {
@@ -131,7 +93,7 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
     r('reflow,onChildPositions... -> "childBoundingRTree$.insert..."', pt.reflow.pipe(rx.switchMap(([m]) => {
         return rx.combineLatest([
             childBoundingRTree$,
-            pt.onChildPositions.pipe((0, reactivizer_1.actionRelatedToAction)(m)),
+            pt.onChildPositions.pipe(actionRelatedToAction(m)),
             table.l.allDisplayChildren
         ]).pipe(rx.take(1), rx.mergeMap(([cbt, [, pos], [, children]]) => {
             // listContainer.log('-- cbt clear');
@@ -318,8 +280,8 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
             ft.renderSelf(canvas, trans, clips, masks).dp(m);
         }
         if (dir === 'row' && borderSep === FlexBorderSeparator.line) {
-            const orig = gl_matrix_1.vec2.create();
-            gl_matrix_1.vec2.transformMat4(orig, orig, trans);
+            const orig = vec2.create();
+            vec2.transformMat4(orig, orig, trans);
             for (const sepPos of separatorPos) {
                 for (let i = 0; i < h; i++)
                     canvas.ft.addString(orig[0] + sepPos, orig[1] + i, '│', sepStyle).dp(m);
@@ -344,7 +306,7 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
             ft.didFindOverlaps([]).dp(m);
             return rx.EMPTY;
         }
-        const r = (0, canvas_1.rectIntersection)([x, y, w, h], rect);
+        const r = rectIntersection([x, y, w, h], rect);
         if (r == null) {
             ft.didFindOverlaps([]).dp(m);
             return rx.EMPTY;
@@ -385,10 +347,10 @@ exports.flexContainerFac = container_1.baseContainerFac.forExtend({
         ft.requestReflowOn(pt.onSize, table.l.onChildPreferredSizeChange, table.l.justifyContent, table.l.alignItems, table.l.preferredSize, table.l.setDirection, table.l.setBorderSpacing, table.l.setBorderSeparator).dp();
     }));
 });
-function createFlexContainer(opts = {}) {
-    return exports.flexContainerFac.create(opts);
+export function createFlexContainer(opts = {}) {
+    return flexContainerFac.create(opts);
 }
-function shrinkEachSize(chdPrefSizes, shrinkOfEach, availableSpace) {
+export function shrinkEachSize(chdPrefSizes, shrinkOfEach, availableSpace) {
     if (chdPrefSizes.length === 0)
         return [];
     if (availableSpace < 0) {

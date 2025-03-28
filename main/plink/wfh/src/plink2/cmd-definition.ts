@@ -5,7 +5,6 @@ import * as rx from 'rxjs';
 import commander from 'commander';
 import chalk from 'chalk';
 import {ActionMeta} from '@wfh/reactivizer';
-import {createFlexContainer, createTextWidget, createTerminalCanvas} from '@wfh/terminal-ui';
 import {sexyFont} from '../utils/misc';
 import {createPackageMgrService} from '../package-mgr/package-mgr2';
 import {createPlinkPackageLookupService} from '../package-mgr/package-mgr2-lookup';
@@ -22,26 +21,30 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
   const pkgLookupService = createPlinkPackageLookupService();
   pkgLookupService.service.config({log: logger});
   const langExt = addOnPackageFeatures(lang, packageMgrService, pkgLookupService);
-  const canvas = createTerminalCanvas();
-  const rootWidget = createFlexContainer({debug: true, log: logger});
-  const textWidget = createTextWidget();
-  const versionTextWidget = createTextWidget();
-  canvas.config({log: logger, debug: true});
+  // const canvas = createTerminalCanvas();
+  // const rootWidget = createFlexContainer({debug: true, log: logger});
+  // const textWidget = createTextWidget();
+  // const versionTextWidget = createTextWidget();
+  // canvas.config({log: logger, debug: true});
 
   const error$ = rx.merge(
-    canvas.error$,
+    // canvas.error$,
     packageMgrService.error$,
     langExt.error$,
-    rootWidget.error$,
-    rootWidget.s.pt.onChildError.pipe(
-      rx.map(([, id, [err, label]]) => [err, `source: ${id}, ${label ?? ''}`] as const)
-    )
+    // rootWidget.error$,
+    // rootWidget.s.pt.onChildError.pipe(
+    //   rx.map(([, id, [err, label]]) => [err, `source: ${id}, ${label ?? ''}`] as const)
+    // )
   ).pipe(
     rx.map(err => util.inspect(err)),
     rx.share()
   );
   const {r, s} = scp;
   let latestCommandActionMeta: ActionMeta | undefined;
+  r('', rx.from(import('@wfh/terminal-ui')).pipe(
+    rx.map(({createFlexContainer, createTextWidget, createTerminalCanvas}) => {
+    })
+  ));
   r('-> onCommandError', error$.pipe(
     rx.map(err => {
       if (latestCommandActionMeta)
@@ -54,19 +57,17 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
   r('doCommand -> canvs.setClientWindowSize', s.pt.doCommand.pipe(
     rx.map(([m, cols, rows]) => {
       latestCommandActionMeta = m;
-      canvas.s.ft.setBounding(0, 0, cols, rows).dp(m);
+      // canvas.s.ft.setBounding(0, 0, cols, rows).dp(m);
     })
   ));
   r('setRootDir', s.pt.setRootDir.pipe(
     rx.switchMap(([m, rootDir]) => {
       cmdModelService.i.ft.setRootDir(rootDir).dp();
 
-      rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
-      textWidget.config({log: logger, debug: true});
-      versionTextWidget.config({log: logger, debug: true});
-      // rootWidget.config({debug: true});
-      canvas.s.ft.setRootComponent(rootWidget).dp();
-      // canvas.s.ft.setAlwaysRerenderAll(true).dp();
+      // rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
+      // textWidget.config({log: logger, debug: true});
+      // versionTextWidget.config({log: logger, debug: true});
+      // canvas.s.ft.setRootComponent(rootWidget).dp();
       return cmdModelService.outputTable.l.load.pipe(
         rx.map(([, done]) => done),
         rx.filter(done => done),
@@ -187,9 +188,9 @@ export function define(scp: ServcerChildProcessEntry, logger: (...args: any[]) =
             .action(async () => {
               console.log('hello world');
               await new Promise<void>(resolve => setTimeout(() => {
-                textWidget.s.ft.setContent('hello plink').dp();
-                versionTextWidget.s.ft.setContent('2').dp();
-                canvas.s.ft.render().dp();
+                // textWidget.s.ft.setContent('hello plink').dp();
+                // versionTextWidget.s.ft.setContent('2').dp();
+                // canvas.s.ft.render().dp();
                 resolve();
               }, 1000));
             });

@@ -1,8 +1,8 @@
 import rl from 'node:readline';
 import * as rx from 'rxjs';
 import {SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac, ActionMeta} from '@wfh/reactivizer';
-import {canvasFac} from './canvas';
-import {KeyEventServcie, createKeyEventService} from './keyEvent';
+import {canvasFac} from './canvas.js';
+import {KeyEventServcie, createKeyEventService} from './keyEvent.js';
 
 export interface TerminalCanvasInput {
   setFullScreenMode(keyEventService?: KeyEventServcie): SingleActionFactory;

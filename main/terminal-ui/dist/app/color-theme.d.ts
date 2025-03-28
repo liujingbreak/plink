@@ -17,7 +17,7 @@
  */
 import * as rx from 'rxjs';
 import { BaseReactorFactory, SingleActionFactory, SimplexReactorOfFac, CoreOptions } from '@wfh/reactivizer';
-import { BaseWidget } from '../core/base';
+import { BaseWidget } from '../core/base.js';
 /** This structure is the exported JSON structure of https://material-foundation.github.io/material-theme-builder,
 * by click `+` icon button at right top corner of the screen, you can get a "export" panel, then click "export" and
 * choose JSON type.

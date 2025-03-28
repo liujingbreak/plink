@@ -8,7 +8,6 @@ const node_util_1 = tslib_1.__importDefault(require("node:util"));
 const rx = tslib_1.__importStar(require("rxjs"));
 const commander_1 = tslib_1.__importDefault(require("commander"));
 const chalk_1 = tslib_1.__importDefault(require("chalk"));
-const terminal_ui_1 = require("@wfh/terminal-ui");
 const misc_1 = require("../utils/misc");
 const package_mgr2_1 = require("../package-mgr/package-mgr2");
 const package_mgr2_lookup_1 = require("../package-mgr/package-mgr2-lookup");
@@ -23,14 +22,18 @@ function define(scp, logger) {
     const pkgLookupService = (0, package_mgr2_lookup_1.createPlinkPackageLookupService)();
     pkgLookupService.service.config({ log: logger });
     const langExt = (0, tsc_language_service4pkg_1.addOnPackageFeatures)(lang, packageMgrService, pkgLookupService);
-    const canvas = (0, terminal_ui_1.createTerminalCanvas)();
-    const rootWidget = (0, terminal_ui_1.createFlexContainer)({ debug: true, log: logger });
-    const textWidget = (0, terminal_ui_1.createTextWidget)();
-    const versionTextWidget = (0, terminal_ui_1.createTextWidget)();
-    canvas.config({ log: logger, debug: true });
-    const error$ = rx.merge(canvas.error$, packageMgrService.error$, langExt.error$, rootWidget.error$, rootWidget.s.pt.onChildError.pipe(rx.map(([, id, [err, label]]) => [err, `source: ${id}, ${label !== null && label !== void 0 ? label : ''}`]))).pipe(rx.map(err => node_util_1.default.inspect(err)), rx.share());
+    // const canvas = createTerminalCanvas();
+    // const rootWidget = createFlexContainer({debug: true, log: logger});
+    // const textWidget = createTextWidget();
+    // const versionTextWidget = createTextWidget();
+    // canvas.config({log: logger, debug: true});
+    const error$ = rx.merge(
+    // canvas.error$,
+    packageMgrService.error$, langExt.error$).pipe(rx.map(err => node_util_1.default.inspect(err)), rx.share());
     const { r, s } = scp;
     let latestCommandActionMeta;
+    r('', rx.from(import('@wfh/terminal-ui')).pipe(rx.map(({ createFlexContainer, createTextWidget, createTerminalCanvas }) => {
+    })));
     r('-> onCommandError', error$.pipe(rx.map(err => {
         if (latestCommandActionMeta)
             s.ft.onCommandError(err).dp(latestCommandActionMeta);
@@ -39,16 +42,14 @@ function define(scp, logger) {
     })));
     r('doCommand -> canvs.setClientWindowSize', s.pt.doCommand.pipe(rx.map(([m, cols, rows]) => {
         latestCommandActionMeta = m;
-        canvas.s.ft.setBounding(0, 0, cols, rows).dp(m);
+        // canvas.s.ft.setBounding(0, 0, cols, rows).dp(m);
     })));
     r('setRootDir', s.pt.setRootDir.pipe(rx.switchMap(([m, rootDir]) => {
         cmd_model_1.cmdModelService.i.ft.setRootDir(rootDir).dp();
-        rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
-        textWidget.config({ log: logger, debug: true });
-        versionTextWidget.config({ log: logger, debug: true });
-        // rootWidget.config({debug: true});
-        canvas.s.ft.setRootComponent(rootWidget).dp();
-        // canvas.s.ft.setAlwaysRerenderAll(true).dp();
+        // rootWidget.s.ft.addChild(textWidget, versionTextWidget).dp();
+        // textWidget.config({log: logger, debug: true});
+        // versionTextWidget.config({log: logger, debug: true});
+        // canvas.s.ft.setRootComponent(rootWidget).dp();
         return cmd_model_1.cmdModelService.outputTable.l.load.pipe(rx.map(([, done]) => done), rx.filter(done => done), rx.take(1), rx.mergeMap(() => packageMgrService.i.ft.scan(rootDir)
             .do(packageMgrService.o.pt.onScanCompleted)), rx.mergeMap(() => rx.combineLatest([
             cmd_model_1.cmdModelService.it.l.enableRxMessageTrace,
@@ -144,9 +145,9 @@ function define(scp, logger) {
                 .action(async () => {
                 console.log('hello world');
                 await new Promise(resolve => setTimeout(() => {
-                    textWidget.s.ft.setContent('hello plink').dp();
-                    versionTextWidget.s.ft.setContent('2').dp();
-                    canvas.s.ft.render().dp();
+                    // textWidget.s.ft.setContent('hello plink').dp();
+                    // versionTextWidget.s.ft.setContent('2').dp();
+                    // canvas.s.ft.render().dp();
                     resolve();
                 }, 1000));
             });

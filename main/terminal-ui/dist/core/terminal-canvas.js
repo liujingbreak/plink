@@ -1,49 +1,9 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.terminalCanvasFac = void 0;
-exports.createTerminalCanvas = createTerminalCanvas;
-const node_readline_1 = __importDefault(require("node:readline"));
-const rx = __importStar(require("rxjs"));
-const canvas_1 = require("./canvas");
-const keyEvent_1 = require("./keyEvent");
+import rl from 'node:readline';
+import * as rx from 'rxjs';
+import { canvasFac } from './canvas.js';
+import { createKeyEventService } from './keyEvent.js';
 const tableFor = ['onKeyEventService'];
-exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
+export const terminalCanvasFac = canvasFac.forExtend({
     name: 'canvas',
     tableFor
 }).defineReactor((init, opts) => {
@@ -73,17 +33,17 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
     })));
     r('onClearLine', pt.onClearLine.pipe(rx.map(([, y, x, dir]) => {
         if (x != null) {
-            node_readline_1.default.cursorTo(process.stdout, x, y);
-            node_readline_1.default.clearLine(process.stdout, dir !== null && dir !== void 0 ? dir : 1);
+            rl.cursorTo(process.stdout, x, y);
+            rl.clearLine(process.stdout, dir !== null && dir !== void 0 ? dir : 1);
         }
         else {
-            node_readline_1.default.cursorTo(process.stdout, 0, y);
-            node_readline_1.default.clearLine(process.stdout, 0);
+            rl.cursorTo(process.stdout, 0, y);
+            rl.clearLine(process.stdout, 0);
         }
     })));
     r('setFullScreen -> setBounding,onKeyEventService', pt.setFullScreenMode.pipe(rx.exhaustMap(([m, keyEventService]) => {
         if (keyEventService == null)
-            keyEventService = (0, keyEvent_1.createKeyEventService)({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
+            keyEventService = createKeyEventService({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
         ft.onKeyEventService(keyEventService).dp(m);
         const blankLines = '\n'.repeat(process.stdout.rows - 1);
         return new rx.Observable(sub => {
@@ -103,7 +63,7 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
     })));
     r('setSize -> setBounding,onKeyEventService', pt.setSize.pipe(rx.switchMap(([m, w, h, keyEventService]) => {
         if (keyEventService == null)
-            keyEventService = (0, keyEvent_1.createKeyEventService)({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
+            keyEventService = createKeyEventService({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
         ft.onKeyEventService(keyEventService).dp(m);
         const cols = w > process.stdout.columns ? process.stdout.columns : w;
         const rows = h > process.stdout.rows ? process.stdout.rows : h;
@@ -126,7 +86,7 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
     })));
     r('printDescentEnd -> onPrintDescentEndFlushed', pt.printDescentEnd.pipe(rx.mergeMap(([m]) => {
         return table.l.setBounding.pipe(rx.take(1), rx.map(([, left, top, w, h]) => {
-            return node_readline_1.default.cursorTo(process.stdout, left + w - 1, top + h - 1, () => {
+            return rl.cursorTo(process.stdout, left + w - 1, top + h - 1, () => {
                 ft.onPrintDescentEndFlushed().dp(m);
             });
         }));
@@ -134,7 +94,7 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
     r('render,onPrintText... -> onWriteFlushed', pt.render.pipe(rx.mergeMap(([m]) => {
         const processCallbacks = new rx.ReplaySubject();
         return pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
-            node_readline_1.default.cursorTo(process.stdout, x, y);
+            rl.cursorTo(process.stdout, x, y);
             process.stdout.write(text, () => processCallbacks.next());
         }), rx.takeUntil(pt.onRendered), rx.count(), rx.mergeMap(count => {
             return processCallbacks.pipe(rx.take(count), rx.finalize(() => {
@@ -144,7 +104,7 @@ exports.terminalCanvasFac = canvas_1.canvasFac.forExtend({
     })));
     ft.autoHideCursor().dp();
 });
-function createTerminalCanvas(opts) {
-    return exports.terminalCanvasFac.create(opts);
+export function createTerminalCanvas(opts) {
+    return terminalCanvasFac.create(opts);
 }
 //# sourceMappingURL=terminal-canvas.js.map

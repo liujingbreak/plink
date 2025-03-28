@@ -1,42 +1,4 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.waitForImport$ = void 0;
-exports.createRtreeInstance = createRtreeInstance;
-exports.rectUnion = rectUnion;
-const rx = __importStar(require("rxjs"));
+import * as rx from 'rxjs';
 const MyRTreeConstructor$ = new rx.ReplaySubject(1);
 const rtreeProm = import('rbush').then(({ default: RBush }) => {
     class RTreeCls extends RBush {
@@ -90,14 +52,14 @@ const rtreeProm = import('rbush').then(({ default: RBush }) => {
 });
 rx.from(rtreeProm).subscribe(MyRTreeConstructor$);
 /** If the calling module is CJS, the import will have to be async */
-exports.waitForImport$ = MyRTreeConstructor$.pipe(rx.take(1));
+export const waitForImport$ = MyRTreeConstructor$.pipe(rx.take(1));
 /** For CJS file to load and create an "rbush"'s r-tree instance*/
-function createRtreeInstance() {
+export function createRtreeInstance() {
     const store = new rx.ReplaySubject(1);
     MyRTreeConstructor$.pipe(rx.map(cls => new cls())).subscribe(store);
     return store;
 }
-function rectUnion([x1, y1, w1, h1], [x2, y2, w2, h2]) {
+export function rectUnion([x1, y1, w1, h1], [x2, y2, w2, h2]) {
     const x = x1 < x2 ? x1 : x2;
     const y = y1 < y2 ? y1 : y2;
     const r1 = x1 + w1;

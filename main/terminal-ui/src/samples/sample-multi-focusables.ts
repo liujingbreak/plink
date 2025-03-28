@@ -1,7 +1,7 @@
 import 'source-map-support/register';
 import fs from 'fs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {app, createBorderContainer, createScrollable, createFlexContainer, createTextWidget} from '../index';
+import {app, createBorderContainer, createScrollable, createFlexContainer, createTextWidget} from '../index.js';
 
 const debug = false;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');

@@ -2,12 +2,12 @@
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SimplexReactorOfFac, CreateOptsOfFac, SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
-import {queryAppContext} from '../app/app-shell';
-import {BaseWidget} from './base';
-import {TerminalContainer, baseContainerFac} from './container';
-import {CanvasOptions, canvasFac, TextStyle, rectIntersection} from './canvas';
-import {FocusServiceOpts, focusServiceFac} from './focusable';
-import {querySchemeForComponent} from '../app/color-theme';
+import {queryAppContext} from '../app/app-shell.js';
+import {querySchemeForComponent} from '../app/color-theme.js';
+import {BaseWidget} from './base.js';
+import {TerminalContainer, baseContainerFac} from './container.js';
+import {CanvasOptions, canvasFac, TextStyle, rectIntersection} from './canvas.js';
+import {FocusServiceOpts, focusServiceFac} from './focusable.js';
 
 export interface ScrollActions {
   scrollTo(left: number, top: number): SingleActionFactory;

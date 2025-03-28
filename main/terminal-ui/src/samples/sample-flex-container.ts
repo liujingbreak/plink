@@ -5,9 +5,9 @@ import * as rx from 'rxjs';
 // import stripAnsi from 'strip-ansi';
 import {SimplexReactor, SingleActionFactory} from '@wfh/reactivizer';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../index';
-import {createFlexContainer, createBorderContainer, createTextWidget, MultiLineTextWidget} from '../index';
-import {waitForImport$} from '../core/rbush';
+import {createTerminalCanvas} from '../index.js';
+import {createFlexContainer, createBorderContainer, createTextWidget, MultiLineTextWidget} from '../index.js';
+import {waitForImport$} from '../core/rbush.js';
 
 const screenWidth = process.argv[2];
 const debug = false;

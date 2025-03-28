@@ -1,47 +1,7 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.KeyEventEnum = void 0;
-exports.createKeyEventService = createKeyEventService;
-const readline_1 = __importDefault(require("readline"));
-const rx = __importStar(require("rxjs"));
-const reactivizer_1 = require("@wfh/reactivizer");
-var KeyEventEnum;
+import rl from 'readline';
+import * as rx from 'rxjs';
+import { SimplexReactor } from '@wfh/reactivizer';
+export var KeyEventEnum;
 (function (KeyEventEnum) {
     KeyEventEnum[KeyEventEnum["scrollLeft"] = 0] = "scrollLeft";
     KeyEventEnum[KeyEventEnum["scrollRight"] = 1] = "scrollRight";
@@ -56,14 +16,14 @@ var KeyEventEnum;
     KeyEventEnum[KeyEventEnum["focusUp"] = 10] = "focusUp";
     KeyEventEnum[KeyEventEnum["focusDown"] = 11] = "focusDown";
     KeyEventEnum[KeyEventEnum["focusNext"] = 12] = "focusNext";
-})(KeyEventEnum || (exports.KeyEventEnum = KeyEventEnum = {}));
+})(KeyEventEnum || (KeyEventEnum = {}));
 const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'];
-function createKeyEventService(opts) {
-    const service = new reactivizer_1.SimplexReactor(Object.assign(Object.assign({ name: 'keyEvent' }, opts), { tableFor }));
+export function createKeyEventService(opts) {
+    const service = new SimplexReactor(Object.assign(Object.assign({ name: 'keyEvent' }, opts), { tableFor }));
     const { r, latest, ft, pt } = service;
     r('setInputStream -> onRawKeyInput', pt.setInputStream.pipe(rx.switchMap(([m, stdin, tty]) => {
         if (tty) {
-            readline_1.default.emitKeypressEvents(stdin);
+            rl.emitKeypressEvents(stdin);
             stdin.setRawMode(true);
         }
         return new rx.Observable(() => {
@@ -341,7 +301,7 @@ function createKeyEventService(opts) {
     })));
     // Enable and disable Mouse device
     const reset = () => {
-        process.stdout.write('\x1b[?1000;1003l;1005l');
+        // process.stdout.write('\x1b[?1000;1003l;1005l');
     };
     process.on('exit', reset);
     process.on('SIGINT', () => {
@@ -349,16 +309,17 @@ function createKeyEventService(opts) {
         process.exit(0);
     });
     setImmediate(() => {
-        // enable mouse event and SGR mode, refer to "blessed" program.js or tty-events.js
-        process.stdout.write('\x1b[?1000h');
-        // process.stdout.write('\x1b[?1001h');
-        // process.stdout.write('\x1b[?1002h');
-        process.stdout.write('\x1b[?1003h');
-        process.stdout.write('\x1b[?1005h');
+        // TODO: mouse tracking, currently:
+        // - Windows console partially works on 1005 and when 1006 is off.
+        // - Termux (Android) works on 1000
+        // - Mac OSX works on 1006 (need to confirm)
+        // Read ../sample/check-mouse.js for control code explanation
+        // process.stdout.write('\x1b[?1000h');
+        // process.stdout.write('\x1b[?1003h');
+        // process.stdout.write('\x1b[?1005h');
         // process.stdout.write('\x1b[?1015h');
         process.stdout.write('\x1b[1;2\'z\x1b[1;3\'{');
         process.stdout.write('\x1b[>1h\x1b[>6h\x1b[>7h\x1b[>1h\x1b[>9l');
-        // process.stdout.write('\x1b[0~ZwLMRK+1Q\x1b\\'); jsbtermMouse
         process.stdout.write('\x1b[?9h');
     });
     // Query device attributes

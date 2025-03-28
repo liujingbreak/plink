@@ -2,10 +2,10 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {CoreOptions, SingleActionFactory, SimplexReactor, actionRelatedToAction, BaseReactorFactory} from '@wfh/reactivizer';
-import {FlexContainer, createFlexContainer, FlexContainerOpts} from './flex-container';
-import {Rectangle} from './canvas';
-import {createTextWidget, MultiLineTextWidgetOpts} from './text';
-import {FocusService} from './focusable';
+import {FlexContainer, createFlexContainer, FlexContainerOpts} from './flex-container.js';
+import {Rectangle} from './canvas.js';
+import {createTextWidget, MultiLineTextWidgetOpts} from './text.js';
+import {FocusService} from './focusable.js';
 
 /** The consumer container should interect with messages defined by this interface.
  * In this file the term "page" is meant to the bunch of data which is filled by a single time

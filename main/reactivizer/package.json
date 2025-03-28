@@ -1,22 +1,22 @@
 {
   "name": "@wfh/reactivizer",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Aiming for promoting and exhibiting opinionated modeling and abstracting of reactive-programming as alternative counterpart to OOP, remedy demerits and inconvenience in adopting reactive programming paradigm in prevalent languages",
   "main": "dist/index.js",
   "module": "es/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./es/index.js",
-      "require": "./dist/index.js"
+      "node": "./dist/index.js",
+      "default": "./es/index.js"
     },
     "./dist/fork-join/*": {
-      "import": "./es/fork-join/*.js",
-      "require": "./dist/fork-join/*.js"
+      "node": "./dist/fork-join/*.js",
+      "default": "./es/fork-join/*.js"
     },
     "./es/fork-join/*": {
-      "import": "./es/fork-join/*.js",
-      "require": "./dist/fork-join/*.js"
+      "node": "./dist/fork-join/*.js",
+      "default": "./es/fork-join/*.js"
     },
     "./dist/nodejs-utils": "./dist/nodejs-utils.js"
   },

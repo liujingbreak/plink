@@ -2,7 +2,7 @@ import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createBorderContainer, createTerminalCanvas, createScrollable, createTextWidget, createFlexContainer} from '../index';
+import {createBorderContainer, createTerminalCanvas, createScrollable, createTextWidget, createFlexContainer} from '../index.js';
 
 const debug = true;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');

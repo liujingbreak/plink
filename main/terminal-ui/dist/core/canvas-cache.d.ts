@@ -1,6 +1,6 @@
 import { IntervalTree, RedBlackTree } from '@wfh/algorithms';
 import { BaseReactorFactory, SingleActionFactory, CoreOptions, SimplexReactor } from '@wfh/reactivizer';
-import { TextStyle } from './canvas';
+import { TextStyle } from './canvas.js';
 type AddElement = [units: number[], style: TextStyle];
 type ClearElement = 'clear';
 type CacheLine = IntervalTree<AddElement | ClearElement>;

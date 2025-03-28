@@ -1,9 +1,9 @@
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
 import { SingleActionFactory, SimplexReactor, Action, InferMapParam, BaseReactorFactory, CoreOptions } from '@wfh/reactivizer';
-import { Canvas, Rectangle, BackgroundStyle, TextStyle } from './canvas';
-import { FocusService } from './focusable';
-import { TerminalContainer } from './container';
+import { Canvas, Rectangle, BackgroundStyle, TextStyle } from './canvas.js';
+import { FocusService } from './focusable.js';
+import { TerminalContainer } from './container.js';
 export declare enum DisplayMode {
     visible = 0,
     /** like CSS display:none, does not take any space in layout */

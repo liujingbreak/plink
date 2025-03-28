@@ -1,49 +1,10 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.elevatorFac = void 0;
-exports.createElevator = createElevator;
-exports.getBoundingOfCompTree = getBoundingOfCompTree;
-exports.queryElevatorContainer = queryElevatorContainer;
 /* eslint-disable multiline-ternary */
-const rx = __importStar(require("rxjs"));
-const index_1 = require("../index");
-const base_1 = require("./base");
-const focusable_1 = require("./focusable");
-const container_1 = require("./container");
-exports.elevatorFac = container_1.baseContainerFac.forExtend({
+import * as rx from 'rxjs';
+import { canvasFac } from '../index.js';
+import { DisplayMode } from './base.js';
+import { rootFocusSvcFac, ROOT_FOCUS_SERVICE_CONTEXT } from './focusable.js';
+import { baseContainerFac } from './container.js';
+export const elevatorFac = baseContainerFac.forExtend({
     name: 'elevator'
 }).interceptorForBaseByType(ac => rx.merge(rx.merge(ac.at.onRender, ac.at.findOverlaps).pipe(rx.ignoreElements()), ac.ofOtherTypes())).defineReactor((init, keyEventSvc, opts) => {
     const service = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
@@ -59,15 +20,15 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
         ft.addChild(c).dp(m);
     })));
     r('addChild,insertChild, removeChild -> "canvasMap"', rx.merge(pt.addChild.pipe(rx.map(([m, ...chdn]) => [m, chdn])), pt.insertChild.pipe(rx.map(([m, , chdn]) => [m, chdn]))).pipe(rx.mergeMap(([m, chd]) => rx.from(chd).pipe(rx.mergeMap(chd => {
-        const cv = index_1.canvasFac.create(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Elevator.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
+        const cv = canvasFac.create(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Elevator.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
         canvasMap.set(chd, cv);
         cv.ft.setRootComponent(chd).dp(m);
         let rootFoc;
         if (!noEventsLayer.has(chd)) {
-            rootFoc = focusable_1.rootFocusSvcFac.create(cv, Object.assign(Object.assign({ name: s.logPrefix + '.focus' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
+            rootFoc = rootFocusSvcFac.create(cv, Object.assign(Object.assign({ name: s.logPrefix + '.focus' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
             focusSvcMap.set(chd, rootFoc);
             rootFoc.ft.forRootComp(chd).dp(m);
-            chd.ft.provideContext(focusable_1.ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
+            chd.ft.provideContext(ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
             rootFoc.ft.handleKeyEvents(keyEventSvc).dp(m);
             ft.onFocusServieReady(chd).dp(m);
         }
@@ -200,17 +161,17 @@ exports.elevatorFac = container_1.baseContainerFac.forExtend({
     ft.hasOfflineCanvas(true).dp();
     ft.provideContext('__elevatorContainer', service).dp();
 });
-function createElevator(keyEventSvc, opts) {
-    return exports.elevatorFac.create(keyEventSvc, opts);
+export function createElevator(keyEventSvc, opts) {
+    return elevatorFac.create(keyEventSvc, opts);
 }
-function getBoundingOfCompTree(c) {
+export function getBoundingOfCompTree(c) {
     return rx.combineLatest([
         c.table.l.setDisplay,
         isContainerWithoutOfflineCanvas(c) ?
             rx.combineLatest([c.table.l.setBackground, c.table.l.isOpaque]) :
             rx.of([[null, ''], [null, false]])
     ]).pipe(rx.switchMap(([[, d], [[, bg], [, isOpaque]]]) => {
-        if (d !== base_1.DisplayMode.visible)
+        if (d !== DisplayMode.visible)
             return rx.of([]);
         else if (bg != null || isOpaque) {
             return c.table.l.onBoundingBox.pipe(rx.map(([, r]) => [r]));
@@ -223,7 +184,7 @@ function getBoundingOfCompTree(c) {
         }
     }));
 }
-function queryElevatorContainer(src) {
+export function queryElevatorContainer(src) {
     return src.ft.queryContext('__elevatorContainer').od(src.pt.onContextChange).pipe(rx.map(([, , ctx]) => ctx));
 }
 function isContainerWithoutOfflineCanvas(root) {

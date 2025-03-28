@@ -1,6 +1,6 @@
 import {describe, it, expect, jest}  from '@jest/globals';
-import {canvasCacheFac} from '../src/canvas-cache';
-import {getTextDisplayUnits} from '../src/canvas';
+import {canvasCacheFac} from '../src/core/canvas-cache.js';
+import {getTextDisplayUnits} from '../src/core/canvas.js';
 
 describe('canvas-cache', () => {
   it('add', () => {

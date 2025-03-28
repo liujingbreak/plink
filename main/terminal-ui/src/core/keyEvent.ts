@@ -3,7 +3,7 @@ import tty from 'tty';
 import rl from 'readline';
 import * as rx from 'rxjs';
 import {SimplexReactor, SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
-import {Scrollable} from './scrollable';
+import {Scrollable} from './scrollable.js';
 
 export interface KeyScrollingMsg {
   setPageSize(w: number, h: number): SingleActionFactory;
@@ -430,7 +430,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
 
   // Enable and disable Mouse device
   const reset = () => {
-    process.stdout.write('\x1b[?1000;1003l;1005l');
+    // process.stdout.write('\x1b[?1000;1003l;1005l');
   };
   process.on('exit', reset);
   process.on('SIGINT', () => {
@@ -438,16 +438,17 @@ export function createKeyEventService(opts?: KeyEventOptions) {
     process.exit(0);
   });
   setImmediate(() => {
-    // enable mouse event and SGR mode, refer to "blessed" program.js or tty-events.js
-    process.stdout.write('\x1b[?1000h');
-    // process.stdout.write('\x1b[?1001h');
-    // process.stdout.write('\x1b[?1002h');
-    process.stdout.write('\x1b[?1003h');
-    process.stdout.write('\x1b[?1005h');
+    // TODO: mouse tracking, currently:
+    // - Windows console partially works on 1005 and when 1006 is off.
+    // - Termux (Android) works on 1000
+    // - Mac OSX works on 1006 (need to confirm)
+    // Read ../sample/check-mouse.js for control code explanation
+    // process.stdout.write('\x1b[?1000h');
+    // process.stdout.write('\x1b[?1003h');
+    // process.stdout.write('\x1b[?1005h');
     // process.stdout.write('\x1b[?1015h');
     process.stdout.write('\x1b[1;2\'z\x1b[1;3\'{');
     process.stdout.write('\x1b[>1h\x1b[>6h\x1b[>7h\x1b[>1h\x1b[>9l');
-    // process.stdout.write('\x1b[0~ZwLMRK+1Q\x1b\\'); jsbtermMouse
     process.stdout.write('\x1b[?9h');
   });
 

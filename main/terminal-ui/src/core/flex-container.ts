@@ -1,10 +1,10 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {SingleActionFactory, actionRelatedToAction, CreateOptsInDef, SimplexReactorOfFac} from '@wfh/reactivizer';
-import {BaseWidget} from './base';
-import {baseContainerFac, TerminalContainer} from './container';
-import {TextStyle, rectIntersection, Rectangle} from './canvas';
-import {createRtreeInstance} from './rbush';
+import {BaseWidget} from './base.js';
+import {baseContainerFac, TerminalContainer} from './container.js';
+import {TextStyle, rectIntersection, Rectangle} from './canvas.js';
+import {createRtreeInstance} from './rbush.js';
 
 export enum FlexBorderSeparator {
   none, line

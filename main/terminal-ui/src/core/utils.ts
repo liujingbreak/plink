@@ -1,6 +1,6 @@
-import * as rx from 'rxjs';
-import type * as material from '@material/material-color-utilities' with {'resolution-mode': 'import'};
-import {BaseWidget} from './base';
+// import type * as material from '@material/material-color-utilities' with {'resolution-mode': 'import'};
+import * as materialUtils from '@material/material-color-utilities';
+import {BaseWidget} from './base.js';
 
 export function findLowestCommonAncestor(...comps: BaseWidget[]): BaseWidget | null | undefined {
   if (comps.length === 1)
@@ -41,34 +41,28 @@ export function findLowestCommonAncestor(...comps: BaseWidget[]): BaseWidget | n
   }
 }
 
-export const materialColorUtil$ = new rx.ReplaySubject<typeof material>(1);
+// export const materialColorUtil$ = new rx.ReplaySubject<typeof material>(1);
 
-rx.from(import('@material/material-color-utilities')).subscribe(materialColorUtil$);
+// rx.from(import('@material/material-color-utilities')).subscribe(materialColorUtil$);
 
 /**
  * @param hue 0 - 360
  * @param chroma 0 - round 120
  * @param tone 0 - 100
  */
-export function hexColorFrom(hue: number, chroma: number, tone: number): rx.Observable<string> {
-  return materialColorUtil$.pipe(
-    rx.map(({Hct, hexFromArgb}) => {
-      const color = Hct.from(hue, chroma, tone);
-      return hexFromArgb(color.toInt());
-    })
-  );
+export function hexColorFrom(hue: number, chroma: number, tone: number): string {
+  const {Hct, hexFromArgb} = materialUtils;
+  const color = Hct.from(hue, chroma, tone);
+  return hexFromArgb(color.toInt());
 }
 /**
  * @param hex String representing color as hex code. Accepts strings with or
  *     without leading #, and string representing the color using 3, 6, or 8
  *     hex characters
  */
-export function hctColorFromHex(hex: string): rx.Observable<material.Hct> {
-  return materialColorUtil$.pipe(
-    rx.map(({Hct, argbFromHex}) => {
-      const argb = argbFromHex(hex);
-      const color = Hct.fromInt(argb);
-      return color;
-    })
-  );
+export function hctColorFromHex(hex: string): materialUtils.Hct {
+  const {Hct, argbFromHex} = materialUtils;
+  const argb = argbFromHex(hex);
+  const color = Hct.fromInt(argb);
+  return color;
 }

@@ -2,12 +2,12 @@
 import * as rx from 'rxjs';
 import {CoreOptions, SingleActionFactory, SimplexReactorOfFac, CreateOptsOfFac, ActionMeta} from '@wfh/reactivizer';
 import {BaseWidget, Rectangle, Canvas, CanvasOptions,
-  canvasFac, TextStyle} from '../index';
-import {DisplayMode} from './base';
-import {TerminalContainer} from './container';
-import {rootFocusSvcFac, RootFocusServiceOpts, RootFocusService, ROOT_FOCUS_SERVICE_CONTEXT} from './focusable';
-import {baseContainerFac} from './container';
-import {KeyEventServcie} from './keyEvent';
+  canvasFac, TextStyle} from '../index.js';
+import {DisplayMode} from './base.js';
+import {TerminalContainer} from './container.js';
+import {rootFocusSvcFac, RootFocusServiceOpts, RootFocusService, ROOT_FOCUS_SERVICE_CONTEXT} from './focusable.js';
+import {baseContainerFac} from './container.js';
+import {KeyEventServcie} from './keyEvent.js';
 
 interface ElevatorActions {
   /** @param userEvents default `true` */

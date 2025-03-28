@@ -1,60 +1,15 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SPACE_CODE_POINT = exports.canvasFac = void 0;
-exports.getTextDisplayUnits = getTextDisplayUnits;
-exports.uniteDisplayUnits = uniteDisplayUnits;
-exports.rectIntersection = rectIntersection;
-exports.treeNodeToStyleText = treeNodeToStyleText;
-exports.debugLineTrees = debugLineTrees;
-exports.debugLineTree = debugLineTree;
 /* eslint-disable array-bracket-newline */
 /* eslint-disable multiline-ternary */
-const rx = __importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
-const chalk_1 = __importDefault(require("chalk"));
-const reactivizer_1 = require("@wfh/reactivizer");
-const algorithms_1 = require("@wfh/algorithms");
-const rbush_1 = require("../core/rbush");
-const text_split_1 = require("./text-split");
+import * as rx from 'rxjs';
+import { mat4 } from 'gl-matrix';
+import chalk from 'chalk';
+import { BaseReactorFactory, actionRelatedToAction } from '@wfh/reactivizer';
+import { IntervalTree } from '@wfh/algorithms';
+import { createRtreeInstance } from '../core/rbush.js';
+import { isCodePointFullWidth as isFullWidth } from './text-split.js';
 const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl', 'hex', 'bgHex', 'ansi', 'bgAnsi', 'ansi256', 'bgAnsi256']);
 const tableFor = ['setBounding', 'setRootComponent', 'internalCache'];
-exports.canvasFac = new reactivizer_1.BaseReactorFactory({
+export const canvasFac = new BaseReactorFactory({
     name: 'canvas', tableFor
 }).defineReactor((init, opts) => {
     const canvas = init(opts);
@@ -70,7 +25,7 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
     // handling "onPrintText" is actually where to invoke text output through stand output stream.
     // To avoid screen flickering, we use space character to clear screen instead of using API to clear lines.
     let uncommited = [];
-    const rtree$ = (0, rbush_1.createRtreeInstance)();
+    const rtree$ = createRtreeInstance();
     r('setRootComponent', pt.setRootComponent.pipe(rx.switchMap(([m, root]) => {
         if (root)
             return new rx.Observable(() => {
@@ -118,7 +73,7 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
     ]).pipe(rx.take(1), rx.map(([[, x, y, w, h], [, root]], idx) => {
         // canvas.log('>> before uncommited', debugLineTrees(uncommited));
         if (root)
-            root.ft.render(canvas, gl_matrix_1.mat4.create(), rects && rects.length > 0 ? rects : [[0, 0, w, h]]).dp(m);
+            root.ft.render(canvas, mat4.create(), rects && rects.length > 0 ? rects : [[0, 0, w, h]]).dp(m);
         // ft.takeSnapshot({noColor: true, type: 'uncommited'}).re(m).od(pt.didTakeSnapshot).pipe(
         //   rx.take(1),
         //   rx.map(([, lines]) => canvas.log('snapshot 1.5 uncommited\n' + [...lines].join('')))
@@ -165,7 +120,7 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
         lines = new Array(proLines.length);
         for (let i = 0, l = lines.length; i < l; i++) {
             if (proLines[i]) {
-                const line = lines[i] = new algorithms_1.IntervalTree();
+                const line = lines[i] = new IntervalTree();
                 for (const [l, h, value] of proLines[i].allIntervals()) {
                     line.insertInterval(l, h).value = value;
                 }
@@ -227,14 +182,14 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
                     newUnits = units.slice(x - low);
                     if (newUnits[0] === -1) {
                         // a full-width character it is
-                        newUnits[0] = exports.SPACE_CODE_POINT;
+                        newUnits[0] = SPACE_CODE_POINT;
                     }
                 }
                 if (high >= x + w) {
                     newHigh = x + w - 1;
                     newUnits = newUnits.slice(0, newUnits.length - (high + 1 - x - w));
-                    if ((0, text_split_1.isCodePointFullWidth)(newUnits[newUnits.length - 1])) {
-                        newUnits[newUnits.length - 1] = exports.SPACE_CODE_POINT;
+                    if (isFullWidth(newUnits[newUnits.length - 1])) {
+                        newUnits[newUnits.length - 1] = SPACE_CODE_POINT;
                     }
                 }
                 result.push([newLow, newHigh, i, newUnits, style]);
@@ -279,7 +234,7 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
     const filters = new Map();
     r('addRenderFilter,filter.renderBypassFilter... -> copyRect,addDisplayUnits...', pt.addRenderFilter.pipe(rx.mergeMap(([m, rect, filter]) => {
         filters.set(m.i, [rect, filter]);
-        return rx.merge(filter.pt.renderBypassFilter.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.map(([rm, x, y, units, style]) => ft.addDisplayUnits(x, y, units, style, true).dp(rm, m)), rx.takeUntil(pt.removeRenderFilter.pipe((0, reactivizer_1.actionRelatedToAction)(m)))), ft.copyRect(...rect, ' ').re(m).od(pt.didCopyRect).pipe(rx.take(1), rx.mergeMap(([, paintables]) => paintables), rx.map(([x, , y, units, style]) => filter.ft.onRenderForFilter(x, y, units, style.split(';')).dp(m))));
+        return rx.merge(filter.pt.renderBypassFilter.pipe(actionRelatedToAction(m), rx.map(([rm, x, y, units, style]) => ft.addDisplayUnits(x, y, units, style, true).dp(rm, m)), rx.takeUntil(pt.removeRenderFilter.pipe(actionRelatedToAction(m)))), ft.copyRect(...rect, ' ').re(m).od(pt.didCopyRect).pipe(rx.take(1), rx.mergeMap(([, paintables]) => paintables), rx.map(([x, , y, units, style]) => filter.ft.onRenderForFilter(x, y, units, style.split(';')).dp(m))));
     })));
     r('updateRenderFilter', pt.updateRenderFilter.pipe(rx.map(([, addM, rect]) => {
         const entry = filters.get(addM.i);
@@ -306,8 +261,8 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
             // units of negative coordinate should not be printed, so slice them
             const cutOffLen = 0 - x;
             units = units.slice(cutOffLen);
-            if ((0, text_split_1.isCodePointFullWidth)(units[0])) {
-                units[0] = exports.SPACE_CODE_POINT;
+            if (isFullWidth(units[0])) {
+                units[0] = SPACE_CODE_POINT;
             }
             x = 0;
         }
@@ -333,23 +288,23 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
                 if (y >= top && y < bottom && r > left && x < right) {
                     // canvas.log('>> intersect', 'x', x, 'r', r, 'y', y, 'left', left, 'right', right);
                     if (x < left) {
-                        const fullWidthEnd = (0, text_split_1.isCodePointFullWidth)(units[left - x - 1]);
+                        const fullWidthEnd = isFullWidth(units[left - x - 1]);
                         const leftChopped = units.slice(0, left - x);
                         units = units.slice(left - x);
                         if (fullWidthEnd) {
-                            units[0] = exports.SPACE_CODE_POINT;
-                            leftChopped[leftChopped.length - 1] = exports.SPACE_CODE_POINT;
+                            units[0] = SPACE_CODE_POINT;
+                            leftChopped[leftChopped.length - 1] = SPACE_CODE_POINT;
                         }
                         forNextFilter.push([x, y, leftChopped, style]);
                         x = left;
                     }
                     if (r > right) {
-                        const fullWidthStart = (0, text_split_1.isCodePointFullWidth)(units[right - x - 1]);
+                        const fullWidthStart = isFullWidth(units[right - x - 1]);
                         const rightChopped = units.slice(right - x);
                         units = units.slice(0, right - x);
                         if (fullWidthStart) {
-                            units[units.length - 1] = exports.SPACE_CODE_POINT;
-                            rightChopped[0] = exports.SPACE_CODE_POINT;
+                            units[units.length - 1] = SPACE_CODE_POINT;
+                            rightChopped[0] = SPACE_CODE_POINT;
                         }
                         forNextFilter.push([right, y, rightChopped, style]);
                     }
@@ -373,7 +328,7 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
                 for (let i = tLines.length; i < y; i++)
                     tLines.push(undefined);
             }
-            line = new algorithms_1.IntervalTree();
+            line = new IntervalTree();
             tLines[y] = line;
         }
         const endPos = units.length + x;
@@ -443,7 +398,7 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
                 for (const [low, high, [units]] of overlaps) {
                     // canvas.log('>> ovlp line', y, ':', low, '-', high);
                     let wsStart = low < x ? x : low;
-                    if (low < x && (0, text_split_1.isCodePointFullWidth)(units[x - low - 1])) {
+                    if (low < x && isFullWidth(units[x - low - 1])) {
                         if ((uncLine === null || uncLine === void 0 ? void 0 : uncLine.searchSingleOverlap(x - 1, x - 1)) == null)
                             wsStart--;
                     }
@@ -456,14 +411,14 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
                     if (uncLine) {
                         // canvas.log('>> overwrite uncLine', y, 'with ws:', wsStart, ',', wsEnd);
                         // look for overlaping or contiguous (2 characters wider than actual clear space, from "wsStart - 1" to "wsEnd")
-                        uniteDisplayUnits(uncLine, [wsStart, wsEnd - 1, new Array(wsEnd - wsStart).fill(exports.SPACE_CODE_POINT), '']);
+                        uniteDisplayUnits(uncLine, [wsStart, wsEnd - 1, new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), '']);
                     }
                     else {
                         // canvas.log('>> add ws to uncline', y, ':', wsStart, ',', wsEnd);
-                        uncommited[y] = uncLine = new algorithms_1.IntervalTree();
+                        uncommited[y] = uncLine = new IntervalTree();
                         // canvas.log('>>> clearCode insert line', wsStart, wsEnd - 1);
                         const node = uncLine.insertInterval(wsStart, wsEnd - 1);
-                        node.value = [new Array(wsEnd - wsStart).fill(exports.SPACE_CODE_POINT), ''];
+                        node.value = [new Array(wsEnd - wsStart).fill(SPACE_CODE_POINT), ''];
                     }
                 }
             }
@@ -477,7 +432,7 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
             // canvas.log('>> deleted', low, high, 'size', line.size());
             if (low < x) {
                 let chopEnd = x - low;
-                const isLastFw = (0, text_split_1.isCodePointFullWidth)(units[chopEnd - 1]);
+                const isLastFw = isFullWidth(units[chopEnd - 1]);
                 if (isLastFw)
                     chopEnd--;
                 const chopped = units.slice(0, chopEnd);
@@ -498,11 +453,11 @@ exports.canvasFac = new reactivizer_1.BaseReactorFactory({
         }
     }
 });
-function* getTextDisplayUnits(text) {
+export function* getTextDisplayUnits(text) {
     const screenLineBuffer = [];
     for (const char of text) {
         const code = char.codePointAt(0);
-        if ((0, text_split_1.isCodePointFullWidth)(code)) {
+        if (isFullWidth(code)) {
             yield code;
             yield -1;
         }
@@ -512,9 +467,9 @@ function* getTextDisplayUnits(text) {
     }
     return screenLineBuffer;
 }
-exports.SPACE_CODE_POINT = ' '.codePointAt(0);
+export const SPACE_CODE_POINT = ' '.codePointAt(0);
 /** Inputed and returned "high" value is considered as an "included" value of range interval */
-function uniteDisplayUnits(line, target) {
+export function uniteDisplayUnits(line, target) {
     const [l, h, units, style] = target;
     const oUnits = [...units];
     const overlaps = line.searchMultipleOverlaps(l - 1, h + 1);
@@ -526,9 +481,9 @@ function uniteDisplayUnits(line, target) {
         const [el, eh, [eUnits, eStyle]] = existing;
         if (el < l) {
             const choppedUnits = eUnits.slice(0, l - el);
-            if ((0, text_split_1.isCodePointFullWidth)(choppedUnits[choppedUnits.length - 1])) {
+            if (isFullWidth(choppedUnits[choppedUnits.length - 1])) {
                 // A full width character is being chopped in the middle by overlapped new text, remove that character
-                choppedUnits[choppedUnits.length - 1] = exports.SPACE_CODE_POINT;
+                choppedUnits[choppedUnits.length - 1] = SPACE_CODE_POINT;
             }
             if (style === eStyle) {
                 // case of same style, merge two unit
@@ -544,7 +499,7 @@ function uniteDisplayUnits(line, target) {
         if (eh > h) {
             const choppedUnits = eUnits.slice(h - el + 1, eUnits.length);
             if (choppedUnits[0] === -1) {
-                choppedUnits[0] = exports.SPACE_CODE_POINT;
+                choppedUnits[0] = SPACE_CODE_POINT;
             }
             if (style === eStyle) {
                 // case of same style, merge two unit
@@ -565,7 +520,7 @@ function rangeIntersection(low1, high1, low2, high2) {
     const overlap = [low1 > low2 ? low1 : low2, high1 > high2 ? high2 : high1];
     return overlap[0] <= overlap[1] ? overlap : null;
 }
-function rectIntersection([x1, y1, w1, h1], [x2, y2, w2, h2]) {
+export function rectIntersection([x1, y1, w1, h1], [x2, y2, w2, h2]) {
     const hoz = rangeIntersection(x1, x1 + w1, x2, x2 + w2);
     if (hoz == null)
         return null;
@@ -574,12 +529,12 @@ function rectIntersection([x1, y1, w1, h1], [x2, y2, w2, h2]) {
         return null;
     return [hoz[0], vert[0], hoz[1] - hoz[0], vert[1] - vert[0]];
 }
-function treeNodeToStyleText([codePoints, style]) {
+export function treeNodeToStyleText([codePoints, style]) {
     const text = String.fromCodePoint(...codePoints.filter(codePoint => codePoint >= 0));
     if (style) {
         const chalkFn = style.split(';').reduce((chalkInst, keyword) => {
             if (keyword.indexOf('(') < 0) {
-                return (chalkInst !== null && chalkInst !== void 0 ? chalkInst : chalk_1.default)[keyword];
+                return (chalkInst !== null && chalkInst !== void 0 ? chalkInst : chalk)[keyword];
             }
             else {
                 const match = /([^()]+)\(([^)]+)\)/.exec(keyword);
@@ -592,14 +547,14 @@ function treeNodeToStyleText([codePoints, style]) {
                 }
             }
             throw new Error('Canvas does not support chalk style keyword: ' + keyword);
-        }, chalk_1.default);
+        }, chalk);
         return chalkFn(text);
     }
     else {
         return text;
     }
 }
-function debugLineTrees(lines, colorful = false) {
+export function debugLineTrees(lines, colorful = false) {
     return lines.map((els, i) => {
         if (els == null) {
             return '';
@@ -607,7 +562,7 @@ function debugLineTrees(lines, colorful = false) {
         return `line ${i}\n` + debugLineTree(els, colorful);
     }).filter(line => line).join('\n');
 }
-function debugLineTree(tree, colorful = false) {
+export function debugLineTree(tree, colorful = false) {
     return [...tree.allIntervals()].map(([l, h, d]) => `  ${l} - ${h}, "${colorful ? treeNodeToStyleText(d) : treeNodeToStyleText([d[0], ''])}"`).join('\n');
 }
 //# sourceMappingURL=canvas.js.map

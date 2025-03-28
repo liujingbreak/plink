@@ -1,8 +1,8 @@
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
 import { SingleActionFactory, Action, InferMapParam, CreateOptsOfFac, SimplexReactorOfFac } from '@wfh/reactivizer';
-import { Canvas, Rectangle } from './canvas';
-import { BaseWidget } from './base';
+import { Canvas, Rectangle } from './canvas.js';
+import { BaseWidget } from './base.js';
 export interface TerminalContainerInput {
     addChild(...children: BaseWidget[]): SingleActionFactory;
     insertChild(beforeIndex: number, children: BaseWidget[]): SingleActionFactory;
@@ -62,6 +62,6 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
     /** In context of findOverlaps */
     didFindOverlaps(children: BaseWidget[]): SingleActionFactory;
 }
-export declare const baseContainerFac: import("@wfh/reactivizer").DerivedReactorFactory<TermainlContainerEvents, readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque", "latestReflowData", "isLayoutDirty", "setLayoutCheck"], [], import("./base").BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;
+export declare const baseContainerFac: import("@wfh/reactivizer").DerivedReactorFactory<TermainlContainerEvents, readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque", "latestReflowData", "isLayoutDirty", "setLayoutCheck"], [], import("./base.js").BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;
 export type TerminalContainerOpts = CreateOptsOfFac<typeof baseContainerFac>;
 export type TerminalContainer = SimplexReactorOfFac<typeof baseContainerFac>;

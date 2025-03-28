@@ -1,18 +1,18 @@
 {
   "name": "@wfh/algorithms",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Basic algorithms and data structures that is used by Plink internally, including Red-black tree, interval-tree, BFS, DFS graph algorithms",
   "main": "dist/index.js",
   "module": "es/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./es/index.js",
-      "require": "./dist/index.js"
+      "node": "./dist/index.js",
+      "default": "./es/index.js"
     },
     "./dist/utils": {
-      "import": "./es/utils.js",
-      "require": "./dist/utils.js"
+      "node": "./dist/utils.js",
+      "default": "./es/utils.js"
     }
   },
   "plink": {

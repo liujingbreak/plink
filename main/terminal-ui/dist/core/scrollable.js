@@ -1,67 +1,30 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.scrollableFac = void 0;
-exports.createScrollable = createScrollable;
 /* eslint-disable array-bracket-newline */
-const rx = __importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
-const app_shell_1 = require("../app/app-shell");
-const container_1 = require("./container");
-const canvas_1 = require("./canvas");
-const focusable_1 = require("./focusable");
-const color_theme_1 = require("../app/color-theme");
+import * as rx from 'rxjs';
+import { mat4, vec2 } from 'gl-matrix';
+import { queryAppContext } from '../app/app-shell.js';
+import { querySchemeForComponent } from '../app/color-theme.js';
+import { baseContainerFac } from './container.js';
+import { canvasFac, rectIntersection } from './canvas.js';
+import { focusServiceFac } from './focusable.js';
 const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', 'isScrollNeeded',
     'setScrollbarStyle', 'onViewPortSize'];
 /** Scrollable is a TerminalContainer which has an offline canvas, child components will only be "render"ed
  * when they are scrolled to become visible, and they are firstly rendered to the offline canvas then will be copied
  * to outsider canvas afterward
  */
-exports.scrollableFac = container_1.baseContainerFac.forExtend({
+export const scrollableFac = baseContainerFac.forExtend({
     name: 'scrollable',
     tableFor
 }).defineReactor((init, comp, opts) => {
     var _a;
     const scrollable = init(Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: opts === null || opts === void 0 ? void 0 : opts.name }, opts === null || opts === void 0 ? void 0 : opts.container));
     const { r, ft, pt, latest } = scrollable;
-    const canvas = canvas_1.canvasFac.create(Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'scrollable.canvas' }, opts === null || opts === void 0 ? void 0 : opts.canvas));
+    const canvas = canvasFac.create(Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'scrollable.canvas' }, opts === null || opts === void 0 ? void 0 : opts.canvas));
     canvas.ft.setRootComponent(comp).dp();
     r('onRender,canvas.clearRect -> outerCanvas.clearRect', pt.onRender.pipe(rx.withLatestFrom(latest.onValidScroll, latest.onViewPortSize), rx.switchMap(([[mR, oCanvas, trans], [, left, top], [, sw, sh]]) => canvas.pt.clearRect.pipe(rx.map(([m, x, y, w, h]) => {
         const x1 = x + left;
         const y1 = y + top;
-        const p = gl_matrix_1.vec2.transformMat4([0, 0], [x1, y1], trans);
+        const p = vec2.transformMat4([0, 0], [x1, y1], trans);
         const w1 = sw - x1 > w ? w : sw - x1;
         const h1 = sh - y1 > h ? h : sh - y1;
         oCanvas.ft.clearRect(p[0], p[1], w1, h1).dp(m, mR);
@@ -97,7 +60,7 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
             if (yOverflow) {
                 const trackHeight = xOverflow ? height - barHeight : height;
                 const leftTop = [width - barWidth, 0];
-                gl_matrix_1.vec2.transformMat4(leftTop, leftTop, trans);
+                vec2.transformMat4(leftTop, leftTop, trans);
                 const barBtnTop = trackHeight * scTop / ch;
                 const barBtnHeight = Math.ceil(trackHeight * vpHeight / ch);
                 const barChars = '█'.repeat(barWidth);
@@ -140,7 +103,7 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
                 else if (scLeft + vpWidth < cw && barBtnLeft + barBtnWidth === trackWidth) {
                     barBtnLeft = trackWidth - barBtnWidth;
                 }
-                gl_matrix_1.vec2.transformMat4(leftTop, leftTop, trans);
+                vec2.transformMat4(leftTop, leftTop, trans);
                 const rightWidth = trackWidth - barBtnWidth - barBtnLeft;
                 scrollable.log('>> trackWidth', trackWidth, 'barBtnLeft', barBtnLeft, 'barBtnWidth', barBtnWidth, 'rightWidth', rightWidth, 'y', leftTop[1]);
                 for (let i = 0; i < barHeight; i++) {
@@ -155,23 +118,23 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
         }
         else {
             const p = [0, 0];
-            gl_matrix_1.vec2.transformMat4(p, p, trans);
+            vec2.transformMat4(p, p, trans);
             outerCanvas.ft.clearRect(p[0], p[1], vpWidth, vpHeight).dp(m);
         }
         const clipsOfView = clips.map(c => {
-            return (0, canvas_1.rectIntersection)([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
+            return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
         }).filter((c) => c != null);
         const masksOfView = masks ?
             masks.map(c => {
-                return (0, canvas_1.rectIntersection)([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
+                return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
             }).filter((c) => c != null) :
             [];
         // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
-        comp.ft.render(canvas, gl_matrix_1.mat4.create(), clipsOfView, masksOfView).dp(m);
+        comp.ft.render(canvas, mat4.create(), clipsOfView, masksOfView).dp(m);
         return canvas.ft.copyRect(scLeft, scTop, vpWidth, vpHeight).re(m).od(canvas.pt.didCopyRect).pipe(rx.take(1), rx.map(([, paintables]) => {
             for (const [x, , y, units, style] of paintables) {
                 const point = [x - scLeft, y - scTop];
-                gl_matrix_1.vec2.transformMat4(point, point, trans);
+                vec2.transformMat4(point, point, trans);
                 outerCanvas.ft.addDisplayUnits(point[0], point[1], units, [style]).dp(m);
             }
         }));
@@ -313,7 +276,7 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
         if (toX !== scrollX || toY !== scrollY)
             ft.scrollTo(toX, toY).dp(m);
     })))));
-    r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(rx.switchMap(([m]) => (0, app_shell_1.queryAppContext)(scrollable, m).pipe(rx.take(1), rx.map(({ keyEventService, statusbar }) => {
+    r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(rx.switchMap(([m]) => queryAppContext(scrollable, m).pipe(rx.take(1), rx.map(({ keyEventService, statusbar }) => {
         keyEventService.ft.bindToScrollable(scrollable).dp(m);
         statusbar.ft.trackScrollable(scrollable).dp(m);
     })))));
@@ -322,7 +285,7 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
             ft.didFindOverlaps([comp]).dp(m);
             return rx.EMPTY;
         }
-        const rect = (0, canvas_1.rectIntersection)(rect0, bounding);
+        const rect = rectIntersection(rect0, bounding);
         if (rect == null) {
             ft.didFindOverlaps([]).dp(m);
             return rx.EMPTY;
@@ -334,7 +297,7 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
         return c.ft.findOverlaps(x, y, rect[2], rect[3])
             .re(m).od(c.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([m2, found]) => ft.didFindOverlaps(found.concat(comp)).dp(m, m2)));
     })));
-    const focusSvc = focusable_1.focusServiceFac.create(canvas, Object.assign({ name: scrollable.s.logPrefix + '.focus', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.focus));
+    const focusSvc = focusServiceFac.create(canvas, Object.assign({ name: scrollable.s.logPrefix + '.focus', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.focus));
     focusSvc.ft.forRootComp(scrollable).dp();
     r('init', new rx.Observable(() => {
         ft.onContentSizeChange(2, 2).dp();
@@ -350,14 +313,14 @@ exports.scrollableFac = container_1.baseContainerFac.forExtend({
         // ft.addReflowAction(s.at.setScrollable).dp();
         ft.hasOfflineCanvas(true).dp();
     }));
-    r('"theming"', (0, color_theme_1.querySchemeForComponent)(scrollable).pipe(rx.map(([colors, ...m]) => {
+    r('"theming"', querySchemeForComponent(scrollable).pipe(rx.map(([colors, ...m]) => {
         const bg = `bgHex(${colors.secondaryContainer})`;
         ft.setScrollbarStyle(1, 1, [`hex(${colors.secondary})`, bg], [bg]).dp(...m);
     })));
 }).interceptorForBaseByType(dispenser => {
     return rx.merge(rx.merge(dispenser.at.onRender, dispenser.at.findOverlaps).pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
 });
-function createScrollable(comp, opts) {
-    return exports.scrollableFac.create(comp, opts);
+export function createScrollable(comp, opts) {
+    return scrollableFac.create(comp, opts);
 }
 //# sourceMappingURL=scrollable.js.map

@@ -1,40 +1,3 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.rootFocusSvcFac = exports.focusServiceFac = exports.SearchDirection = exports.ROOT_FOCUS_SERVICE_CONTEXT = void 0;
-exports.queryRootFocusService = queryRootFocusService;
 /* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
 /**
@@ -48,36 +11,36 @@ exports.queryRootFocusService = queryRootFocusService;
  * WHEN a focusable component is focused,
  *  onFocus event should be dispatched
  */
-const rx = __importStar(require("rxjs"));
-const reactivizer_1 = require("@wfh/reactivizer");
-const algorithms_1 = require("@wfh/algorithms");
-const keyEvent_1 = require("./keyEvent");
-const canvas_cache_1 = require("./canvas-cache");
-exports.ROOT_FOCUS_SERVICE_CONTEXT = '__rootFocus';
-var SearchDirection;
+import * as rx from 'rxjs';
+import { actionRelatedToAction, BaseReactorFactory } from '@wfh/reactivizer';
+import { RedBlackTree } from '@wfh/algorithms';
+import { KeyEventEnum } from './keyEvent.js';
+import { canvasCacheFac } from './canvas-cache.js';
+export const ROOT_FOCUS_SERVICE_CONTEXT = '__rootFocus';
+export var SearchDirection;
 (function (SearchDirection) {
     SearchDirection[SearchDirection["down"] = 0] = "down";
     SearchDirection[SearchDirection["up"] = 1] = "up";
     SearchDirection[SearchDirection["right"] = 2] = "right";
     SearchDirection[SearchDirection["left"] = 3] = "left";
     SearchDirection[SearchDirection["tabNext"] = 4] = "tabNext";
-})(SearchDirection || (exports.SearchDirection = SearchDirection = {}));
+})(SearchDirection || (SearchDirection = {}));
 const tableFor = [
     'didFound', 'handleKeyEvents', 'searchTree', 'isPaused', 'forRootComp'
 ];
-exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
+export const focusServiceFac = new BaseReactorFactory({
     name: 'focusSvc',
     tableFor
 }).interceptorByType(ac => rx.merge(ac.at.onFocus.pipe(rx.distinctUntilChanged(({ p: [, a] }, { p: [, b] }) => a === b)), ac.at.isPaused.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ac.ofOtherTypes())).defineReactor((init, canvas, opts) => {
     const service = init(opts);
     const { ft, pt, r, latest } = service;
     const rectByComponent = new Map();
-    const xTree = new algorithms_1.RedBlackTree();
-    const yTree = new algorithms_1.RedBlackTree();
-    const rightXTree = new algorithms_1.RedBlackTree();
-    const bottomYTree = new algorithms_1.RedBlackTree();
-    const tabIndexTree = new algorithms_1.RedBlackTree();
-    const offscreen = canvas_cache_1.canvasCacheFac.create(Object.assign({ name: service.s.logPrefix + '.cache', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.cache));
+    const xTree = new RedBlackTree();
+    const yTree = new RedBlackTree();
+    const rightXTree = new RedBlackTree();
+    const bottomYTree = new RedBlackTree();
+    const tabIndexTree = new RedBlackTree();
+    const offscreen = canvasCacheFac.create(Object.assign({ name: service.s.logPrefix + '.cache', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.cache));
     ft.searchTree(xTree, yTree).dp();
     r('forRootComp -> root.provideFocusService...', pt.forRootComp.pipe(rx.switchMap(([m, root]) => {
         root.ft.provideFocusService(service).dp(m);
@@ -251,7 +214,7 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
         }
         else {
             const newXNode = xTree.insert(newCol);
-            newXNode.value = new algorithms_1.RedBlackTree();
+            newXNode.value = new RedBlackTree();
             const newYNode = newXNode.value.insert(newRow);
             newYNode.value = [c];
         }
@@ -269,7 +232,7 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
         }
         else {
             const newYNode = yTree.insert(newRow);
-            newYNode.value = new algorithms_1.RedBlackTree();
+            newYNode.value = new RedBlackTree();
             const newXNode = newYNode.value.insert(newCol);
             newXNode.value = [c];
         }
@@ -283,7 +246,7 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
             return parentRoots;
         }))), rx.take(1)) : rx.of([[curr, currComp]])));
     }
-    r('focusOnComponent', pt.focusOnComponent.pipe(rx.switchMap(([m, c]) => c.ft.queryContext(exports.ROOT_FOCUS_SERVICE_CONTEXT)
+    r('focusOnComponent', pt.focusOnComponent.pipe(rx.switchMap(([m, c]) => c.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT)
         .re(m).od(c.pt.onContextChange).pipe(rx.mergeMap(([, , rootFocus]) => {
         return getAllParentFocusSvc(service, c, rootFocus).pipe(rx.mergeMap(trace => {
             service.log('-- focusOnComponent', trace.map(([f, c]) => f.s.logPrefix + ' -> ' + c.s.logPrefix));
@@ -311,7 +274,7 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
                     })));
                 }
                 else {
-                    return comp.ft.queryContext(exports.ROOT_FOCUS_SERVICE_CONTEXT).re(m).od(comp.pt.onContextChange).pipe(rx.take(1), rx.map(([, , rootFocus]) => {
+                    return comp.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m).od(comp.pt.onContextChange).pipe(rx.take(1), rx.map(([, , rootFocus]) => {
                         rootFocus.ft.switchFocus(service, comp.s.logPrefix, comp).dp(m);
                     }));
                 }
@@ -325,7 +288,7 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
     // designate it to handle key events
     const forked = service.s.forkController();
     r('findFocusable,didFound,didNotFound,handleKeyEvents... -> onFocus,rootFocus.switchFocus', pt.findFocusable.pipe(rx.withLatestFrom(latest.handleKeyEvents), rx.switchMap(([[m, dir], [, keySvc]]) => {
-        return forked.pt.didFound.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.takeUntil(forked.pt.didNotFound.pipe((0, reactivizer_1.actionRelatedToAction)(m))), rx.take(1), 
+        return forked.pt.didFound.pipe(actionRelatedToAction(m), rx.takeUntil(forked.pt.didNotFound.pipe(actionRelatedToAction(m))), rx.take(1), 
         // query whether current component is "focusable"
         rx.mergeMap(([, rect, c]) => {
             if (rect && c) {
@@ -335,7 +298,7 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
         }), rx.switchMap(([c, r]) => {
             if (r) {
                 ft.onFocus(c.s.logPrefix, c, service).dp(m);
-                return c.ft.queryContext(exports.ROOT_FOCUS_SERVICE_CONTEXT).re(m)
+                return c.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m)
                     .od(c.pt.onContextChange)
                     .pipe(rx.take(1), rx.map(([, , rootFocus]) => {
                     rootFocus.ft.switchFocus(service, c.s.logPrefix, c).dp(m);
@@ -599,17 +562,17 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
             return rx.range(0, count).pipe(rx.map(() => ft.findFocusable(dir, m.i).dp(m, m1)));
         }
         if (evt)
-            service.log('--keyevent', m1.i, keyEvent_1.KeyEventEnum[evt], count);
+            service.log('--keyevent', m1.i, KeyEventEnum[evt], count);
         switch (evt) {
-            case keyEvent_1.KeyEventEnum.focusUp:
+            case KeyEventEnum.focusUp:
                 return rx.range(0, count).pipe(rx.map(() => ft.findFocusable(SearchDirection.up, m.i).dp(m, m1)));
-            case keyEvent_1.KeyEventEnum.focusDown:
+            case KeyEventEnum.focusDown:
                 return rx.range(0, count).pipe(rx.map(() => ft.findFocusable(SearchDirection.down, m.i).dp(m, m1)));
-            case keyEvent_1.KeyEventEnum.focusLeft:
+            case KeyEventEnum.focusLeft:
                 return rx.range(0, count).pipe(rx.map(() => ft.findFocusable(SearchDirection.left, m.i).dp(m, m1)));
-            case keyEvent_1.KeyEventEnum.focusRight:
+            case KeyEventEnum.focusRight:
                 return rx.range(0, count).pipe(rx.map(() => ft.findFocusable(SearchDirection.right, m.i).dp(m, m1)));
-            case keyEvent_1.KeyEventEnum.focusNext:
+            case KeyEventEnum.focusNext:
                 return rx.range(0, count).pipe(rx.map(() => ft.findFocusable(SearchDirection.tabNext, m.i).dp(m, m1)));
         }
     }), rx.takeUntil(pt.stopHandleKeyEvents)))));
@@ -687,7 +650,7 @@ exports.focusServiceFac = new reactivizer_1.BaseReactorFactory({
     return service;
 });
 const tableForRoot = ['switchFocus'];
-exports.rootFocusSvcFac = exports.focusServiceFac.forExtend({
+export const rootFocusSvcFac = focusServiceFac.forExtend({
     name: 'rootFocusSvc',
     debugExcludeTypes: ['renderBypassFilter'],
     tableFor: tableForRoot
@@ -797,8 +760,8 @@ function chooseClosestLeftOrRight(x, node1, node2) {
     }
     return null;
 }
-function queryRootFocusService(currComp, m) {
-    let fac = currComp.ft.queryContext(exports.ROOT_FOCUS_SERVICE_CONTEXT);
+export function queryRootFocusService(currComp, m) {
+    let fac = currComp.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT);
     if (m)
         fac = fac.re(m);
     return fac.od(currComp.pt.onContextChange).pipe(rx.map(([, , v]) => v));

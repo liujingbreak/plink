@@ -5,8 +5,8 @@ import stripAnsi from 'strip-ansi';
 import * as rx from 'rxjs';
 // import chalk from 'chalk';
 import {BaseReactorFactory, actionRelatedToAction} from '@wfh/reactivizer';
-import {canvasFac, TerminalCanvasOptions, debugLineTrees, getTextDisplayUnits,
-  CanvasFilterInput, CanvasFilterOutput} from '../src';
+import {canvasFac, CanvasOptions, debugLineTrees, getTextDisplayUnits,
+  CanvasFilterInput, CanvasFilterOutput} from '../src/index.js';
 
 describe('TerminalCanvas', () => {
   it.skip('Single line, printing texts', () => {
@@ -392,6 +392,6 @@ const testCanvasFac = canvasFac.forExtend()
     ),
     dis.at.onClearLine.pipe(rx.ignoreElements()),
     dis.ofOtherTypes()
-  )).defineReactor((init, opts?: TerminalCanvasOptions) => {
+  )).defineReactor((init, opts?: CanvasOptions) => {
     init(opts);
   });

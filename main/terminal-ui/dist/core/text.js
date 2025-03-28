@@ -1,56 +1,19 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.textWidgetFac = exports.tableForMultiLineText = void 0;
-exports.createTextWidget = createTextWidget;
-const rx = __importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
-const canvas_1 = require("./canvas");
-const base_1 = require("./base");
-const text_split_1 = require("./text-split");
-exports.tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'];
-exports.textWidgetFac = base_1.baseComponentFac.forExtend({
+import * as rx from 'rxjs';
+import { vec2 } from 'gl-matrix';
+import { getTextDisplayUnits } from './canvas.js';
+import { baseComponentFac } from './base.js';
+import { isCodePointFullWidth, createWordSplitter } from './text-split.js';
+export const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines', 'onDisplayLinesForWidth', 'onDisplayLinesForPrefSize'];
+export const textWidgetFac = baseComponentFac.forExtend({
     name: 'text',
-    tableFor: exports.tableForMultiLineText
+    tableFor: tableForMultiLineText
 }).interceptorByType(ad => rx.merge(ad.at.setContent.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, initialText, opts) => {
     const service = init(opts);
-    const spliter = (0, text_split_1.createWordSplitter)({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });
+    const spliter = createWordSplitter({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });
     const { r, s, ft, pt, table, latest } = service;
     r('onRender', pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(latest.onDisplayLines, latest.onFgChangeWithParent, latest.onSize, latest.overflow, latest.onBgChangeWithParent), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
         const leftop = [0, 0];
-        const [x, y0] = gl_matrix_1.vec2.transformMat4(leftop, leftop, trans);
+        const [x, y0] = vec2.transformMat4(leftop, leftop, trans);
         const lineCnt = Math.min(height, lines.length);
         for (let i = 0, l = lineCnt; i < l; i++) {
             // canvas.log('>>>', String.fromCodePoint(...lines[i]));
@@ -64,7 +27,7 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
             canvas.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
         }
         if (overflow)
-            canvas.ft.addString(x + width - 3, y0 + lineCnt - 1, '...').dp(m);
+            canvas.ft.addString(x + width - 3, y0 + lineCnt - 1, '...', style !== null && style !== void 0 ? style : undefined).dp(m);
     })));
     r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(rx.withLatestFrom(latest.preferredSize, latest.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
         if (height != null) {
@@ -105,7 +68,7 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
             const [lines, maxWidth] = preferLayoutText(content);
             ft.onDisplayLinesForWidth().dp(m);
             ft.onContentSizeChange(maxWidth, lines.length).dp(m);
-            const linesForPrefSize = lines.map(line => [...(0, canvas_1.getTextDisplayUnits)(line)]);
+            const linesForPrefSize = lines.map(line => [...getTextDisplayUnits(line)]);
             ft.onDisplayLinesForPrefSize(linesForPrefSize).dp(m);
             return [m, maxWidth, lines.length, linesForPrefSize];
         }))
@@ -177,7 +140,7 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
             let width = 0;
             for (const char of line) {
                 const codePoint = char.codePointAt(0);
-                width += codePoint ? ((0, text_split_1.isCodePointFullWidth)(codePoint) ? 2 : 1) : 0;
+                width += codePoint ? (isCodePointFullWidth(codePoint) ? 2 : 1) : 0;
             }
             if (width > maxWidth)
                 maxWidth = width;
@@ -247,8 +210,8 @@ exports.textWidgetFac = base_1.baseComponentFac.forExtend({
         }));
     }
 });
-function createTextWidget(initialText = '', opts) {
-    const service = exports.textWidgetFac.create(initialText, opts);
+export function createTextWidget(initialText = '', opts) {
+    const service = textWidgetFac.create(initialText, opts);
     return service;
 }
 //# sourceMappingURL=text.js.map

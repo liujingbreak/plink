@@ -2,7 +2,7 @@ import _ts from 'typescript';
 import { SimplexReactor, SingleActionFactory, ActionMeta } from '@wfh/reactivizer';
 import chokidar from 'chokidar';
 import { TsconfigType } from '../../package-mgr/package-mgr2-utils';
-export declare function createTranspileFileWithTsCheck(ts: any, tsconfigJson: TsconfigType, tsconfigDir: string): (content: string, file: string) => readonly [string, string];
+export declare function createTranspileFileWithTsCheck(ts: any | undefined, tsconfigJson: TsconfigType, tsconfigDir: string): (content: string, file: string) => readonly [string, string];
 export declare enum LogLevel {
     trace = 0,
     log = 1,

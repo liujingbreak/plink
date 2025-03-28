@@ -1,27 +1,22 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-require("source-map-support/register");
-const util_1 = __importDefault(require("util"));
-const fs_1 = __importDefault(require("fs"));
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const index_1 = require("../index");
+import 'source-map-support/register';
+import util from 'util';
+import fs from 'fs';
+import { formatToConciseNoColor } from '@wfh/reactivizer/dist/nodejs-utils';
+import { createBorderContainer, createTerminalCanvas, createScrollable, createTextWidget, createFlexContainer } from '../index.js';
 const debug = true;
-const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
+const fout = fs.createWriteStream('terminal-canvas-sample.log');
 function log(...args) {
     const date = new Date();
     fout.write(date.toLocaleTimeString());
     fout.write('.');
     fout.write(date.getMilliseconds() + ' - ');
-    fout.write((0, nodejs_utils_1.formatToConciseNoColor)(...args));
+    fout.write(formatToConciseNoColor(...args));
     fout.write('\n');
 }
-const canvas = (0, index_1.createTerminalCanvas)({ debug: false, log });
-const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
-const border = (0, index_1.createBorderContainer)(root, { debug, log });
-const scrollable = (0, index_1.createScrollable)(border, { debug, log });
+const canvas = createTerminalCanvas({ debug: false, log });
+const root = createFlexContainer({ name: 'root', debug, log });
+const border = createBorderContainer(root, { debug, log });
+const scrollable = createScrollable(border, { debug, log });
 root.s.ft.alignItems('center').dp();
 root.s.ft.setDirection('col').dp();
 canvas.s.ft.autoHideCursor().dp();
@@ -29,13 +24,13 @@ canvas.s.ft.setRootComponent(scrollable).dp();
 canvas.error$.subscribe(([err, label]) => {
     process.stdout.clearScreenDown();
     console.error(label, err);
-    log('-----------------\n', label, util_1.default.inspect(err));
+    log('-----------------\n', label, util.inspect(err));
     process.exit(0);
 });
 const num = 20;
 const hueInterval = Math.round(360 / num);
 for (let i = 0; i < num; i++) {
-    const label = (0, index_1.createTextWidget)('TEST LABEL ' + (num - i), { name: 'LABEL ' + i, debug: false, log });
+    const label = createTextWidget('TEST LABEL ' + (num - i), { name: 'LABEL ' + i, debug: false, log });
     label.s.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
     root.s.ft.addChild(label).dp();
 }

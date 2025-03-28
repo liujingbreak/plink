@@ -1,10 +1,10 @@
-import 'source-map-support/register';
+// import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTable, createTerminalCanvas, TableBorderType, createFlexContainer,
-  MultiLineTextWidget} from '../index';
+  MultiLineTextWidget} from '../index.js';
 
 const debug = false;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');

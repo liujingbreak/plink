@@ -1,64 +1,28 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.baseComponentFac = exports.tableForBase = exports.DisplayMode = void 0;
 /* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
-const rx = __importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
-const reactivizer_1 = require("@wfh/reactivizer");
-var DisplayMode;
+import * as rx from 'rxjs';
+import { mat4, vec2 } from 'gl-matrix';
+import { BaseReactorFactory } from '@wfh/reactivizer';
+export var DisplayMode;
 (function (DisplayMode) {
     DisplayMode[DisplayMode["visible"] = 0] = "visible";
     /** like CSS display:none, does not take any space in layout */
     DisplayMode[DisplayMode["none"] = 1] = "none";
     /** it does take space in layout, but with empty content */
     DisplayMode[DisplayMode["hidden"] = 2] = "hidden";
-})(DisplayMode || (exports.DisplayMode = DisplayMode = {}));
-exports.tableForBase = [
+})(DisplayMode || (DisplayMode = {}));
+export const tableForBase = [
     'onSize', 'onTransform', 'onPosition', 'overflow', 'preferredSize', 'prefHeightFor', 'prefWidthFor', 'setParent', 'needRerender',
     'setPreferredSize', 'setFlexGrow', 'ofCanvas', 'setDisplay', 'onBoundingBox', 'onDetached', 'setFlexShrink', 'render', 'setFocusStyle',
     'setBackground', 'setForeground', 'onFgChangeWithParent', 'onBgChangeWithParent', 'bgCleared', 'setFocusable', 'setRenderChanges', 'isContainer', 'depth', 'focusService'
 ];
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
+export const baseComponentFac = new BaseReactorFactory({
     debugExcludeTypes: [
         'ofCanvas', '_saveTransform',
         'queryAbsBounding', 'didQueryAbsBounding'
     ],
-    tableFor: exports.tableForBase
+    tableFor: tableForBase
 }).interceptorByType(ad => {
     return rx.merge(ad.at.onPosition.pipe(rx.distinctUntilChanged(({ p: [ax, ay] }, { p: [bx, by] }) => {
         return ax === bx && ay === by;
@@ -72,7 +36,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
 }).defineReactor(init => {
     const service = init();
     const { ft, at, pt, r, s, table, latest } = service;
-    r('_saveTransform -> onTransform', rx.merge(pt._saveTransform.pipe(rx.distinctUntilChanged(([, t1], [, t2]) => gl_matrix_1.mat4.equals(t1, t2)), rx.map(([m, t]) => ft.onTransform(t).dp(m)))));
+    r('_saveTransform -> onTransform', rx.merge(pt._saveTransform.pipe(rx.distinctUntilChanged(([, t1], [, t2]) => mat4.equals(t1, t2)), rx.map(([m, t]) => ft.onTransform(t).dp(m)))));
     r('setPreferredSize, onContentSizeChange -> preferredSize', rx.combineLatest([
         latest.setPreferredSize, pt.onContentSizeChange
     ]).pipe(rx.map(([[, w, h], [, cW, cH]]) => {
@@ -123,7 +87,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
             ft.needRerender(false).dp(m);
         }
         const pos = [0, 0];
-        gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+        vec2.transformMat4(pos, pos, trans);
         const bounding = [pos[0], pos[1], width, height];
         ft.onBoundingBox(bounding).dp(m);
         if (width === 0 || height === 0)
@@ -151,7 +115,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
     })));
     r('clear... -> bgCleared...', pt.clear.pipe(rx.withLatestFrom(latest.onSize, latest.onBgChangeWithParent, latest.bgCleared), rx.map(([[m, canvas, trans], [m2, width, height], [m3, bg], [m4, cleared]], _idx) => {
         const pos = [0, 0];
-        gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+        vec2.transformMat4(pos, pos, trans);
         // service.log('>> clear bg:', bg, 'bgCleared:', cleared);
         if (bg) {
             const fill = ' '.repeat(width);
@@ -196,8 +160,8 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
     r('foreground,onBgChangeWithParent...-> onFgChangeWithParent', rx.combineLatest([
         latest.setForeground,
         latest.onBgChangeWithParent
-    ]).pipe(rx.switchMap(([v, [, bg]]) => v[1] && v[1].length > 0 ?
-        rx.of([v[0], [...v[1], bg]]) :
+    ]).pipe(rx.switchMap(([[fm, fg], [, bg]]) => fg && fg.length > 0 ?
+        rx.of([fm, [...fg, bg]]) :
         latest.setParent.pipe(rx.switchMap(([m, p]) => p ? p.latest.onFgChangeWithParent : rx.of([m, null])))), rx.map(([m, style]) => {
         ft.onFgChangeWithParent(style).dp(m);
     })));
@@ -432,6 +396,7 @@ exports.baseComponentFac = new reactivizer_1.BaseReactorFactory({
         ft.setFocusable(false).dp();
         ft.onDetached(true).dp();
         ft.setBackground(null).dp();
+        ft.setForeground(null).dp();
         ft.isContainer(false).dp();
         ft.onBgChangeWithParent(null).dp();
         ft.setRenderChanges(renderData).dp();

@@ -1,8 +1,8 @@
 import * as rx from 'rxjs';
 import { CoreOptions, SingleActionFactory, SimplexReactor, ActionMeta } from '@wfh/reactivizer';
-import { BaseWidget, ScrollableOptions, TerminalCanvasOpts, ElevatorOptions, FlexContainer, FlexContainerOpts, KeyEventOptions, TerminalCanvas, KeyEventServcie, app } from '../index';
-import { ColorTheme, ColorThemeOpts } from './color-theme';
-import { StatusbarOptions } from './statusbar';
+import { BaseWidget, ScrollableOptions, TerminalCanvasOpts, ElevatorOptions, FlexContainer, FlexContainerOpts, KeyEventOptions, TerminalCanvas, KeyEventServcie, app } from '../index.js';
+import { ColorTheme, ColorThemeOpts } from './color-theme.js';
+import { StatusbarOptions } from './statusbar.js';
 export interface AppActions {
     setFullScreenMode(): SingleActionFactory;
     /** If width or height is larger than the number of available columens and rows,

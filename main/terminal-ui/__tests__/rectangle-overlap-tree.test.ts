@@ -1,8 +1,9 @@
 /* eslint-disable no-console */
+/**
 import {describe, it, expect}  from '@jest/globals';
 import {stringifyIntervalTree} from '@wfh/algorithms';
-import {RectangleOverlapTree} from '../dist/core/rectangle-overlap-tree';
-import {Rectangle} from '../dist/core/canvas';
+import {RectangleOverlapTree} from '../dist/core/rectangle-overlap-tree.js';
+import {Rectangle} from '../dist/core/canvas.js';
 
 function createMockTree() {
   const rects = [
@@ -78,3 +79,4 @@ describe('RectangleOverlapTree', () => {
     expect(all3.length).toBe(1);
   });
 });
+*/

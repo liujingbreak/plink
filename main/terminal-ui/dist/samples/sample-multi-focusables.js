@@ -1,33 +1,28 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-require("source-map-support/register");
-const fs_1 = __importDefault(require("fs"));
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const index_1 = require("../index");
+import 'source-map-support/register';
+import fs from 'fs';
+import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
+import { app, createBorderContainer, createScrollable, createFlexContainer, createTextWidget } from '../index.js';
 const debug = false;
-const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const panel = (0, index_1.createFlexContainer)({ name: 'mainPanel', debug, log });
-const border = (0, index_1.createBorderContainer)(panel, { name: 'border', debug, log });
+const fout = fs.createWriteStream('terminal-canvas-sample.log');
+const log = createSimpleIndentLogger(false, false, fout);
+const panel = createFlexContainer({ name: 'mainPanel', debug, log });
+const border = createBorderContainer(panel, { name: 'border', debug, log });
 panel.ft.setDirection('row').dp();
-const left = (0, index_1.createFlexContainer)({ name: 'left', debug, log });
+const left = createFlexContainer({ name: 'left', debug, log });
 left.ft.setDirection('col').dp();
-const textLabel = (0, index_1.createTextWidget)('Hello world!', { debug, log });
+const textLabel = createTextWidget('Hello world!', { debug, log });
 left.ft.addChild(textLabel).dp();
 left.ft.setFocusable(true).dp();
 textLabel.ft.setStyle(['cyan']).dp();
 textLabel.ft.setFlexShrink(0).dp();
-left.ft.addChild((0, index_1.createTextWidget)(' ', { debug, log })).dp();
-left.ft.addChild((0, index_1.createTextWidget)('------', { debug, log })).dp();
+left.ft.addChild(createTextWidget(' ', { debug, log })).dp();
+left.ft.addChild(createTextWidget('------', { debug, log })).dp();
 panel.ft.addChild(left).dp();
 panel.ft.justifyContent('center').dp();
 panel.ft.alignItems('start').dp();
-const right = (0, index_1.createFlexContainer)({ name: 'list', debug: true, log });
+const right = createFlexContainer({ name: 'list', debug: true, log });
 right.ft.setDirection('col').dp();
-const rightScroll = (0, index_1.createScrollable)(right, {
+const rightScroll = createScrollable(right, {
     debug,
     log,
     container: { debug: true, name: 'rightScroll' },
@@ -47,12 +42,12 @@ panel.ft.addChild(rightScroll).dp();
 const num = 60;
 const hueInterval = Math.round(360 / num);
 for (let i = 0; i < num; i++) {
-    const label = (0, index_1.createTextWidget)('1234567890-' + i, { name: 'LABEL' + i, debug, log });
+    const label = createTextWidget('1234567890-' + i, { name: 'LABEL' + i, debug, log });
     label.ft.setStyle([`hsl(${hueInterval * i},65,70)`]).dp();
     label.ft.setFocusable(true).dp();
     right.ft.addChild(label).dp();
 }
-const { ft } = index_1.app.createApp(border, false, {
+const { ft } = app.createApp(border, false, {
     default: { debug, log },
     core: { debug: true },
     canvas: { debug: true },

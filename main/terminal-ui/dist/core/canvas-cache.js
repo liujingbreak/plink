@@ -1,57 +1,21 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.canvasCacheFac = void 0;
-const rx = __importStar(require("rxjs"));
-const algorithms_1 = require("@wfh/algorithms");
-const reactivizer_1 = require("@wfh/reactivizer");
-const canvas_1 = require("./canvas");
-const text_split_1 = require("./text-split");
+import * as rx from 'rxjs';
+import { IntervalTree, RedBlackTree } from '@wfh/algorithms';
+import { BaseReactorFactory } from '@wfh/reactivizer';
+import { SPACE_CODE_POINT, treeNodeToStyleText, getTextDisplayUnits } from './canvas.js';
+import { isCodePointFullWidth } from './text-split.js';
 const tableFor = ['cache'];
-exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
+export const canvasCacheFac = new BaseReactorFactory({
     name: 'canvasCache',
     tableFor
 }).defineReactor((init, opts) => {
-    let cache = new algorithms_1.RedBlackTree();
+    let cache = new RedBlackTree();
     const service = init(opts);
     const { r, s } = service;
     r('add', s.pt.add.pipe(rx.map(([, x, y, units, style]) => {
         let lineNode = cache.search(y);
         if (lineNode == null) {
             const newLine = cache.insert(y);
-            newLine.value = new algorithms_1.IntervalTree();
+            newLine.value = new IntervalTree();
             lineNode = newLine;
         }
         const line = lineNode.value;
@@ -78,8 +42,8 @@ exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
                 if (data !== 'clear' && data[1] === style) {
                     // combine
                     const choppedUnits = data[0].slice(0, cLeft - l);
-                    if ((0, text_split_1.isCodePointFullWidth)(choppedUnits[choppedUnits.length - 1]))
-                        choppedUnits[choppedUnits.length - 1] = canvas_1.SPACE_CODE_POINT;
+                    if (isCodePointFullWidth(choppedUnits[choppedUnits.length - 1]))
+                        choppedUnits[choppedUnits.length - 1] = SPACE_CODE_POINT;
                     units.unshift(...choppedUnits);
                     newCLeft = l;
                 }
@@ -91,8 +55,8 @@ exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
                     }
                     else {
                         const choppedUnits = data[0].slice(0, cLeft - l);
-                        if ((0, text_split_1.isCodePointFullWidth)(choppedUnits[choppedUnits.length - 1]))
-                            choppedUnits[choppedUnits.length - 1] = canvas_1.SPACE_CODE_POINT;
+                        if (isCodePointFullWidth(choppedUnits[choppedUnits.length - 1]))
+                            choppedUnits[choppedUnits.length - 1] = SPACE_CODE_POINT;
                         node.value = [choppedUnits, data[1]];
                     }
                 }
@@ -102,7 +66,7 @@ exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
                     // combine
                     const choppedUnits = data[0].slice(cRight - l);
                     if (choppedUnits[0] === -1)
-                        choppedUnits[0] = canvas_1.SPACE_CODE_POINT;
+                        choppedUnits[0] = SPACE_CODE_POINT;
                     units.push(...choppedUnits);
                     newCRight = h;
                 }
@@ -115,7 +79,7 @@ exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
                     else {
                         const choppedUnits = data[0].slice(cRight - l);
                         if (choppedUnits[0] === -1)
-                            choppedUnits[0] = canvas_1.SPACE_CODE_POINT;
+                            choppedUnits[0] = SPACE_CODE_POINT;
                         node.value = [choppedUnits, data[1]];
                     }
                 }
@@ -124,13 +88,13 @@ exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
         const node = line.insertInterval(newCLeft, newCRight - 1);
         node.value = [units, style];
     })));
-    r('addStr -> add', s.pt.addStr.pipe(rx.map(([m, x, y, str, style]) => s.ft.add(x, y, [...(0, canvas_1.getTextDisplayUnits)(str)], style !== null && style !== void 0 ? style : []).dp(m))));
+    r('addStr -> add', s.pt.addStr.pipe(rx.map(([m, x, y, str, style]) => s.ft.add(x, y, [...getTextDisplayUnits(str)], style !== null && style !== void 0 ? style : []).dp(m))));
     r('clear', s.pt.clear.pipe(rx.mergeMap(([, x, y, w, h]) => {
         return rx.range(y, h).pipe(rx.map(lineIdx => {
             let lineNode = cache.search(lineIdx);
             if (lineNode == null) {
                 const newLine = cache.insert(y);
-                newLine.value = new algorithms_1.IntervalTree();
+                newLine.value = new IntervalTree();
                 lineNode = newLine;
             }
             const line = lineNode.value;
@@ -153,7 +117,7 @@ exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
                     }
                     else {
                         const [units, style] = data;
-                        const fullWidthEnd = (0, text_split_1.isCodePointFullWidth)(units[cLeft - l - 1]);
+                        const fullWidthEnd = isCodePointFullWidth(units[cLeft - l - 1]);
                         const choppedUnits = units.slice(0, fullWidthEnd ? cLeft - l - 1 : cLeft - l);
                         const node = line.insertInterval(l, fullWidthEnd ? cLeft - 2 : cLeft - 1);
                         node.value = [choppedUnits, style];
@@ -212,7 +176,7 @@ exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
                             outputLine += showClearAsChar.repeat(h - l + 1);
                     }
                     else {
-                        outputLine += (0, canvas_1.treeNodeToStyleText)(noColor ? [data[0], undefined] : [data[0], data[1].join()]);
+                        outputLine += treeNodeToStyleText(noColor ? [data[0], undefined] : [data[0], data[1].join()]);
                     }
                     col = h + 1;
                 }
@@ -238,7 +202,7 @@ exports.canvasCacheFac = new reactivizer_1.BaseReactorFactory({
         s.ft.didFetchItems().dp(m);
     })));
     r('cleanup', s.pt.cleanup.pipe(rx.map(() => {
-        cache = new algorithms_1.RedBlackTree();
+        cache = new RedBlackTree();
     })));
     s.ft.cache(cache).dp();
 });

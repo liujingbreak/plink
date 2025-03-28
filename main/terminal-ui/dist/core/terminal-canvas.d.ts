@@ -1,6 +1,6 @@
 import { SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac, ActionMeta } from '@wfh/reactivizer';
-import { canvasFac } from './canvas';
-import { KeyEventServcie } from './keyEvent';
+import { canvasFac } from './canvas.js';
+import { KeyEventServcie } from './keyEvent.js';
 export interface TerminalCanvasInput {
     setFullScreenMode(keyEventService?: KeyEventServcie): SingleActionFactory;
     /** If width or height is larger than the number of available columens and rows,
@@ -32,7 +32,7 @@ interface TerminalCanvasEvents extends TerminalCanvasInput {
     onPrintDescentEndFlushed(): SingleActionFactory;
 }
 export type TerminalCanvasOpts = CreateOptsInDef<TerminalCanvasEvents, typeof canvasFac>;
-export declare const terminalCanvasFac: import("@wfh/reactivizer").DerivedReactorFactory<TerminalCanvasEvents, readonly ["onKeyEventService"], [opts?: import("@wfh/reactivizer").CoreOptions<import("./canvas").CanvasEvents & TerminalCanvasEvents> | undefined], import("./canvas").CanvasEvents, readonly ["setBounding", "setRootComponent", "internalCache"], [opts?: import("@wfh/reactivizer").CoreOptions<import("./canvas").CanvasEvents> | undefined]>;
+export declare const terminalCanvasFac: import("@wfh/reactivizer").DerivedReactorFactory<TerminalCanvasEvents, readonly ["onKeyEventService"], [opts?: import("@wfh/reactivizer").CoreOptions<import("./canvas.js").CanvasEvents & TerminalCanvasEvents> | undefined], import("./canvas.js").CanvasEvents, readonly ["setBounding", "setRootComponent", "internalCache"], [opts?: import("@wfh/reactivizer").CoreOptions<import("./canvas.js").CanvasEvents> | undefined]>;
 export type TerminalCanvas = SimplexReactorOfFac<typeof terminalCanvasFac>;
-export declare function createTerminalCanvas(opts?: TerminalCanvasOpts): import("@wfh/reactivizer").DerivedSimplexReactor<TerminalCanvasEvents & import("./canvas").CanvasEvents, readonly ("setBounding" | "setRootComponent" | "internalCache" | "onKeyEventService")[]>;
+export declare function createTerminalCanvas(opts?: TerminalCanvasOpts): import("@wfh/reactivizer").DerivedSimplexReactor<TerminalCanvasEvents & import("./canvas.js").CanvasEvents, readonly ("setBounding" | "setRootComponent" | "internalCache" | "onKeyEventService")[]>;
 export {};

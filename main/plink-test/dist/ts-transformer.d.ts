@@ -1,5 +1,5 @@
-import { TransformerCreator, SyncTransformer } from '@jest/transform';
+import { TransformerCreator, AsyncTransformer } from '@jest/transform';
 declare const _default: {
-    createTransformer: TransformerCreator<SyncTransformer<Record<string, unknown>>, Record<string, unknown>>;
+    createTransformer: TransformerCreator<AsyncTransformer<Record<string, unknown>>, Record<string, unknown>>;
 };
 export default _default;

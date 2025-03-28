@@ -2,8 +2,8 @@ import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import {formatToConciseNoColor} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../index';
-import {createTextWidget, createFlexContainer, createBorderContainer, createKeyEventService} from '../index';
+import {createTerminalCanvas} from '../index.js';
+import {createTextWidget, createFlexContainer, createBorderContainer, createKeyEventService} from '../index.js';
 
 const screenWidth = process.argv[2];
 

@@ -1,5 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 process.stdin.setRawMode(true);
 const Term = require('../../__tests__/tty-events');
 const term = new Term();
@@ -11,4 +9,5 @@ term.on('keypress', (key) => {
         term.pause(); // Exit the program
     }
 });
+export {};
 //# sourceMappingURL=test-tty-events.js.map

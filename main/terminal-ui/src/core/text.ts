@@ -1,9 +1,9 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory, CreateOptsInDef} from '@wfh/reactivizer';
-import {getTextDisplayUnits, TextStyle} from './canvas';
-import {baseComponentFac} from './base';
-import {isCodePointFullWidth, createWordSplitter} from './text-split';
+import {getTextDisplayUnits, TextStyle} from './canvas.js';
+import {baseComponentFac} from './base.js';
+import {isCodePointFullWidth, createWordSplitter} from './text-split.js';
 
 export interface MultiLineTextInput {
   setContent(text: string): SingleActionFactory;
@@ -49,7 +49,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
         canvas.ft.addDisplayUnits(x, y0 + i, lines[i], style).dp(m);
       }
       if (overflow)
-        canvas.ft.addString(x + width - 3, y0 + lineCnt - 1, '...').dp(m);
+        canvas.ft.addString(x + width - 3, y0 + lineCnt - 1, '...', style ?? undefined).dp(m);
     })
   ));
   r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(

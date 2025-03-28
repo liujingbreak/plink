@@ -3,14 +3,14 @@ import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {SingleActionFactory, actionRelatedToAction, SimplexReactorOfFac,
   CoreOptions, CreateOptsInDef} from '@wfh/reactivizer';
-import {createRtreeInstance} from './rbush';
-import {createPlaceHolder, LazyLoadPlaceHolder, LazyLoadPlaceHolderOpts} from './lazy-load-placeholder';
-import {createTextWidget, MultiLineTextWidgetOpts} from './text';
-import {baseContainerFac} from './container';
-import {rectIntersection} from './canvas';
-import {FlexContainerOpts} from './flex-container';
 import {BaseWidget, createFlexContainer, TerminalContainer,
-  TextStyle, BackgroundStyle, Rectangle} from '../index';
+  TextStyle, BackgroundStyle, Rectangle} from '../index.js';
+import {createRtreeInstance} from './rbush.js';
+import {createPlaceHolder, LazyLoadPlaceHolder, LazyLoadPlaceHolderOpts} from './lazy-load-placeholder.js';
+import {createTextWidget, MultiLineTextWidgetOpts} from './text.js';
+import {baseContainerFac} from './container.js';
+import {rectIntersection} from './canvas.js';
+import {FlexContainerOpts} from './flex-container.js';
 
 export enum TableBorderType {
   border, rowSeparator, columnSeparator
@@ -671,9 +671,14 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
     table.l.setRowSpacing, table.l.setColumnSpacing,
     table.l.setBorderPadding, table.l.onSize,
     table.l.setDisplay,
-    table.l.setBackground,
+    table.l.onBgChangeWithParent,
     table.l.onChildPreferredSizeChange
   ] as const;
+  ft.addRerenderAction(
+    table.l.onBorderTypeSet, table.l.setBorderStyle,
+    table.l.setRowSpacing, table.l.setColumnSpacing,
+    table.l.setBorderPadding
+  ).dp();
   r('onRender', pt.onRender.pipe(
     rx.mergeMap(a => rx.combineLatest([cellBoundingTree$, childBoundingTree$]).pipe(
       rx.take(1),
@@ -682,7 +687,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
     rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks, cellBoundingTree, childBoundingTree]) => {
       return rx.combineLatest(renderData).pipe(
         rx.take(1),
-        rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height]]) => {
+        rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height], , [, bg]]) => {
           if (renderSelf) {
             ft.renderSelf(canvas, trans, clips, masks ?? []).dp(m);
           }
@@ -728,6 +733,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
             const rowEndIdx = rowHeights!.length - 1;
             const lineWidth = Math.min(width, maxClipRight - minClipLeft);
 
+            bStyle = bg ? [...bStyle, bg] : bStyle;
             // draw top border line
             if (bType.has(TableBorderType.border) && minClipTop <= 0) {
               const borderPos = [minClipLeft, 0] as vec2;
@@ -970,7 +976,6 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
     table.l.onSize, table.l.alignCell, table.l.setColumnSpacing, table.l.setRowSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet,
     table.l.onChildPreferredSizeChange
   ).dp();
-  ft.setRenderChanges(renderData).dp();
   ft.onBorderTypeSet(new Set([TableBorderType.border, TableBorderType.columnSeparator])).dp();
   ft.setBorderStyle([]).dp();
   ft.rowById(rows).dp();

@@ -1,24 +1,19 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-require("source-map-support/register");
-const fs_1 = __importDefault(require("fs"));
+import 'source-map-support/register';
+import fs from 'fs';
 // import * as rx from 'rxjs';
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const index_1 = require("../index");
+import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
+import { createTerminalCanvas, createFlexContainer, createTextWidget, createElevator, DisplayMode, createKeyEventService } from '../index.js';
 const debug = true;
-const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log');
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const canvas = (0, index_1.createTerminalCanvas)({ debug, log });
-const root = (0, index_1.createFlexContainer)({ name: 'root', debug, log });
+const fout = fs.createWriteStream('terminal-canvas-sample.log');
+const log = createSimpleIndentLogger(false, false, fout);
+const canvas = createTerminalCanvas({ debug, log });
+const root = createFlexContainer({ name: 'root', debug, log });
 canvas.s.ft.autoHideCursor().dp();
-const keyEvtSvc = (0, index_1.createKeyEventService)({ debug, log });
-const ev = (0, index_1.createElevator)(keyEvtSvc, { default: { debug, log } });
-const popupLayer = (0, index_1.createFlexContainer)({ name: 'popup', debug, log });
+const keyEvtSvc = createKeyEventService({ debug, log });
+const ev = createElevator(keyEvtSvc, { default: { debug, log } });
+const popupLayer = createFlexContainer({ name: 'popup', debug, log });
 ev.s.ft.addChild(root, popupLayer).dp();
-const popupMsg = (0, index_1.createTextWidget)('<POPUP MESSAGE>', { name: 'popupMsg', debug, log });
+const popupMsg = createTextWidget('<POPUP MESSAGE>', { name: 'popupMsg', debug, log });
 popupLayer.s.ft.justifyContent('center').dp();
 popupLayer.s.ft.alignItems('center').dp();
 popupLayer.s.ft.addChild(popupMsg).dp();
@@ -36,7 +31,7 @@ process.stdout.on('resize', () => {
 });
 root.s.ft.justifyContent('center').dp();
 root.s.ft.alignItems('center').dp();
-const label = (0, index_1.createTextWidget)('~~~ The bottom layer ~~~', { debug, log });
+const label = createTextWidget('~~~ The bottom layer ~~~', { debug, log });
 root.s.ft.addChild(label).dp();
 canvas.s.ft.setRenderOnRequest(true).dp();
 canvas.s.ft.requestRender().dp();
@@ -45,7 +40,7 @@ setTimeout(() => {
     popupMsg.s.ft.setContent('xx').dp();
 }, 1000);
 setTimeout(() => {
-    popupLayer.s.ft.setDisplay(index_1.DisplayMode.none).dp();
+    popupLayer.s.ft.setDisplay(DisplayMode.none).dp();
     label.s.ft.setContent('bottom layer').dp();
 }, 3000);
 //# sourceMappingURL=sample-elevator.js.map

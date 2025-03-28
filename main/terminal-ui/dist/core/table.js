@@ -1,72 +1,35 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.tableFac = exports.TableVertAlig = exports.TableHoriAlig = exports.TableBorderType = void 0;
-exports.createTable = createTable;
 /* eslint-disable array-bracket-newline */
-const rx = __importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
-const reactivizer_1 = require("@wfh/reactivizer");
-const rbush_1 = require("./rbush");
-const lazy_load_placeholder_1 = require("./lazy-load-placeholder");
-const text_1 = require("./text");
-const container_1 = require("./container");
-const canvas_1 = require("./canvas");
-const index_1 = require("../index");
-var TableBorderType;
+import * as rx from 'rxjs';
+import { vec2 } from 'gl-matrix';
+import { actionRelatedToAction } from '@wfh/reactivizer';
+import { createFlexContainer } from '../index.js';
+import { createRtreeInstance } from './rbush.js';
+import { createPlaceHolder } from './lazy-load-placeholder.js';
+import { createTextWidget } from './text.js';
+import { baseContainerFac } from './container.js';
+import { rectIntersection } from './canvas.js';
+export var TableBorderType;
 (function (TableBorderType) {
     TableBorderType[TableBorderType["border"] = 0] = "border";
     TableBorderType[TableBorderType["rowSeparator"] = 1] = "rowSeparator";
     TableBorderType[TableBorderType["columnSeparator"] = 2] = "columnSeparator";
-})(TableBorderType || (exports.TableBorderType = TableBorderType = {}));
-var TableHoriAlig;
+})(TableBorderType || (TableBorderType = {}));
+export var TableHoriAlig;
 (function (TableHoriAlig) {
     TableHoriAlig[TableHoriAlig["left"] = 0] = "left";
     TableHoriAlig[TableHoriAlig["middle"] = 1] = "middle";
     TableHoriAlig[TableHoriAlig["right"] = 2] = "right";
-})(TableHoriAlig || (exports.TableHoriAlig = TableHoriAlig = {}));
-var TableVertAlig;
+})(TableHoriAlig || (TableHoriAlig = {}));
+export var TableVertAlig;
 (function (TableVertAlig) {
     TableVertAlig[TableVertAlig["top"] = 0] = "top";
     TableVertAlig[TableVertAlig["middle"] = 1] = "middle";
     TableVertAlig[TableVertAlig["bottom"] = 2] = "bottom";
-})(TableVertAlig || (exports.TableVertAlig = TableVertAlig = {}));
+})(TableVertAlig || (TableVertAlig = {}));
 const tableFor = ['rowById', 'setColumnSpacing', 'onBorderTypeSet', 'setRowSpacing', 'setLazyLoad',
     'setBorderStyle', 'setBorderPadding', 'alignCell', 'didCalcSize', 'setCellBackground', 'rowIds'
 ];
-exports.tableFac = container_1.baseContainerFac.forExtend({
+export const tableFac = baseContainerFac.forExtend({
     name: 'table',
     tableFor,
     debugExcludeTypes: ['renderChild']
@@ -76,12 +39,12 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
     const preContrl = s.forkController();
     const rows = new Map();
     const rowIds = [];
-    const childBoundingTree$ = (0, rbush_1.createRtreeInstance)();
-    const cellBoundingTree$ = (0, rbush_1.createRtreeInstance)();
+    const childBoundingTree$ = createRtreeInstance();
+    const cellBoundingTree$ = createRtreeInstance();
     let rowIdSeed = 0;
-    const moreIndicator = (0, index_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'table.more' }), opts === null || opts === void 0 ? void 0 : opts.moreIndicator));
+    const moreIndicator = createFlexContainer(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'table.more' }), opts === null || opts === void 0 ? void 0 : opts.moreIndicator));
     moreIndicator.ft.justifyContent('center').dp();
-    const moreText = (0, text_1.createTextWidget)('More...', Object.assign(Object.assign({}, opts), { name: 'table.more.text' }));
+    const moreText = createTextWidget('More...', Object.assign(Object.assign({}, opts), { name: 'table.more.text' }));
     moreIndicator.ft.addChild(moreText).dp();
     let lazyService;
     let beforePlaceHolder;
@@ -89,7 +52,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
     r('setLazyLoad, "lazyService".dp_onLoadPage -> "lazyService", addChild, insertChild...', pt.setLazyLoad.pipe(rx.switchMap(([m, enabled, handler]) => {
         var _a;
         if (enabled && lazyService == null) {
-            const { service: lazyService0, before, after } = (0, lazy_load_placeholder_1.createPlaceHolder)(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.lazy), { default: Object.assign(Object.assign({ name: 'table.lazy' }, opts === null || opts === void 0 ? void 0 : opts.default), (_a = opts === null || opts === void 0 ? void 0 : opts.lazy) === null || _a === void 0 ? void 0 : _a.default) }));
+            const { service: lazyService0, before, after } = createPlaceHolder(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.lazy), { default: Object.assign(Object.assign({ name: 'table.lazy' }, opts === null || opts === void 0 ? void 0 : opts.default), (_a = opts === null || opts === void 0 ? void 0 : opts.lazy) === null || _a === void 0 ? void 0 : _a.default) }));
             lazyService = lazyService0;
             beforePlaceHolder = before;
             afterPlaceHolder = after;
@@ -206,7 +169,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
     })));
     r('reflow,calcSize,didCalcSize..->"cellBoundingTree"', pt.reflow.pipe(rx.mergeMap(a => cellBoundingTree$.pipe(rx.take(1), rx.map(b => [...a, b]))), 
     // preContrl here makes sure the later subscription to "calcSize" will recieve message earlier than other subscriber
-    rx.switchMap(([m, , , cellBoundingTree]) => preContrl.pt.calcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m), rx.mergeMap(([m2]) => preContrl.pt.didCalcSize.pipe((0, reactivizer_1.actionRelatedToAction)(m2))), rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet), rx.map(([[, colWidths, rowHeights, , , beforePhHeight], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, border]]) => {
+    rx.switchMap(([m, , , cellBoundingTree]) => preContrl.pt.calcSize.pipe(actionRelatedToAction(m), rx.mergeMap(([m2]) => preContrl.pt.didCalcSize.pipe(actionRelatedToAction(m2))), rx.withLatestFrom(table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet), rx.map(([[, colWidths, rowHeights, , , beforePhHeight], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, border]]) => {
         // service.log('>>>> table cell sizes:', colWidths.length, rowHeights.length);
         cellBoundingTree.clear();
         let rowIdx = 0;
@@ -385,7 +348,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
     r('reflow, onChildPositions, child.onSize -> "childBoundingTree"', pt.reflow.pipe(rx.mergeMap(a => childBoundingTree$.pipe(rx.take(1), rx.map(b => [...a, b]))), rx.switchMap(([m, , , childBoundingTree]) => {
         childBoundingTree.clear();
         return rx.combineLatest([
-            pt.onChildPositions.pipe((0, reactivizer_1.actionRelatedToAction)(m)),
+            pt.onChildPositions.pipe(actionRelatedToAction(m)),
             table.l.allDisplayChildren
         ]).pipe(rx.take(1), 
         // rx.tap(([[, pos], [, children]]) => {
@@ -508,11 +471,12 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
         table.l.setRowSpacing, table.l.setColumnSpacing,
         table.l.setBorderPadding, table.l.onSize,
         table.l.setDisplay,
-        table.l.setBackground,
+        table.l.onBgChangeWithParent,
         table.l.onChildPreferredSizeChange
     ];
+    ft.addRerenderAction(table.l.onBorderTypeSet, table.l.setBorderStyle, table.l.setRowSpacing, table.l.setColumnSpacing, table.l.setBorderPadding).dp();
     r('onRender', pt.onRender.pipe(rx.mergeMap(a => rx.combineLatest([cellBoundingTree$, childBoundingTree$]).pipe(rx.take(1), rx.map(b => [...a, ...b]))), rx.mergeMap(([m, canvas, trans, renderSelf, clips, masks, cellBoundingTree, childBoundingTree]) => {
-        return rx.combineLatest(renderData).pipe(rx.take(1), rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height]]) => {
+        return rx.combineLatest(renderData).pipe(rx.take(1), rx.mergeMap(([[, bType], [, bStyle], [, rowSpc], [, colSpc], [, paddingX, paddingY], [, width, height], , [, bg]]) => {
             if (renderSelf) {
                 ft.renderSelf(canvas, trans, clips, masks !== null && masks !== void 0 ? masks : []).dp(m);
             }
@@ -523,7 +487,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
             cellsToRender = cellsToRender.filter(([col, row]) => !excludedCells.has(col + ',' + row));
             for (const [col, row, rect] of cellsToRender) {
                 const pos = [rect[0], rect[1]];
-                gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+                vec2.transformMat4(pos, pos, trans);
                 ft.onCellBgRender(col, row).dp(m);
             }
             let childToRender = clips.flatMap(clip => [...childBoundingTree.searchOverlaps(clip)].map(([, c]) => c));
@@ -556,19 +520,20 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
                 let rowIdx = 0;
                 const rowEndIdx = rowHeights.length - 1;
                 const lineWidth = Math.min(width, maxClipRight - minClipLeft);
+                bStyle = bg ? [...bStyle, bg] : bStyle;
                 // draw top border line
                 if (bType.has(TableBorderType.border) && minClipTop <= 0) {
                     const borderPos = [minClipLeft, 0];
-                    gl_matrix_1.vec2.transformMat4(borderPos, borderPos, trans);
+                    vec2.transformMat4(borderPos, borderPos, trans);
                     canvas.ft.addString(borderPos[0], borderPos[1], '─'.repeat(lineWidth), bStyle).dp(m);
                     if (minClipLeft <= 0) {
                         const borderPos = [0, 0];
-                        gl_matrix_1.vec2.transformMat4(borderPos, borderPos, trans);
+                        vec2.transformMat4(borderPos, borderPos, trans);
                         canvas.ft.addString(borderPos[0], borderPos[1], '╭', bStyle).dp(m);
                     }
                     if (maxClipRight > width - 1) {
                         const borderPos = [maxClipRight - 1, 0];
-                        gl_matrix_1.vec2.transformMat4(borderPos, borderPos, trans);
+                        vec2.transformMat4(borderPos, borderPos, trans);
                         canvas.ft.addString(borderPos[0], borderPos[1], '╮', bStyle).dp(m);
                     }
                 }
@@ -581,7 +546,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
                         const sepY = rowH + rowSepTop + rowSpc;
                         if (clips.some(([, y, , h]) => sepY >= y && sepY < y + h)) {
                             const pos = [minClipLeft, sepY];
-                            gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+                            vec2.transformMat4(pos, pos, trans);
                             canvas.ft.addString(pos[0], pos[1], '─'.repeat(lineWidth), bStyle).dp(m);
                         }
                         rowSepTop = sepY + 1 + rowSpc;
@@ -590,25 +555,25 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
                 // draw bottom border line
                 if (bType.has(TableBorderType.border) && maxClipBottom >= height) {
                     const borderPos = [minClipLeft, height - 1];
-                    gl_matrix_1.vec2.transformMat4(borderPos, borderPos, trans);
+                    vec2.transformMat4(borderPos, borderPos, trans);
                     canvas.ft.addString(borderPos[0], borderPos[1], '─'.repeat(lineWidth), bStyle).dp(m);
                     if (minClipLeft <= 0) {
                         const borderPos = [0, height - 1];
-                        gl_matrix_1.vec2.transformMat4(borderPos, borderPos, trans);
+                        vec2.transformMat4(borderPos, borderPos, trans);
                         canvas.ft.addString(borderPos[0], borderPos[1], '╰', bStyle).dp(m);
                     }
                     if (maxClipRight > width - 1) {
                         const borderPos = [maxClipRight - 1, height - 1];
-                        gl_matrix_1.vec2.transformMat4(borderPos, borderPos, trans);
+                        vec2.transformMat4(borderPos, borderPos, trans);
                         canvas.ft.addString(borderPos[0], borderPos[1], '╯', bStyle).dp(m);
                     }
                 }
                 // draw left border line
                 if (bType.has(TableBorderType.border) && minClipLeft <= 0) {
                     const posColBorderTop = [0, minClipTop > 0 ? minClipTop : 1];
-                    gl_matrix_1.vec2.transformMat4(posColBorderTop, posColBorderTop, trans);
+                    vec2.transformMat4(posColBorderTop, posColBorderTop, trans);
                     const posColBorderBottom = [0, maxClipBottom < height - 1 ? maxClipBottom : height - 1];
-                    gl_matrix_1.vec2.transformMat4(posColBorderBottom, posColBorderBottom, trans);
+                    vec2.transformMat4(posColBorderBottom, posColBorderBottom, trans);
                     for (let y = posColBorderTop[1]; y < posColBorderBottom[1]; y++) {
                         canvas.ft.addString(posColBorderTop[0], y, '│', bStyle).dp(m);
                     }
@@ -626,9 +591,9 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
                         if (clips.some(([x, _y, w, _h]) => sepX >= x && sepX < x + w)) {
                             // draw column separator line
                             const pos = [sepX, vertLineTop];
-                            gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+                            vec2.transformMat4(pos, pos, trans);
                             const pos2 = [sepX, vertLineBottom];
-                            gl_matrix_1.vec2.transformMat4(pos2, pos2, trans);
+                            vec2.transformMat4(pos2, pos2, trans);
                             for (let i = pos[1]; i < pos2[1]; i++) {
                                 canvas.ft.addString(pos[0], i, '│', bStyle).dp(m);
                             }
@@ -645,7 +610,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
                                     // eslint-disable-next-line no-loop-func
                                     if (clips.some(([, y, , h]) => sepY >= y && sepY < y + h)) {
                                         const posCross = [sepX, sepY];
-                                        gl_matrix_1.vec2.transformMat4(posCross, posCross, trans);
+                                        vec2.transformMat4(posCross, posCross, trans);
                                         canvas.ft.addString(posCross[0], posCross[1], '┼', bStyle).dp(m);
                                     }
                                     sepY += 1 + rowSpc;
@@ -654,13 +619,13 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
                             if ((beforePhHeight == null || beforePhHeight === 0) &&
                                 bType.has(TableBorderType.border) && vertLineTop <= 0) {
                                 const posTCross = [sepX, 0];
-                                gl_matrix_1.vec2.transformMat4(posTCross, posTCross, trans);
+                                vec2.transformMat4(posTCross, posTCross, trans);
                                 canvas.ft.addString(posTCross[0], posTCross[1], '┬', bStyle).dp(m);
                             }
                             if ((afterPhHeight == null || afterPhHeight === 0) &&
                                 bType.has(TableBorderType.border) && vertLineBottom >= height) {
                                 const posTCross = [sepX, height - 1];
-                                gl_matrix_1.vec2.transformMat4(posTCross, posTCross, trans);
+                                vec2.transformMat4(posTCross, posTCross, trans);
                                 canvas.ft.addString(posTCross[0], posTCross[1], '┴', bStyle).dp(m);
                             }
                         }
@@ -670,9 +635,9 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
                 // draw right border line
                 if (bType.has(TableBorderType.border) && maxClipRight >= width) {
                     const posColBorderTop = [width - 1, minClipTop > 0 ? minClipTop : 1];
-                    gl_matrix_1.vec2.transformMat4(posColBorderTop, posColBorderTop, trans);
+                    vec2.transformMat4(posColBorderTop, posColBorderTop, trans);
                     const posColBorderBottom = [width - 1, maxClipBottom < height - 1 ? maxClipBottom : height - 1];
-                    gl_matrix_1.vec2.transformMat4(posColBorderBottom, posColBorderBottom, trans);
+                    vec2.transformMat4(posColBorderBottom, posColBorderBottom, trans);
                     for (let y = posColBorderTop[1]; y < posColBorderBottom[1]; y++) {
                         canvas.ft.addString(posColBorderTop[0], y, '│', bStyle).dp(m);
                     }
@@ -711,7 +676,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
     })))));
     r('findOverlaps -> didFindOverlaps', pt.findOverlaps.pipe(rx.mergeMap(([m, ...rect]) => {
         return rx.combineLatest([table.l.onBoundingBox, childBoundingTree$]).pipe(rx.take(1), rx.switchMap(([[, [x, y, w, h]], childBoundingTree]) => {
-            const r = (0, canvas_1.rectIntersection)([x, y, w, h], rect);
+            const r = rectIntersection([x, y, w, h], rect);
             if (r == null) {
                 ft.didFindOverlaps([]).dp(m);
                 return rx.EMPTY;
@@ -753,7 +718,6 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
         }));
     })));
     ft.requestReflowOn(table.l.onSize, table.l.alignCell, table.l.setColumnSpacing, table.l.setRowSpacing, table.l.setBorderPadding, table.l.onBorderTypeSet, table.l.onChildPreferredSizeChange).dp();
-    ft.setRenderChanges(renderData).dp();
     ft.onBorderTypeSet(new Set([TableBorderType.border, TableBorderType.columnSeparator])).dp();
     ft.setBorderStyle([]).dp();
     ft.rowById(rows).dp();
@@ -771,7 +735,7 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
             var _a, _b, _c, _d, _e, _f;
             const isValueString = typeof cell === 'string';
             const comp = isValueString ?
-                (0, text_1.createTextWidget)(cell, Object.assign({ name: ((_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'table') + '.cell' }, ((opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent) ? Object.assign({ debug: (_c = opts === null || opts === void 0 ? void 0 : opts.default) === null || _c === void 0 ? void 0 : _c.debug, log: (_d = opts === null || opts === void 0 ? void 0 : opts.default) === null || _d === void 0 ? void 0 : _d.log }, opts.optsForCellComponent) :
+                createTextWidget(cell, Object.assign({ name: ((_b = (_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'table') + '.cell' }, ((opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent) ? Object.assign({ debug: (_c = opts === null || opts === void 0 ? void 0 : opts.default) === null || _c === void 0 ? void 0 : _c.debug, log: (_d = opts === null || opts === void 0 ? void 0 : opts.default) === null || _d === void 0 ? void 0 : _d.log }, opts.optsForCellComponent) :
                     { debug: (_e = opts === null || opts === void 0 ? void 0 : opts.default) === null || _e === void 0 ? void 0 : _e.debug, log: (_f = opts === null || opts === void 0 ? void 0 : opts.default) === null || _f === void 0 ? void 0 : _f.log }))) :
                 cell;
             if (!isValueString && (opts === null || opts === void 0 ? void 0 : opts.optsForCellComponent))
@@ -780,8 +744,8 @@ exports.tableFac = container_1.baseContainerFac.forExtend({
         });
     }
 });
-function createTable(opts) {
-    return exports.tableFac.create(opts);
+export function createTable(opts) {
+    return tableFac.create(opts);
 }
 function calcCellSpaceSize(hasBorder, hasSeparator, cellIndex, cellCount, borderPadding, spacing) {
     let size = 0;

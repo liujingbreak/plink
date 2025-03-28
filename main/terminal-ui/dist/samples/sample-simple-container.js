@@ -1,59 +1,21 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-require("source-map-support/register");
-const fs_1 = __importDefault(require("fs"));
-const rx = __importStar(require("rxjs"));
-const reactivizer_1 = require("@wfh/reactivizer");
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const terminal_canvas_1 = require("../core/terminal-canvas");
-const text_1 = require("../core/text");
-const flex_container_1 = require("../core/flex-container");
-// import {waitForImport$} from '../core/rbush';
-const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log', { flush: true });
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const canvas = (0, terminal_canvas_1.createTerminalCanvas)({
+import 'source-map-support/register';
+import fs from 'fs';
+import * as rx from 'rxjs';
+import { combineLastestRelated } from '@wfh/reactivizer';
+import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
+import { createTerminalCanvas } from '../core/terminal-canvas.js';
+import { createTextWidget } from '../core/text.js';
+import { createFlexContainer } from '../core/flex-container.js';
+// import {waitForImport$} from '../core/rbush.js';
+const fout = fs.createWriteStream('terminal-canvas-sample.log', { flush: true });
+const log = createSimpleIndentLogger(false, false, fout);
+const canvas = createTerminalCanvas({
     debug: true, log
 });
-const text = (0, text_1.createTextWidget)('long sentance', { debug: true, log });
+const text = createTextWidget('long sentance', { debug: true, log });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-const container = (0, flex_container_1.createFlexContainer)({ debug: true, log });
+const container = createFlexContainer({ debug: true, log });
 container.ft.addChild(text).dp();
 container.ft.justifyContent('center').dp();
 container.ft.alignItems('center').dp();
@@ -67,7 +29,7 @@ else {
 canvas.ft.autoHideCursor().dp();
 canvas.ft.setRootComponent(container).dp();
 canvas.ft.setRenderOnRequest(true).dp();
-const rendered = (0, reactivizer_1.combineLastestRelated)(canvas.pt.render, canvas.pt.onWriteFlushed);
+const rendered = combineLastestRelated(canvas.pt.render, canvas.pt.onWriteFlushed);
 canvas.ft.requestRender().dp();
 canvas.log('---------', process.pid);
 rendered.pipe(rx.take(1), rx.mergeMap(() => {

@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import type RBushType from 'rbush' with {'resolution-mode': 'import'};
-import {Rectangle} from './canvas';
+import {Rectangle} from './canvas.js';
 
 export {RBushType};
 const MyRTreeConstructor$ = new rx.ReplaySubject<new () => RBushType<[Rectangle, unknown]>>(1);

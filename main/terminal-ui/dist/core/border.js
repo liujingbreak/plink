@@ -1,49 +1,11 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.borderFac = void 0;
-exports.createBorderContainer = createBorderContainer;
-exports.renderLineBorder = renderLineBorder;
-const rx = __importStar(require("rxjs"));
-const gl_matrix_1 = require("gl-matrix");
-const color_theme_1 = require("../app/color-theme");
-const container_1 = require("./container");
+import * as rx from 'rxjs';
+import { vec2 } from 'gl-matrix';
+import { querySchemeForComponent } from '../app/color-theme.js';
+import { baseContainerFac } from './container.js';
 const tableForBorderContainer = ['setBorder', 'setBorderStyle', 'setPadding'];
 // https://symbl.cc/en/unicode/blocks/box-drawing/
 const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
-exports.borderFac = container_1.baseContainerFac.forExtend({
+export const borderFac = baseContainerFac.forExtend({
     name: 'border',
     tableFor: tableForBorderContainer
 }).interceptorByType(ad => rx.merge(ad.at.setBorderStyle.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, child, opts) => {
@@ -120,7 +82,7 @@ exports.borderFac = container_1.baseContainerFac.forExtend({
     r('renderSelf', pt.renderSelf.pipe(rx.withLatestFrom(renderData), rx.switchMap(([[m, canvas, trans], [[, border], style, [, w, h]]]) => {
         const pos = [0, 0];
         if (border === 'line' && w > 2 && h > 2) {
-            gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+            vec2.transformMat4(pos, pos, trans);
             renderLineBorder(m, canvas, pos[0], pos[1], w, h, style);
             return rx.EMPTY;
         }
@@ -130,7 +92,7 @@ exports.borderFac = container_1.baseContainerFac.forExtend({
                 latest.onBgChangeWithParent
             ]).pipe(rx.take(1), rx.map(([[, t, r, b, l], [, bgColor]]) => {
                 if (bgColor && (t > 0 || r > 0 || b > 0 || l > 0)) {
-                    gl_matrix_1.vec2.transformMat4(pos, pos, trans);
+                    vec2.transformMat4(pos, pos, trans);
                     const [x, y] = pos;
                     const bgStyle = [bgColor];
                     const topLine = ' '.repeat(w);
@@ -161,15 +123,15 @@ exports.borderFac = container_1.baseContainerFac.forExtend({
         ft.setBorderStyle([]).dp();
         ft.onChildPositions(positions).dp();
     }));
-    r('"theming" -> setBorderStyle', (0, color_theme_1.querySchemeForComponent)(service).pipe(rx.map(([colors, ...m]) => {
+    r('"theming" -> setBorderStyle', querySchemeForComponent(service).pipe(rx.map(([colors, ...m]) => {
         const s = [`hex(${colors.outlineVariant})`];
         ft.setBorderStyle(s).dp(...m);
     })));
 });
-function createBorderContainer(child, opts) {
-    return exports.borderFac.create(child, opts);
+export function createBorderContainer(child, opts) {
+    return borderFac.create(child, opts);
 }
-function renderLineBorder(m, canvas, x, y, w, h, style) {
+export function renderLineBorder(m, canvas, x, y, w, h, style) {
     canvas.ft.addString(x, y, BORDER_CHARS[0][0] + BORDER_CHARS[0][1].repeat(w - 2) + BORDER_CHARS[0][2], style).dp(m);
     for (let i = 1, l = h - 2; i <= l; i++) {
         const top = y + i;

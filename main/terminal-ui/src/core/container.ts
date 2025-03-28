@@ -3,8 +3,8 @@
 import * as rx from 'rxjs';
 import {mat4} from 'gl-matrix';
 import {SingleActionFactory, ActionMeta, Action, InferMapParam, CreateOptsOfFac, SimplexReactorOfFac} from '@wfh/reactivizer';
-import {Canvas, Rectangle, rectIntersection} from './canvas';
-import {BaseWidget, baseComponentFac, DisplayMode} from './base';
+import {Canvas, Rectangle, rectIntersection} from './canvas.js';
+import {BaseWidget, baseComponentFac, DisplayMode} from './base.js';
 
 export interface TerminalContainerInput {
   addChild(...children: BaseWidget[]): SingleActionFactory;

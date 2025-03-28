@@ -4,10 +4,10 @@ import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SingleActionFactory, SimplexReactor, ActionMeta, Action, InferMapParam,
   BaseReactorFactory, CoreOptions} from '@wfh/reactivizer';
-import {Canvas, Rectangle, BackgroundStyle, TextStyle} from './canvas';
-import {FocusService} from './focusable';
-import {TerminalContainer} from './container';
-import {Scrollable} from './scrollable';
+import {Canvas, Rectangle, BackgroundStyle, TextStyle} from './canvas.js';
+import {FocusService} from './focusable.js';
+import {TerminalContainer} from './container.js';
+import {Scrollable} from './scrollable.js';
 
 export enum DisplayMode {
   visible,
@@ -392,8 +392,8 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     latest.setForeground,
     latest.onBgChangeWithParent
   ]).pipe(
-    rx.switchMap(([v, [, bg]]) => v[1] && v[1].length > 0 ?
-      rx.of([v[0], [...v[1], bg]] as typeof v) :
+    rx.switchMap(([[fm, fg], [, bg]]) => fg && fg.length > 0 ?
+      rx.of([fm, [...fg, bg]] as [typeof fm, typeof fg]) :
       latest.setParent.pipe(
         rx.switchMap(([m, p]) => p ? p.latest.onFgChangeWithParent : rx.of([m, null] as const))
       )
@@ -744,6 +744,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     ft.setFocusable(false).dp();
     ft.onDetached(true).dp();
     ft.setBackground(null).dp();
+    ft.setForeground(null).dp();
     ft.isContainer(false).dp();
     ft.onBgChangeWithParent(null).dp();
     ft.setRenderChanges(renderData).dp();

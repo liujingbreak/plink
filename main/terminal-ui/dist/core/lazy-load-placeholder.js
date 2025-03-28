@@ -1,57 +1,20 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.placeHolderFac = void 0;
-exports.createPlaceHolder = createPlaceHolder;
 /* eslint-disable multiline-ternary */
 /* eslint-disable array-bracket-newline */
-const rx = __importStar(require("rxjs"));
-const reactivizer_1 = require("@wfh/reactivizer");
-const flex_container_1 = require("./flex-container");
-const text_1 = require("./text");
+import * as rx from 'rxjs';
+import { actionRelatedToAction, BaseReactorFactory } from '@wfh/reactivizer';
+import { createFlexContainer } from './flex-container.js';
+import { createTextWidget } from './text.js';
 const tableFor = ['setExpandDir', 'setLabel', 'setAveragePageSize',
     'onBeforePages', 'onAfterPages', 'beforePageRange', 'afterPageRange',
     'dp_setTotalPageNum', 'setMaxLoadedPages'];
-exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
+export const placeHolderFac = new BaseReactorFactory({
     name: 'LazyPlaceHolder',
     tableFor
 }).interceptorByType(ad => rx.merge(ad.at.onAfterPages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.onBeforePages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, before, after, opts) => {
     const service = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
     const { r, ft, pt, table } = service;
-    const labelBefore = (0, text_1.createTextWidget)('...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.headLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolderLabel));
-    const labelAfter = (0, text_1.createTextWidget)('Loading...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.tailLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolderLabel));
+    const labelBefore = createTextWidget('...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.headLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolderLabel));
+    const labelAfter = createTextWidget('Loading...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.tailLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolderLabel));
     const loadedCompsByPage = new Map();
     const loadingPages = new Map();
     const distinctAveragePageSize$ = pt.setAveragePageSize.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.share());
@@ -178,7 +141,7 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
     // more convenient for outside consumer to subsribe on "dp_onLoadPage" in the context of "dp_onLoadPage"
     r('dp_onLoadPage, cancelRequestPage, dp_didLoad -> dp_onCancelLoad', pt.dp_onLoadPage.pipe(rx.mergeMap(([m, pIdx]) => pt.cancelRequestPage.pipe(rx.filter(([, i]) => i === pIdx), rx.take(1), rx.map(() => {
         ft.dp_onCancelLoad(pIdx).dp(m);
-    }), rx.timeout(20000), rx.takeUntil(pt.dp_didLoad.pipe((0, reactivizer_1.actionRelatedToAction)(m))), rx.takeUntil(pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))), rx.takeUntil(pt.__onError.pipe((0, reactivizer_1.actionRelatedToAction)(m)))))));
+    }), rx.timeout(20000), rx.takeUntil(pt.dp_didLoad.pipe(actionRelatedToAction(m))), rx.takeUntil(pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))), rx.takeUntil(pt.__onError.pipe(actionRelatedToAction(m)))))));
     // Avoid repeatitively request same page, also control to cancel abandonded request,
     // ensure there is only one ongoing request for each page
     r('requestPages, "loadingPages" -> requestPage, cancelRequestPage, "loadingPages"', pt.requestPages.pipe(rx.map(([m2, isHeadPlaceHolder, tIdx, tNum]) => {
@@ -264,11 +227,11 @@ exports.placeHolderFac = new reactivizer_1.BaseReactorFactory({
     ft.setMaxLoadedPages(Number.MAX_SAFE_INTEGER).dp();
     ft.dp_setTotalPageNum('unknown').dp();
 });
-function createPlaceHolder(opts) {
+export function createPlaceHolder(opts) {
     var _a, _b;
-    const before = (0, flex_container_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.head' : 'LazyPlaceHolder.head' }), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolder));
-    const after = (0, flex_container_1.createFlexContainer)(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.tail' : 'LazyPlaceHolder.tail' }), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolder));
-    const service = exports.placeHolderFac.create(before, after, opts);
+    const before = createFlexContainer(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.head' : 'LazyPlaceHolder.head' }), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolder));
+    const after = createFlexContainer(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.tail' : 'LazyPlaceHolder.tail' }), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolder));
+    const service = placeHolderFac.create(before, after, opts);
     return { before, after, service };
 }
 function clipRangeToPageIndex(dir, clips, pageSize) {

@@ -1,10 +1,10 @@
 import 'source-map-support/register';
 import fs from 'fs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../core/terminal-canvas';
-import {createTextWidget} from '../core/text';
-import {createBorderContainer} from '../core/border';
-import {createFlexContainer} from '../core/flex-container';
+import {createTerminalCanvas} from '../core/terminal-canvas.js';
+import {createTextWidget} from '../core/text.js';
+import {createBorderContainer} from '../core/border.js';
+import {createFlexContainer} from '../core/flex-container.js';
 const fout = fs.createWriteStream('terminal-canvas-sample.log', {flush: true});
 const log = createSimpleIndentLogger(false, false, fout);
 const canvas = createTerminalCanvas({

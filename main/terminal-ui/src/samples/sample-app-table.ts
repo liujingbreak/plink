@@ -1,8 +1,7 @@
-import 'source-map-support/register';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {app, createFlexContainer, TableBorderType, createTable, MultiLineTextWidget} from '../index';
+import {app, createFlexContainer, TableBorderType, createTable, MultiLineTextWidget, hexColorFrom} from '../index.js';
 
 const debug = false;
 const fout = fs.createWriteStream('terminal-table-sample.log');
@@ -20,11 +19,11 @@ const table = createTable({
   lazy: {
     // default: {debug},
     core: {
-      debug: true,
+      debug,
       debugIncludeTypes: ['dp_didLoad', 'dp_onLoadPage', 'dp_onCancelLoad']
-    }
-    // headPlaceHolder: {debug: true},
-    // tailPlaceHolder: {debug: true}
+    },
+    headPlaceHolder: {debug: true},
+    tailPlaceHolder: {debug: true}
     // headPlaceHolderLabel: {
     //   debug: false
     // },
@@ -34,7 +33,7 @@ const table = createTable({
   }
 });
 const SAMPLE_ROW_COUNT = 10;
-const SAMPLE_COLUMN_CNT = 2;
+const SAMPLE_COLUMN_CNT = 8;
 table.ft.setLazyLoad(true, page => {
   table.log('*** handle onLoadPage', page);
   const out$ = new rx.Observable<[string, string[]]>(sub => {
@@ -81,7 +80,7 @@ root.ft.justifyContent('center').dp();
 root.ft.addChild(table).dp();
 
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
-const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
+const chromaDelta = Math.round(110 / SAMPLE_COLUMN_CNT);
 table.ft.setCellBackground((col, row) => {
   let hue: number;
   if (row > SAMPLE_ROW_COUNT)
@@ -89,12 +88,12 @@ table.ft.setCellBackground((col, row) => {
   else
     hue = hueInterval * row;
 
-  let sat: number;
+  let chroma: number;
   if (SAMPLE_COLUMN_CNT < col)
-    sat = saturation * (col % SAMPLE_COLUMN_CNT);
+    chroma = chromaDelta * (col % SAMPLE_COLUMN_CNT);
   else
-    sat = saturation * col;
-  return `bgHsl(${hue},${30 + sat},70)`;
+    chroma = chromaDelta * col;
+  return `bgHex(${hexColorFrom(hue, 10 + chroma, 70)})`;
 }).dp();
 const {ft} = app.createApp(root, true, {
   default: {
@@ -102,7 +101,7 @@ const {ft} = app.createApp(root, true, {
   },
   elevator: {
     focusable: {
-      debug: true
+      debug
     },
     canvas: {
       debugIncludeTypes: ['render', 'requestRender', 'clearRect', 'copyRect']
@@ -112,13 +111,12 @@ const {ft} = app.createApp(root, true, {
     name: 'outerCan',
     debugIncludeTypes: ['render', 'requestRender', 'clearRect']
   },
-  keyService: {debug: true},
   scrollable: {
-    container: {debug: true, log},
-    focus: {
-      debug: true,
-      cache: {debug}
-    }
+    // container: {debug: true, log},
+    // focus: {
+    //   debug: true,
+    //   cache: {debug}
+    // }
     // default: {debug: true, log}
     // canvas: {
     //   debug

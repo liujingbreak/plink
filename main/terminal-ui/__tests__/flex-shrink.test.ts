@@ -1,5 +1,5 @@
 import {describe, it, expect}  from '@jest/globals';
-import {shrinkEachSize} from '../src/flex-container';
+import {shrinkEachSize} from '../src/core/flex-container';
 
 describe('flexContainer', () => {
   it('shrink calculation', () => {

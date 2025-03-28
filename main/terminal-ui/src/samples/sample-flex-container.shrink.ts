@@ -2,11 +2,11 @@ import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../index';
-import {createTextWidget} from '../index';
-import {createBorderContainer} from '../index';
-import {waitForImport$} from '../core/rbush';
-import {flexBoxFac} from '../hoc/flex-box';
+import {createTerminalCanvas} from '../index.js';
+import {createTextWidget} from '../index.js';
+import {createBorderContainer} from '../index.js';
+import {waitForImport$} from '../core/rbush.js';
+import {flexBoxFac} from '../hoc/flex-box.js';
 
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);

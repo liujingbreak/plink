@@ -1,13 +1,13 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {ActionMeta, SingleActionFactory, SimplexReactorOfFac, CreateOptsInDef, CoreOptions} from '@wfh/reactivizer';
-import {BaseWidget, DisplayMode} from '../core/base';
-import {textFac, TextOptions} from '../hoc/text';
-import {Rectangle} from '../core/canvas';
-import {baseContainerFac} from '../core/container';
-import {queryElevatorContainer} from '../core/elevator-container';
-import {queryAppContext} from './app-shell';
-import {querySchemeForComponent} from './color-theme';
+import {BaseWidget, DisplayMode} from '../core/base.js';
+import {textFac, TextOptions} from '../hoc/text.js';
+import {Rectangle} from '../core/canvas.js';
+import {baseContainerFac} from '../core/container.js';
+import {queryElevatorContainer} from '../core/elevator-container.js';
+import {queryAppContext} from './app-shell.js';
+import {querySchemeForComponent} from './color-theme.js';
 
 export interface PosPopupInput {
   setRelativePos(x: number, y: number): SingleActionFactory;

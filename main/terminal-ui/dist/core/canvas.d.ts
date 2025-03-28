@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import { BaseReactorFactory, SingleActionFactory, ActionMeta, SimplexReactor, CoreOptions } from '@wfh/reactivizer';
 import { IntervalTree } from '@wfh/algorithms';
-import { BaseWidget } from './base';
-import { CanvasFilter } from './canvas-filter';
+import { BaseWidget } from './base.js';
+import { CanvasFilter } from './canvas-filter.js';
 export type BackgroundStyle = typeof chalk.BackgroundColor | `bgRgb(${number},${number},${number})` | `bgHex(${string})` | `bgHsl(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})`;
 export type TextStyle = (typeof chalk.Modifiers | typeof chalk.Color | `rgb(${number},${number},${number})` | `hsl(${string})` | `bgHsl(${string})` | `bgRgb(${number},${number},${number})` | `hex(${string})` | `bgHex(${string})` | `ansi(${string})` | `ansi256(${string})` | `bgAnsi(${string})` | `bgAnsi256(${string})` | BackgroundStyle)[];
 export type LineElement = IntervalTree<[units: number[], style: string]>;

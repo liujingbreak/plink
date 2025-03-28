@@ -1,5 +1,5 @@
 import {SingleActionFactory, SimplexReactor} from '@wfh/reactivizer';
-import {TextStyle} from './canvas';
+import {TextStyle} from './canvas.js';
 
 export interface CanvasFilterInput {
   onRenderForFilter(x: number, y: number, units: number[], style: TextStyle): SingleActionFactory;

@@ -1,8 +1,8 @@
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
-import {createTerminalCanvas} from '../core/terminal-canvas';
-import {createTextWidget} from '../core/text';
+import {createTerminalCanvas} from '../core/terminal-canvas.js';
+import {createTextWidget} from '../core/text.js';
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
 log('pid', process.pid);

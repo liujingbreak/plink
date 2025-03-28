@@ -1,25 +1,20 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-require("source-map-support/register");
-const fs_1 = __importDefault(require("fs"));
-const nodejs_utils_1 = require("@wfh/reactivizer/dist/nodejs-utils");
-const terminal_canvas_1 = require("../core/terminal-canvas");
-const text_1 = require("../core/text");
-const border_1 = require("../core/border");
-const flex_container_1 = require("../core/flex-container");
-const fout = fs_1.default.createWriteStream('terminal-canvas-sample.log', { flush: true });
-const log = (0, nodejs_utils_1.createSimpleIndentLogger)(false, false, fout);
-const canvas = (0, terminal_canvas_1.createTerminalCanvas)({
+import 'source-map-support/register';
+import fs from 'fs';
+import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
+import { createTerminalCanvas } from '../core/terminal-canvas.js';
+import { createTextWidget } from '../core/text.js';
+import { createBorderContainer } from '../core/border.js';
+import { createFlexContainer } from '../core/flex-container.js';
+const fout = fs.createWriteStream('terminal-canvas-sample.log', { flush: true });
+const log = createSimpleIndentLogger(false, false, fout);
+const canvas = createTerminalCanvas({
     debug: true, log
 });
-const text = (0, text_1.createTextWidget)('hello', { debug: true, log });
-const border = (0, border_1.createBorderContainer)(text, { name: 'border', debug: true, log });
+const text = createTextWidget('hello', { debug: true, log });
+const border = createBorderContainer(text, { name: 'border', debug: true, log });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
-const container = (0, flex_container_1.createFlexContainer)({ debug: true, log });
+const container = createFlexContainer({ debug: true, log });
 container.s.ft.addChild(border).dp();
 canvas.s.ft.setBounding(0, 0, screenWidth ? Number(screenWidth) : process.stdout.columns, screenHeight ? Number(screenHeight) : process.stdout.rows).dp();
 canvas.s.ft.autoHideCursor().dp();

@@ -1,8 +1,8 @@
 import * as rx from 'rxjs';
 import {IntervalTree, RedBlackTree} from '@wfh/algorithms';
 import {BaseReactorFactory, SingleActionFactory, CoreOptions, SimplexReactor} from '@wfh/reactivizer';
-import {TextStyle, SPACE_CODE_POINT, treeNodeToStyleText, getTextDisplayUnits} from './canvas';
-import {isCodePointFullWidth} from './text-split';
+import {TextStyle, SPACE_CODE_POINT, treeNodeToStyleText, getTextDisplayUnits} from './canvas.js';
+import {isCodePointFullWidth} from './text-split.js';
 
 type AddElement = [units: number[], style: TextStyle];
 type ClearElement = 'clear';

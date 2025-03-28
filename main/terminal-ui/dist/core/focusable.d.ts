@@ -12,11 +12,11 @@
 import * as rx from 'rxjs';
 import { SimplexReactor, SingleActionFactory, ActionMeta, BaseReactorFactory, CoreOptions, SimplexReactorOfFac } from '@wfh/reactivizer';
 import { RedBlackTree } from '@wfh/algorithms';
-import { BaseWidget } from './base';
-import { Rectangle, Canvas } from './canvas';
-import { CanvasFilterOutput, CanvasFilterInput } from './canvas-filter';
-import { KeyEventServcie, KeyEventEnum } from './keyEvent';
-import { CanvasCacheOptions } from './canvas-cache';
+import { BaseWidget } from './base.js';
+import { Rectangle, Canvas } from './canvas.js';
+import { CanvasFilterOutput, CanvasFilterInput } from './canvas-filter.js';
+import { KeyEventServcie, KeyEventEnum } from './keyEvent.js';
+import { CanvasCacheOptions } from './canvas-cache.js';
 export declare const ROOT_FOCUS_SERVICE_CONTEXT = "__rootFocus";
 export declare enum SearchDirection {
     down = 0,

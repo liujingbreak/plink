@@ -1,10 +1,10 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory, ActionMeta, CreateOptsInDef} from '@wfh/reactivizer';
-import {querySchemeForComponent} from '../app/color-theme';
-import {BaseWidget} from './base';
-import {baseContainerFac} from './container';
-import {Canvas, TextStyle} from './canvas';
+import {querySchemeForComponent} from '../app/color-theme.js';
+import {BaseWidget} from './base.js';
+import {baseContainerFac} from './container.js';
+import {Canvas, TextStyle} from './canvas.js';
 
 export interface BorderContainerActions {
   setBorderStyle(style: TextStyle): SingleActionFactory;

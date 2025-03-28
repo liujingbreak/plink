@@ -1,51 +1,13 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.positionalFac = void 0;
-exports.showPopupFor = showPopupFor;
-exports.bindToolTipsTo = bindToolTipsTo;
 /* eslint-disable array-bracket-newline */
-const rx = __importStar(require("rxjs"));
-const base_1 = require("../core/base");
-const text_1 = require("../hoc/text");
-const container_1 = require("../core/container");
-const elevator_container_1 = require("../core/elevator-container");
-const app_shell_1 = require("./app-shell");
-const color_theme_1 = require("./color-theme");
+import * as rx from 'rxjs';
+import { DisplayMode } from '../core/base.js';
+import { textFac } from '../hoc/text.js';
+import { baseContainerFac } from '../core/container.js';
+import { queryElevatorContainer } from '../core/elevator-container.js';
+import { queryAppContext } from './app-shell.js';
+import { querySchemeForComponent } from './color-theme.js';
 const tableFor = ['setRelativePos', 'isDocked'];
-exports.positionalFac = container_1.baseContainerFac.forExtend({
+export const positionalFac = baseContainerFac.forExtend({
     name: 'positional',
     tableFor
 }).defineReactor((init, content, opts) => {
@@ -100,9 +62,9 @@ exports.positionalFac = container_1.baseContainerFac.forExtend({
             }), rx.take(1));
         }
     })));
-    r('show -> setDisplay', pt.show.pipe(rx.map(() => ft.setDisplay(base_1.DisplayMode.visible))));
+    r('show -> setDisplay', pt.show.pipe(rx.map(() => ft.setDisplay(DisplayMode.visible))));
     r('hide -> setDisplay', pt.hide.pipe(rx.map(() => {
-        ft.setDisplay(base_1.DisplayMode.hidden);
+        ft.setDisplay(DisplayMode.hidden);
     })));
     r('setRelativePos -> isDocked', pt.setRelativePos.pipe(rx.map(([m]) => {
         ft.isDocked(false).dp(m);
@@ -118,13 +80,13 @@ exports.positionalFac = container_1.baseContainerFac.forExtend({
     ft.setRelativePos(0, 0).dp();
     ft.isDocked(false).dp();
 });
-function showPopupFor(dockTo, content, attrs, opts) {
+export function showPopupFor(dockTo, content, attrs, opts) {
     var _a, _b;
-    const popup = exports.positionalFac.create(content, opts);
+    const popup = positionalFac.create(content, opts);
     if (attrs === null || attrs === void 0 ? void 0 : attrs.relativePos)
         popup.ft.setRelativePos(...attrs.relativePos).dp((_a = attrs === null || attrs === void 0 ? void 0 : attrs.actionMeta) !== null && _a !== void 0 ? _a : undefined);
     popup.ft.dockTo(dockTo).dp((_b = attrs === null || attrs === void 0 ? void 0 : attrs.actionMeta) !== null && _b !== void 0 ? _b : undefined);
-    popup.r('"showPopupFor"', (0, elevator_container_1.queryElevatorContainer)(dockTo).pipe(rx.mergeMap(elevator => {
+    popup.r('"showPopupFor"', queryElevatorContainer(dockTo).pipe(rx.mergeMap(elevator => {
         var _a;
         elevator.ft.addLayer(popup, attrs === null || attrs === void 0 ? void 0 : attrs.allowUserEvents).dp((_a = attrs === null || attrs === void 0 ? void 0 : attrs.actionMeta) !== null && _a !== void 0 ? _a : undefined);
         popup.ft.show().dp();
@@ -134,12 +96,12 @@ function showPopupFor(dockTo, content, attrs, opts) {
     }), rx.take(1)));
     return popup;
 }
-function bindToolTipsTo(c, tooltips, delayShowMs = 800, opts) {
+export function bindToolTipsTo(c, tooltips, delayShowMs = 800, opts) {
     c.r('c.onEnter -> "showPopupFor",popup.hide', c.pt.onEnter.pipe(rx.switchMap(([m]) => {
         return rx.timer(delayShowMs).pipe(rx.takeUntil(c.pt.onLeave), rx.map(() => {
             let textComp;
             if (typeof tooltips === 'string') {
-                const bordedText = text_1.textFac.create(tooltips, Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.label' : 'popup.label', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.textOpts));
+                const bordedText = textFac.create(tooltips, Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.label' : 'popup.label', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.textOpts));
                 bordedText.ft.setPadding(0, 1, 0, 1).dp(m);
                 textComp = bordedText;
             }
@@ -151,10 +113,10 @@ function bindToolTipsTo(c, tooltips, delayShowMs = 800, opts) {
                 allowUserEvents: false
             }, Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: opts === null || opts === void 0 ? void 0 : opts.name }, opts === null || opts === void 0 ? void 0 : opts.positionalOpts));
             return [popup, textComp];
-        }), rx.mergeMap(([popup, textComp]) => (0, color_theme_1.querySchemeForComponent)(textComp).pipe(rx.map(([colors]) => {
+        }), rx.mergeMap(([popup, textComp]) => querySchemeForComponent(textComp).pipe(rx.map(([colors]) => {
             textComp.ft.setBackground(`bgHex(${colors.inverseSurface})`).dp();
             textComp.ft.setForeground([`hex(${colors.inverseOnSurface})`]).dp();
-        }), rx.takeUntil(rx.merge((0, app_shell_1.queryAppContext)(c, m).pipe(rx.switchMap(({ keyEventService }) => keyEventService.pt.onEsc)), c.pt.onLeave).pipe(rx.map(([m2]) => {
+        }), rx.takeUntil(rx.merge(queryAppContext(c, m).pipe(rx.switchMap(({ keyEventService }) => keyEventService.pt.onEsc)), c.pt.onLeave).pipe(rx.map(([m2]) => {
             popup.ft.hide().dp(m2, m);
         }))))));
     })));

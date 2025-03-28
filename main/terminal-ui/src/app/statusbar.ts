@@ -1,8 +1,8 @@
 import * as rx from 'rxjs';
 import {SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac} from '@wfh/reactivizer';
 import {borderFac, createFlexContainer, Scrollable, KeyEventServcie,
-  DisplayMode, createTextWidget, TextStyle, querySchemeForComponent} from '../index';
-import {textFac} from '../hoc/text';
+  DisplayMode, createTextWidget, TextStyle, querySchemeForComponent} from '../index.js';
+import {textFac} from '../hoc/text.js';
 
 export interface StatusbarInput {
   setMessage(text: string, style?: TextStyle): SingleActionFactory;
@@ -73,20 +73,19 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     rx.switchMap(([, scrollable]) => {
       return rx.combineLatest([
         scrollable.latest.onValidScroll,
-        scrollable.latest.onSize.pipe(
-          rx.distinctUntilChanged(([, aW, aH], [, bW, bH]) => aW === bW && aH === bH)
-        ),
+        scrollable.latest.onViewPortSize,
         scrollable.latest.onContent.pipe(
-          rx.switchMap(([, compotent]) => compotent.latest.onSize.pipe(
+          rx.switchMap(([, comp]) => comp.latest.onSize.pipe(
             rx.distinctUntilChanged(([, aW, aH], [, bW, bH]) => aW === bW && aH === bH)
           ))
         )
       ]).pipe(
         rx.map(([[m1, sLeft, sTop], [m2, sWidth, sHeight], [m3, cWidth, cHeight]]) => {
           const scrollSpaceY = cHeight - sHeight;
-          const vertRatio = scrollSpaceY < Number.EPSILON ? null : 1 - (cHeight - sTop - sHeight) / scrollSpaceY;
+          const vertRatio = scrollSpaceY < Number.EPSILON ? null : 1 - (scrollSpaceY - sTop) / scrollSpaceY;
           const scrollSpaceX = cWidth - sWidth;
-          const horizRatio = scrollSpaceX < Number.EPSILON ? null : 1 - (cWidth - sLeft - sWidth) / scrollSpaceX;
+          scrollable.log('-- scrollSpaceX', scrollSpaceX, 'sLeft', sLeft);
+          const horizRatio = scrollSpaceX < Number.EPSILON ? null : 1 - (scrollSpaceX - sLeft) / scrollSpaceX;
           ft.onScrollStatus(vertRatio != null ? vertRatio < Number.EPSILON ? 0 : vertRatio : null,
             horizRatio != null ? horizRatio < Number.EPSILON ? 0 : horizRatio : null).dp(m1, m2, m3);
         })

@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import type RBushType from 'rbush' with { 'resolution-mode': 'import' };
-import { Rectangle } from './canvas';
+import { Rectangle } from './canvas.js';
 export { RBushType };
 export interface RTree<T> extends RBushType<[Rectangle, T]> {
     searchOverlaps([x, y, w, h]: Rectangle): [Rectangle, T][];

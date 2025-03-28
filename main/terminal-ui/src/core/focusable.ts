@@ -15,12 +15,12 @@ import * as rx from 'rxjs';
 import {SimplexReactor, SingleActionFactory, actionRelatedToAction, ActionMeta,
   BaseReactorFactory, CoreOptions, InferMapParam, SimplexReactorOfFac} from '@wfh/reactivizer';
 import {RedBlackTree} from '@wfh/algorithms';
-import {BaseWidget} from './base';
-import {TerminalContainer} from './container';
-import {Rectangle, Canvas} from './canvas';
-import {CanvasFilterOutput, CanvasFilterInput} from './canvas-filter';
-import {KeyEventServcie, KeyEventEnum} from './keyEvent';
-import {canvasCacheFac, CanvasCacheOptions} from './canvas-cache';
+import {BaseWidget} from './base.js';
+import {TerminalContainer} from './container.js';
+import {Rectangle, Canvas} from './canvas.js';
+import {CanvasFilterOutput, CanvasFilterInput} from './canvas-filter.js';
+import {KeyEventServcie, KeyEventEnum} from './keyEvent.js';
+import {canvasCacheFac, CanvasCacheOptions} from './canvas-cache.js';
 
 export const ROOT_FOCUS_SERVICE_CONTEXT = '__rootFocus';
 export enum SearchDirection {

@@ -1,5 +1,5 @@
 import { SimplexReactor, SingleActionFactory, CoreOptions } from '@wfh/reactivizer';
-import { Scrollable } from './scrollable';
+import { Scrollable } from './scrollable.js';
 export interface KeyScrollingMsg {
     setPageSize(w: number, h: number): SingleActionFactory;
     bindToScrollable(scrollable: Scrollable): SingleActionFactory;

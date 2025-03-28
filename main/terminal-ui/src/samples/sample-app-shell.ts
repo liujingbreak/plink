@@ -1,9 +1,8 @@
-import 'source-map-support/register';
 import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {app, createFlexContainer, createTextWidget, createBorderContainer,
-  FocusableSearchDir, queryRootFocusService, bindToolTipsTo} from '../index';
+  FocusableSearchDir, queryRootFocusService, bindToolTipsTo} from '../index.js';
 
 const debug = false;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');

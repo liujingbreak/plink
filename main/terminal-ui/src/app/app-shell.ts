@@ -4,9 +4,9 @@ import {createScrollable, createFlexContainer, BaseWidget, createKeyEventService
   createTerminalCanvas, createElevator, createTextWidget, createBorderContainer,
   DisplayMode, ScrollableOptions, TerminalCanvasOpts, ElevatorOptions,
   FlexContainer, FlexContainerOpts, KeyEventOptions, TerminalCanvas, KeyEventServcie,
-  app} from '../index';
-import {ColorTheme, colorThemeFac, ColorThemeOpts, CONTEXT_KEY as colorThemeCtxKey, querySchemeForComponent} from './color-theme';
-import {StatusbarOptions, createStatusbar} from './statusbar';
+  app} from '../index.js';
+import {ColorTheme, colorThemeFac, ColorThemeOpts, CONTEXT_KEY as colorThemeCtxKey, querySchemeForComponent} from './color-theme.js';
+import {StatusbarOptions, createStatusbar} from './statusbar.js';
 
 export interface AppActions {
   setFullScreenMode(): SingleActionFactory;

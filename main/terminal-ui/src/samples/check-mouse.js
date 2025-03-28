@@ -19,14 +19,14 @@
 process.stdout.write('\x1b[?1000h');
 process.stdout.write('\x1b[?1005h');
 process.stdout.write('\x1b[?1003h'); // Enable all mouse events (including drag)
-process.stdout.write('\x1b[?1006h');
+// process.stdout.write('\x1b[?1006h');
 // process.stdout.write('\x1b[?1006h');
 
 process.stdin.setRawMode(true);
 process.stdin.resume();
 function teardown() {
   process.stdout.write('\x1b[?1005l');
-  process.stdout.write('\x1b[?1006l');
+  // process.stdout.write('\x1b[?1006l');
   process.stdout.write('\x1b[?1003l');
   process.stdout.write('\x1b[?1000l');
 }
