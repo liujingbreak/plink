@@ -152,7 +152,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
       )
     )),
     rx.map(actionOrPayload => {
-      const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action<unknown>;
+      const m = Array.isArray(actionOrPayload) ? (actionOrPayload as unknown as [ActionMeta, ...unknown[]])[0] : actionOrPayload as Action;
       ft.requestReflow().dp(m);
     })
   ));
@@ -192,7 +192,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
       }
       return rx.EMPTY;
     }),
-    rx.map(([m, canvas, trans], _idx) => {
+    rx.map(([m, canvas, trans]) => {
       ft.clear(canvas, trans).dp(m);
       ft.needRerender(true).dp(m);
     })
@@ -295,7 +295,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
             )),
             rx.mergeMap(chr => chr.table.l.isContainer.pipe(
               rx.take(1),
-              rx.mergeMap(isContainer => {
+              rx.mergeMap(([, isContainer]) => {
                 if (isContainer) {
                   return (chr as TerminalContainer).ft.findOverlaps(...rect)
                     .re(m).od((chr as TerminalContainer).pt.didFindOverlaps).pipe(
@@ -303,8 +303,9 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
                       rx.map(([, chdOfChd]) => chdOfChd),
                       rx.endWith([chr])
                     );
+                } else {
+                  return rx.of([chr]);
                 }
-                return rx.of([chr]);
               })
             )),
             rx.reduce((acc, it) => {
@@ -321,9 +322,9 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
   r('isLayoutDirty(false),setLayoutCheck -> isLayoutDirty(true)', pt.isLayoutDirty.pipe(
     rx.switchMap(([, dirty]) => dirty ?
       rx.EMPTY :
-      table.l.setLayoutCheck.pipe(
-        rx.switchMap(([, target]) => target)
-      )),
+        table.l.setLayoutCheck.pipe(
+          rx.switchMap(([, target]) => target)
+        )),
     rx.map(([m]) => ft.isLayoutDirty(true).dp(m))
   ));
 
@@ -360,4 +361,3 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
 });
 export type TerminalContainerOpts = CreateOptsOfFac<typeof baseContainerFac>;
 export type TerminalContainer = SimplexReactorOfFac<typeof baseContainerFac>;
-

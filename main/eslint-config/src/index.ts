@@ -1,11 +1,20 @@
 /// <import path="modules.d.ts" />
 import reactAppCfg from 'eslint-config-react-app';
+import {defineConfig} from 'eslint/config';
+import {ConfigWithExtends, Plugin} from '@eslint/config-helpers';
+// import jsdocPlugin from 'eslint-plugin-jsdoc';
+// import importPlugin from 'eslint-plugin-import';
+// import preferArrow from 'eslint-plugin-prefer-arrow';
+// import tseslint from 'typescript-eslint';
+// import typescriptEslintPlugin from '@typescript-eslint/eslint-plugin';
+// import typescriptEslintTslint from '@typescript-eslint/eslint-plugin-tslint';
 
 const reactOverride = reactAppCfg.overrides[0];
 
 class Configurable {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  rule = {
+  common: ConfigWithExtends = {
+    name: 'plink common',
     root: true,
     ...reactAppCfg,
     extends: [
@@ -171,13 +180,15 @@ class Configurable {
     }
   };
 
+  specifics = [] as ConfigWithExtends[];
+
   addTsFiles(filePatterns: string[], tsconfigFile: string) {
-    this.rule.overrides.push(createTsRulesOverride(filePatterns, tsconfigFile));
+    this.specifics.push(createTsRulesOverride(filePatterns, tsconfigFile));
     return this;
   }
 
   build() {
-    return this.rule;
+    return defineConfig([this.common, ...this.specifics]);
   }
 }
 
@@ -193,13 +204,12 @@ function createTsRulesOverride(filePatterns: string[], tsconfigFile: string, deb
       'plugin:@typescript-eslint/recommended-requiring-type-checking'
     ],
     excludedFiles: '*.d.ts',
-    plugins: [
-      'jsdoc',
-      'import',
-      'prefer-arrow',
-      '@typescript-eslint',
-      '@typescript-eslint/tslint'
-    ],
+    plugins: {
+      // jsdoc: jsdocPlugin,
+      // import: importPlugin,
+      // preferArrow,
+      // '@typescript-eslint': typescriptEslintPlugin
+    } as Record<string, Plugin>,
     parser: '@typescript-eslint/parser',
     parserOptions: {
       ...(reactOverride.parserOptions),
@@ -214,26 +224,26 @@ function createTsRulesOverride(filePatterns: string[], tsconfigFile: string, deb
       '@typescript-eslint/prefer-optional-chain': 'warn',
       '@typescript-eslint/object-curly-spacing': ['warn', 'never'],
       '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/tslint/config': [
-        'warn', {
-          rules: {
-            whitespace: [
-              true,
-              'check-branch',
-              'check-decl',
-              'check-operator',
-              // "check-module",
-              'check-separator',
-              'check-rest-spread',
-              'check-type',
-              'check-typecast',
-              'check-type-operator'
-              // "check-preblock",
-              // "check-postbrace"
-            ]
-          }
-        }
-      ],
+      // '@typescript-eslint/tslint/config': [
+      //   'warn', {
+      //     rules: {
+      //       whitespace: [
+      //         true,
+      //         'check-branch',
+      //         'check-decl',
+      //         'check-operator',
+      //         // "check-module",
+      //         'check-separator',
+      //         'check-rest-spread',
+      //         'check-type',
+      //         'check-typecast',
+      //         'check-type-operator'
+      //         // "check-preblock",
+      //         // "check-postbrace"
+      //       ]
+      //     }
+      //   }
+      // ],
       '@typescript-eslint/adjacent-overload-signatures': 'error',
       '@typescript-eslint/array-type': 'off',
       '@typescript-eslint/await-thenable': 'error',

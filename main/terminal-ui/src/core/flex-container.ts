@@ -90,14 +90,14 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
           return childrenSizeOfMainAxis$.pipe(
             rx.mergeMap(childrenSizeOfMainAxis => rx.merge(...children.map((chr, idx) => {
               return dir === 'row' ?
-                chr.ft.querySizeOf(childrenSizeOfMainAxis[idx], null).re(m).od(chr.pt.prefHeightFor).pipe(
-                  rx.take(1),
-                  rx.map(([, , h]) => h)
-                ) :
-                chr.ft.querySizeOf(null, childrenSizeOfMainAxis[idx]).re(m).od(chr.pt.prefWidthFor).pipe(
-                  rx.take(1),
-                  rx.map(([, w]) => w)
-                );
+                  chr.ft.querySizeOf(childrenSizeOfMainAxis[idx], null).re(m).od(chr.pt.prefHeightFor).pipe(
+                    rx.take(1),
+                    rx.map(([, , h]) => h)
+                  ) :
+                  chr.ft.querySizeOf(null, childrenSizeOfMainAxis[idx]).re(m).od(chr.pt.prefWidthFor).pipe(
+                    rx.take(1),
+                    rx.map(([, w]) => w)
+                  );
             }))),
             rx.reduce((max, size) => {
               return Math.max(max, size);
@@ -123,14 +123,14 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
             if (chrPrefSizeOfCrossAxis[i] < crossAxis)
               return rx.of(dir === 'row' ? chrPreferredSizes[i][0] : chrPreferredSizes[i][1]);
             return dir === 'row' ?
-              chr.ft.querySizeOf(null, crossAxis).re(m).od(chr.pt.prefWidthFor).pipe(
-                rx.take(1),
-                rx.map(([, w]) => w)
-              ) :
-              chr.ft.querySizeOf(crossAxis, null).re(m).od(chr.pt.prefHeightFor).pipe(
-                rx.take(1),
-                rx.map(([, , h]) => h)
-              );
+                chr.ft.querySizeOf(null, crossAxis).re(m).od(chr.pt.prefWidthFor).pipe(
+                  rx.take(1),
+                  rx.map(([, w]) => w)
+                ) :
+                chr.ft.querySizeOf(crossAxis, null).re(m).od(chr.pt.prefHeightFor).pipe(
+                  rx.take(1),
+                  rx.map(([, , h]) => h)
+                );
           })).pipe(
             rx.reduce((mainAxisSize, childMainAxisSize) => {
               mainAxisSize += childMainAxisSize;
@@ -203,11 +203,11 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
       let chrMainAxisSizes: number[];
       let chrCrossAxisSizes = [] as number[];
       const chrMainAxisPrefSizes = dir === 'row' ?
-        chrPrefSizes.map(([w]) => w) :
-        chrPrefSizes.map(([, h]) => h);
+          chrPrefSizes.map(([w]) => w) :
+          chrPrefSizes.map(([, h]) => h);
       const chrCrossAxisPrefSizes = dir === 'col' ?
-        chrPrefSizes.map(([w]) => w) :
-        chrPrefSizes.map(([, h]) => h);
+          chrPrefSizes.map(([w]) => w) :
+          chrPrefSizes.map(([, h]) => h);
       let calcChdSizes$: rx.Observable<any>;
       if (mainAxis < pMainAxis) {
         let chdPrefMainChanged$ = rx.of(chrMainAxisPrefSizes);
@@ -215,14 +215,14 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
         if (crossAxis < pCrossAxis) {
           listContainer.log('::case mainAxis < pMainAxis && crossAxis < pCrossAxis');
           chdPrefMainChanged$ = rx.zip(children.map((chd, i) => dir === 'row' ?
-            chd.ft.querySizeOf(null, chrCrossAxisPrefSizes[i] > crossAxis ? crossAxis : chrCrossAxisPrefSizes[i])
-              .re(m).od(chd.pt.prefWidthFor).pipe(
-                rx.map(([, w]) => w)
-              ) :
-            chd.ft.querySizeOf(chrCrossAxisPrefSizes[i] > crossAxis ? crossAxis : chrCrossAxisPrefSizes[i], null)
-              .re(m).od(chd.pt.prefHeightFor).pipe(
-                rx.map(([, , h]) => h)
-              )
+              chd.ft.querySizeOf(null, chrCrossAxisPrefSizes[i] > crossAxis ? crossAxis : chrCrossAxisPrefSizes[i])
+                .re(m).od(chd.pt.prefWidthFor).pipe(
+                  rx.map(([, w]) => w)
+                ) :
+              chd.ft.querySizeOf(chrCrossAxisPrefSizes[i] > crossAxis ? crossAxis : chrCrossAxisPrefSizes[i], null)
+                .re(m).od(chd.pt.prefHeightFor).pipe(
+                  rx.map(([, , h]) => h)
+                )
           )).pipe(rx.take(1));
         }
         let remainSpace = mainAxis - margin * (children.length > 0 ? children.length - 1 : 0);
@@ -236,18 +236,18 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
               'remainSpace=', remainSpace,
               'chrMainAxisSizes', chrMainAxisSizes);
             return rx.forkJoin(dir === 'row' ?
-              children.map((chr, i) => chr.ft.querySizeOf(chrMainAxisSizes[i], null)
-                .re(m).od(chr.pt.prefHeightFor).pipe(
-                  rx.take(1),
-                  rx.map(([, , h]) => h)
+                children.map((chr, i) => chr.ft.querySizeOf(chrMainAxisSizes[i], null)
+                  .re(m).od(chr.pt.prefHeightFor).pipe(
+                    rx.take(1),
+                    rx.map(([, , h]) => h)
+                  )
+                ) :
+                children.map((chr, i) => chr.ft.querySizeOf(null, chrMainAxisSizes[i])
+                  .re(m).od(chr.pt.prefWidthFor).pipe(
+                    rx.take(1),
+                    rx.map(([, w]) => w)
+                  )
                 )
-              ) :
-              children.map((chr, i) => chr.ft.querySizeOf(null, chrMainAxisSizes[i])
-                .re(m).od(chr.pt.prefWidthFor).pipe(
-                  rx.take(1),
-                  rx.map(([, w]) => w)
-                )
-              )
             );
           }),
           rx.map((prefCrossSizeOfEach) => {
@@ -269,16 +269,16 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
           }
         }
         calcChdSizes$ = rx.zip(dir === 'row' ?
-          children.map((chr, i) => chr.ft.querySizeOf(null, chrCrossAxisSizes[i]).re(m)
-            .od(chr.pt.prefWidthFor).pipe(
-              rx.take(1),
-              rx.map(([, w]) => w)
-            )) :
-          children.map((chr, i) => chr.ft.querySizeOf(chrCrossAxisSizes[i], null).re(m)
-            .od(chr.pt.prefHeightFor).pipe(
-              rx.take(1),
-              rx.map(([, , h]) => h)
-            ))
+            children.map((chr, i) => chr.ft.querySizeOf(null, chrCrossAxisSizes[i]).re(m)
+              .od(chr.pt.prefWidthFor).pipe(
+                rx.take(1),
+                rx.map(([, w]) => w)
+              )) :
+            children.map((chr, i) => chr.ft.querySizeOf(chrCrossAxisSizes[i], null).re(m)
+              .od(chr.pt.prefHeightFor).pipe(
+                rx.take(1),
+                rx.map(([, , h]) => h)
+              ))
         ).pipe(
           rx.take(1),
           rx.switchMap(values => values),
@@ -391,8 +391,7 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
   r('onRender -> renderSelf, renderChild', pt.onRender.pipe(
     rx.withLatestFrom(childBoundingRTree$, table.l.setDirection, table.l.onSize, table.l.setBorderSeparator, table.l.setBorderSeparatorStyle),
     rx.map(([[m, canvas, trans, renderSelf, clips, masks], cbt, [, dir], [, , h], [, borderSep], [, sepStyle]]) => {
-      if (masks == null)
-        masks = [];
+      masks ??= [];
       if (renderSelf) {
         ft.renderSelf(canvas, trans, clips, masks).dp(m);
       }
@@ -411,9 +410,8 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
       ).map(([, c]) => c);
       // listContainer.log('-- cbt founds', chrToRender.map(([, c]) => c.s.logPrefix));
       // listContainer.log('-- masks', masks.join());
-      const excluded = new Set(masks ?
-        masks.flatMap(r => cbt.searchForCovered(r).map(([, [, c]]) => c)) :
-        []);
+      const excluded = new Set(
+        masks.flatMap(r => cbt.searchForCovered(r).map(([, [, c]]) => c)));
       chrToRender = chrToRender.filter(([, c]) => !excluded.has(c));
       listContainer.log('-- chrToRender', chrToRender.map(([, c]) => c.s.logPrefix), clips.join());
       for (let i = 0, l = chrToRender.length; i < l; i++) {
@@ -426,10 +424,10 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
     rx.mergeMap(([m, ...rect]) => table.l.onBoundingBox.pipe(
       rx.take(1),
       rx.switchMap(([, [x, y, w, h]]) => {
-        if (x == null) {
-          ft.didFindOverlaps([]).dp(m);
-          return rx.EMPTY;
-        }
+        // if (x == null) {
+        //   ft.didFindOverlaps([]).dp(m);
+        //   return rx.EMPTY;
+        // }
         const r = rectIntersection([x, y, w, h], rect);
         if (r == null) {
           ft.didFindOverlaps([]).dp(m);
@@ -445,13 +443,13 @@ export const flexContainerFac = baseContainerFac.forExtend<FlexContainerEvents, 
           rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(
             rx.take(1),
             rx.mergeMap(([, isContainer]) => isContainer ?
-              (chd as TerminalContainer).ft.findOverlaps(...rect)
-                .re(m).od((chd as TerminalContainer).pt.didFindOverlaps).pipe(
-                  rx.map(([, chdOfChd]) => chdOfChd),
-                  rx.take(1),
-                  rx.endWith([chd])
-                ) :
-              rx.of([chd])
+                (chd as TerminalContainer).ft.findOverlaps(...rect)
+                  .re(m).od((chd as TerminalContainer).pt.didFindOverlaps).pipe(
+                    rx.map(([, chdOfChd]) => chdOfChd),
+                    rx.take(1),
+                    rx.endWith([chd])
+                  ) :
+                rx.of([chd])
             )
           )),
           rx.reduce((acc, it) => {
@@ -540,6 +538,7 @@ export function shrinkEachSize(chdPrefSizes: number[], shrinkOfEach: number[], a
   return chrSizes;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function stretchEachSize(prefSizes: number[], growOfEach: number[], shrinkOfEach: number[], availableSpace: number, log?: (...text: any[]) => void) {
   const remaining = availableSpace - prefSizes.reduce((sum, size) => {
     sum += size;

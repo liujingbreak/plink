@@ -1,5 +1,3 @@
-/* eslint-disable array-bracket-newline */
-/* eslint-disable multiline-ternary */
 import * as rx from 'rxjs';
 import {mat4} from 'gl-matrix';
 import chalk from 'chalk';
@@ -65,7 +63,7 @@ export interface CanvasEvents extends CanvasInput {
   onRendered(): SingleActionFactory;
   /** Invoke TTY API to actually clear line from the screen immediately */
   onClearLine(y: number, x?: number, dir?: 0 | 1 | -1): SingleActionFactory;
-  didCopyRect(paintables: Array<[xLow: number, xHigh: number, y: number, units: number[], style: string]>): SingleActionFactory;
+  didCopyRect(paintables: [xLow: number, xHigh: number, y: number, units: number[], style: string][]): SingleActionFactory;
   internalCache(
     lines: (LineElement | undefined)[],
     proLines: (LineElement | undefined)[],
@@ -145,7 +143,7 @@ export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
       const units = [...getTextDisplayUnits(' '.repeat(w))];
       const style = [bg];
       for (let i = y, l = y + h; i < l; i++) {
-        addCodePointsToCache(x, i, units, style ? style.sort() : [], false);
+        addCodePointsToCache(x, i, units, style.sort(), false);
       }
     })
   ));
@@ -161,7 +159,7 @@ export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
       table.l.setBounding, table.l.setRootComponent, rtree$
     ]).pipe(
       rx.take(1),
-      rx.map(([[, x, y, w, h], [, root]], idx) => {
+      rx.map(([[, x, y, w, h], [, root]]) => {
       // canvas.log('>> before uncommited', debugLineTrees(uncommited));
         if (root)
           root.ft.render(canvas, mat4.create(), rects && rects.length > 0 ? rects : [[0, 0, w, h] as const]).dp(m);
@@ -305,37 +303,35 @@ export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
       );
     })
   ));
-  function mergeRTreeContent<T>(a: T, _b: T) {
+  function mergeRTreeContent<T>(a: T) {
     return a;
   }
   r('setRenderOnRequest,waitForRbushImport$,requestRender -> render', pt.setRenderOnRequest.pipe(
     rx.switchMap(([, enabled]) => {
       let requestRenderMetas = [] as ActionMeta[];
-      // eslint-disable-next-line multiline-ternary
       return enabled ?
-        pt.requestRender.pipe(
-          rx.mergeMap(([m, rect]) => {
-            requestRenderMetas.push(m);
-            return rx.combineLatest([table.l.setBounding, rtree$]).pipe(
-              rx.take(1),
-              rx.map(([[, , , w, h], rtree]) => {
-                rtree.addOrUnionRectOnOverlap(rect ?? [0, 0, w, h], null, mergeRTreeContent);
-                // canvas.log('rectTree', [...rectTree.allRectangles()].length);
-                return [m, rtree] as const;
-              })
-            );
-          }),
-          rx.throttleTime(150, rx.queueScheduler, {leading: false, trailing: true}),
-          rx.exhaustMap(([m, rtree]) => new rx.Observable(sub => {
-            const rects = rtree.all();
-            rtree.clear();
-            const requestRenderMetas0 = requestRenderMetas;
-            requestRenderMetas = [];
-            ft.render(rects.map(([r]) => r)).dp(m, ...requestRenderMetas0);
-            sub.complete();
-          }))
-        )
-        : rx.EMPTY;
+          pt.requestRender.pipe(
+            rx.mergeMap(([m, rect]) => {
+              requestRenderMetas.push(m);
+              return rx.combineLatest([table.l.setBounding, rtree$]).pipe(
+                rx.take(1),
+                rx.map(([[, , , w, h], rtree]) => {
+                  rtree.addOrUnionRectOnOverlap(rect ?? [0, 0, w, h], null, mergeRTreeContent);
+                  // canvas.log('rectTree', [...rectTree.allRectangles()].length);
+                  return [m, rtree] as const;
+                })
+              );
+            }),
+            rx.throttleTime(150, rx.queueScheduler, {leading: false, trailing: true}),
+            rx.exhaustMap(([m, rtree]) => new rx.Observable(sub => {
+              const rects = rtree.all();
+              rtree.clear();
+              const requestRenderMetas0 = requestRenderMetas;
+              requestRenderMetas = [];
+              ft.render(rects.map(([r]) => r)).dp(m, ...requestRenderMetas0);
+              sub.complete();
+            }))
+          ) : rx.EMPTY;
     })
   ));
   const filters = new Map<number, [Rectangle, CanvasFilter]>();
@@ -521,7 +517,6 @@ export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
         }
       }
     }
-    // eslint-disable-next-line multiline-ternary
     return (filters.size > 0 ? rx.merge(
       ...toFilter,
       rx.from(toDel)
@@ -622,9 +617,9 @@ export function* getTextDisplayUnits(text: string) {
 export const SPACE_CODE_POINT = ' '.codePointAt(0)!;
 
 /** Inputed and returned "high" value is considered as an "included" value of range interval */
-export function uniteDisplayUnits<T extends [low: number, high: number, units: number[], style: string]>(
+export function uniteDisplayUnits(
   line: LineElement,
-  target: T
+  target: [low: number, high: number, units: number[], style: string]
 ) {
   const [l, h, units, style] = target;
   const oUnits = [...units];
@@ -690,9 +685,9 @@ export function rectIntersection([x1, y1, w1, h1]: Rectangle, [x2, y2, w2, h2]: 
 export function treeNodeToStyleText([codePoints, style]: [units: number[], style?: string]) {
   const text = String.fromCodePoint(...codePoints.filter(codePoint => codePoint >= 0));
   if (style) {
-    const chalkFn = style.split(';').reduce((chalkInst, keyword) => {
-      if (keyword.indexOf('(') < 0) {
-        return (chalkInst ?? chalk)[keyword as keyof chalk.Chalk] as chalk.Chalk;
+    const chalkFn = style.split(';').reduce<chalk.Chalk>((chalkInst, keyword) => {
+      if (!keyword.includes('(')) {
+        return chalkInst[keyword as keyof chalk.Chalk] as chalk.Chalk;
       } else {
         const match = /([^()]+)\(([^)]+)\)/.exec(keyword);
         if (match) {
@@ -704,7 +699,7 @@ export function treeNodeToStyleText([codePoints, style]: [units: number[], style
         }
       }
       throw new Error('Canvas does not support chalk style keyword: ' + keyword);
-    }, chalk as chalk.Chalk);
+    }, chalk);
     return chalkFn(text);
   } else {
     return text;

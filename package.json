@@ -29,9 +29,10 @@
   "scripts": {
     "plink": "plink",
     "link-plink": "node main/bin/link.js",
-    "lint-wfh": "eslint --no-eslintrc -c .eslintrc.js --ext .ts main/plink/wfh/src",
-    "lint-redux": "eslint --no-eslintrc -c .eslintrc.js --ext .ts main/redux-toolkit-observable",
-    "lint-thread": "eslint --no-eslintrc -c .eslintrc.js --ext .ts main/thread-promise-pool",
-    "lint-file": "eslint --no-eslintrc -c .eslintrc.js"
+    "lint-wfh": "eslint  -c eslint.config.mjs --ext .ts main/plink/wfh/src",
+    "lint-redux": "eslint  -c eslint.config.mjs --ext .ts main/redux-toolkit-observable",
+    "lint-thread": "eslint  -c eslint.config.mjs --ext .ts main/thread-promise-pool",
+    "lint-file-debug": "eslint  -c eslint.config.mjs --debug --print-config",
+    "lint-file": "eslint  -c eslint.config.mjs --debug"
   }
 }

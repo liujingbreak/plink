@@ -1,4 +1,3 @@
-// import 'source-map-support/register';
 import util from 'util';
 import fs from 'fs';
 import * as rx from 'rxjs';
