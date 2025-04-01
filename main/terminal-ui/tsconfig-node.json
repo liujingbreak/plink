@@ -7,7 +7,14 @@
     "declaration": true,
     "sourceMap": true,
     "inlineSourceMap": false,
-    "composite": true
+    "composite": true,
+    "paths": {
+      "@wfh/reactivizer": [
+        "../reactivizer/src/index.ts",
+        "../reactivizer/src/index.mts",
+        "../reactivizer/src/index.cts"
+      ]
+    }
   },
   "references": [
     {"path": "../reactivizer/tsconfig-node.json"}

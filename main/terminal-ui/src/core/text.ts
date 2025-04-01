@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
-import {CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory, CreateOptsInDef} from '@wfh/reactivizer';
+import {CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory} from '@wfh/reactivizer';
 import {getTextDisplayUnits, TextStyle} from './canvas.js';
 import {baseComponentFac} from './base.js';
 import {isCodePointFullWidth, createWordSplitter} from './text-split.js';
@@ -26,10 +26,10 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
     rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
   ),
   ad.ofOtherTypes()
-)).defineReactor((init, initialText: string, opts?: CreateOptsInDef<MultiLineTextActions, typeof baseComponentFac>) => {
+)).defineReactor(({init, setting: opts}, initialText: string) => {
   const service = init(opts);
   const spliter = createWordSplitter({debug: false, log: opts?.log});
-  const {r, s, ft, pt, table, latest} = service;
+  const {r, ft, pt, table, latest} = service;
   r('onRender', pt.onRender.pipe(
     rx.filter(([, , , needRerender]) => needRerender),
     rx.withLatestFrom(latest.onDisplayLines, latest.onFgChangeWithParent, latest.onSize, latest.overflow, latest.onBgChangeWithParent),
@@ -54,7 +54,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
   ));
   r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(
     rx.withLatestFrom(latest.preferredSize, latest.setContent),
-    rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
+    rx.mergeMap(([[m, width, height], [, prefWidth], [, content]]) => {
       if (height != null) {
         if (height < 0)
           throw new Error('querySizeOf can not accept negative parameter');
@@ -103,8 +103,6 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
     )
   ]).pipe(
     rx.mergeMap(([[m, width, height], [, prefWidth, prefHeight, linesOfPrefSize]]) => {
-      if (width == null || height == null)
-        throw new Error(`Error: ${width} or ${height} is not valid value of "onSize [i: ${m.i}, r: ${JSON.stringify(m.r)}]" of ${s.logPrefix}`);
       // service.log('======', width, height, prefWidth, prefHeight, linesOfPrefSize);
       if (width === 0) {
         ft.onDisplayLines([]).dp(m);
@@ -241,8 +239,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
         return countLines;
       }, 1),
       rx.map(countLines => {
-        if (currLine)
-          lines$.next(currLine);
+        lines$.next(currLine);
         lines$.complete();
         return [countLines, lines$.asObservable()] as const;
       })
@@ -252,7 +249,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
 export type MultiLineTextWidget = SimplexReactorOfFac<typeof textWidgetFac>;
 export type MultiLineTextWidgetOpts = CreateOptsOfFac<typeof textWidgetFac>;
 export function createTextWidget(initialText = '', opts?: MultiLineTextWidgetOpts) {
-  const service = textWidgetFac.create(initialText, opts);
+  const service = textWidgetFac.setting(opts).create(initialText);
   return service;
 }
 

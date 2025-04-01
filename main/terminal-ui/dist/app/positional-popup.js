@@ -1,4 +1,3 @@
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import { DisplayMode } from '../core/base.js';
 import { textFac } from '../hoc/text.js';
@@ -10,8 +9,8 @@ const tableFor = ['setRelativePos', 'isDocked'];
 export const positionalFac = baseContainerFac.forExtend({
     name: 'positional',
     tableFor
-}).defineReactor((init, content, opts) => {
-    const service = init(opts);
+}).defineReactor((ctx, content) => {
+    const service = ctx.init(ctx.setting);
     const { ft, r, pt, table } = service;
     r('reflow -> c.onSize,onChildPositions', pt.reflow.pipe(rx.withLatestFrom(table.l.allDisplayChildren, table.l.isDocked, table.l.setRelativePos, table.l.onSize, table.l.onChildPositions), rx.switchMap(([[m], [, children], [, isDocked], [, relX, relY], [, width, height], [, childPos]]) => {
         if (children.length === 0)
@@ -82,9 +81,9 @@ export const positionalFac = baseContainerFac.forExtend({
 });
 export function showPopupFor(dockTo, content, attrs, opts) {
     var _a, _b;
-    const popup = positionalFac.create(content, opts);
+    const popup = positionalFac.setting(opts).create(content);
     if (attrs === null || attrs === void 0 ? void 0 : attrs.relativePos)
-        popup.ft.setRelativePos(...attrs.relativePos).dp((_a = attrs === null || attrs === void 0 ? void 0 : attrs.actionMeta) !== null && _a !== void 0 ? _a : undefined);
+        popup.ft.setRelativePos(...attrs.relativePos).dp((_a = attrs.actionMeta) !== null && _a !== void 0 ? _a : undefined);
     popup.ft.dockTo(dockTo).dp((_b = attrs === null || attrs === void 0 ? void 0 : attrs.actionMeta) !== null && _b !== void 0 ? _b : undefined);
     popup.r('"showPopupFor"', queryElevatorContainer(dockTo).pipe(rx.mergeMap(elevator => {
         var _a;
@@ -101,7 +100,7 @@ export function bindToolTipsTo(c, tooltips, delayShowMs = 800, opts) {
         return rx.timer(delayShowMs).pipe(rx.takeUntil(c.pt.onLeave), rx.map(() => {
             let textComp;
             if (typeof tooltips === 'string') {
-                const bordedText = textFac.create(tooltips, Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.label' : 'popup.label', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.textOpts));
+                const bordedText = textFac.setting(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.label' : 'popup.label', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.textOpts)).create(tooltips);
                 bordedText.ft.setPadding(0, 1, 0, 1).dp(m);
                 textComp = bordedText;
             }

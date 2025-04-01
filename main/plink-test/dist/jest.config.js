@@ -10,8 +10,8 @@ const fs_1 = tslib_1.__importDefault(require("fs"));
 const init_plink_1 = require("./init-plink");
 // import {defaults} from 'jest-config';
 const transform = {
-    '\\.jsx?$': 'babel-jest',
-    '\\.tsx?$': [path_1.default.resolve(__dirname, 'ts-transformer.js'), {}]
+    '\\.[mc]jsx?$': 'babel-jest',
+    '\\.[mc]?tsx?$': [path_1.default.resolve(__dirname, 'ts-transformer.js'), {}]
 };
 // Jest does not support symlinks for search directory, so I have to use "realPath"
 const packageDirs = [...init_plink_1.packageToPathMap.values()].map(path => path_1.default.resolve(init_plink_1.plinkRootDir, path));
@@ -26,7 +26,7 @@ const config = {
     // bail: 0,
     // The directory where Jest should store its cached dependency information
     cacheDirectory: path_1.default.resolve(init_plink_1.plinkRootDir, 'dist/jest-cache'),
-    extensionsToTreatAsEsm: ['.ts'],
+    // extensionsToTreatAsEsm: ['.ts'],
     // Automatically clear mock calls, instances, contexts and results before every test
     // clearMocks: false,
     // Indicates whether the coverage information should be collected while executing the test

@@ -1,5 +1,6 @@
-import {describe, it, expect}  from '@jest/globals';
-import {shrinkEachSize} from '../src/core/flex-container';
+/* eslint-disable no-console */
+import {describe, it, expect} from '@jest/globals';
+import {shrinkEachSize} from '../src/core/flex-container.ts';
 
 describe('flexContainer', () => {
   it('shrink calculation', () => {

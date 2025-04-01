@@ -10,3 +10,8 @@ export declare function arrayBuffer2str(buf: ArrayBuffer | SharedArrayBuffer, by
  */
 export declare function ascii2ArrayBuffer<T extends SharedArrayBuffer | ArrayBuffer>(str: string, isShared?: boolean): T;
 export declare function arrayBuffer2ascii(buf: ArrayBuffer | SharedArrayBuffer, byteOffset?: number, length?: number): any;
+export declare function onAllSubscribed<T extends readonly unknown[]>(inputs: {
+    [K in keyof T]: rx.Observable<T[K]>;
+}, onAllSubscribed: () => void, onAllUnsubscribed?: () => void): {
+    [K in keyof T]: rx.Observable<T[K]>;
+};

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as rx from 'rxjs';
 import {Action, InferPayload, ActionMeta, InferMapParam,
   ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions} from './stream-core';
@@ -14,7 +15,7 @@ export type DispatchForAndObserveRes<I, K extends keyof I> = <F>(
   waitForAction$: rx.Observable<Action<F>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>
 ) => rx.Observable<InferMapParam<F>>;
 
-type Interceptor = (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>;
+type Interceptor = (up: rx.Observable<Action>) => rx.Observable<Action>;
 
 export class RxController<I> {
   core: ControllerCore<I>;
@@ -36,13 +37,13 @@ export class RxController<I> {
   actionByType: ActionByType<I>;
   /** abbrevation of actionByType */
   at: ActionByType<I>;
-  opts: CoreOptions<unknown> & {debugTableAction?: boolean};
+  opts: CoreOptions<unknown>;
 
   interceptorList$: rx.Observable<Interceptor[]>;
 
-  constructor(opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
+  constructor(opts?: CoreOptions<I>) {
     const core = this.core = new ControllerCore(opts);
-    this.opts = opts as any;
+    this.opts = opts as typeof this.opts;
     this.dispatcher = this.dp = new Proxy({} as {[K in keyof I]: Dispatch<I[K]>}, {
       get(_target, key, _rec) {
         return core.dispatchFactory(key as keyof I);
@@ -70,7 +71,6 @@ export class RxController<I> {
     const self = this;
     this.dispatchForAndObserveRes = this.dfo = new Proxy({} as {[K in keyof I]: DispatchForAndObserveRes<I, K>}, {
       get(_target, key, _rec) {
-
         return <R extends keyof I>(action$: rx.Observable<Action<I[R]>>, referActions: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: any[]) => {
           const action = self.core.createAction(key as keyof I, params as InferPayload<I[keyof I]>);
           if (referActions)
@@ -99,7 +99,6 @@ export class RxController<I> {
 
     this.dispatchAndObserveRes = this.do = new Proxy({} as {[K in keyof I]: DispatchAndObserveRes<I, K>}, {
       get(_target, key, _rec) {
-
         return <R extends keyof I>(action$: rx.Observable<Action<I[R]>>, ...params: any[]) => {
           return self.dfo[key as keyof I](action$, null, ...(params as any));
         };
@@ -174,7 +173,7 @@ export class RxController<I> {
   }
 
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-  groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
+  groupControllerBy<K>(keySelector: (action: Action) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
   rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]> {
     return this.core.action$.pipe(
       rx.groupBy(keySelector),

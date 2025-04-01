@@ -7,10 +7,10 @@ export const tableForMultiLineText = ['setContent', 'setStyle', 'onDisplayLines'
 export const textWidgetFac = baseComponentFac.forExtend({
     name: 'text',
     tableFor: tableForMultiLineText
-}).interceptorByType(ad => rx.merge(ad.at.setContent.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, initialText, opts) => {
+}).interceptorByType(ad => rx.merge(ad.at.setContent.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor(({ init, setting: opts }, initialText) => {
     const service = init(opts);
     const spliter = createWordSplitter({ debug: false, log: opts === null || opts === void 0 ? void 0 : opts.log });
-    const { r, s, ft, pt, table, latest } = service;
+    const { r, ft, pt, table, latest } = service;
     r('onRender', pt.onRender.pipe(rx.filter(([, , , needRerender]) => needRerender), rx.withLatestFrom(latest.onDisplayLines, latest.onFgChangeWithParent, latest.onSize, latest.overflow, latest.onBgChangeWithParent), rx.map(([[m, canvas, trans], [, lines], [, style], [, width, height], [, overflow], [, bg]]) => {
         const leftop = [0, 0];
         const [x, y0] = vec2.transformMat4(leftop, leftop, trans);
@@ -29,7 +29,7 @@ export const textWidgetFac = baseComponentFac.forExtend({
         if (overflow)
             canvas.ft.addString(x + width - 3, y0 + lineCnt - 1, '...', style !== null && style !== void 0 ? style : undefined).dp(m);
     })));
-    r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(rx.withLatestFrom(latest.preferredSize, latest.setContent), rx.mergeMap(([[m, width, height], [, prefWidth, _prefHeight], [, content]]) => {
+    r('querySizeOf, preferredSize -> prefHeightFor, prefWidthFor, onDisplayLinesForWidth', pt.querySizeOf.pipe(rx.withLatestFrom(latest.preferredSize, latest.setContent), rx.mergeMap(([[m, width, height], [, prefWidth], [, content]]) => {
         if (height != null) {
             if (height < 0)
                 throw new Error('querySizeOf can not accept negative parameter');
@@ -73,8 +73,6 @@ export const textWidgetFac = baseComponentFac.forExtend({
             return [m, maxWidth, lines.length, linesForPrefSize];
         }))
     ]).pipe(rx.mergeMap(([[m, width, height], [, prefWidth, prefHeight, linesOfPrefSize]]) => {
-        if (width == null || height == null)
-            throw new Error(`Error: ${width} or ${height} is not valid value of "onSize [i: ${m.i}, r: ${JSON.stringify(m.r)}]" of ${s.logPrefix}`);
         // service.log('======', width, height, prefWidth, prefHeight, linesOfPrefSize);
         if (width === 0) {
             ft.onDisplayLines([]).dp(m);
@@ -203,15 +201,14 @@ export const textWidgetFac = baseComponentFac.forExtend({
             }
             return countLines;
         }, 1), rx.map(countLines => {
-            if (currLine)
-                lines$.next(currLine);
+            lines$.next(currLine);
             lines$.complete();
             return [countLines, lines$.asObservable()];
         }));
     }
 });
 export function createTextWidget(initialText = '', opts) {
-    const service = textWidgetFac.create(initialText, opts);
+    const service = textWidgetFac.setting(opts).create(initialText);
     return service;
 }
 //# sourceMappingURL=text.js.map

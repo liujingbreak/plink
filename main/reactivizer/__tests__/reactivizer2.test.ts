@@ -1,7 +1,7 @@
 /* eslint-disable array-bracket-newline */
 /* eslint-disable no-console */
 import * as rx from 'rxjs';
-import {describe, it, expect, jest}  from '@jest/globals';
+import {describe, it, expect, jest} from '@jest/globals';
 import {ActionDispenser, SimplexReactorOptions} from '../src/index';
 import {formatToConcise} from '../dist/nodejs-utils';
 import {SingleActionFactory, RxController2, ReactorComposite2, actionRelatedToActionRelatives, SimplexReactor,
@@ -16,10 +16,10 @@ const stdoutLogger: SimplexReactorOptions<any, any>['log'] = (...msgs) => {
   process.stdout.write(formatToConcise(...msgs));
   process.stdout.write('\n');
 };
-type TestGroupBy = {
+interface TestGroupBy {
   foobar1(key: string, v: number): SingleActionFactory;
   foobar2(key: string, v: string): SingleActionFactory;
-};
+}
 
 describe('reactivizer2', () => {
   describe('RxController2', () => {
@@ -145,13 +145,13 @@ describe('reactivizer2', () => {
       s.groupControllerBy(act => act.p[0], key => ({name: 'grouped-' + key, debug: true})).pipe(
         rx.mergeMap(([ctl, ctlByKeyMap]) => {
           jestGroupedFn(ctl, ctlByKeyMap);
-          ctl.action$.subscribe(v => console.log(v));
+          ctl.action$.subscribe(v => {console.log(v);});
 
           ctl.actionSubscribed$.pipe(
             rx.tap(jestCoreSubFn)
           ).subscribe();
 
-          ctl.actionUnsubscribed$.pipe().subscribe(() => console.log('unsubscribe grouped controller'));
+          ctl.actionUnsubscribed$.pipe().subscribe(() => {console.log('unsubscribe grouped controller');});
 
           return rx.merge(
             ctl.pt.foobar1.pipe(
@@ -331,7 +331,7 @@ describe('reactivizer2', () => {
         rx.tap(([, msg]) => mockFn(msg)),
         pairActionToActionStream(s.pt.message2, 6),
         rx.mergeMap(msg2$ => msg2$),
-        rx.map(([, msg]) => {mockFn(msg); })
+        rx.map(([, msg]) => {mockFn(msg);})
       ).subscribe();
       expect(mockFn.mock.calls.length).toBe(2);
       expect(mockFn.mock.calls[0][0]).toBe('this is reply1 within context');
@@ -346,7 +346,7 @@ describe('reactivizer2', () => {
         debug: true,
         log: stdoutLogger
       });
-      s.s.pt.message2.subscribe(a => console.log(a));
+      s.s.pt.message2.subscribe(a => {console.log(a);});
       s.r('test simplexReactor', s.s.pt.message2.pipe(
         rx.map(([m, words]) => {
           console.log('inside reactor');
@@ -463,7 +463,7 @@ describe('reactivizer2', () => {
         const dispenser = ActionDispenser.ofAction$<typeof pre>(a$);
         return rx.merge(
           rx.merge(dispenser.at.message1, dispenser.at.message2).pipe(
-            rx.map(a => console.log('action is blocked', a.t)),
+            rx.map(a => {console.log('action is blocked', a.t);}),
             rx.ignoreElements()),
           dispenser.ofOtherTypes()
         );
@@ -522,7 +522,7 @@ describe('reactivizer2', () => {
         const dispenser = ActionDispenser.ofAction$<typeof pre>(a$);
         return rx.merge(
           rx.merge(dispenser.at.message1, dispenser.at.message2).pipe(
-            rx.map(a => console.log('action is blocked', a.t)),
+            rx.map(a => {console.log('action is blocked', a.t);}),
             rx.ignoreElements()),
           dispenser.ofOtherTypes()
         );
@@ -601,7 +601,7 @@ describe('reactivizer2', () => {
   });
   it('prehook', async () => {
     const c = new SimplexReactor<TestGroupBy>({debug: true});
-    const {hooks, r, pt, ft} = c;
+    const {preHooks, r, pt, ft} = c;
     const mock = jest.fn();
 
     r('foobar1 -> foobar2', pt.foobar1.pipe(
@@ -610,7 +610,7 @@ describe('reactivizer2', () => {
         ft.foobar2(k, '').dp(m);
       })
     ));
-    const removePreHook = hooks.foobar1('prehook', (m, key, v) => {
+    const removePreHook = preHooks.foobar1('prehook', (_m, key) => {
       mock('preHook', key);
       return new rx.Observable(s => {
         setTimeout(() => {

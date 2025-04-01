@@ -57,9 +57,9 @@ export type FocusService = SimplexReactor<FocusMessages & CanvasFilterOutput & C
 export type FocusServiceOpts = CoreOptions<FocusMessages & CanvasFilterOutput & CanvasFilterInput> & {
     cache?: CanvasCacheOptions;
 };
-export declare const focusServiceFac: BaseReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ["didFound", "handleKeyEvents", "searchTree", "isPaused", "forRootComp"], [canvas: Canvas, opts?: FocusServiceOpts | undefined]>;
+export declare const focusServiceFac: BaseReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ["didFound", "handleKeyEvents", "searchTree", "isPaused", "forRootComp"], FocusServiceOpts, [canvas: Canvas]>;
 export type RootFocusServiceOpts = FocusServiceOpts;
-export declare const rootFocusSvcFac: import("@wfh/reactivizer").DerivedReactorFactory<Record<string, never>, readonly ["switchFocus"], [canvas: Canvas, opts?: FocusServiceOpts | undefined], FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ["didFound", "handleKeyEvents", "searchTree", "isPaused", "forRootComp"], [canvas: Canvas, opts?: FocusServiceOpts | undefined]>;
+export declare const rootFocusSvcFac: import("@wfh/reactivizer").DerivedReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput & Record<string, never>, ("didFound" | "handleKeyEvents" | "searchTree" | "isPaused" | "forRootComp" | "switchFocus")[], [canvas: Canvas], FocusServiceOpts, [canvas: Canvas]>;
 export type RootFocusService = SimplexReactorOfFac<typeof rootFocusSvcFac>;
-export declare function queryRootFocusService(currComp: BaseWidget, m?: ActionMeta): rx.Observable<import("@wfh/reactivizer").DerivedSimplexReactor<Record<string, never> & FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ("didFound" | "handleKeyEvents" | "searchTree" | "isPaused" | "forRootComp" | "switchFocus")[]>>;
+export declare function queryRootFocusService(currComp: BaseWidget, m?: ActionMeta): rx.Observable<SimplexReactor<FocusMessages & CanvasFilterOutput & CanvasFilterInput & Record<string, never>, ("didFound" | "handleKeyEvents" | "searchTree" | "isPaused" | "forRootComp" | "switchFocus")[]>>;
 export {};

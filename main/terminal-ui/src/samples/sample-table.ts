@@ -27,7 +27,7 @@ const table = createTable({
 const SAMPLE_ROW_COUNT = 6;
 const SAMPLE_COLUMN_CNT = 7;
 table.pt.onRowAdded.pipe(
-  rx.map(([, idx, id, cells]) => {
+  rx.map(([, , , cells]) => {
     cells.map(cell => {
       (cell as MultiLineTextWidget).ft.setStyle(['black']).dp();
     });

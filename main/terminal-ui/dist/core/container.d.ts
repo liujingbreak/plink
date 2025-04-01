@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
-import { SingleActionFactory, Action, InferMapParam, CreateOptsOfFac, SimplexReactorOfFac } from '@wfh/reactivizer';
+import { SingleActionFactory, ActionMeta, Action, InferMapParam, CreateOptsOfFac, SimplexReactorOfFac } from '@wfh/reactivizer';
 import { Canvas, Rectangle } from './canvas.js';
 import { BaseWidget } from './base.js';
 export interface TerminalContainerInput {
@@ -15,7 +15,7 @@ export interface TerminalContainerInput {
     /** @deprecated use requestReflowOn, requestReflow instead */
     latestReflowData(data$: rx.Observable<InferMapParam<any>>): SingleActionFactory;
     requestReflow(reason?: string): SingleActionFactory;
-    requestReflowOn<P extends [...(rx.Observable<Action<any>> | rx.Observable<InferMapParam<any>>)[]]>(...actionOrPayloads: P): SingleActionFactory;
+    requestReflowOn(...actionOrPayloads: [...(rx.Observable<Action> | rx.Observable<[ActionMeta, ...unknown[]]>)[]]): SingleActionFactory;
     /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent (i.e value of onBoundingBox ).
      * Use DFS to lookup all components including all ancestor containers */
     findOverlaps(...rect: Rectangle): SingleActionFactory;
@@ -23,9 +23,9 @@ export interface TerminalContainerInput {
 export interface TermainlContainerEvents extends TerminalContainerInput {
     renderSelf(canvas: Canvas, transform: mat4, clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
     renderChild(index: number, child: BaseWidget, canvas: Canvas, absTransform: mat4, clipArea: Rectangle[], maskArea: Rectangle[]): SingleActionFactory;
-    allChildren(children: Array<BaseWidget>): SingleActionFactory;
+    allChildren(children: BaseWidget[]): SingleActionFactory;
     /** all children whose "setDisplay" is not `none` */
-    allDisplayChildren(children: Array<BaseWidget>): SingleActionFactory;
+    allDisplayChildren(children: BaseWidget[]): SingleActionFactory;
     /** Under context of "relow" action.
      * The coordinate value is relative to container component.
      * @param positions the length of this parameter must equals to "allDisplayChildren"'s length
@@ -62,6 +62,6 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
     /** In context of findOverlaps */
     didFindOverlaps(children: BaseWidget[]): SingleActionFactory;
 }
-export declare const baseContainerFac: import("@wfh/reactivizer").DerivedReactorFactory<TermainlContainerEvents, readonly ["allChildren", "allDisplayChildren", "setLayoutValid", "onChildPreferredSizeChange", "hasOfflineCanvas", "onChildPositions", "isOpaque", "latestReflowData", "isLayoutDirty", "setLayoutCheck"], [], import("./base.js").BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;
+export declare const baseContainerFac: import("@wfh/reactivizer").DerivedReactorFactory<import("./base.js").BaseWidgetEvents & TermainlContainerEvents, ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "setForeground" | "onFgChangeWithParent" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck")[], [], import("@wfh/reactivizer").CoreOptions<import("./base.js").BaseWidgetEvents & TermainlContainerEvents>, []>;
 export type TerminalContainerOpts = CreateOptsOfFac<typeof baseContainerFac>;
 export type TerminalContainer = SimplexReactorOfFac<typeof baseContainerFac>;

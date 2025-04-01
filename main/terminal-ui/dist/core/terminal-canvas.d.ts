@@ -1,4 +1,4 @@
-import { SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac, ActionMeta } from '@wfh/reactivizer';
+import { SingleActionFactory, SimplexReactorOfFac, ActionMeta, CreateOptsOfExtendedFac } from '@wfh/reactivizer';
 import { canvasFac } from './canvas.js';
 import { KeyEventServcie } from './keyEvent.js';
 export interface TerminalCanvasInput {
@@ -31,8 +31,8 @@ interface TerminalCanvasEvents extends TerminalCanvasInput {
     /** In context of printDescentEnd */
     onPrintDescentEndFlushed(): SingleActionFactory;
 }
-export type TerminalCanvasOpts = CreateOptsInDef<TerminalCanvasEvents, typeof canvasFac>;
-export declare const terminalCanvasFac: import("@wfh/reactivizer").DerivedReactorFactory<TerminalCanvasEvents, readonly ["onKeyEventService"], [opts?: import("@wfh/reactivizer").CoreOptions<import("./canvas.js").CanvasEvents & TerminalCanvasEvents> | undefined], import("./canvas.js").CanvasEvents, readonly ["setBounding", "setRootComponent", "internalCache"], [opts?: import("@wfh/reactivizer").CoreOptions<import("./canvas.js").CanvasEvents> | undefined]>;
+export type TerminalCanvasOpts = CreateOptsOfExtendedFac<typeof canvasFac, TerminalCanvasEvents>;
+export declare const terminalCanvasFac: import("@wfh/reactivizer").DerivedReactorFactory<import("./canvas.js").CanvasEvents & TerminalCanvasEvents, ("setBounding" | "setRootComponent" | "internalCache" | "onKeyEventService")[], [], import("@wfh/reactivizer").CoreOptions<import("./canvas.js").CanvasEvents & TerminalCanvasEvents>, []>;
 export type TerminalCanvas = SimplexReactorOfFac<typeof terminalCanvasFac>;
-export declare function createTerminalCanvas(opts?: TerminalCanvasOpts): import("@wfh/reactivizer").DerivedSimplexReactor<TerminalCanvasEvents & import("./canvas.js").CanvasEvents, readonly ("setBounding" | "setRootComponent" | "internalCache" | "onKeyEventService")[]>;
+export declare function createTerminalCanvas(opts?: TerminalCanvasOpts): import("@wfh/reactivizer").SimplexReactor<import("./canvas.js").CanvasEvents & TerminalCanvasEvents, ("setBounding" | "setRootComponent" | "internalCache" | "onKeyEventService")[]>;
 export {};

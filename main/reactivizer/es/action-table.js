@@ -9,58 +9,114 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var _ActionTable_latestPayloadsByName$;
+var _ActionTable_dataChange$, _ActionTable_actionNamesAdded$, _ActionTable_data;
 import * as rx from 'rxjs';
 import { has, actionMetaToStr } from './stream-core';
 import { mapActionToPayload } from './control';
 const EMPTY_ARRY = [];
+/**
+ * ActionTable stores "latest" action messages, acting like a "BehaviorSubject", you can get the latest messages
+ * by accessing:
+ *
+ * 1) `.actionSnapshot` which is a `Map`, the keys of it is message types, the values are the mapped payload array which
+ *  includes ActionMeta as first element.
+ * 2) `.data` which returns a hash object, the property names of it are message types, the values are the payload array
+ *
+ * You can also observe changes of the messages by accessing:
+ * 1) `.l` or `.latestPayloads` which is a hash object, the property name of it are message types, the values
+ *      are Observable of mapped payload array (which contains ActionMeta)
+ * 2) `.dataChange$` which is Observable of returned hash object of `.getData()`
+ *
+ * Above Observable are all acting like a `ReplaySubject(1)`, which always immediately emits the last stored message when
+ * being subscribed.
+ */
 export class ActionTable {
     get dataChange$() {
-        if (__classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f"))
-            return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
-        __classPrivateFieldSet(this, _ActionTable_latestPayloadsByName$, this.actionNamesAdded$.pipe(rx.switchMap(() => rx.from(this.actionNames)), rx.mergeMap(actionName => this.l[actionName]), rx.map(() => {
-            this.data = {};
+        if (__classPrivateFieldGet(this, _ActionTable_dataChange$, "f"))
+            return __classPrivateFieldGet(this, _ActionTable_dataChange$, "f");
+        __classPrivateFieldSet(this, _ActionTable_dataChange$, __classPrivateFieldGet(this, _ActionTable_actionNamesAdded$, "f").pipe(rx.switchMap(() => rx.from(this.actionNames)), rx.mergeMap(actionName => this.latestPayloads[actionName]), rx.map(() => {
+            __classPrivateFieldSet(this, _ActionTable_data, {}, "f");
             for (const k of this.actionNames) {
                 const v = this.actionSnapshot.get(k);
-                const old = this.data[k];
+                const old = __classPrivateFieldGet(this, _ActionTable_data, "f")[k];
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 if (old === EMPTY_ARRY || old == null)
-                    this.data[k] = v ? v.slice(1) : EMPTY_ARRY;
+                    __classPrivateFieldGet(this, _ActionTable_data, "f")[k] = v ? v.slice(1) : EMPTY_ARRY;
                 else {
                     if (v) {
-                        this.data[k] = v.slice(1);
+                        __classPrivateFieldGet(this, _ActionTable_data, "f")[k] = v.slice(1);
                         // old.splice(0);
                         // for (let i = 1, l = v.length; i < l; i++)
                         //   (old as any[]).push(v[i]);
                     }
                     else
-                        this.data[k] = EMPTY_ARRY;
+                        __classPrivateFieldGet(this, _ActionTable_data, "f")[k] = EMPTY_ARRY;
                 }
             }
-            return this.data;
+            return __classPrivateFieldGet(this, _ActionTable_data, "f");
         }), rx.share()), "f");
-        return __classPrivateFieldGet(this, _ActionTable_latestPayloadsByName$, "f");
+        return __classPrivateFieldGet(this, _ActionTable_dataChange$, "f");
     }
-    constructor(streamCtl, actionNames) {
+    get data() {
+        return __classPrivateFieldGet(this, _ActionTable_data, "f");
+    }
+    constructor(streamCtl, actionsOrTable) {
         this.streamCtl = streamCtl;
         this.latestPayloads = {};
-        this.data = {};
-        this.actionSnapshot = new Map();
-        // private
-        _ActionTable_latestPayloadsByName$.set(this, void 0);
-        // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
-        this.actionNamesAdded$ = new rx.ReplaySubject(1);
-        this.actionNames = new Set();
+        _ActionTable_dataChange$.set(this, void 0);
+        _ActionTable_actionNamesAdded$.set(this, void 0);
+        /** the source of dataChange$ */
+        _ActionTable_data.set(this, void 0);
+        const baseTable = Array.isArray(actionsOrTable) ? null : actionsOrTable;
+        if (baseTable == null) {
+            this.actionNames = new Set();
+            __classPrivateFieldSet(this, _ActionTable_actionNamesAdded$, new rx.ReplaySubject(1), "f");
+            this.addActions(...actionsOrTable);
+            this.actionSnapshot = new Map();
+            __classPrivateFieldSet(this, _ActionTable_data, {}, "f");
+        }
+        else {
+            this.actionNames = baseTable.actionNames;
+            __classPrivateFieldSet(this, _ActionTable_actionNamesAdded$, __classPrivateFieldGet(baseTable, _ActionTable_actionNamesAdded$, "f"), "f");
+            this.actionSnapshot = baseTable.actionSnapshot;
+            __classPrivateFieldSet(this, _ActionTable_data, __classPrivateFieldGet(baseTable, _ActionTable_data, "f"), "f");
+        }
         this.l = this.latestPayloads;
-        this.addActions(...actionNames);
-        this.actionNamesAdded$.pipe(rx.mergeMap(actionNames => {
-            return this.onAddActions(actionNames);
+        // Assign this.#data, this.latestPayloads, this.actionSnapshot
+        __classPrivateFieldGet(this, _ActionTable_actionNamesAdded$, "f").pipe(rx.mergeMap(actionNames => {
+            return actionNames;
+        }), rx.mergeMap(actionName => {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            if (__classPrivateFieldGet(this, _ActionTable_data, "f")[actionName] == null)
+                __classPrivateFieldGet(this, _ActionTable_data, "f")[actionName] = EMPTY_ARRY;
+            if (has.call(this.latestPayloads, actionName))
+                return rx.EMPTY;
+            const a$ = new rx.ReplaySubject(1);
+            this.latestPayloads[actionName] = this.streamCtl.opts.debugTableAction ?
+                a$.pipe(this.debugLogLatestActionOperator(actionName)) :
+                a$.asObservable();
+            let source = this.streamCtl.at[actionName];
+            if (baseTable) {
+                const baseLatest = baseTable.actionSnapshot.get(actionName);
+                if (baseLatest) {
+                    source = rx.concat(rx.of({ t: actionName, i: baseLatest[0].i, p: baseLatest.slice(1) }), source);
+                }
+            }
+            return source.pipe(rx.map(a => {
+                // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
+                const mapParam = [{ i: a.i, r: a.r }, ...a.p];
+                this.actionSnapshot.set(actionName, mapParam);
+                return mapParam;
+            }), rx.tap(a$));
         })).subscribe();
-        this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
+        this.dataChange$.subscribe(); // to make sure this.#data will be fulfilled even when there is no any external observer
     }
+    /** @deprecated use .data instead */
     getData() {
-        return this.data;
+        return __classPrivateFieldGet(this, _ActionTable_data, "f");
     }
-    /** Add actions to be recoreded in table map,
+    /** Add actions to be recoreded in table map, action name which is duplicate to existings
+     * will be ignored,
      * by creating `ReplaySubject(1)` for each action payload stream respectively
      */
     addActions(...actionNames) {
@@ -68,36 +124,17 @@ export class ActionTable {
         for (const a of uniqueNewActions) {
             this.actionNames.add(a);
         }
-        this.actionNamesAdded$.next(uniqueNewActions);
+        __classPrivateFieldGet(this, _ActionTable_actionNamesAdded$, "f").next(uniqueNewActions);
         return this;
-    }
-    onAddActions(actionNames) {
-        return rx.from(actionNames).pipe(rx.mergeMap(type => {
-            var _a;
-            if (this.data[type] == null)
-                this.data[type] = EMPTY_ARRY;
-            if (has.call(this.latestPayloads, type))
-                return rx.EMPTY;
-            const a$ = new rx.ReplaySubject(1);
-            this.streamCtl.at[type].pipe(rx.map(a => {
-                // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
-                const mapParam = [{ i: a.i, r: a.r }, ...a.p];
-                this.actionSnapshot.set(type, mapParam);
-                return mapParam;
-            })).subscribe(a$);
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-            return this.latestPayloads[type] = ((_a = this.streamCtl.opts) === null || _a === void 0 ? void 0 : _a.debugTableAction) ?
-                a$.pipe(this.debugLogLatestActionOperator(type)) :
-                a$.asObservable();
-        }));
     }
     getLatestActionOf(actionName) {
         return this.actionSnapshot.get(actionName);
     }
     debugLogLatestActionOperator(type) {
-        var _a, _b;
+        var _a;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         const core = (_a = this.streamCtl.core) !== null && _a !== void 0 ? _a : this.streamCtl;
-        return ((_b = this.streamCtl.opts) === null || _b === void 0 ? void 0 : _b.log) ?
+        return this.streamCtl.opts.log ?
             rx.map((action, idx) => {
                 if (idx === 0 && !core.debugExcludeSet.has(type)) {
                     this.streamCtl.opts.log(core.logPrefix + 'rx:latest', type, actionMetaToStr(action[0]));
@@ -121,7 +158,7 @@ export class ActionTable {
                 });
     }
 }
-_ActionTable_latestPayloadsByName$ = new WeakMap();
+_ActionTable_dataChange$ = new WeakMap(), _ActionTable_actionNamesAdded$ = new WeakMap(), _ActionTable_data = new WeakMap();
 /** Consider it as Apache Kafka's KTable */
 export class ActionDataTable {
     constructor(source$, keySelector) {
@@ -129,6 +166,7 @@ export class ActionDataTable {
         this.keySelector = keySelector;
         this.snapshot = new Map();
         /** Alias of latestPayload */
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         this.ofKey = this.getPayloadStreamOfKey;
         this.future$ = this.source$.pipe(mapActionToPayload(), rx.share());
         this.future$.subscribe(payload => {

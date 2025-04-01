@@ -6,7 +6,7 @@ const tableFor = ['onKeyEventService'];
 export const terminalCanvasFac = canvasFac.forExtend({
     name: 'canvas',
     tableFor
-}).defineReactor((init, opts) => {
+}).defineReactor(({ init, setting: opts }) => {
     const service = init(opts);
     const { pt, ft, r, table } = service;
     r('autoHideCursor', pt.autoHideCursor.pipe(rx.map(() => {
@@ -42,15 +42,16 @@ export const terminalCanvasFac = canvasFac.forExtend({
         }
     })));
     r('setFullScreen -> setBounding,onKeyEventService', pt.setFullScreenMode.pipe(rx.exhaustMap(([m, keyEventService]) => {
-        if (keyEventService == null)
-            keyEventService = createKeyEventService({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
+        keyEventService !== null && keyEventService !== void 0 ? keyEventService : (keyEventService = createKeyEventService({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }));
         ft.onKeyEventService(keyEventService).dp(m);
         const blankLines = '\n'.repeat(process.stdout.rows - 1);
         return new rx.Observable(sub => {
-            process.stdout.write(blankLines, () => sub.next());
+            process.stdout.write(blankLines, () => {
+                sub.next();
+            });
         }).pipe(rx.take(1), rx.switchMap(() => {
             ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
-            return new rx.Observable(sub => {
+            return new rx.Observable(() => {
                 const handleResize = () => {
                     ft.setBounding(0, 0, process.stdout.columns, process.stdout.rows).dp(m);
                 };
@@ -62,15 +63,14 @@ export const terminalCanvasFac = canvasFac.forExtend({
         }));
     })));
     r('setSize -> setBounding,onKeyEventService', pt.setSize.pipe(rx.switchMap(([m, w, h, keyEventService]) => {
-        if (keyEventService == null)
-            keyEventService = createKeyEventService({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log });
+        keyEventService !== null && keyEventService !== void 0 ? keyEventService : (keyEventService = createKeyEventService({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }));
         ft.onKeyEventService(keyEventService).dp(m);
         const cols = w > process.stdout.columns ? process.stdout.columns : w;
         const rows = h > process.stdout.rows ? process.stdout.rows : h;
         const blankLines = '\n'.repeat(rows - 1);
         return ft.reportCursor(keyEventService).re(m).od(pt.doneReportCursor).pipe(rx.take(1), rx.switchMap(([, , top]) => new rx.Observable(s => {
-            process.stdout.write(blankLines, () => s.next(top));
-        })), rx.map((top) => {
+            process.stdout.write(blankLines, () => { s.next(top); });
+        })), rx.map(top => {
             if (top + rows > process.stdout.rows)
                 top = process.stdout.rows - rows;
             ft.setBounding(0, top, cols, rows).dp(m);
@@ -78,11 +78,13 @@ export const terminalCanvasFac = canvasFac.forExtend({
     })));
     r('onKeyEventService,keyEventService.onExit|destory$ -> printDescentEnd,keyEventService.dispose', table.l.onKeyEventService.pipe(rx.switchMap(([, keyEventService]) => {
         return rx.merge(new rx.Observable(() => {
-            const remove = keyEventService.hooks.onExit('before onExit', (m) => {
+            const remove = keyEventService.preHooks.onExit('before onExit', m => {
                 return ft.printDescentEnd().re(m).od(pt.onPrintDescentEndFlushed).pipe(rx.take(1));
             });
             return remove;
-        }), service.destory$.pipe(rx.map(() => keyEventService.dispose())));
+        }), service.destory$.pipe(
+        // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+        rx.map(() => keyEventService.dispose())));
     })));
     r('printDescentEnd -> onPrintDescentEndFlushed', pt.printDescentEnd.pipe(rx.mergeMap(([m]) => {
         return table.l.setBounding.pipe(rx.take(1), rx.map(([, left, top, w, h]) => {
@@ -95,7 +97,9 @@ export const terminalCanvasFac = canvasFac.forExtend({
         const processCallbacks = new rx.ReplaySubject();
         return pt.onPrintText.pipe(rx.map(([, x, y, text]) => {
             rl.cursorTo(process.stdout, x, y);
-            process.stdout.write(text, () => processCallbacks.next());
+            process.stdout.write(text, () => {
+                processCallbacks.next();
+            });
         }), rx.takeUntil(pt.onRendered), rx.count(), rx.mergeMap(count => {
             return processCallbacks.pipe(rx.take(count), rx.finalize(() => {
                 ft.onWriteFlushed(m).dp(m);
@@ -105,6 +109,6 @@ export const terminalCanvasFac = canvasFac.forExtend({
     ft.autoHideCursor().dp();
 });
 export function createTerminalCanvas(opts) {
-    return terminalCanvasFac.create(opts);
+    return terminalCanvasFac.setting(opts).create();
 }
 //# sourceMappingURL=terminal-canvas.js.map

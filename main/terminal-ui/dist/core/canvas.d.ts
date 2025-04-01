@@ -49,18 +49,18 @@ export interface CanvasEvents extends CanvasInput {
     onRendered(): SingleActionFactory;
     /** Invoke TTY API to actually clear line from the screen immediately */
     onClearLine(y: number, x?: number, dir?: 0 | 1 | -1): SingleActionFactory;
-    didCopyRect(paintables: Array<[xLow: number, xHigh: number, y: number, units: number[], style: string]>): SingleActionFactory;
+    didCopyRect(paintables: [xLow: number, xHigh: number, y: number, units: number[], style: string][]): SingleActionFactory;
     internalCache(lines: (LineElement | undefined)[], proLines: (LineElement | undefined)[], uncommited: (LineElement | undefined)[]): SingleActionFactory;
     didTakeSnapshot(lines: Iterable<string>): SingleActionFactory;
 }
 declare const tableFor: readonly ["setBounding", "setRootComponent", "internalCache"];
 export type Canvas = SimplexReactor<CanvasEvents, typeof tableFor>;
 export type CanvasOptions = CoreOptions<CanvasEvents>;
-export declare const canvasFac: BaseReactorFactory<CanvasEvents, readonly ["setBounding", "setRootComponent", "internalCache"], [opts?: CoreOptions<CanvasEvents> | undefined]>;
+export declare const canvasFac: BaseReactorFactory<CanvasEvents, readonly ["setBounding", "setRootComponent", "internalCache"], CoreOptions<CanvasEvents>, []>;
 export declare function getTextDisplayUnits(text: string): Generator<number, number[], unknown>;
 export declare const SPACE_CODE_POINT: number;
 /** Inputed and returned "high" value is considered as an "included" value of range interval */
-export declare function uniteDisplayUnits<T extends [low: number, high: number, units: number[], style: string]>(line: LineElement, target: T): void;
+export declare function uniteDisplayUnits(line: LineElement, target: [low: number, high: number, units: number[], style: string]): void;
 export type Range = [low: number, high: number];
 export type Rectangle = [x: number, y: number, w: number, h: number];
 export declare function rectIntersection([x1, y1, w1, h1]: Rectangle, [x2, y2, w2, h2]: Rectangle): Rectangle | null;

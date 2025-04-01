@@ -1,24 +1,33 @@
 import * as rx from 'rxjs';
-import { Action, ActionMeta, ActionFunctions, InferMapParam } from './stream-core';
-import { RxController2, ControllerBaseActions } from './control2';
+import { Action, ActionMeta, ActionFunctions, InferMapParam, InferPayload, CoreOptions } from './stream-core';
+import { RxController2, ControllerBaseActions, ActionInterceptor } from './control2';
 import { SingleActionFactory } from './action-factory';
 import { SimplexReactorOptions, SimplexReactorCfgOpts } from './reactor-base';
 import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
 import { ForkedPostRxController } from './forked-post-control';
-import { InferFuncReturnEvents, ActionFactoryOfPlainType, ExtractTupleElement } from './inferred-types';
+import { InferFuncReturnEvents, ActionFactoryOfPlainType } from './inferred-types';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
-    /** This event is when we can dispatch actions for initializing "action table" */
     __onError(err: any): SingleActionFactory;
     __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
     __onDisposed(): SingleActionFactory;
     /** extends ControllerBaseActions */
     __cancel: ControllerBaseActions['__cancel'];
 }
-declare const baseTableFor: readonly ["__onError", "__onDisposed"];
-type LE<LI extends readonly any[]> = LI[number] | ExtractTupleElement<typeof baseTableFor>;
-export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<any>;
-export declare class SimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> {
+declare const internalTableFor: readonly ["__onError", "__onDisposed"];
+type LE<LI extends readonly any[]> = LI[number] | (typeof internalTableFor)[number];
+export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<InferPayload<I[K]>>;
+type ObsInterceptorNextFn<I, K extends keyof I> = <N extends readonly ObsInterceptor<I, any>[]>(...params: [changedPayload: InferPayload<I[K]>, ...{
+    [NI in keyof N]: N[NI];
+}]) => {
+    [NI in keyof N]: N[NI];
+};
+export type ObsInterceptor<I, K extends keyof I> = rx.Observable<[
+    next: ObsInterceptorNextFn<I, K>,
+    ActionMeta,
+    ...InferPayload<I[K]>
+]>;
+export declare class SimplexReactor<I = Record<string, never>, LI extends readonly (keyof I)[] = []> {
     /** All catched error goes here, including those from "dispatchErrorFor" */
     error$: rx.Observable<readonly [error: any, label: string | null]>;
     /** When "dispose" method is invoked, __onDisposed message will be emitted,
@@ -45,35 +54,59 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
      * Any subscription to that specific message type (aka reactor) will recieved message after all
      * pre-hooks completes.
      *
-     * @return a function to remove pre-hook previously added.
+     * the value function returns a function to remove pre-hook previously added.
+     * e.g.
+     * ```
+     *    const service = someFactory.create();
+     *    const {preHooks} = service;
+     *    const removeHook = preHooks.actionFoobar('prehook for actionFoobar', (m, params) => {
+     *        // do something about params...
+     *        // Remove current hook setting of message "actionFoobar"
+     *        removeHook();
+     *    });
     **/
-    hooks: {
-        [K in keyof I]: (label: string, define: PreActionHook<I, K>) => () => void;
+    preHooks: {
+        [K in keyof I]: (labelOrPreHook: string | PreActionHook<I, K>, preHook?: PreActionHook<I, K>) => () => void;
+    };
+    interceptors: {
+        [K in keyof I]: ObsInterceptor<I, K>;
     };
     /** shortcut to table.l */
     latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
+    postBase: RxController2<I & BaseActions>;
+    /** alias of postBase */
+    p: RxController2<I & BaseActions>;
     /** Define an reactor (RxJS observable subscription) */
     r: (...params: [label: string, stream: rx.Observable<any>, disableCatchError?: boolean] | [stream: rx.Observable<any>, disableCatchError?: boolean]) => void;
     table: ActionTable<I & BaseActions<I>, LE<LI>>;
     id: number;
-    opts?: SimplexReactorOptions<unknown, readonly never[]>;
+    opts?: CoreOptions<any>;
     protected reactorSubj: rx.Subject<[label: string, stream: rx.Observable<any>, disableCatchError?: boolean]>;
     protected errorSubject: rx.Subject<[label: string, originError: any]>;
     private preActionHook$;
     private removePreActionHook$;
     constructor(opts?: SimplexReactorOptions<I, LI>);
+    protected createRxControllers<I0, LI0 extends readonly (keyof I0)[]>(opts?: SimplexReactorOptions<I0, LI0>): RxController2<I0>;
+    getLogName(): string;
     /**
      * This method can be used to change "options" after SimplexReactor instanciation, e.g. `.change({debug: true})` to enable action tracing log for debug.
      * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
      * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
      */
-    config<I2 = Record<string, never>, L2 extends (Array<keyof I2 | keyof I> | ReadonlyArray<keyof I2 | keyof I>) = never>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
-    /** Turn current reactors to extend mode,
+    config<I2 = Record<string, never>, L2 extends readonly (keyof I2 | keyof I)[] = []>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
+    /** @deprecated use toExtend instead
+     * Turn current reactors to extend mode,
      * fork a stream RxController2 to ForkedRxController, so that we can create new reactors by subscribing to
      * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
      **/
     forExtend(): DerivedSimplexReactor<I, LI>;
+    toExtend<I2 = Record<string, never>, LI2 extends readonly (keyof I2 | keyof I)[] = []>(): SimplexReactor<I & I2, readonly (LI2[number] | LI[number])[]>;
     private addPreHook;
+    /**
+     * prepend action stream interceptor by action type, the interceptors will intercept messages
+     * before they reach all inherited and current SimplexReactor
+     */
+    prependInterceptor(inter: ActionInterceptor<I>): () => void;
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to
@@ -99,16 +132,20 @@ export declare class SimplexReactor<I = Record<never, never>, LI extends readonl
     reactivize<F extends ActionFunctions>(fObject: F): SimplexReactor<I & ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>;
     log(...msg: any[]): void;
     reactivizeFunction(key: string, func: (...a: any[]) => any, funcThisRef?: any): string;
+    toString(): string;
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll(): this;
     /** @deprecated call dispose() instead */
     destory(): void;
-    protected logError(label: string, err: any): void;
+    protected logError(label: string, err: {
+        message?: string;
+    }): void;
     protected handleErrorOp(label?: string, hehavior?: 'continue' | 'stop' | 'throw'): (upStream: rx.Observable<any>) => rx.Observable<any>;
 }
-/** You should never create instance by constructor of this class,
+/** @deprecated
+ * should never create instance by constructor of this class,
  **/
-export interface DerivedSimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly []> extends SimplexReactor<I, LI> {
+export interface DerivedSimplexReactor<I = Record<never, never>, LI extends readonly (keyof I)[] = []> extends SimplexReactor<I, LI> {
     s: ForkedRxController<I & BaseActions>;
     postBase: ForkedPostRxController<I & BaseActions>;
     /** alias of postBase */

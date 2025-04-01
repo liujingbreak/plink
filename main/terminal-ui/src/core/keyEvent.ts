@@ -136,72 +136,72 @@ export function createKeyEventService(opts?: KeyEventOptions) {
     rx.mergeMap(([m, evt]) => {
       const kname = evt.name ?? evt.sequence;
       return (/[0-9]/.test(kname)) ?
-        ft.consumeDigital(kname).re(m).od(pt.doneConsumeDigital).pipe(
-          rx.take(1),
-          rx.mergeMap(([, times]) => {
-            return pt.onKeypress.pipe(
-              rx.observeOn(rx.queueScheduler),
-              rx.take(1),
-              rx.mergeMap(([, nextEvt]) => ft.consumeMultiKey(nextEvt).re(m).od(
-                pt.didConsumeMultiKey
-              ).pipe(
-                rx.take(1),
-                rx.map(([, act, amount]) => ft.didConsumeMultiKey(act, amount * times).dp(m))
-              ))
-            );
-          }),
-          rx.takeUntil(pt.onEsc)
-        ) :
-        (kname === 'z' || kname === 'd' || kname === 'f' || kname === 'u' || kname === 'b') ?
-          ft.consumePageAction(evt).od(pt.doneConsumePageAction).pipe(
+          ft.consumeDigital(kname).re(m).od(pt.doneConsumeDigital).pipe(
             rx.take(1),
-            rx.map(([, act, quantity]) => ft.didConsumeMultiKey(act, quantity ?? 1).dp(m)),
+            rx.mergeMap(([, times]) => {
+              return pt.onKeypress.pipe(
+                rx.observeOn(rx.queueScheduler),
+                rx.take(1),
+                rx.mergeMap(([, nextEvt]) => ft.consumeMultiKey(nextEvt).re(m).od(
+                  pt.didConsumeMultiKey
+                ).pipe(
+                  rx.take(1),
+                  rx.map(([, act, amount]) => ft.didConsumeMultiKey(act, amount * times).dp(m))
+                ))
+              );
+            }),
             rx.takeUntil(pt.onEsc)
           ) :
-          evt.sequence === 'g' ?
-            pt.onKeypress.pipe(
-              rx.take(1),
-              rx.map(([m2, evt]) => {
-                if (evt.sequence === 'g') {
-                  ft.didConsumeMultiKey(KeyEventEnum.scrollTop, 0).dp(m);
+          (kname === 'z' || kname === 'd' || kname === 'f' || kname === 'u' || kname === 'b') ?
+              ft.consumePageAction(evt).od(pt.doneConsumePageAction).pipe(
+                rx.take(1),
+                rx.map(([, act, quantity]) => ft.didConsumeMultiKey(act, quantity ?? 1).dp(m)),
+                rx.takeUntil(pt.onEsc)
+              ) :
+            evt.sequence === 'g' ?
+                pt.onKeypress.pipe(
+                  rx.take(1),
+                  rx.map(([m2, evt]) => {
+                    if (evt.sequence === 'g') {
+                      ft.didConsumeMultiKey(KeyEventEnum.scrollTop, 0).dp(m);
+                    } else {
+                      ft.didConsumeMultiKey(null, 0).dp(m);
+                      ft.onKeypress(evt, true).dp(m2);
+                    }
+                  })
+                ) :
+              new rx.Observable<never>(sub => {
+                if (kname === 'l')
+                  ft.didConsumeMultiKey(KeyEventEnum.scrollRight, 1).dp(m);
+                else if (kname === 'h') {
+                  ft.didConsumeMultiKey(KeyEventEnum.scrollLeft, 1).dp(m);
+                } else if (kname === 'j') {
+                  ft.didConsumeMultiKey(KeyEventEnum.scrollDown, 1).dp(m);
+                } else if (kname === 'k') {
+                  ft.didConsumeMultiKey(KeyEventEnum.scrollUp, 1).dp(m);
+                } else if (evt.code === '[C') {
+                  ft.didConsumeMultiKey(KeyEventEnum.focusRight, 1).dp(m);
+                } else if (evt.code === '[D') {
+                  ft.didConsumeMultiKey(KeyEventEnum.focusLeft, 1).dp(m);
+                } else if (evt.code === '[B') {
+                  ft.didConsumeMultiKey(KeyEventEnum.focusDown, 1).dp(m);
+                } else if (evt.code === '[A') {
+                  ft.didConsumeMultiKey(KeyEventEnum.focusUp, 1).dp(m);
+                } else if (evt.sequence === '\t') {
+                  ft.didConsumeMultiKey(KeyEventEnum.focusNext, 1).dp(m);
+                } else if (kname === 'q' || (evt.ctrl && evt.name === 'c')) {
+                  ft.onExit().dp();
+                } else if (evt.sequence === '^' || evt.code === '[H') {
+                  ft.didConsumeMultiKey(KeyEventEnum.home, 0).dp(m);
+                } else if (evt.sequence === '$' || evt.code === '[F') {
+                  ft.didConsumeMultiKey(KeyEventEnum.end, 0).dp(m);
+                } else if (evt.sequence === 'G') {
+                  ft.didConsumeMultiKey(KeyEventEnum.scrollBottom, 0).dp(m);
                 } else {
-                  ft.didConsumeMultiKey(null, 0).dp(m);
-                  ft.onKeypress(evt, true).dp(m2);
+                  ft.didConsumeMultiKey(null, 1).dp(m);
                 }
-              })
-            ) :
-            new rx.Observable<never>(sub => {
-              if (kname === 'l')
-                ft.didConsumeMultiKey(KeyEventEnum.scrollRight, 1).dp(m);
-              else if (kname === 'h') {
-                ft.didConsumeMultiKey(KeyEventEnum.scrollLeft, 1).dp(m);
-              } else if (kname === 'j') {
-                ft.didConsumeMultiKey(KeyEventEnum.scrollDown, 1).dp(m);
-              } else if (kname === 'k') {
-                ft.didConsumeMultiKey(KeyEventEnum.scrollUp, 1).dp(m);
-              } else if (evt.code === '[C') {
-                ft.didConsumeMultiKey(KeyEventEnum.focusRight, 1).dp(m);
-              } else if (evt.code === '[D') {
-                ft.didConsumeMultiKey(KeyEventEnum.focusLeft, 1).dp(m);
-              } else if (evt.code === '[B') {
-                ft.didConsumeMultiKey(KeyEventEnum.focusDown, 1).dp(m);
-              } else if (evt.code === '[A') {
-                ft.didConsumeMultiKey(KeyEventEnum.focusUp, 1).dp(m);
-              } else if (evt.sequence === '\t') {
-                ft.didConsumeMultiKey(KeyEventEnum.focusNext, 1).dp(m);
-              } else if (kname === 'q' || (evt.ctrl && evt.name === 'c')) {
-                ft.onExit().dp();
-              } else if (evt.sequence === '^' || evt.code === '[H') {
-                ft.didConsumeMultiKey(KeyEventEnum.home, 0).dp(m);
-              } else if (evt.sequence === '$' || evt.code === '[F') {
-                ft.didConsumeMultiKey(KeyEventEnum.end, 0).dp(m);
-              } else if (evt.sequence === 'G') {
-                ft.didConsumeMultiKey(KeyEventEnum.scrollBottom, 0).dp(m);
-              } else {
-                ft.didConsumeMultiKey(null, 1).dp(m);
-              }
-              sub.complete();
-            });
+                sub.complete();
+              });
     })
   ));
   r('consumeDigital, onKeypress -> doneConsumeDigital, onKeypress', pt.consumeDigital.pipe(
@@ -364,7 +364,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
           // keys of SGR extended mouse
           const m = /^\x1B\[<(.*?)[M]?$/i.exec(evt.sequence);
           if (m) {
-            let buf = m[1] ?? '';
+            let buf = m[1];
             if (m[0].endsWith('c')) {
               service.log('>> mouse code c:', evt, m[1]);
               return rx.EMPTY;
@@ -375,13 +375,12 @@ export function createKeyEventService(opts?: KeyEventOptions) {
                 rx.finalize(() => {
                   const conjSequence = buf.slice(0, -1);
                   const [b, x, y] = conjSequence.split(';').map(it => Number(it));
-                  if (buf.charAt(buf.length - 1) === 'm') {
+                  if (buf.endsWith('m')) {
                     const evt = parseMouseButton(b, true);
                     ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
                   } else {
                     const evt = parseMouseButton(b, false);
                     ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
-
                   }
                 })
               );
@@ -390,14 +389,14 @@ export function createKeyEventService(opts?: KeyEventOptions) {
             let m = /^\x1B\[M(.*)$/i.exec(evt.sequence);
             if (m) {
               const rest = m[1];
-              return rest.length === 0
-                ? pt.onRawKeyInput.pipe(
-                  rx.take(3),
-                  rx.map(evt2 => {
-                    service.log(' -- mouse code cont', evt2);
-                  })
-                )
-                : rx.EMPTY;
+              return rest.length === 0 ?
+                  pt.onRawKeyInput.pipe(
+                    rx.take(3),
+                    rx.map(evt2 => {
+                      service.log(' -- mouse code cont', evt2);
+                    })
+                  ) :
+                rx.EMPTY;
               // const buttonCode = m[1].charCodeAt(0) - 33;
               // const x = m[2].charCodeAt(0) - 33;
               // const y = m[3].charCodeAt(0) - 33;
@@ -406,7 +405,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
             }
             m = /^\x1b\[\?(.*?)c?$/i.exec(evt.sequence);
             if (m) {
-              let buf = m[1] ?? '';
+              let buf = m[1];
               if (m[0].endsWith('c')) {
                 service.log('Device attributes', m[1]);
                 return rx.EMPTY;
@@ -480,29 +479,23 @@ function parseMouseButton(b: number, mouseup: boolean) {
       button |= 4;
     if (b & 128)
       button |= 8;
-
   } else if (button === 3)
     button = undefined;
   else
     button += 1; // Only increment button if in the range 0-2.
   if (b & 32) {
     evType = 'mousemove';
-
   } else if (button === undefined || mouseup) {
     evType = 'mouseup';
-
   } else if (button === 4) {
     evType = 'wheel';
     evOpts.direction = -1;
-
   } else if (button === 5) {
     evType = 'wheel';
     evOpts.direction = 1;
-
   } else {
     evType = 'mousedown';
   }
-
 
   // > The next three bits encode the modifiers which were down when the button was pressed
   // > and are added together: 4=Shift, 8=Alt, 16=Control.

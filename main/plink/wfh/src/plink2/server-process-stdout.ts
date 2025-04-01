@@ -3,7 +3,7 @@ import * as stream from 'node:stream';
 // import util from 'node:util';
 import * as rx from 'rxjs';
 
-const stdoutWriter$ = new rx.Subject<Buffer | string>();
+const stdoutWriter$ = new rx.Subject<Buffer>();
 
 let inited = false;
 
@@ -20,7 +20,6 @@ function interceptorStdout() {
   }) as tty.WriteStream;
   Object.assign(process.stdout, mainProcOut);
   Object.assign(process.stderr, mainProcOut);
-  // eslint-disable-next-line no-console
   // console.error = console.log = (...data) => {
   //   data.forEach(it => {
   //     stdoutWriter$.next(typeof it === 'string' ? it : util.inspect(it, false, 0));

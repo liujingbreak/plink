@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { SingleActionFactory, SimplexReactorOfFac, CoreOptions, CreateOptsInDef } from '@wfh/reactivizer';
+import { SingleActionFactory, SimplexReactorOfFac, CoreOptions, CreateOptsOfExtendedFac } from '@wfh/reactivizer';
 import { BaseWidget, TextStyle, BackgroundStyle } from '../index.js';
 import { LazyLoadPlaceHolderOpts } from './lazy-load-placeholder.js';
 import { MultiLineTextWidgetOpts } from './text.js';
@@ -39,7 +39,7 @@ export interface TableInput {
     setBorderStyle(style: TextStyle): SingleActionFactory;
     setBorderPadding(paddingX: number, paddingY: number): SingleActionFactory;
     setColumnSpacing(value: number): SingleActionFactory;
-    setCellBackground(renderer: (columnIdx: number, rowIdx: number) => BackgroundStyle | void | null | undefined): SingleActionFactory;
+    setCellBackground(renderer: (columnIdx: number, rowIdx: number) => void | BackgroundStyle | null | undefined): SingleActionFactory;
     alignCell(horizontal: TableHoriAlig, vertical: TableVertAlig): SingleActionFactory;
 }
 interface TableEvents extends TableInput {
@@ -55,15 +55,15 @@ interface TableEvents extends TableInput {
     rowIds(idList: unknown[]): SingleActionFactory;
     didGetRowByIndex(cells: BaseWidget[]): SingleActionFactory;
 }
-export type TableCoreOptions = CreateOptsInDef<TableEvents, typeof baseContainerFac>;
-export type TableOptions = {
+export type TableCoreOptions = CreateOptsOfExtendedFac<typeof baseContainerFac, TableEvents>;
+export interface TableOptions {
     default?: CoreOptions;
     core?: TableCoreOptions;
     moreIndicator?: Partial<FlexContainerOpts>;
     lazy?: LazyLoadPlaceHolderOpts;
     optsForCellComponent?: MultiLineTextWidgetOpts;
-};
-export declare const tableFac: import("@wfh/reactivizer").DerivedReactorFactory<TableEvents, readonly ["rowById", "setColumnSpacing", "onBorderTypeSet", "setRowSpacing", "setLazyLoad", "setBorderStyle", "setBorderPadding", "alignCell", "didCalcSize", "setCellBackground", "rowIds"], [opts?: TableOptions | undefined], import("./container.js").TermainlContainerEvents & import("./base.js").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "setForeground" | "onFgChangeWithParent" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck")[], []>;
+}
+export declare const tableFac: import("@wfh/reactivizer").DerivedReactorFactory<import("./base.js").BaseWidgetEvents & import("./container.js").TermainlContainerEvents & TableEvents, ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "setForeground" | "onFgChangeWithParent" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setLazyLoad" | "setBorderStyle" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[], [], TableOptions, []>;
 export type Table = SimplexReactorOfFac<typeof tableFac>;
-export declare function createTable(opts?: TableOptions): import("@wfh/reactivizer").DerivedSimplexReactor<TableEvents & import("./container.js").TermainlContainerEvents & import("./base.js").BaseWidgetEvents, readonly ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "setForeground" | "onFgChangeWithParent" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setLazyLoad" | "setBorderStyle" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[]>;
+export declare function createTable(opts?: TableOptions): import("@wfh/reactivizer").SimplexReactor<import("./base.js").BaseWidgetEvents & import("./container.js").TermainlContainerEvents & TableEvents, ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "setForeground" | "onFgChangeWithParent" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setLazyLoad" | "setBorderStyle" | "rowById" | "setColumnSpacing" | "onBorderTypeSet" | "setRowSpacing" | "setBorderPadding" | "alignCell" | "didCalcSize" | "setCellBackground" | "rowIds")[]>;
 export {};

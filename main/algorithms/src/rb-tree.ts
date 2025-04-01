@@ -1,12 +1,12 @@
 /**
  * According to the book << Introduction to Algorithms, Third Edition >>
- * 
+ *
  * features in progress: Dynamic order statistics, range tree
- * 
+ *
  * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
 
-export type RbTreeNode<T, V = unknown> = {
+export interface RbTreeNode<T, V = unknown> {
   key: T;
   value: V;
   p: RbTreeNode<T, V>;
@@ -19,7 +19,7 @@ export type RbTreeNode<T, V = unknown> = {
   size: number;
   /** tree's size() returns sum of all nodes's weight */
   weight: number;
-};
+}
 
 export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNode<T, V>> {
   nil: RbTreeNode<T, V> = {
@@ -37,13 +37,13 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
     if (comparator == null) {
       this.comparator = (a, b) => {
         return a < b ?
-          -1 :
+            -1 :
           a > b ? 1 : 0;
       };
     }
   }
 
-  isNil(node: RbTreeNode<T, V>) {
+  isNil(node: RbTreeNode<T, V> | undefined) {
     return node === this.nil;
   }
 
@@ -53,20 +53,22 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
    * @returns existing tree node if key duplicates or a new empty node
    */
   insert<Value extends [V] | []>(key: T, ...value: Value):
-  Value['length'] extends 0 ? RbTreeNode<T, V> : Omit<RbTreeNode<T, V>, 'value'> & {value?: V} {
+  Value['length'] extends 0 ? Omit<RbTreeNode<T, V>, 'value'> & {value?: V} : RbTreeNode<T, V> {
     let y: RbTreeNode<T, V> = this.nil;
     let x = this.root;
     let cmp: number;
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     while (!this.isNil(x)) {
-      y = x ;
+      y = x;
       cmp = this.comparator!(key, x.key);
       if (cmp < 0) {
         x = x.left;
       } else if (cmp > 0) {
         x = x.right;
       } else {
+        if (value[0])
+          x.value = value[0];
         return x; // duplicate key found
       }
     }
@@ -88,7 +90,6 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
 
     Object.defineProperty(z, 'left', {
       get() {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
         return left;
       },
       set(v: RbTreeNode<T, V>) {
@@ -102,7 +103,6 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
 
     Object.defineProperty(z, 'right', {
       get() {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
         return right;
       },
       set(v: RbTreeNode<T, V>) {
@@ -118,7 +118,6 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
 
     Object.defineProperty(z, 'weight', {
       get() {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
         return weight;
       },
       set(v: number) {
@@ -134,22 +133,24 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
 
     if (this.isNil(y)) {
       this.root = z;
-    } else if (cmp! < 0 ) {
+    } else if (cmp! < 0) {
       y.left = z;
-    } else if (cmp! > 0 ) {
+    } else if (cmp! > 0) {
       y.right = z;
     }
     this.redBlackInsertFixUp(z);
+    if (value.length > 0)
+      z.value = value[0]!;
     return z;
   }
 
-  /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0 
+  /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0
   * and it is baesed on "size" which is accumulated  from "weight" of node ands children's
   */
   atIndex(idx: number, beginNode: RbTreeNode<T, V> = this.root): RbTreeNode<T, V> | null | undefined {
     let currNode = beginNode;
     while (!this.isNil(currNode)) {
-      const leftSize = (currNode.left?.size || 0);
+      const leftSize = (currNode.left.size || 0);
       if (leftSize === idx)
         return currNode;
       else if (idx < leftSize) {
@@ -239,12 +240,13 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
       node = this.successorNode(node);
     }
   }
+
   greatestNodeSmallerThanOrEqual(key: T): RbTreeNode<T, V> | null {
     let y: RbTreeNode<T, V> = this.nil;
     let x = this.root;
     let cmp: number | undefined;
     while (!this.isNil(x)) {
-      y = x ;
+      y = x;
       cmp = this.comparator!(key, x.key);
       if (cmp < 0) {
         x = x.left;
@@ -262,12 +264,13 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
       return y;
     return null;
   }
+
   smallestNodeGreaterThanOrEqual(key: T): RbTreeNode<T, V> | null {
     let y: RbTreeNode<T, V> = this.nil;
     let x = this.root;
     let cmp: number | undefined;
     while (!this.isNil(x)) {
-      y = x ;
+      y = x;
       cmp = this.comparator!(key, x.key);
       if (cmp < 0) {
         x = x.left;
@@ -285,6 +288,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
       return this.successorNode(y);
     return null;
   }
+
   /**
    * @param key the value of key to be compared which could be related to none nodes in current tree
    * @return interator of existing nodes whose key are greater than specific key
@@ -299,6 +303,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
       node = this.predecessorNode(node);
     }
   }
+
   inorderWalk(callback: (node: ND, level: number) => void, node = this.root, level = 0) {
     const nextLevel = level + 1;
     if (!this.isNil(node.left))
@@ -308,14 +313,15 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
     if (!this.isNil(node.right))
       this.inorderWalk(callback, node.right, nextLevel);
   }
+
   *allChildNodeInorder(node = this.root, level = 0): Generator<[node: ND, level: number]> {
     const nextLevel = level + 1;
     if (!this.isNil(node.left))
-      yield *this.allChildNodeInorder(node.left, nextLevel);
+      yield* this.allChildNodeInorder(node.left, nextLevel);
     if (!this.isNil(node))
       yield [node as ND, level] as const;
     if (!this.isNil(node.right))
-      yield *this.allChildNodeInorder(node.right, nextLevel);
+      yield* this.allChildNodeInorder(node.right, nextLevel);
   }
 
   minimum(node = this.root) {
@@ -341,7 +347,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
   }
 
   isBlack(node: RbTreeNode<T, V> | null | undefined) {
-    return node == null || !node.isRed;
+    return !node?.isRed;
   }
 
   deleteNode(z: RbTreeNode<T, V>) {
@@ -359,7 +365,6 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
       y = this.minimum(z.right)!;
       origIsRed = this.isRed(y);
       x = y.right;
-      // eslint-disable-next-line eqeqeq
       if (y.p == z) {
         x.p = y;
       } else {
@@ -381,28 +386,32 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
     }
     return true;
   }
+
   /**
    * To be extend and overridden
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
   protected onLeftChildChange(_parent: RbTreeNode<T, V>, _child: RbTreeNode<T, V> | null | undefined) {
   }
+
   /**
    * To be extend and overridden
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
   protected onRightChildChange(_parent: RbTreeNode<T, V>, _child: RbTreeNode<T, V> | null | undefined) {
   }
 
   protected updateNodeSize(node: RbTreeNode<T, V>) {
     let z = node;
     while (!this.isNil(z)) {
-      z.size = z.weight + (z.left?.size ?? 0) + (z.right?.size ?? 0);
+      z.size = z.weight + z.left.size + z.right.size;
       z = z.p;
     }
   }
 
   private deleteFixup(x: RbTreeNode<T, V>) {
     while (x !== this.root && this.isBlack(x)) {
-      if (x.p && x === x.p.left) {
+      if (x === x.p.left) {
         let w = x.p.right; // w is x's sibling
         if (this.isRed(w)) {
           w.isRed = false;
@@ -414,7 +423,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
         }
         if (this.isBlack(w.left) && this.isBlack(w.right)) {
           w.isRed = true;
-          x = x.p ;
+          x = x.p;
         } else {
           if (this.isBlack(w.right)) {
             w.left.isRed = false;
@@ -428,7 +437,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
           this.leftRotate(x.p);
           x = this.root;
         }
-      } else if (x.p && x === x.p.right) {
+      } else if (x === x.p.right) {
         let w = x.p.left; // w is x's sibling
         if (this.isRed(w)) {
           w.isRed = false;
@@ -440,7 +449,7 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
         }
         if (this.isBlack(w.right) && this.isBlack(w.left)) {
           w.isRed = true;
-          x = x.p ;
+          x = x.p;
         } else {
           if (this.isBlack(w.left)) {
             w.right.isRed = false;
@@ -488,12 +497,12 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
             this.leftRotate(z);
           }
           z.p.isRed = false;
-          if (z.p?.p && !this.isNil(z.p.p)) {
+          if (!this.isNil(z.p.p)) {
             z.p.p.isRed = true;
             this.rightRotate(z.p.p);
           }
         }
-      } else if (z.p?.p && z.p === z.p.p.right) {
+      } else if (z.p === z.p.p.right) {
         const uncle = z.p.p.left;
         if (this.isRed(uncle)) {
           // mark parent and uncle to black, grandpa to red, continue to go up to grandpa level
@@ -508,12 +517,10 @@ export class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNo
             z = z.p;
             this.rightRotate(z);
           }
-          if (z.p) {
-            z.p.isRed = false;
-            if (z.p.p && !this.isNil(z.p.p)) {
-              z.p.p.isRed = true;
-              this.leftRotate(z.p.p);
-            }
+          z.p.isRed = false;
+          if (!this.isNil(z.p.p)) {
+            z.p.p.isRed = true;
+            this.leftRotate(z.p.p);
           }
         }
       }

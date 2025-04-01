@@ -37,12 +37,16 @@ export class ForkedRxController extends RxController2 {
     removeInterceptor(...interc) {
         this.src.removeInterceptor(...interc);
     }
-    /** append interceptor to all source controllers */
+    /** append interceptor to all source controllers
+     * @returns a function to remove added interceptors
+    **/
     appendInterceptorToSrc(...interceptors) {
         if (isForked(this.src))
             this.src.appendInterceptorToSrc(...interceptors);
         this.src.appendInterceptor(...interceptors);
-        return interceptors;
+        return () => {
+            this.removeInterceptorFromSrc(...interceptors);
+        };
     }
     removeInterceptorFromSrc(...interceptors) {
         if (isForked(this.src))
@@ -51,6 +55,7 @@ export class ForkedRxController extends RxController2 {
     }
 }
 export function isForked(t) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return t.appendInterceptorToSrc != null;
 }
 //# sourceMappingURL=forked-control.js.map

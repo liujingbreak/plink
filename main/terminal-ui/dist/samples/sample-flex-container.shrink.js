@@ -10,7 +10,7 @@ const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
 waitForImport$.subscribe(() => {
     const canvas = createTerminalCanvas({ debug: true, log });
-    const root = flexBoxFac.create({ name: 'root', debug: true, log });
+    const root = flexBoxFac.setting({ name: 'root', debug: true, log }).create();
     root.ft.setBorder('line').dp();
     root.ft.alignItems('center').dp();
     canvas.ft.autoHideCursor().dp();

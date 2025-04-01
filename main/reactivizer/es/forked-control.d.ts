@@ -13,14 +13,16 @@ import { RxController2 } from './control2';
 export declare class ForkedRxController<I> extends RxController2<I> {
     protected src: RxController2<I>;
     /** Any message being emitted to this subject will not be dispatched to "base" controller */
-    forkedUpStream: rx.Subject<Action<unknown>>;
+    forkedUpStream: rx.Subject<Action>;
     constructor(src: RxController2<I>);
     /** @override */
-    prependInterceptor(...interceptor: Interceptor[]): Interceptor[];
+    prependInterceptor(...interceptor: Interceptor[]): () => void;
     /** @override */
     removeInterceptor(...interc: Interceptor[]): void;
-    /** append interceptor to all source controllers */
-    appendInterceptorToSrc(...interceptors: Interceptor[]): Interceptor[];
+    /** append interceptor to all source controllers
+     * @returns a function to remove added interceptors
+    **/
+    appendInterceptorToSrc(...interceptors: Interceptor[]): () => void;
     removeInterceptorFromSrc(...interceptors: Interceptor[]): void;
 }
 export declare function isForked<I>(t: RxController2<I>): t is ForkedRxController<I>;

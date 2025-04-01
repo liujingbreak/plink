@@ -1,5 +1,3 @@
-/* eslint-disable multiline-ternary */
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {CoreOptions, SingleActionFactory, SimplexReactor, actionRelatedToAction, BaseReactorFactory} from '@wfh/reactivizer';
 import {FlexContainer, createFlexContainer, FlexContainerOpts} from './flex-container.js';
@@ -17,15 +15,15 @@ export interface LazyLoadDataProviderActions {
   /** The data provider should handle this event */
   dp_onLoadPage(pageIdx: number, type: 'prepend' | 'append'): SingleActionFactory;
   /** The data provider should dispatch this action in context of "dp_onLoadPage" events */
-  dp_didLoad<T>(loadedItems: T[]): SingleActionFactory;
+  dp_didLoad(loadedItems: unknown[]): SingleActionFactory;
   /** The data provider may respond to this event, the event message is in context of "dp_onLoadPage" */
   dp_onCancelLoad(pageIdx: number): SingleActionFactory;
   /** The container should handle this event, and remove child components from its layout */
-  dp_onUnload<T>(pageIdx: number, components: T[] | undefined): SingleActionFactory;
+  dp_onUnload(pageIdx: number, components: unknown[] | undefined): SingleActionFactory;
   /** There are 2 ways for LazyLoadPlaceHolder to detect the total number of pages, so that
    * "loading" placeholder will become invisible once the last page data has been loaded.
    * 1) Consumer container explicitly dispatch dp_setTotalPageNum message
-   * 2) or consumer container dispatch "setViewportSize" message 
+   * 2) or consumer container dispatch "setViewportSize" message
    **/
   dp_setTotalPageNum(numOfPages: number | 'unknown'): SingleActionFactory;
   dp_onLoadError(err: unknown, pageIdx: number): SingleActionFactory;
@@ -72,17 +70,17 @@ const tableFor = ['setExpandDir', 'setLabel', 'setAveragePageSize',
   'onBeforePages', 'onAfterPages', 'beforePageRange', 'afterPageRange',
   'dp_setTotalPageNum', 'setMaxLoadedPages'] as const;
 
-export type LazyLoadPlaceHolderOpts = {
+export interface LazyLoadPlaceHolderOpts {
   default?: CoreOptions<any>;
   core?: CoreOptions<PlaceHolderEvents>;
   headPlaceHolder?: Partial<FlexContainerOpts>;
   tailPlaceHolder?: Partial<FlexContainerOpts>;
   headPlaceHolderLabel?: Partial<MultiLineTextWidgetOpts>;
   tailPlaceHolderLabel?: Partial<MultiLineTextWidgetOpts>;
-};
+}
 
 export type LazyLoadPlaceHolder = SimplexReactor<PlaceHolderEvents, typeof tableFor>;
-export const placeHolderFac = new BaseReactorFactory<PlaceHolderEvents, typeof tableFor>({
+export const placeHolderFac = new BaseReactorFactory<PlaceHolderEvents, typeof tableFor, LazyLoadPlaceHolderOpts>({
   name: 'LazyPlaceHolder',
   tableFor
 }).interceptorByType(ad => rx.merge(
@@ -93,18 +91,18 @@ export const placeHolderFac = new BaseReactorFactory<PlaceHolderEvents, typeof t
     rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
   ),
   ad.ofOtherTypes()
-)).defineReactor((init, before: FlexContainer, after: FlexContainer, opts?: LazyLoadPlaceHolderOpts) => {
-  const service = init({...opts?.default as any, ...opts?.core});
+)).defineReactor((ctx, before: FlexContainer, after: FlexContainer) => {
+  const service = ctx.init({...ctx.setting?.default as any, ...ctx.setting?.core});
   const {r, ft, pt, table} = service;
   const labelBefore = createTextWidget('...', {
     name: 'LazyPlaceHolder.headLabel',
-    ...opts?.default as any,
-    ...opts?.headPlaceHolderLabel
+    ...ctx.setting?.default as any,
+    ...ctx.setting?.headPlaceHolderLabel
   });
   const labelAfter = createTextWidget('Loading...', {
     name: 'LazyPlaceHolder.tailLabel',
-    ...opts?.default as any,
-    ...opts?.tailPlaceHolderLabel
+    ...ctx.setting?.default as any,
+    ...ctx.setting?.tailPlaceHolderLabel
   });
 
   const loadedCompsByPage = new Map<number, unknown[]>();
@@ -160,8 +158,9 @@ export const placeHolderFac = new BaseReactorFactory<PlaceHolderEvents, typeof t
             }
           }),
           rx.takeUntil(pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))),
-          rx.catchError((err) => {
+          rx.catchError(err => {
             loadingPages.delete(pIdx);
+            service.log('requestPage error', err);
             return rx.EMPTY;
           })
         );
@@ -321,7 +320,7 @@ export const placeHolderFac = new BaseReactorFactory<PlaceHolderEvents, typeof t
         rx.withLatestFrom(table.l.setExpandDir, table.l.beforePageRange, before.table.l.onSize),
         rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0),
         rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))),
-        rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
+        rx.map(([[m, , , , clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
           const pageSize = (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
           const [pIndex0, pIndex1] = clipRangeToPageIndex(dir, clips, pageSize);
           // service.log('>>> head clipRangeToPageIndex(): pIndex0', pIndex0, 'pIndex1', pIndex1, 'pageSize', pageSize, 'clips', clips.join());
@@ -338,8 +337,8 @@ export const placeHolderFac = new BaseReactorFactory<PlaceHolderEvents, typeof t
         rx.withLatestFrom(table.l.setExpandDir, table.l.afterPageRange, after.table.l.onSize),
         rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0),
         rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))),
-        rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
-          const sizeForEachPage =  (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
+        rx.map(([[m, , , , clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
+          const sizeForEachPage = (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
           const [pIndex0, pIndex1] = clipRangeToPageIndex(dir, clips, sizeForEachPage);
           // service.log('>>> tail clipRangeToPageIndex(): pIndex0', pIndex0, 'pIndex1', pIndex1, 'pageSize', sizeForEachPage, 'clips', clips.join());
           return [pIndex0 + pageRangeOpen, pIndex1 - pIndex0 + 1, m] as const;
@@ -379,7 +378,7 @@ export const placeHolderFac = new BaseReactorFactory<PlaceHolderEvents, typeof t
     rx.map(([m, start, end]) => ft.onBeforePages(end - start).dp(m))
   ));
   r('dp_mgrFocusService', pt.dp_mgrFocusService.pipe(
-    rx.switchMap(([m, focusSvc]) => focusSvc.table.l.forRootComp.pipe(
+    rx.switchMap(([, focusSvc]) => focusSvc.table.l.forRootComp.pipe(
       rx.switchMap(([, r]) => r.table.l.ofCanvas),
       rx.filter(([, c]) => c != null),
       rx.switchMap(([m, canvas]) => rx.merge(
@@ -423,31 +422,31 @@ export function createPlaceHolder(
 ) {
   const before = createFlexContainer({
     ...opts?.default as any,
-    name: opts?.default?.name ? opts?.default.name + '.head' : 'LazyPlaceHolder.head',
+    name: opts?.default?.name ? opts.default.name + '.head' : 'LazyPlaceHolder.head',
     ...opts?.headPlaceHolder
   });
   const after = createFlexContainer({
     ...opts?.default as any,
-    name: opts?.default?.name ? opts?.default.name + '.tail' : 'LazyPlaceHolder.tail',
+    name: opts?.default?.name ? opts.default.name + '.tail' : 'LazyPlaceHolder.tail',
     ...opts?.tailPlaceHolder
   });
-  const service = placeHolderFac.create(before, after, opts);
+  const service = placeHolderFac.setting(opts).create(before, after);
   return {before, after, service};
 }
 
 function clipRangeToPageIndex(dir: 'col' | 'row', clips: Rectangle[], pageSize: number) {
   const clipRangeOpen = dir === 'col' ?
-    clips.reduce((maxTop, [, y]) => maxTop > y ? maxTop : y, 0) :
-    clips.reduce((maxLeft, [x]) => maxLeft > x ? maxLeft : x, 0);
+      clips.reduce((maxTop, [, y]) => maxTop > y ? maxTop : y, 0) :
+      clips.reduce((maxLeft, [x]) => maxLeft > x ? maxLeft : x, 0);
   const clipRangeClose = dir === 'col' ?
-    clips.reduce((minBottom, [, y, , h]) => {
-      const b = y + h;
-      return minBottom < b ? minBottom : b;
-    }, Number.MAX_SAFE_INTEGER) :
-    clips.reduce((minRight, [x, , w]) => {
-      const r = x + w;
-      return minRight < r ? minRight : r;
-    }, Number.MAX_SAFE_INTEGER);
+      clips.reduce((minBottom, [, y, , h]) => {
+        const b = y + h;
+        return minBottom < b ? minBottom : b;
+      }, Number.MAX_SAFE_INTEGER) :
+      clips.reduce((minRight, [x, , w]) => {
+        const r = x + w;
+        return minRight < r ? minRight : r;
+      }, Number.MAX_SAFE_INTEGER);
   const pageIndex0 = Math.floor(clipRangeOpen / pageSize);
   const pageIndex1 = Math.floor((clipRangeClose - 1) / pageSize);
   return [pageIndex0, pageIndex1] as const;

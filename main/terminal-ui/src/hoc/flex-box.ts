@@ -1,13 +1,10 @@
 /* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
-import {CoreOptions, ActionDispenser, Action} from '@wfh/reactivizer';
+import {ActionDispenser, Action, CreateOptsOfExtendedFac} from '@wfh/reactivizer';
 import {borderFac, BorderContainerOpts} from '../core/border.js';
 import {flexContainerFac as flexFac, FlexContainerInput, FlexContainerOpts as FlexOpts} from '../core/flex-container.js';
 
-export interface FlexBoxOpts {
-  name?: string;
-  debug?: boolean;
-  log?: CoreOptions['log'];
+export interface FlexBoxOpts extends CreateOptsOfExtendedFac<typeof borderFac> {
   border?: BorderContainerOpts;
   flexContainer?: FlexOpts;
 }
@@ -15,16 +12,16 @@ const tableFor = [
   'setDirection', 'alignItems', 'justifyContent', 'setBorderSpacing', 'setBorderSeparator',
   'setBorderSeparatorStyle', 'setBorderSpacing'
 ] as const;
-export const flexBoxFac = borderFac.forExtend<FlexContainerInput, typeof tableFor>({
+export const flexBoxFac = borderFac.forExtend<FlexContainerInput, typeof tableFor, FlexBoxOpts>({
   name: 'complex-flex',
   tableFor
-}).defineReactor((init, opts?: FlexBoxOpts) => {
-  const flex = flexFac.create({
+}).defineReactor(({init, setting: opts}) => {
+  const flex = flexFac.setting({
     name: opts?.name ? opts.name + '.flex' : 'flexBox',
     debug: opts?.debug,
     log: opts?.log,
     ...opts?.flexContainer
-  });
+  }).create();
   const flexEvents = new rx.Subject<Action>();
   const border = init({
     name: opts?.name ? opts.name + '.border' : 'flexBox.border',

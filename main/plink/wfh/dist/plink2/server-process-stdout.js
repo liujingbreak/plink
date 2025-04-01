@@ -20,7 +20,6 @@ function interceptorStdout() {
     });
     Object.assign(process.stdout, mainProcOut);
     Object.assign(process.stderr, mainProcOut);
-    // eslint-disable-next-line no-console
     // console.error = console.log = (...data) => {
     //   data.forEach(it => {
     //     stdoutWriter$.next(typeof it === 'string' ? it : util.inspect(it, false, 0));

@@ -1,6 +1,5 @@
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
-import {ActionMeta, SingleActionFactory, SimplexReactorOfFac, CreateOptsInDef, CoreOptions} from '@wfh/reactivizer';
+import {ActionMeta, CoreOptions, SingleActionFactory, SimplexReactorOfFac, CreateOptsOfExtendedFac} from '@wfh/reactivizer';
 import {BaseWidget, DisplayMode} from '../core/base.js';
 import {textFac, TextOptions} from '../hoc/text.js';
 import {Rectangle} from '../core/canvas.js';
@@ -20,12 +19,12 @@ export interface PosPopupEvents extends PosPopupInput {
   onDockType(type: `${'up' | 'down'}${'Left' | 'Right'}`): SingleActionFactory;
 }
 const tableFor = ['setRelativePos', 'isDocked'] as const;
-export type PositionalPopupOpts = CreateOptsInDef<PosPopupInput, typeof baseContainerFac>;
+export type PositionalPopupOpts = CreateOptsOfExtendedFac<typeof baseContainerFac, PosPopupEvents>;
 export const positionalFac = baseContainerFac.forExtend<PosPopupEvents, typeof tableFor>({
   name: 'positional',
   tableFor
-}).defineReactor((init, content: BaseWidget, opts?: PositionalPopupOpts) => {
-  const service = init(opts);
+}).defineReactor((ctx, content: BaseWidget) => {
+  const service = ctx.init(ctx.setting);
   const {ft, r, pt, table} = service;
   r('reflow -> c.onSize,onChildPositions', pt.reflow.pipe(
     rx.withLatestFrom(
@@ -140,9 +139,9 @@ export function showPopupFor(
   },
   opts?: PositionalPopupOpts
 ) {
-  const popup = positionalFac.create(content, opts);
+  const popup = positionalFac.setting(opts).create(content);
   if (attrs?.relativePos)
-    popup.ft.setRelativePos(...attrs.relativePos).dp(attrs?.actionMeta ?? undefined);
+    popup.ft.setRelativePos(...attrs.relativePos).dp(attrs.actionMeta ?? undefined);
   popup.ft.dockTo(dockTo).dp(attrs?.actionMeta ?? undefined);
   popup.r('"showPopupFor"', queryElevatorContainer(dockTo).pipe(
     rx.mergeMap(elevator => {
@@ -175,12 +174,12 @@ export function bindToolTipsTo(c: BaseWidget, tooltips: string | BaseWidget, del
         rx.map(() => {
           let textComp: BaseWidget;
           if (typeof tooltips === 'string') {
-            const bordedText = textFac.create(tooltips, {
+            const bordedText = textFac.setting({
               name: opts?.name ? opts.name + '.label' : 'popup.label',
               debug: opts?.debug,
               log: opts?.log,
               ...opts?.textOpts
-            });
+            }).create(tooltips);
             bordedText.ft.setPadding(0, 1, 0, 1).dp(m);
             textComp = bordedText;
           } else {

@@ -2,33 +2,34 @@ import fs from 'fs';
 import * as rx from 'rxjs';
 import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import {app, createFlexContainer, createTextWidget, createBorderContainer,
-  FocusableSearchDir, queryRootFocusService, bindToolTipsTo} from '../index.js';
+  bindToolTipsTo} from '../index.js';
 
 const debug = false;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
-const panel = createFlexContainer({name: 'contentPanel', debug, log});
+const panel = createFlexContainer({name: 'panel', debug, log});
 const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug, log});
 const {ft, pt} = app.createApp(border, true, {
   default: {debug, log},
   core: {debug},
-  main: {
-    debug
-  },
+  // main: {
+  //   debug: true
+  // },
   elevator: {
     core: {debug: true, log},
     canvas: {debug, log},
-    focusable: {debug, cache: {debug}}
+    focusable: {debug: true, cache: {debug}}
   },
   keyService: {
     debug: true
   },
   cover: {debug},
   canvas: {debug},
-  colorTheme: {debug: true},
+  colorTheme: {debug},
   statusbar: {debug},
   scrollable: {
-    focus: {debug}
+    // container: {debug: true},
+    focus: {debug: true}
   }
 });
 
@@ -50,8 +51,8 @@ rx.combineLatest([
   rx.from(import('@material/material-color-utilities'))
 ]).pipe(
   rx.take(1),
-  rx.mergeMap(([, {Hct, hexFromArgb}]) => {
-    log('>>>>>>>>>>>>>>>>>>>>>> load data');
+  rx.map(([, {Hct, hexFromArgb}]) => {
+    log('>>>>>>>>>>>>>>>>>>>>>> load... data');
     panel.s.ft.removeChild(welcome).dp();
     panel.s.ft.setDirection('col').dp();
     const num = 60;
@@ -67,37 +68,31 @@ rx.combineLatest([
 
       const label = createTextWidget('TEST LABEL ~~~~~~~~~~~ ' + sColor, {
         name: 'LABEL' + i,
-        debug: i === 0,
-        debugIncludeTypes: ['onFocus', 'onLeave', 'onEnter', 'onBlur'],
+        debug,
+        // debugIncludeTypes: ['focus', 'onFocus', 'onLeave', 'onEnter', 'onBlur'],
         log
       });
-      // if (i === 0)
-      //   firstLable = label;
-      if (i === 2) {
-        label.pt.onFocus.pipe(
-          rx.map(([m]) => {
-            label.ft.stopEventPropagation().dp(m);
-          })
+      if (i === 0) {
+        panel.log('-- subscribe panel render');
+        panel.postBase.pt.render.pipe(
+          rx.map(() => {
+            panel.log('-- panel render');
+            label.ft.focus().dp();
+          }),
+          rx.take(1)
         ).subscribe();
       }
+      //   firstLable = label;
       label.s.ft.setForeground([`hex(${sColor})`]).dp();
       label.s.ft.setFocusable(true).dp();
       bindToolTipsTo(label, 'this is label ' + i, undefined, {
-        debug: true,
+        debug,
         name: 'tipsFor#' + i,
         log,
         textOpts: {debug: false}
       });
       panel.ft.addChild(label).dp();
     }
-    return panel.postBase.pt.render.pipe(
-      rx.mergeMap(([m]) => {
-        return queryRootFocusService(panel).pipe(
-          rx.map(focusService => focusService.ft.findFocusable(FocusableSearchDir.down, 0).dp(m))
-        );
-      }),
-      rx.take(1)
-    );
   })
 ).subscribe();
 

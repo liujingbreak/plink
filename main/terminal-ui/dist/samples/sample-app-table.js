@@ -4,7 +4,7 @@ import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
 import { app, createFlexContainer, TableBorderType, createTable, hexColorFrom } from '../index.js';
 const debug = false;
 const fout = fs.createWriteStream('terminal-table-sample.log');
-const log = createSimpleIndentLogger(false, true, fout);
+const log = createSimpleIndentLogger(false, false, fout);
 const table = createTable({
     default: {
         debug, log
@@ -21,8 +21,8 @@ const table = createTable({
             debug,
             debugIncludeTypes: ['dp_didLoad', 'dp_onLoadPage', 'dp_onCancelLoad']
         },
-        headPlaceHolder: { debug: true },
-        tailPlaceHolder: { debug: true }
+        // headPlaceHolder: {debug: true},
+        // tailPlaceHolder: {debug: true}
         // headPlaceHolderLabel: {
         //   debug: false
         // },
@@ -53,7 +53,7 @@ table.ft.setLazyLoad(true, page => {
     });
     return out$;
 }).dp();
-table.pt.onRowAdded.pipe(rx.map(([, _idx, _id, cells]) => {
+table.pt.onRowAdded.pipe(rx.map(([, , , cells]) => {
     cells.map(cell => {
         // (cell as MultiLineTextWidget).ft.setStyle(['black']).dp();
         cell.ft.setFocusable(true).dp();
@@ -85,13 +85,13 @@ table.ft.setCellBackground((col, row) => {
         chroma = chromaDelta * col;
     return `bgHex(${hexColorFrom(hue, 10 + chroma, 70)})`;
 }).dp();
-const { ft } = app.createApp(root, true, {
+const { ft, pt } = app.createApp(root, true, {
     default: {
         debug, log
     },
     elevator: {
         focusable: {
-            debug
+            debug: true
         },
         canvas: {
             debugIncludeTypes: ['render', 'requestRender', 'clearRect', 'copyRect']
@@ -102,17 +102,22 @@ const { ft } = app.createApp(root, true, {
         debugIncludeTypes: ['render', 'requestRender', 'clearRect']
     },
     scrollable: {
-    // container: {debug: true, log},
-    // focus: {
-    //   debug: true,
-    //   cache: {debug}
-    // }
-    // default: {debug: true, log}
-    // canvas: {
-    //   debug
-    // }
+        // container: {debug: true, log},
+        focus: {
+            debug: true,
+            cache: { debug }
+        }
+        // default: {debug: true, log}
+        // canvas: {
+        //   debug
+        // }
     }
 });
+pt.onReady.pipe(rx.map(([, { colorTheme }]) => {
+    const scheme = process.env.PLINK_TERM_COLOR;
+    if (scheme)
+        colorTheme.ft.setScheme(scheme).dp();
+})).subscribe();
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
 if (screenWidth && screenHeight)

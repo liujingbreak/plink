@@ -6,8 +6,8 @@ import {app, flexBoxFac, textFac, DisplayMode, scrollableFac} from '../index.js'
 const debug = true;
 const fout = fs.createWriteStream('terminal-canvas-sample.log');
 const log = createSimpleIndentLogger(false, false, fout);
-const panel = flexBoxFac.create({name: 'contentPanel', debug, log});
-const text = textFac.create('Hello world', {debug, log});
+const panel = flexBoxFac.setting({name: 'contentPanel', debug, log}).create();
+const text = textFac.setting({debug, log}).create('Hello world');
 // const border = createBorderContainer(panel, {name: 'contentPanelBorder', debug, log});
 const {ft, pt} = app.createApp(panel, false, {
   default: {debug, log},
@@ -43,10 +43,10 @@ else
 panel.ft.setDirection('row').dp();
 panel.ft.alignItems('start').dp();
 panel.ft.justifyContent('center').dp();
-const scrollableText = textFac.create('longlonglong text\n'.repeat(80), {
+const scrollableText = textFac.setting({
   debug, log,
   border: {name: 'scrollableText'}
-});
+}).create('longlonglong text\n'.repeat(80));
 text.ft.setFlexShrink(0).dp();
 text.ft.setFocusable(true).dp();
 text.ft.setBorder('line').dp();

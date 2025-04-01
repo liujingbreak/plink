@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import {describe, it, expect, jest}  from '@jest/globals';
+import {describe, it, expect, jest} from '@jest/globals';
 import * as rx from 'rxjs';
 import {formatToConcise} from '@wfh/reactivizer/dist/nodejs-utils';
 import {createTextWidget} from '../src/index.js';
@@ -24,18 +24,18 @@ describe('word splitter', () => {
     ).subscribe();
     console.log(fn.mock.calls);
     expect(fn.mock.calls).toEqual([
-      ['hello', 'a', 5 ],
-      [' ', 's', 1 ],
-      ['(', 'o', 1 ],
-      ['[', 'o', 1 ],
-      ['world', 'a', 5 ],
-      [']', 'o', 1 ],
-      [')', 'o', 1 ],
-      ['\n', 'n', 1 ],
-      ['\t', 't', 2 ],
-      ['中', 'f', 2 ],
-      ['文', 'f', 2 ],
-      ['foobar', 'a', 6 ]
+      ['hello', 'a', 5],
+      [' ', 's', 1],
+      ['(', 'o', 1],
+      ['[', 'o', 1],
+      ['world', 'a', 5],
+      [']', 'o', 1],
+      [')', 'o', 1],
+      ['\n', 'n', 1],
+      ['\t', 't', 2],
+      ['中', 'f', 2],
+      ['文', 'f', 2],
+      ['foobar', 'a', 6]
     ]);
 
     const fn2 = jest.fn();
@@ -45,20 +45,20 @@ describe('word splitter', () => {
     ).subscribe();
     console.log(fn2.mock.calls);
     expect(fn2.mock.calls).toEqual([
-      [ 'abcdefg' ],
-      [ ' ' ],
-      [ '12345' ],
-      [ ',' ],
-      [ 'hello' ],
-      [ '.' ],
-      [ 'world' ],
-      [ '\n' ],
-      [ 'ASDFqwertyuiop' ],
-      [ ' ' ],
-      [ '中' ],
-      [ '文' ],
-      [ '来' ],
-      [ '了' ]
+      ['abcdefg'],
+      [' '],
+      ['12345'],
+      [','],
+      ['hello'],
+      ['.'],
+      ['world'],
+      ['\n'],
+      ['ASDFqwertyuiop'],
+      [' '],
+      ['中'],
+      ['文'],
+      ['来'],
+      ['了']
     ]);
 
     service.dispose();
@@ -144,9 +144,9 @@ describe('word splitter', () => {
     expect(fn.mock.calls[2][0]).toEqual([
       'abcde-', 'fg ',
       '12345,', 'hello.',
-      'world',  'ASDFq-',
+      'world', 'ASDFq-',
       'werty-', 'uiop9 ',
-      'x中文',  '来了中',
+      'x中文', '来了中',
       '文'
     ]);
     service.dispose();

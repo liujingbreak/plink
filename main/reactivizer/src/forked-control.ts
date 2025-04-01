@@ -13,7 +13,7 @@ import {RxController2} from './control2';
  */
 export class ForkedRxController<I> extends RxController2<I> {
   /** Any message being emitted to this subject will not be dispatched to "base" controller */
-  forkedUpStream: rx.Subject<Action<unknown>>;
+  forkedUpStream: rx.Subject<Action>;
   constructor(protected src: RxController2<I>) {
     super();
     this.config({...src.opts as any, debug: false});
@@ -41,17 +41,24 @@ export class ForkedRxController<I> extends RxController2<I> {
   prependInterceptor(...interceptor: Interceptor[]) {
     return this.src.prependInterceptor(...interceptor);
   }
+
   /** @override */
   removeInterceptor(...interc: Interceptor[]) {
     this.src.removeInterceptor(...interc);
   }
-  /** append interceptor to all source controllers */
+
+  /** append interceptor to all source controllers
+   * @returns a function to remove added interceptors
+  **/
   appendInterceptorToSrc(...interceptors: Interceptor[]) {
     if (isForked(this.src))
       this.src.appendInterceptorToSrc(...interceptors);
     this.src.appendInterceptor(...interceptors);
-    return interceptors;
+    return () => {
+      this.removeInterceptorFromSrc(...interceptors);
+    };
   }
+
   removeInterceptorFromSrc(...interceptors: Interceptor[]) {
     if (isForked(this.src))
       this.src.removeInterceptorFromSrc(...interceptors);
@@ -60,5 +67,6 @@ export class ForkedRxController<I> extends RxController2<I> {
 }
 
 export function isForked<I>(t: RxController2<I>): t is ForkedRxController<I> {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return (t as unknown as ForkedRxController<any>).appendInterceptorToSrc != null;
 }

@@ -6,7 +6,15 @@
     "declaration": true,
     "inlineSourceMap": false,
     "sourceMap": true,
-    "importHelpers": true
+    "importHelpers": true,
+    "paths": {
+      "@wfh/algorithms": [
+        "../algorithms/src"
+      ],
+      "@wfh/reactivizer": [
+        "../reactivizer/src"
+      ]
+    }
   },
   "references": [
     {"path": "../redux-toolkit-observable/tsconfig-redux-toolkit.json"},

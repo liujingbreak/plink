@@ -28,6 +28,11 @@ export declare function actionOfContext<T extends [ActionMeta, ...any[]] | Actio
  * i.e. `a.i` or `a[0].i` equals values of `b.r` or `b[0].r` and
  *    `b.i` or `b[0].i` equals values of `c.r` or `c[0].r`
  *    then `[a, b, c]` is in the returned observable
+ *
+ * > Caution
+ *  Be aware of "problem of synchronous observation and the order of subscription",
+ *  when the actions in parameters are dispatched in synchronous mode by producer.
+ *  It is better the input parameters are "forked" controllers of producers.
 * */
 export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>): rx.Observable<[T, T2]>;
 export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>, T3 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>, relatedToRelated: rx.Observable<T3>): rx.Observable<[T, T2, T3]>;

@@ -16,7 +16,7 @@
  * `npm i @material/material-color-utilities`
  */
 import * as rx from 'rxjs';
-import {BaseReactorFactory, SingleActionFactory, SimplexReactorOfFac, CoreOptions} from '@wfh/reactivizer';
+import {BaseReactorFactory, ActionMeta, SingleActionFactory, SimplexReactorOfFac, CoreOptions} from '@wfh/reactivizer';
 import {BaseWidget} from '../core/base.js';
 import defaultThemeJson from '../../res/default-theme.json' with {type: 'json'};
 
@@ -26,19 +26,19 @@ import defaultThemeJson from '../../res/default-theme.json' with {type: 'json'};
 * */
 export interface MaterialThemeColors {
   schemes: {
-    light?: MaterialScheme;
+    'light'?: MaterialScheme;
     'light-medium-contrast'?: MaterialScheme;
     'light-high-contrast'?: MaterialScheme;
-    dark?: MaterialScheme;
+    'dark'?: MaterialScheme;
     'dark-medium-contrast'?: MaterialScheme;
     'dark-high-contrast'?: MaterialScheme;
   };
   palettes: {
     /** key is '0' - '100' at inteval of '5' */
-    primary: Record<string, string>;
-    secondary: Record<string, string>;
-    tertiary: Record<string, string>;
-    neutral: Record<string, string>;
+    'primary': Record<string, string>;
+    'secondary': Record<string, string>;
+    'tertiary': Record<string, string>;
+    'neutral': Record<string, string>;
     'neutral-variant': Record<string, string>;
   };
 }
@@ -104,8 +104,8 @@ const tableFor = ['loadColors', 'setScheme'] as const;
 export const colorThemeFac = new BaseReactorFactory<ThemeInput, typeof tableFor>({
   name: 'theme',
   tableFor
-}).defineReactor((init, opts?: CoreOptions<ThemeInput>) => {
-  const service = init(opts);
+}).defineReactor(ctx => {
+  const service = ctx.init();
   const {ft} = service;
   ft.loadColors(defaultThemeJson).dp();
   ft.setScheme('light').dp();
@@ -117,7 +117,7 @@ export const defaultColorTheme = colorThemeFac.create();
 
 export const CONTEXT_KEY = '__colorTheme';
 
-/** 
+/**
 * The returned observable contains defaultColorTheme if current component does not have AppContext,
 * if always synchronously emit ColorTheme immediately when it is subscribed, late on it keeps observing
 * new changes.
@@ -147,9 +147,9 @@ export function querySchemeForComponent(c: BaseWidget) {
       theme.latest.setScheme,
       theme.latest.loadColors
     ]).pipe(
-      rx.map(([[m, key], [m2, colors]]) => [colors.schemes[key]!, m, m2] as const),
+      rx.map(([[m, key], [m2, colors]]) => [colors.schemes[key], m, m2] as const),
       rx.filter(([v]) => v != null)
     )),
     rx.share()
-  );
+  ) as rx.Observable<readonly [MaterialScheme, ...ActionMeta[]]>;
 }

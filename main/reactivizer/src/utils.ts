@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters */
 import * as rx from 'rxjs';
 
 export function timeoutLog<T>(millseconds: number, callbackOnTimeout: () => void): (up: rx.Observable<T>) => rx.Observable<T> {
@@ -54,3 +55,37 @@ export function arrayBuffer2ascii(buf: ArrayBuffer | SharedArrayBuffer, byteOffs
   return String.fromCharCode.apply(null, (new Uint8Array(buf, byteOffset, length)) as unknown as number[]);
 }
 
+export function onAllSubscribed<T extends readonly unknown[]>(
+  inputs: {[K in keyof T]: rx.Observable<T[K]>},
+  onAllSubscribed: () => void,
+  onAllUnsubscribed?: () => void
+): {[K in keyof T]: rx.Observable<T[K]>} {
+  // when all (counted) the returned streams are subscribed, dispatch the new action
+  const onSubscribe$ = new rx.Subject<number>();
+  onSubscribe$.pipe(
+    rx.distinct(),
+    rx.take(inputs.length)
+  ).subscribe({
+    complete: onAllSubscribed
+  });
+  const onUnsubscribe$ = new rx.Subject<number>();
+  onUnsubscribe$.pipe(
+    rx.distinct(),
+    rx.take(inputs.length)
+  ).subscribe({
+    complete: onAllUnsubscribed
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return inputs.map((input, idx) => rx.merge(
+    input.pipe(
+      rx.finalize(() => {
+        onUnsubscribe$.next(idx);
+      })
+    ),
+    new rx.Observable<never>(sink => {
+      onSubscribe$.next(idx);
+      sink.complete();
+    })
+  )) as any;
+}

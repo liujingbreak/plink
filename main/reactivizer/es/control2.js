@@ -15,7 +15,7 @@ export class RxController2 extends ControllerCore {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const control = this;
         this.ftProxy = new Proxy({}, {
-            get(_target, key, _rec) {
+            get(_target, key) {
                 if (factories.has(key)) {
                     return factories.get(key);
                 }
@@ -23,7 +23,7 @@ export class RxController2 extends ControllerCore {
                     return new SingleActionFactoryImpl(key, args, control, {
                         slowLog(a) {
                             const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key} #${a.i}"`;
-                            if (opts === null || opts === void 0 ? void 0 : opts.log) {
+                            if (opts.log) {
                                 opts.log(msg);
                             }
                         }
@@ -49,8 +49,7 @@ export class RxController2 extends ControllerCore {
         /**
          * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
          * */
-        this.doOperator$ = new rx.BehaviorSubject((_dispatchingAction) => input => input);
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        this.doOperator$ = new rx.BehaviorSubject(() => input => input);
         const actionDispenseByType = ActionDispenser.ofRxController(this);
         this.at = actionDispenseByType.at;
         this.pt = actionDispenseByType.pt;
@@ -110,15 +109,13 @@ export class RxController2 extends ControllerCore {
         return this.action$.pipe(rx.groupBy(keySelector), rx.map(grouped => {
             const opts = groupedCtlOptionsFn ?
                 groupedCtlOptionsFn(grouped.key) :
-                this.opts ?
-                    Object.entries(this.opts)
-                        .filter(([p]) => p !== 'name' && p !== 'autoConnect')
-                        .reduce((obj, [p, v]) => {
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                        obj[p] = v;
-                        return obj;
-                    }, {}) :
-                    {};
+                Object.entries(this.opts)
+                    .filter(([p]) => p !== 'name' && p !== 'autoConnect')
+                    .reduce((obj, [p, v]) => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    obj[p] = v;
+                    return obj;
+                }, {});
             const groupedRxCtl = new GroupedRxController2(grouped.key, Object.assign(Object.assign({}, opts), { autoConnect: false }));
             // connect to source actionUpstream only when it is subscribed
             rx.concat(groupedRxCtl.actionSubscribed$.pipe(rx.tap(() => {
@@ -179,7 +176,7 @@ export class RxController2 extends ControllerCore {
         const self = this;
         const dispatchers = new Map();
         return new Proxy({}, {
-            get(_target, key, _rec) {
+            get(_target, key) {
                 const existing = dispatchers.get(key);
                 if (existing)
                     return existing;

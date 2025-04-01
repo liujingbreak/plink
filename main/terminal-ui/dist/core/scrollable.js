@@ -1,6 +1,6 @@
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import { mat4, vec2 } from 'gl-matrix';
+import { ActionDispenser } from '@wfh/reactivizer';
 import { queryAppContext } from '../app/app-shell.js';
 import { querySchemeForComponent } from '../app/color-theme.js';
 import { baseContainerFac } from './container.js';
@@ -15,11 +15,23 @@ const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', '
 export const scrollableFac = baseContainerFac.forExtend({
     name: 'scrollable',
     tableFor
-}).defineReactor((init, comp, opts) => {
+}).defineReactor(({ init, setting: opts }, comp) => {
     var _a;
     const scrollable = init(Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: opts === null || opts === void 0 ? void 0 : opts.name }, opts === null || opts === void 0 ? void 0 : opts.container));
     const { r, ft, pt, latest } = scrollable;
-    const canvas = canvasFac.create(Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'scrollable.canvas' }, opts === null || opts === void 0 ? void 0 : opts.canvas));
+    const canvas = canvasFac.setting(Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: (_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'scrollable.canvas' }, opts === null || opts === void 0 ? void 0 : opts.canvas)).create();
+    scrollable.s.prependInterceptor(a$ => {
+        const ad = ActionDispenser.ofAction$(a$);
+        return rx.merge(ad.at.didQueryAbsBounding.pipe(rx.mergeMap(a => {
+            const { p: [rect] } = a;
+            return rect ? latest.onValidScroll.pipe(rx.take(1), rx.map(([, scrLeft, scrTop]) => {
+                const [x, y, w, h] = rect;
+                const res = [x - scrLeft, y - scrTop, w, h];
+                a.p[0] = res;
+                return a;
+            })) : rx.of(a);
+        })), ad.ofOtherTypes());
+    });
     canvas.ft.setRootComponent(comp).dp();
     r('onRender,canvas.clearRect -> outerCanvas.clearRect', pt.onRender.pipe(rx.withLatestFrom(latest.onValidScroll, latest.onViewPortSize), rx.switchMap(([[mR, oCanvas, trans], [, left, top], [, sw, sh]]) => canvas.pt.clearRect.pipe(rx.map(([m, x, y, w, h]) => {
         const x1 = x + left;
@@ -168,11 +180,7 @@ export const scrollableFac = baseContainerFac.forExtend({
         latest.onSize, comp.latest.preferredSize, latest.setScrollable,
         latest.setScrollbarStyle
     ]).pipe(rx.take(1), rx.switchMap(([[m1, w, h], [m2, pW, pH], [m3, xScrollable, yScrollable], [, barWidth, barHeight]]) => {
-        let vpWidth = w;
-        let vpHeight = h;
         if (xScrollable && yScrollable) {
-            vpWidth -= barWidth;
-            vpHeight -= barHeight;
             const hasYScrollBar = pH > h;
             const hasXScrollBar = pW > w;
             let compWidth = pW > w ? pW : w;
@@ -250,32 +258,6 @@ export const scrollableFac = baseContainerFac.forExtend({
     r('destory$ -> focusService.dispose', scrollable.destory$.pipe(rx.map(() => {
         canvas.dispose();
     })));
-    // When decsendant is focused, scroll to ensure it is visible in viewport
-    r('focusService,focusService.onFocus...-> scroll', pt.focusService.pipe(rx.switchMap(([m, focusService]) => focusService.pt.onFocus.pipe(rx.filter(([, , c]) => c != null), rx.mergeMap(([m, , c]) => rx.combineLatest([
-        latest.onViewPortSize,
-        c.ft.queryAbsBounding(scrollable).re(m).od(c.pt.didQueryAbsBounding),
-        latest.onValidScroll
-    ]).pipe(rx.take(1))), rx.filter(([[, sw, sh], [, cb]]) => sw > 2 && sh > 2 && cb != null), rx.map(([[, pw, ph], [, cb], [, scrollX, scrollY]]) => {
-        const [x, y] = cb;
-        scrollable.log('--- scrollable focus', x, y, 'viewport', pw, ph, 'scroll', scrollX, scrollY);
-        const scrollSideOff = 1;
-        let toX = scrollX;
-        let toY = scrollY;
-        if (x < scrollX + scrollSideOff) {
-            toX = x - scrollSideOff;
-        }
-        else if (x >= scrollX + pw - scrollSideOff) {
-            toX = x - pw + scrollSideOff + 1;
-        }
-        if (y < scrollY + scrollSideOff) {
-            toY = y - scrollSideOff;
-        }
-        else if (y >= scrollY + ph - scrollSideOff) {
-            toY = y - ph + scrollSideOff + 1;
-        }
-        if (toX !== scrollX || toY !== scrollY)
-            ft.scrollTo(toX, toY).dp(m);
-    })))));
     r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(rx.switchMap(([m]) => queryAppContext(scrollable, m).pipe(rx.take(1), rx.map(({ keyEventService, statusbar }) => {
         keyEventService.ft.bindToScrollable(scrollable).dp(m);
         statusbar.ft.trackScrollable(scrollable).dp(m);
@@ -297,8 +279,34 @@ export const scrollableFac = baseContainerFac.forExtend({
         return c.ft.findOverlaps(x, y, rect[2], rect[3])
             .re(m).od(c.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([m2, found]) => ft.didFindOverlaps(found.concat(comp)).dp(m, m2)));
     })));
-    const focusSvc = focusServiceFac.create(canvas, Object.assign({ name: scrollable.s.logPrefix + '.focus', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.focus));
+    const focusSvc = focusServiceFac.setting(Object.assign({ name: scrollable.s.logPrefix + '.focus', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.focus)).create(canvas);
     focusSvc.ft.forRootComp(scrollable).dp();
+    // When decsendant is focused, scroll to ensure it is visible in viewport
+    r('focusService,focusService.onFocus...-> scroll', focusSvc.pt.onFocus.pipe(rx.filter(([, , c]) => c != null), rx.mergeMap(([m, , c]) => rx.combineLatest([
+        latest.onViewPortSize,
+        c.ft.queryAbsBounding(scrollable).re(m).od(c.pt.didQueryAbsBounding),
+        latest.onValidScroll
+    ]).pipe(rx.take(1))), rx.filter(([[, sw, sh], [, cb]]) => sw > 2 && sh > 2 && cb != null), rx.map(([[, pw, ph], [, cb], [m, scrollX, scrollY]]) => {
+        const [x, y, w] = cb;
+        scrollable.log('--- scrollable focus', x, y, 'viewport', pw, ph, 'scroll', scrollX, scrollY);
+        const scrollSideOff = 1;
+        let toX = scrollX;
+        let toY = scrollY;
+        if (x < scrollX + scrollSideOff) {
+            toX = x - scrollSideOff;
+        }
+        else if (x + w >= scrollX + pw) {
+            toX = x + w - pw + scrollSideOff;
+        }
+        if (y < scrollY + scrollSideOff) {
+            toY = y - scrollSideOff;
+        }
+        else if (y >= scrollY + ph - scrollSideOff) {
+            toY = y - ph + scrollSideOff + 1;
+        }
+        if (toX !== scrollX || toY !== scrollY)
+            ft.scrollTo(toX, toY).dp(m);
+    })));
     r('init', new rx.Observable(() => {
         ft.onContentSizeChange(2, 2).dp();
         ft.setPreferredSize(null, null).dp();
@@ -321,6 +329,6 @@ export const scrollableFac = baseContainerFac.forExtend({
     return rx.merge(rx.merge(dispenser.at.onRender, dispenser.at.findOverlaps).pipe(rx.ignoreElements()), dispenser.ofOtherTypes());
 });
 export function createScrollable(comp, opts) {
-    return scrollableFac.create(comp, opts);
+    return scrollableFac.setting(opts).create(comp);
 }
 //# sourceMappingURL=scrollable.js.map

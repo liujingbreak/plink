@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as rx from 'rxjs';
 import { ControllerCore } from './stream-core';
 import { actionRelatedToAction } from './context-operators';

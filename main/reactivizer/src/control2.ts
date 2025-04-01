@@ -11,11 +11,9 @@ import type * as forkPost from './forked-post-control';
 import {SingleActionFactory, SingleActionFactoryImpl} from './action-factory';
 export {SingleActionFactory};
 
-export type ActionFactory = {
-  [k: string]: (...args: any[]) => SingleActionFactory;
-};
+export type ActionFactory = Record<string, (...args: any[]) => SingleActionFactory>;
 
-export type ActionInterceptor<I> = (ac: ActionDispenser<I>) => rx.Observable<Action<unknown>>;
+export type ActionInterceptor<I> = (ac: ActionDispenser<I>) => rx.Observable<Action>;
 
 export interface ControllerBaseActions {
   __cancel(origActionType: string): SingleActionFactory;
@@ -35,7 +33,7 @@ export class RxController2<I> extends ControllerCore<I> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const control = this;
     this.ftProxy = new Proxy({}, {
-      get(_target, key, _rec) {
+      get(_target, key) {
         if (factories.has(key)) {
           return factories.get(key);
         }
@@ -43,7 +41,7 @@ export class RxController2<I> extends ControllerCore<I> {
           return new SingleActionFactoryImpl(key as keyof I, args, control, {
             slowLog(a) {
               const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key as string} #${a.i}"`;
-              if (opts?.log) {
+              if (opts.log) {
                 opts!.log(msg);
               }
             }
@@ -62,26 +60,28 @@ export class RxController2<I> extends ControllerCore<I> {
     }) as I & ControllerBaseActions;
     return this.ftProxy;
   }
+
   private ftProxy: I & ControllerBaseActions | undefined;
   private factories = new Map<string | symbol, (...args: any[]) => any>();
   /**
    * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
    * */
   doOperator$ = new rx.BehaviorSubject<<A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.Observable<A>>(
-    (_dispatchingAction) => input => input
+    () => input => input
   );
-  constructor(opts?: CoreOptions<I> & {debugTableAction?: boolean}) {
+
+  constructor(opts?: CoreOptions<I>) {
     super({
       ...opts,
       debugExcludeTypes: opts?.debugExcludeTypes ?
-        ['__cancel', ...opts.debugExcludeTypes] as (keyof I)[] :
-        ['__cancel'] as (keyof I)[]
+          ['__cancel', ...opts.debugExcludeTypes] as (keyof I)[] :
+          ['__cancel'] as (keyof I)[]
     });
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const actionDispenseByType = ActionDispenser.ofRxController(this as RxController2<I & ControllerBaseActions>);
     this.at = actionDispenseByType.at;
     this.pt = actionDispenseByType.pt;
   }
+
   /**
    * This function return the same message observable of `pt.__cancel.pipe(actionRelatedToAction(actionMeta))`.
    * Regarding "__cancel" message:
@@ -109,12 +109,14 @@ export class RxController2<I> extends ControllerCore<I> {
       actionRelatedToAction(actionMeta)
     );
   }
+
   /** Same as dispatching "__cancel" message */
   cancelAction(queryAction: Action) {
     const cancel = this.createAction('__cancel' as keyof I, [queryAction.t] as any);
     assignActionReferParam(cancel, queryAction);
     this.actionUpstream.next(cancel);
   }
+
   /**
    * This method create a new RxController2 which recieves exactly same action messages as the current controlle does.
    * i.e. subscribers of both controllers can recieve messages dispatched from both controller, just the subscribers of "forked" controller always
@@ -125,32 +127,33 @@ export class RxController2<I> extends ControllerCore<I> {
     const {ForkedRxController} = require('./forked-control') as {ForkedRxController: typeof ForkedRxControllerConst}; // avoid cyclic import
     return new ForkedRxController<I>(this);
   }
+
   /** @deprecated
    * Use forkController() instead */
   prependController() {
     return this.forkController();
   }
+
   forkPostController() {
     const {ForkedPostRxController} = require('./forked-post-control') as typeof forkPost;
     return new ForkedPostRxController<I>(this);
   }
+
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-  groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
+  groupControllerBy<K>(keySelector: (action: Action) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>):
   rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]> {
     return this.action$.pipe(
       rx.groupBy(keySelector),
       rx.map(grouped => {
         const opts = groupedCtlOptionsFn ?
-          groupedCtlOptionsFn(grouped.key) :
-          this.opts ?
+            groupedCtlOptionsFn(grouped.key) :
             Object.entries(this.opts)
               .filter(([p]) => p !== 'name' && p !== 'autoConnect')
-              .reduce((obj, [p, v]) => {
+              .reduce<CoreOptions<I>>((obj, [p, v]) => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 obj[p as keyof CoreOptions<I>] = v as any;
                 return obj;
-              }, {} as CoreOptions<I>) :
-            {};
+              }, {});
 
         const groupedRxCtl = new GroupedRxController2<I, K>(
           grouped.key,
@@ -177,9 +180,9 @@ export class RxController2<I> extends ControllerCore<I> {
         return groupedRxCtl;
       }),
       rx.scan<
-      GroupedRxController2<I, K>,
-      [newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>],
-      readonly [null, Map<K, GroupedRxController2<I, K>>]
+        GroupedRxController2<I, K>,
+        [newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>],
+        readonly [null, Map<K, GroupedRxController2<I, K>>]
       >((acc, el) => {
         const ret = acc as unknown as [GroupedRxController2<I, K>, Map<K, GroupedRxController2<I, K>>];
         ret[0] = el;
@@ -188,10 +191,11 @@ export class RxController2<I> extends ControllerCore<I> {
       }, [null, new Map<K, GroupedRxController2<I, K>>()] as const)
     );
   }
+
   /**
    * create a new RxController, pipe actions whose tyoes are specofied in parameter `actionTypes` from this controller to the new controller
    */
-  subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(
+  subForTypes<KS extends (keyof I)[] | readonly (keyof I & string)[]>(
     actionTypes: KS,
     opts?: CoreOptions<Pick<I, KS[number]>>
   ): RxController2<Pick<I, KS[number]> & ControllerBaseActions> {
@@ -217,7 +221,7 @@ export class RxController2<I> extends ControllerCore<I> {
   /**
    * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
    */
-  subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(
+  subForExcludeTypes<KS extends (keyof I)[] | readonly (keyof I)[]>(
     excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>
   ): RxController2<Omit<I, KS[number]> & ControllerBaseActions> {
     const sub = new RxController2<Omit<I, KS[number]> & ControllerBaseActions>(opts);
@@ -241,12 +245,13 @@ export class RxController2<I> extends ControllerCore<I> {
   /**
    * Create a variant of interface of functions `<I>.ft(...).dp(...)`
    **/
-  createDispatchers(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): {[K in keyof I]: (...params: InferPayload<I[K]>) => void} {
+  createDispatchers(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>):
+  {[K in keyof I]: (...params: (I[K] extends (...a: infer P) => void ? P : any)) => void} {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     const dispatchers = new Map<string | symbol, (...p: InferPayload<I[keyof I]>) => void>();
-    return new Proxy({} as {[K in keyof I]: (...params: InferPayload<I[K]>) => void}, {
-      get(_target, key, _rec) {
+    return new Proxy({} as {[K in keyof I]: (...params: (I[K] extends (...a: infer P) => void ? P : any)) => void}, {
+      get(_target, key) {
         const existing = dispatchers.get(key);
         if (existing)
           return existing;

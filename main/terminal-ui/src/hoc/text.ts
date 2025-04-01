@@ -1,32 +1,30 @@
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
-import {CoreOptions, ActionDispenser, Action} from '@wfh/reactivizer';
+import {CoreOptions, ActionDispenser, Action, CreateOptsOfExtendedFac} from '@wfh/reactivizer';
 import {borderFac, BorderContainerOpts} from '../core/border.js';
 import {MultiLineTextInput, textWidgetFac, MultiLineTextWidgetOpts} from '../core/text.js';
 
-export interface TextOptions {
+export interface TextInput {
+  setContent: MultiLineTextInput['setContent'];
+  setStyle: MultiLineTextInput['setStyle'];
+}
+export interface TextOptions extends CreateOptsOfExtendedFac<typeof borderFac, TextInput> {
   name?: string;
   debug?: boolean;
   log?: CoreOptions['log'];
   border?: BorderContainerOpts;
   text?: MultiLineTextWidgetOpts;
 }
-
-export interface TextInput {
-  setContent: MultiLineTextInput['setContent'];
-  setStyle: MultiLineTextInput['setStyle'];
-}
 export const tableFor = ['setContent', 'setStyle'] as const;
-export const textFac = borderFac.forExtend<TextInput, typeof tableFor>({
+export const textFac = borderFac.forExtend<TextInput, typeof tableFor, TextOptions>({
   name: 'complex-text',
   tableFor
-}).defineReactor((init, initialText: string, opts?: TextOptions) => {
-  const oText = textWidgetFac.create(initialText, {
+}).defineReactor(({init, setting: opts}, initialText: string) => {
+  const oText = textWidgetFac.setting({
     name: opts?.name ? opts.name + '.text' : 'text',
     debug: opts?.debug,
     log: opts?.log,
     ...opts?.text
-  });
+  }).create(initialText);
   const service = init(
     {
       name: opts?.name ? opts.name + '.text' : 'text.border',

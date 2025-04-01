@@ -44,10 +44,10 @@ export interface AppContext {
   colorTheme: ColorTheme;
 }
 
-const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
+const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor, AppOptions>({
   name: 'App',
   tableFor
-}).defineReactor((init, mainComponent: BaseWidget, canScroll?: boolean, opts?: AppOptions) => {
+}).defineReactor(({init, setting: opts}, mainComponent: BaseWidget, canScroll?: boolean) => {
   const appService = init({
     ...opts?.default,
     ...opts?.core
@@ -171,10 +171,10 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
     })
   ));
 
-  const colors = colorThemeFac.create({
+  const colors = colorThemeFac.setting({
     ...opts?.default,
     ...opts?.colorTheme
-  });
+  }).create();
   basePane.ft.provideContext(colorThemeCtxKey, colors).dp();
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const elevator = createElevator(keyEventService, {default: opts?.default as any, ...opts?.elevator});
@@ -202,9 +202,8 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor>({
 });
 
 export function createApp(mainComponent: BaseWidget, canScroll = true, opts?: AppOptions) {
-  return appServiceFac.create(mainComponent, canScroll, opts);
+  return appServiceFac.setting(opts).create(mainComponent, canScroll);
 }
-
 
 export function queryAppContext(currComp: BaseWidget, m?: ActionMeta) {
   let fac = currComp.ft.queryContext('__appshell');

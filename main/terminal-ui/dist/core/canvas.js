@@ -1,5 +1,3 @@
-/* eslint-disable array-bracket-newline */
-/* eslint-disable multiline-ternary */
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
 import chalk from 'chalk';
@@ -11,8 +9,8 @@ const CHALK_NUMBER_FN = new Set(['rgb', 'bgRgb', 'bgHsl', 'hsl', 'hex', 'bgHex',
 const tableFor = ['setBounding', 'setRootComponent', 'internalCache'];
 export const canvasFac = new BaseReactorFactory({
     name: 'canvas', tableFor
-}).defineReactor((init, opts) => {
-    const canvas = init(opts);
+}).defineReactor(ctx => {
+    const canvas = ctx.init();
     const { r, ft, pt, table } = canvas;
     // "lines" is an array of IntervalTree, each element of which represents a single line of display text of screen.
     // The intervalTree is a tree containing single or multiple discrete intervals which represents display text
@@ -62,7 +60,7 @@ export const canvasFac = new BaseReactorFactory({
         const units = [...getTextDisplayUnits(' '.repeat(w))];
         const style = [bg];
         for (let i = y, l = y + h; i < l; i++) {
-            addCodePointsToCache(x, i, units, style ? style.sort() : [], false);
+            addCodePointsToCache(x, i, units, style.sort(), false);
         }
     })));
     r('clearRect', pt.clearRect.pipe(rx.mergeMap(([, x, y, w, h]) => {
@@ -70,7 +68,7 @@ export const canvasFac = new BaseReactorFactory({
     })));
     r('render... -> onPrintText', pt.render.pipe(rx.concatMap(([m, rects]) => rx.combineLatest([
         table.l.setBounding, table.l.setRootComponent, rtree$
-    ]).pipe(rx.take(1), rx.map(([[, x, y, w, h], [, root]], idx) => {
+    ]).pipe(rx.take(1), rx.map(([[, x, y, w, h], [, root]]) => {
         // canvas.log('>> before uncommited', debugLineTrees(uncommited));
         if (root)
             root.ft.render(canvas, mat4.create(), rects && rects.length > 0 ? rects : [[0, 0, w, h]]).dp(m);
@@ -207,12 +205,11 @@ export const canvasFac = new BaseReactorFactory({
             ft.didCopyRect(result).dp(m);
         }));
     })));
-    function mergeRTreeContent(a, _b) {
+    function mergeRTreeContent(a) {
         return a;
     }
     r('setRenderOnRequest,waitForRbushImport$,requestRender -> render', pt.setRenderOnRequest.pipe(rx.switchMap(([, enabled]) => {
         let requestRenderMetas = [];
-        // eslint-disable-next-line multiline-ternary
         return enabled ?
             pt.requestRender.pipe(rx.mergeMap(([m, rect]) => {
                 requestRenderMetas.push(m);
@@ -228,8 +225,7 @@ export const canvasFac = new BaseReactorFactory({
                 requestRenderMetas = [];
                 ft.render(rects.map(([r]) => r)).dp(m, ...requestRenderMetas0);
                 sub.complete();
-            })))
-            : rx.EMPTY;
+            }))) : rx.EMPTY;
     })));
     const filters = new Map();
     r('addRenderFilter,filter.renderBypassFilter... -> copyRect,addDisplayUnits...', pt.addRenderFilter.pipe(rx.mergeMap(([m, rect, filter]) => {
@@ -377,7 +373,6 @@ export const canvasFac = new BaseReactorFactory({
                 }
             }
         }
-        // eslint-disable-next-line multiline-ternary
         return (filters.size > 0 ? rx.merge(...toFilter, rx.from(toDel)) : rx.of([x, y, endPos])).pipe(rx.map(([x, y, endPos]) => {
             // canvas.log('>> clearCodePointsFromCache:', x, y, endPos);
             let uncLine = uncommited[y];
@@ -533,8 +528,8 @@ export function treeNodeToStyleText([codePoints, style]) {
     const text = String.fromCodePoint(...codePoints.filter(codePoint => codePoint >= 0));
     if (style) {
         const chalkFn = style.split(';').reduce((chalkInst, keyword) => {
-            if (keyword.indexOf('(') < 0) {
-                return (chalkInst !== null && chalkInst !== void 0 ? chalkInst : chalk)[keyword];
+            if (!keyword.includes('(')) {
+                return chalkInst[keyword];
             }
             else {
                 const match = /([^()]+)\(([^)]+)\)/.exec(keyword);

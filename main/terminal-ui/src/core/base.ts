@@ -1,13 +1,11 @@
-/* eslint-disable multiline-ternary */
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
 import {SingleActionFactory, SimplexReactor, ActionMeta, Action, InferMapParam,
   BaseReactorFactory, CoreOptions} from '@wfh/reactivizer';
 import {Canvas, Rectangle, BackgroundStyle, TextStyle} from './canvas.js';
-import {FocusService} from './focusable.js';
+import {FocusService, ROOT_FOCUS_SERVICE_CONTEXT} from './focusable.js';
 import {TerminalContainer} from './container.js';
-import {Scrollable} from './scrollable.js';
+// import {Scrollable, scrollableFac} from './scrollable.js';
 
 export enum DisplayMode {
   visible,
@@ -79,7 +77,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   depth(componentTreeDepth: number): SingleActionFactory;
   /** Implementation should dispatch this message after calculating size based on child components or content,
    * unlike "onSize" which is set by user/caller or layout calculation logic.
-   * Along with "setPreferredSize" are used to calculate "preferredSize"*/
+   * Along with "setPreferredSize" are used to calculate "preferredSize" */
   onContentSizeChange(width: number, height: number): SingleActionFactory;
   overflow(yes: boolean): SingleActionFactory;
 
@@ -124,7 +122,11 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
   onEnter(src: BaseWidget): SingleActionFactory;
   onLeave(src: BaseWidget): SingleActionFactory;
   didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
-  onContextChange<T>(key: string, value: T | undefined): SingleActionFactory;
+  /**
+   * @param value could be null, you need to explicitly cast type to what you are expecting
+   */
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+  onContextChange(key: string, value: unknown | undefined): SingleActionFactory;
   focusService(focusSvc: FocusService): SingleActionFactory;
 }
 export const tableForBase = [
@@ -195,7 +197,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     ),
     ad.ofOtherTypes()
   );
-}).defineReactor(init => {
+}).defineReactor(({init}) => {
   const service = init();
   const {ft, at, pt, r, s, table, latest} = service;
   r('_saveTransform -> onTransform', rx.merge(
@@ -227,42 +229,42 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         const percH = /(\d+)%/.exec(h)![0];
         return latest.setParent.pipe(
           rx.switchMap(([, p]) => p ?
-            p.latest.onSize.pipe(
-              rx.map(([, w0, h0]) => {
-                ft.setPreferredSize(
-                  Math.round(w0 * Number(percW) / 100),
-                  Math.round(h0 * Number(percH) / 100)
-                ).dp(m);
-              })
-            ) :
+              p.latest.onSize.pipe(
+                rx.map(([, w0, h0]) => {
+                  ft.setPreferredSize(
+                    Math.round(w0 * Number(percW) / 100),
+                    Math.round(h0 * Number(percH) / 100)
+                  ).dp(m);
+                })
+              ) :
             rx.EMPTY)
         );
       } else if (typeof w === 'string') {
         const percW = /(\d+)%/.exec(w)![0];
         return latest.setParent.pipe(
           rx.switchMap(([, p]) => p ?
-            p.latest.onSize.pipe(
-              rx.map(([, w0]) => {
-                ft.setPreferredSize(
-                  Math.round(w0 * Number(percW) / 100),
-                  h as (number | null)
-                ).dp(m);
-              })
-            ) :
+              p.latest.onSize.pipe(
+                rx.map(([, w0]) => {
+                  ft.setPreferredSize(
+                    Math.round(w0 * Number(percW) / 100),
+                    h as (number | null)
+                  ).dp(m);
+                })
+              ) :
             rx.EMPTY)
         );
       } else if (typeof h === 'string') {
         const percH = /(\d+)%/.exec(h)![0];
         return latest.setParent.pipe(
           rx.switchMap(([, p]) => p ?
-            p.latest.onSize.pipe(
-              rx.map(([, , h0]) => {
-                ft.setPreferredSize(
-                  w,
-                  Math.round(h0 * Number(percH) / 100)
-                ).dp(m);
-              })
-            ) :
+              p.latest.onSize.pipe(
+                rx.map(([, , h0]) => {
+                  ft.setPreferredSize(
+                    w,
+                    Math.round(h0 * Number(percH) / 100)
+                  ).dp(m);
+                })
+              ) :
             rx.EMPTY)
         );
       } else {
@@ -290,13 +292,13 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
       } else {
         clips = clips ?? [[0, 0, width, height]];
         ft.beforeRender(canvas, trans, clips, masks ?? []).dp(m);
-        const needRerender = !!table.getData().needRerender[0];
+        const needRerender = !!table.data.needRerender[0];
         if (!renderSelf && !needRerender) {
           // service.log('--lastClips', lastClips, ',clips', clips);
-          const isClipChanged = lastClips == null || (clips != null && (
+          const isClipChanged = lastClips == null || (
             lastClips.length !== clips.length || !isRectangeCover(lastClips[0], clips[0])
-          ));
-          if (isClipChanged ) {
+          );
+          if (isClipChanged) {
             renderSelf = true;
           }
         }
@@ -314,7 +316,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
       latest.onBgChangeWithParent,
       latest.bgCleared
     ),
-    rx.map(([[m, canvas, trans], [m2, width, height], [m3, bg], [m4, cleared]], _idx) => {
+    rx.map(([[m, canvas, trans], [m2, width, height], [m3, bg], [m4, cleared]]) => {
       const pos = [0, 0] as vec2;
       vec2.transformMat4(pos, pos, trans);
       // service.log('>> clear bg:', bg, 'bgCleared:', cleared);
@@ -349,14 +351,14 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
         parent.latest.hasOfflineCanvas.pipe(
           rx.switchMap(([, has]) => has ?
             rx.EMPTY :
-            parent.pt.bgCleared.pipe(
-              rx.map(([m, cleared]) => {
-                if (cleared) {
-                  ft.bgCleared(true).dp(m);
-                  ft.needRerender(true).dp(m);
-                }
-              })
-            ))
+              parent.pt.bgCleared.pipe(
+                rx.map(([m, cleared]) => {
+                  if (cleared) {
+                    ft.bgCleared(true).dp(m);
+                    ft.needRerender(true).dp(m);
+                  }
+                })
+              ))
         ),
         parent.latest.ofCanvas.pipe(
           rx.map(([m, canvas]) => ft.ofCanvas(canvas).dp(m))
@@ -365,7 +367,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
           rx.tap(errInfo => parent.ft.onChildError(service.s.logPrefix, errInfo))
         ),
         parent.destory$.pipe(
-          rx.map(() => service.dispose())
+          rx.map(() => {service.dispose();})
         ),
         parent.pt.needRerenderTree.pipe(
           rx.map(([m]) => ft.needRerenderTree().dp(m))
@@ -393,75 +395,16 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     latest.onBgChangeWithParent
   ]).pipe(
     rx.switchMap(([[fm, fg], [, bg]]) => fg && fg.length > 0 ?
-      rx.of([fm, [...fg, bg]] as [typeof fm, typeof fg]) :
-      latest.setParent.pipe(
-        rx.switchMap(([m, p]) => p ? p.latest.onFgChangeWithParent : rx.of([m, null] as const))
-      )
+        rx.of([fm, [...fg, bg]] as [typeof fm, typeof fg]) :
+        latest.setParent.pipe(
+          rx.switchMap(([m, p]) => p ? p.latest.onFgChangeWithParent : rx.of([m, null] as const))
+        )
     ),
     rx.map(([m, style]) => {
       ft.onFgChangeWithParent(style).dp(m);
     })
   ));
   // dispatch onRectChange to offsetParent when setFocusable is not false or "isOffsetParent" is true
-  /* r('offsetParent, isOffsetParent, setFocusable -> onRectChange, removeFocusable', latest.offsetParent.pipe(
-    rx.distinctUntilChanged(([, a], [, b]) => a === b),
-    rx.switchMap(([m, op]) => {
-      if (op) {
-        return rx.combineLatest([
-          latest.setFocusable,
-          latest.isOffsetParent
-        ]).pipe(
-          rx.switchMap(([[m2, focusable], [m1, isOffsetParent]]) => {
-            // service.log('>>> dispatch onRectChange for', focusable, 'isOffsetParent', isOffsetParent);
-            if (focusable) {
-              if (focusable === true) {
-                // service.log('>>> let me queryAbsBounding');
-                return ft.queryAbsBounding(op as TerminalContainer & OffsetParent)
-                  .re(m, m2, m1)
-                  .od(pt.didQueryAbsBounding).pipe(
-                    rx.filter(([, r]) => r != null),
-                    rx.map(([, r]) => {
-                      // service.log('>>> onRectChange', r, service.opts?.name);
-                      op.focusService.ft.onRectChange(r!, service).dp(m1, m2, m);
-                    })
-                  );
-              } else {
-                return ft.queryAbsBounding(op as TerminalContainer & OffsetParent).re(
-                  m, m2, m1
-                ).od(
-                  pt.didQueryAbsBounding
-                ).pipe(
-                  rx.filter(([, r]) => r != null),
-                  rx.map(([, r]) => {
-                    const [x, y] = r!;
-                    const rect = focusable;
-                    op.focusService.ft.onRectChange([rect[0] + x, rect[1] + y, rect[2], rect[3]], service).dp(m2, m1, m);
-                  })
-                );
-              }
-            } else if (isOffsetParent) {
-              return ft.queryAbsBounding(op as TerminalContainer & OffsetParent)
-                .re(m, m2, m1).od(
-                  pt.didQueryAbsBounding
-                ).pipe(
-                  rx.filter(([, r]) => r != null),
-                  rx.map(([, r]) => {
-                    op.focusService.ft.onRectChange(r!, service).dp(m1, m2, m);
-                  })
-                );
-            } else {
-              op.focusService.ft.removeFocusable(service).dp(m, m1, m2);
-              return rx.EMPTY;
-            }
-          }),
-          rx.finalize(() => {
-            op.focusService.ft.removeFocusable(service).dp(m);
-          })
-        );
-      }
-      return rx.EMPTY;
-    })
-  )); */
   function disableParentFocusable(thisComp: BaseWidget, m: ActionMeta): rx.Observable<any> {
     return thisComp.latest.setParent.pipe(
       rx.switchMap(([, p]) => p ? rx.merge(
@@ -478,34 +421,34 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
   }
   r('setFocusable', pt.setFocusable.pipe(
     rx.switchMap(([m, focusable]) => focusable ?
-      rx.merge(
-        disableParentFocusable(service, m),
-        latest.focusService.pipe(
-          rx.switchMap(([, focusSvc]) => focusSvc.latest.forRootComp.pipe(
-            rx.map(([, rootComp]) => [focusSvc, rootComp] as const)
-          )),
-          rx.switchMap(([focusSvc, rootComp]) => ft.queryAbsBounding(
-            rootComp as TerminalContainer
-          ).re(m).od(pt.didQueryAbsBounding).pipe(
-            rx.switchMap(([, r]) => {
-              return new rx.Observable(() => {
-                if (r) {
-                  if (focusable) {
-                    focusSvc.ft.onRectChange(r, service).dp(m);
-                  } else {
-                    const [x, y] = r;
-                    const rect = focusable;
-                    focusSvc.ft.onRectChange([rect[0] + x, rect[1] + y, rect[2], rect[3]], service).dp(m);
+        rx.merge(
+          disableParentFocusable(service, m),
+          latest.focusService.pipe(
+            rx.switchMap(([, focusSvc]) => focusSvc.latest.forRootComp.pipe(
+              rx.map(([, rootComp]) => [focusSvc, rootComp] as const)
+            )),
+            rx.switchMap(([focusSvc, rootComp]) => ft.queryAbsBounding(
+              rootComp as TerminalContainer
+            ).re(m).od(pt.didQueryAbsBounding).pipe(
+              rx.switchMap(([, r]) => {
+                return new rx.Observable(() => {
+                  if (r) {
+                    if (focusable === true) {
+                      focusSvc.ft.onRectChange(r, service).dp(m);
+                    } else {
+                      const [x, y] = r;
+                      const rect = focusable;
+                      focusSvc.ft.onRectChange([rect[0] + x, rect[1] + y, rect[2], rect[3]], service).dp(m);
+                    }
                   }
-                }
-                return () => {
-                  focusSvc.ft.removeFocusable(service).dp(m);
-                };
-              });
-            })
-          ))
-        )
-      ) :
+                  return () => {
+                    focusSvc.ft.removeFocusable(service).dp(m);
+                  };
+                });
+              })
+            ))
+          )
+        ) :
       rx.EMPTY
     )
   ));
@@ -540,17 +483,18 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
                 return rx.EMPTY;
               }
               const [px, py] = r;
-              const scrollData = (p as Scrollable).table.getData().onValidScroll;
-              // service.log('queryAbsBounding()', s.logPrefix, 'has scrollData', scrollData);
-              // eslint-disable-next-line prefer-const
-              if (scrollData?.[0] != null) {
-                return (p as Scrollable).latest.onValidScroll.pipe(
-                  rx.map(([, scrLeft, scrTop]) => {
-                    const res = [x + px - scrLeft, y + py - scrTop, w, h] as Rectangle;
-                    ft.didQueryAbsBounding(res).dp(m, m2);
-                  })
-                );
-              }
+              // if (scrollableFac.isFactoryOf(p)) {
+              //   const scrollData = (p as Scrollable).table.getData().onValidScroll;
+              //   // service.log('-- queryAbsBounding()', s.logPrefix, 'p', p.s.logPrefix);
+              //   if (scrollData[0] != null) {
+              //     return (p as Scrollable).latest.onValidScroll.pipe(
+              //       rx.map(([, scrLeft, scrTop]) => {
+              //         const res = [x + px - scrLeft, y + py - scrTop, w, h] as Rectangle;
+              //         ft.didQueryAbsBounding(res).dp(m, m2);
+              //       })
+              //     );
+              //   }
+              // }
               const res = [x + px, y + py, w, h] as Rectangle;
               ft.didQueryAbsBounding(res).dp(m, m2);
               return rx.EMPTY;
@@ -565,7 +509,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
   r('onDetached -> focusService.removeFocusable', pt.onDetached.pipe(
     rx.withLatestFrom(latest.setFocusable, latest.focusService),
     rx.map(([[m], [, focusable], [, focusSvc]]) => {
-      if (focusable && focusSvc)
+      if (focusable)
         focusSvc.ft.removeFocusable(service).dp(m);
     })
   ));
@@ -599,8 +543,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
   let contextData: Map<string, any> | undefined;
   r('provideContext', pt.provideContext.pipe(
     rx.map(([, key, value]) => {
-      if (contextData == null)
-        contextData = new Map();
+      contextData ??= new Map();
       contextData.set(key, value);
     })
   ));
@@ -608,24 +551,25 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     rx.mergeMap(([m, key]) => {
       return rx.concat(
         rx.of(contextData?.has(key) ?
-          contextData.get(key) :
+            contextData.get(key) :
           undefined),
         pt.provideContext.pipe(
           rx.filter(([, k]) => k === key),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
           rx.map(([, , v]) => v)
         )
       ).pipe(
         rx.switchMap(value => value !== undefined ?
-          rx.of(value) :
-          latest.setParent.pipe(
-            rx.switchMap(([, p]) => p ?
-              p.ft.queryContext(key).re(m).od(
-                p.pt.onContextChange).pipe(
-                rx.map(([, , v]) => v)
-              ) :
-              rx.of(undefined)
-            )
-          )),
+            rx.of(value) :
+            latest.setParent.pipe(
+              rx.switchMap(([, p]) => p ?
+                  p.ft.queryContext(key).re(m).od(
+                    p.pt.onContextChange).pipe(
+                    rx.map(([, , v]) => v)
+                  ) :
+                  rx.of(undefined)
+              )
+            )),
         rx.map(v => ft.onContextChange(key, v).dp(m)),
         rx.takeUntil(service.s.onCancelOf(m))
       );
@@ -719,13 +663,43 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
     latest.onBgChangeWithParent,
     latest.onFgChangeWithParent
   ];
-  r('-> focusService', ft.queryContext('focusSvc').od(
-    pt.onContextChange
-  ).pipe(
-    rx.map((([m, , v]) => {
-      if (v != null)
-        ft.focusService(v as FocusService).dp(m);
-    }))
+  r('...-> focusService', rx.combineLatest([
+    ft.queryContext('focusSvc').od(pt.onContextChange),
+    ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).od(pt.onContextChange)
+  ]).pipe(
+    rx.switchMap(([[m, , v], [, , rv]]) => {
+      if (v == null || rv == null) {
+        return rx.EMPTY;
+      }
+      const rootFocusSvc = rv as FocusService;
+      return (v as FocusService).latest.forRootComp.pipe(
+        rx.take(1),
+        rx.mergeMap(([, rComp]) => {
+          // If current service is not a "rootComp" of the focusService
+          // or focusService of context is the root focusService,
+          // then the focusService is the effective one for current component,
+          // otherwise the focusService stored in parent container's context should
+          // be the effective focusService for current component
+          if (rComp !== service || v === rootFocusSvc) {
+            ft.focusService(v as FocusService).dp(m);
+            return rx.EMPTY;
+          } else {
+            // If current component is a "rootComp" of focusService, use its parent's focusService instead
+            return service.latest.setParent;
+          }
+        }),
+        rx.switchMap(([, parent]) => parent ?
+            parent.ft.queryContext('focusSvc').re(m).od(
+              parent.pt.onContextChange
+            ) : rx.EMPTY
+        ),
+        rx.map(([m2, , pFocusSvc]) => {
+          if (pFocusSvc != null)
+            ft.focusService(pFocusSvc as FocusService).dp(m, m2);
+        }),
+        rx.take(1)
+      );
+    })
   ));
 
   r('init', new rx.Observable<never>(() => {

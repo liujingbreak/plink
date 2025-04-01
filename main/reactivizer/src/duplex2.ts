@@ -1,6 +1,5 @@
 import {CoreOptions} from './stream-core';
 import {RxController2} from './control2';
-import {RxControlConfigType} from './global-config';
 
 export type DuplexOptions<I = Record<string, never>> = CoreOptions<I>;
 
@@ -27,9 +26,9 @@ export class DuplexController<I, O> {
     this.o.setName(value + `#${this.id}.o `);
   }
 
-  config<I2, O2>(opts: RxControlConfigType<I2 & O2 & I & O>) {
-    this.i.config(opts as RxControlConfigType<I>);
-    this.o.config(opts as RxControlConfigType<O>);
+  config<I2, O2>(opts: CoreOptions<I2 & O2 & I & O>) {
+    this.i.config(opts as CoreOptions<I>);
+    this.o.config(opts as CoreOptions<O>);
   }
 }
 

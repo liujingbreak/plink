@@ -1,7 +1,7 @@
 import * as rx from 'rxjs';
 import { assignActionReferParam } from './stream-core';
 import { actionRelatedToAction } from './context-operators';
-import { timeoutLog } from './utils';
+import { timeoutLog, onAllSubscribed } from './utils';
 export class SingleActionFactoryImpl {
     constructor(type, payload, control, opts = { slowDispatchObservableTime: 20000 }) {
         this.type = type;
@@ -59,8 +59,8 @@ export class SingleActionFactoryImpl {
             // mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...P]>,
             // rx.take(1)
             )), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
-            // eslint-disable-next-line no-console
-            this.opts.slowLog ? () => this.opts.slowLog(action) : () => { })), new rx.Observable(() => {
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            this.opts.slowLog ? () => { this.opts.slowLog(action); } : () => { })), new rx.Observable(() => {
                 this.control.actionUpstream.next(action);
                 return () => {
                     // const cancel = this.control.createAction('__cancel' as keyof I, [action.t] as any);
@@ -73,7 +73,7 @@ export class SingleActionFactoryImpl {
     }
     od(response, ...moreResponses) {
         if (moreResponses.length === 0) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/no-unsafe-return
             return this.ddo(response);
         }
         else {
@@ -81,41 +81,28 @@ export class SingleActionFactoryImpl {
             if (this.relateToAction && this.relateToAction.length > 0) {
                 assignActionReferParam(this.action, this.relateToAction);
             }
-            // when all (counted) the returned streams are subscribed, dispatch the new action
-            const onSubscribe$ = new rx.Subject();
-            onSubscribe$.pipe(rx.distinct(), rx.take(responses.length)).subscribe({
-                complete: () => {
-                    this.control.actionUpstream.next(this.action);
-                }
-            });
-            const onUnsubscribe$ = new rx.Subject();
-            onUnsubscribe$.pipe(rx.distinct(), rx.take(responses.length)).subscribe({
-                complete: () => {
-                    // const cancel = this.control.createAction('__cancel' as keyof I, [action.t] as any);
-                    // assignActionReferParam(cancel, action);
-                    // this.control.actionUpstream.next(cancel);
-                    this.control.cancelAction(this.action);
-                }
-            });
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            return responses.map((res$, idx) => {
+            return onAllSubscribed(responses.map(r => {
                 var _a;
-                return rx.merge(this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => res$.pipe(operator(this.action), actionRelatedToAction(this.action)
-                // mapActionToPayload() as (a: rx.Observable<Action<any>>) => rx.Observable<[ActionMeta, ...any[]]>,
-                // rx.take(1)
-                )), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, 
-                // eslint-disable-next-line no-console
-                this.opts.slowLog ? () => this.opts.slowLog(this.action) : () => console.log('Slow observable action detected'))), new rx.Observable(() => {
-                    onSubscribe$.next(idx);
+                return this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => r.pipe(operator(this.action), actionRelatedToAction(this.action))), timeoutLog((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, this.opts.slowLog ? () => { this.opts.slowLog(this.action); } : () => {
+                    // eslint-disable-next-line no-console
+                    console.log('Slow observable action detected');
                 }));
+            }), () => {
+                this.control.actionUpstream.next(this.action);
+            }, () => {
+                console.log('-- cancelAction');
+                this.control.cancelAction(this.action);
             });
         }
     }
     odMono(response, ...moreResponses) {
         const res = this.od(response, ...moreResponses);
         if (Array.isArray(res)) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return res.map(i => i.pipe(rx.take(1)));
         }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return res.pipe(rx.take(1));
     }
 }

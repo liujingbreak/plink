@@ -12,7 +12,7 @@ import {SimplexReactor} from './simplex-reactor';
  *
  * If you use ActionTable as a frontend UI state (like for a UI template), this infer type
  * defines exactly data structure of it.
- * 
+ *
  */
 export type ActionTableDataType<I, IK extends keyof I> = {
   [P in IK]: InferPayload<I[P]> | []
@@ -61,8 +61,8 @@ export type ReactorCompositeExtendType<
   ELI extends readonly (keyof ExActions | keyof InferInputType2<R>)[] = readonly [],
   ELO extends readonly (keyof ExEvents | keyof InferOutputType2<R>)[] = readonly []
 > = ReactorComposite2<InferInputType2<R> & ExActions, InferOutputType2<R> & ExEvents,
-readonly (InferLatestInputType2<R> | ExtractTupleElement<ELI>)[],
-readonly (InferLatestOutputType2<R> | ExtractTupleElement<ELO>)[]>;
+  readonly (InferLatestInputType2<R> | ExtractTupleElement<ELI>)[],
+  readonly (InferLatestOutputType2<R> | ExtractTupleElement<ELO>)[]>;
 
 export type ReactorCompositeMergeType<R1 extends ReactorComposite2<any, any, any, any>, R2 extends ReactorComposite2<any, any, any, any>> = ReactorComposite2<
 InferInputType2<R1> & InferInputType2<R2>, InferOutputType2<R1> & InferOutputType2<R2>,
@@ -70,24 +70,24 @@ readonly (InferLatestInputType2<R1> | InferLatestInputType2<R2>)[],
 readonly (InferLatestOutputType2<R1> | InferLatestOutputType2<R2>)[]>;
 
 export type ActionFactoryOfPlainType<P> = {[K in keyof P]: P[K] extends (...a: infer A) => any ?
-  (...a: A) => SingleActionFactory :
+    (...a: A) => SingleActionFactory :
   undefined
 };
 
 export type InferFuncReturnEvents<I> = {
   [K in keyof I as `${K & string}Resolved`]: (
     p: I[K] extends (...args: any) => PromiseLike<infer P> ?
-      P : I[K] extends (...args: any) =>  rx.Observable<infer OB> ?
+      P : I[K] extends (...args: any) => rx.Observable<infer OB> ?
         OB : I[K] extends infer R ? R : unknown) => SingleActionFactory;
 } & {
   [K in keyof I as `${K & string}Completed`]: () => SingleActionFactory;
 };
 
 export type InferRCOptions<R extends ReactorComposite2<any, any, any, any>> = ReactorCompositeOpt<
-InferInputType2<R>,
-InferOutputType2<R>,
-InferLatestInputType2<R>[],
-InferLatestOutputType2<R>[]
+  InferInputType2<R>,
+  InferOutputType2<R>,
+  InferLatestInputType2<R>[],
+  InferLatestOutputType2<R>[]
 >;
 /** Infer type of ReactorComposite2 of functions */
 export type InferRCOfFuncs<F> =
@@ -110,15 +110,15 @@ export type InferTableForSmplxRctr<R> =
 export type TableOf<R> = R extends SimplexReactor<any, infer L> ? L : never;
 export type SimplexReactorMergeType<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
   SimplexReactor<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
-  readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]
+    readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]
   >;
 
 export type SimplexReactorExtendType<RBase extends SimplexReactor<any, any>, I, L extends readonly (keyof I)[]> =
   SimplexReactor<InferActionsOfSmplxRctr<RBase> & I,
-  ReadonlyArray<InferTableForSmplxRctr<RBase> | L[number]>
+    readonly (InferTableForSmplxRctr<RBase> | L[number])[]
   >;
 
 export type OptionsOfMergedSmplxRctr<R1 extends SimplexReactor<any, any>, R2 extends SimplexReactor<any, any>> =
   SimplexReactorOptions<InferActionsOfSmplxRctr<R1> & InferActionsOfSmplxRctr<R2>,
-  ReadonlyArray<InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>>>;
+    readonly (InferTableForSmplxRctr<R1> | InferTableForSmplxRctr<R2>)[]>;
 

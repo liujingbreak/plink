@@ -1,11 +1,11 @@
-import {describe, it, expect, jest}  from '@jest/globals';
+import {describe, it, expect, jest} from '@jest/globals';
 import {canvasCacheFac} from '../src/core/canvas-cache.js';
 import {getTextDisplayUnits} from '../src/core/canvas.js';
 
 describe('canvas-cache', () => {
   it('add', () => {
-    const service = canvasCacheFac.create(
-      {name: 'cache', debug: true});
+    const service = canvasCacheFac.setting(
+      {name: 'cache', debug: true}).create();
     const {s} = service;
     s.ft.add(0, 1, [...getTextDisplayUnits('abc')], []).dp();
     s.ft.add(5, 1, [...getTextDisplayUnits('efg')], []).dp();
@@ -27,8 +27,8 @@ describe('canvas-cache', () => {
     expect(mock.mock.calls[0][0]).toBe('\na1234567890 文\n');
   });
   it('clear', () => {
-    const service = canvasCacheFac.create(
-      {name: 'cache', debug: true});
+    const service = canvasCacheFac.setting(
+      {name: 'cache', debug: true}).create();
     const {s} = service;
     s.ft.add(0, 1, [...getTextDisplayUnits('abc')], []).dp();
     s.ft.add(5, 1, [...getTextDisplayUnits('efg')], []).dp();

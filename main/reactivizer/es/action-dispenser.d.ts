@@ -28,8 +28,8 @@ export declare class ActionDispenser<I> {
     private countSubscriber;
     private ofOtherTypesDispenser;
     private ofOtherTypesStream;
-    constructor(source$: rx.Observable<Action<unknown>>);
+    constructor(source$: rx.Observable<Action>);
     ofType<K extends keyof I & string>(type: K): rx.Observable<Action<I[K]>>;
-    ofOtherTypes(): rx.Observable<Action<unknown>>;
+    ofOtherTypes(): rx.Observable<Action>;
 }
 export {};

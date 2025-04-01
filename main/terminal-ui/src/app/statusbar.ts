@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {SingleActionFactory, CreateOptsInDef, SimplexReactorOfFac} from '@wfh/reactivizer';
+import {SingleActionFactory, CreateOptsOfFac, SimplexReactorOfFac} from '@wfh/reactivizer';
 import {borderFac, createFlexContainer, Scrollable, KeyEventServcie,
   DisplayMode, createTextWidget, TextStyle, querySchemeForComponent} from '../index.js';
 import {textFac} from '../hoc/text.js';
@@ -9,7 +9,7 @@ export interface StatusbarInput {
 }
 export interface StatusbarTheme {
   /** default is MaterialScheme['surfaceContainer'] */
-  setBgSurfaceColor(color: string) : SingleActionFactory;
+  setBgSurfaceColor(color: string): SingleActionFactory;
   /** defautlt is MaterialScheme['onSurface'] */
   setBgOnSurfaceColor(color: string): SingleActionFactory;
 }
@@ -24,11 +24,10 @@ const tableFor = [
   'setBgOnSurfaceColor', 'setBgSurfaceColor'
 ] as const;
 
-export type StatusbarOptions = CreateOptsInDef<StatusbarMessages, typeof borderFac>;
 export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableFor>({
   name: 'statusbar',
   tableFor
-}).defineReactor((init, opts?: StatusbarOptions) => {
+}).defineReactor(({init, setting: opts}) => {
   const container = createFlexContainer({
     ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.container'
@@ -41,16 +40,16 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
   statusbar.ft.setBorder('none').dp();
   statusbar.ft.setFlexShrink(0).dp();
   const {r, pt, ft, latest} = statusbar;
-  const labelScrollText = textFac.create('scroll', {
+  const labelScrollText = textFac.setting({
     // ...opts as any,
     name: (opts?.name ?? 'statusbar') + '.label'
-  });
-  const labelScrollValueR = textFac.create('0%', {
+  }).create('scroll');
+  const labelScrollValueR = textFac.setting({
     name: (opts?.name ?? 'statusbar') + '.v1'
-  });
-  const labelScrollValueC = textFac.create('0%', {
+  }).create('0%');
+  const labelScrollValueC = textFac.setting({
     name: (opts?.name ?? 'statusbar') + '.v2'
-  });
+  }).create('0%');
   const HELP_KEY_HINT = 'Press <Enter> for help';
   const labelKeypress = createTextWidget(HELP_KEY_HINT, {
     ...opts as any,
@@ -107,7 +106,7 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
       rx.switchMap(([, keypress]) => {
         return rx.merge(
           keypress.latest.onDisplayKeys.pipe(
-            rx.map(([m, text, _isCompleted, isValid]) => {
+            rx.map(([m, text, , isValid]) => {
               ft.onKeypressStatus(text, isValid).dp(m);
             })
           ),
@@ -137,8 +136,8 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
     rx.map(([valid, [colors]]) => {
       labelKeypress.ft.setStyle(
         valid ?
-          [`hex(${colors.onPrimary})`] :
-          [`hex(${colors.onPrimaryContainer})`]
+            [`hex(${colors.onPrimary})`] :
+            [`hex(${colors.onPrimaryContainer})`]
       ).dp();
       statusbar.ft.setBackground(
         valid ?
@@ -168,6 +167,7 @@ export const statusbarFac = borderFac.forExtend<StatusbarMessages, typeof tableF
   labelScrollText.ft.setPadding(0, 1, 0, 1).dp();
 });
 export type Statusbar = SimplexReactorOfFac<typeof statusbarFac>;
+export type StatusbarOptions = CreateOptsOfFac<typeof statusbarFac>;
 export function createStatusbar(opts?: StatusbarOptions) {
-  return statusbarFac.create(opts);
+  return statusbarFac.setting(opts).create();
 }

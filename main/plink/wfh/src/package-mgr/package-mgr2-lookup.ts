@@ -1,5 +1,5 @@
 import Path from 'node:path';
-import {SingleActionFactory, SimplexReactor, PayloadByType}  from '@wfh/reactivizer';
+import {SingleActionFactory, SimplexReactor, PayloadByType} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import {PackageMgrFullServiceType} from './package-mgr2';
 
@@ -44,13 +44,13 @@ export function createPlinkPackageLookupService() {
       return rx.combineLatest([
       // If data_spacePkgMap doesn't have activeSpaceKey, dispatch "checkSpace" message
         spacePkgs != null ?
-          rx.of(spacePkgs) :
-          service.o.ft.checkSpace(activeSpaceKey!).od(service.o.pt.didCheckSpace).pipe(
-            rx.take(1),
-            rx.mergeMap(() => service.ot.l.data_spacePkgMap),
-            rx.map(([, data]) => data.get(activeSpaceKey!)),
-            rx.filter(v => v != null)
-          ),
+            rx.of(spacePkgs) :
+            service.o.ft.checkSpace(activeSpaceKey!).od(service.o.pt.didCheckSpace).pipe(
+              rx.take(1),
+              rx.mergeMap(() => service.ot.l.data_spacePkgMap),
+              rx.map(([, data]) => data.get(activeSpaceKey!)),
+              rx.filter(v => v != null)
+            ),
         service.ot.l.data_allPackages.pipe(rx.take(1)),
         service.ot.l.rootDir
       ]).pipe(
@@ -58,7 +58,7 @@ export function createPlinkPackageLookupService() {
           const installDir = Path.resolve(rootPath, activeSpaceKey!);
           pkgPathLenToPathMap = new Map();
           s.ft.rootDir(rootPath).dp(m);
-          for (const pkgName of spacePkgs!) {
+          for (const pkgName of spacePkgs) {
             const pkgPath = allPackages.get(pkgName)?.realPath;
             const dirs = [pkgPath, Path.resolve(installDir, 'node_modules', pkgName)].filter((dir): dir is string => dir != null);
             for (const dir of dirs) {
@@ -81,7 +81,7 @@ export function createPlinkPackageLookupService() {
   ));
 
   r('fromTsconfig -> rootDir, pkgPathLenToPathMapChanged, packageToPathMap', s.pt.fromTsconfig.pipe(
-    rx.map(([m, baseDir, json, _installDir]) => {
+    rx.map(([m, baseDir, json]) => {
       s.ft.rootDir(baseDir).dp(m);
       pkgPathLenToPathMap = new Map();
       const pkg2PathMap = new Map<string, string>();

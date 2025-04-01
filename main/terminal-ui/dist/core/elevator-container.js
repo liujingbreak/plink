@@ -1,4 +1,3 @@
-/* eslint-disable multiline-ternary */
 import * as rx from 'rxjs';
 import { canvasFac } from '../index.js';
 import { DisplayMode } from './base.js';
@@ -6,8 +5,9 @@ import { rootFocusSvcFac, ROOT_FOCUS_SERVICE_CONTEXT } from './focusable.js';
 import { baseContainerFac } from './container.js';
 export const elevatorFac = baseContainerFac.forExtend({
     name: 'elevator'
-}).interceptorForBaseByType(ac => rx.merge(rx.merge(ac.at.onRender, ac.at.findOverlaps).pipe(rx.ignoreElements()), ac.ofOtherTypes())).defineReactor((init, keyEventSvc, opts) => {
-    const service = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
+}).interceptorForBaseByType(ac => rx.merge(rx.merge(ac.at.onRender, ac.at.findOverlaps).pipe(rx.ignoreElements()), ac.ofOtherTypes())).defineReactor((ctx, keyEventSvc) => {
+    var _a, _b;
+    const service = ctx.init(Object.assign(Object.assign({}, (_a = ctx.setting) === null || _a === void 0 ? void 0 : _a.default), (_b = ctx.setting) === null || _b === void 0 ? void 0 : _b.core));
     const { ft, pt, s, r, table } = service;
     // let lastBottom: BaseWidget | undefined;
     /** Offline canvas by root component */
@@ -20,12 +20,14 @@ export const elevatorFac = baseContainerFac.forExtend({
         ft.addChild(c).dp(m);
     })));
     r('addChild,insertChild, removeChild -> "canvasMap"', rx.merge(pt.addChild.pipe(rx.map(([m, ...chdn]) => [m, chdn])), pt.insertChild.pipe(rx.map(([m, , chdn]) => [m, chdn]))).pipe(rx.mergeMap(([m, chd]) => rx.from(chd).pipe(rx.mergeMap(chd => {
-        const cv = canvasFac.create(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: 'Elevator.canvas' }), opts === null || opts === void 0 ? void 0 : opts.canvas));
+        var _a, _b, _c, _d;
+        const cv = canvasFac.setting(Object.assign(Object.assign(Object.assign({}, (_a = ctx.setting) === null || _a === void 0 ? void 0 : _a.default), { name: 'Elevator.canvas' }), (_b = ctx.setting) === null || _b === void 0 ? void 0 : _b.canvas)).create();
         canvasMap.set(chd, cv);
         cv.ft.setRootComponent(chd).dp(m);
         let rootFoc;
         if (!noEventsLayer.has(chd)) {
-            rootFoc = rootFocusSvcFac.create(cv, Object.assign(Object.assign({ name: s.logPrefix + '.focus' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.focusable));
+            rootFoc = rootFocusSvcFac.setting(Object.assign(Object.assign({ name: s.logPrefix + '.focus' }, (_c = ctx.setting) === null || _c === void 0 ? void 0 : _c.default), (_d = ctx.setting) === null || _d === void 0 ? void 0 : _d.focusable)).create(cv);
+            rootFoc.ft.pauseHandleEvents().dp(m);
             focusSvcMap.set(chd, rootFoc);
             rootFoc.ft.forRootComp(chd).dp(m);
             chd.ft.provideContext(ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
@@ -162,7 +164,7 @@ export const elevatorFac = baseContainerFac.forExtend({
     ft.provideContext('__elevatorContainer', service).dp();
 });
 export function createElevator(keyEventSvc, opts) {
-    return elevatorFac.create(keyEventSvc, opts);
+    return elevatorFac.setting(opts).create(keyEventSvc);
 }
 export function getBoundingOfCompTree(c) {
     return rx.combineLatest([
@@ -189,7 +191,6 @@ export function queryElevatorContainer(src) {
 }
 function isContainerWithoutOfflineCanvas(root) {
     const container = root.table.getData();
-    return container.allChildren != null &&
-        container.hasOfflineCanvas[0] === false;
+    return container.hasOfflineCanvas[0] === false;
 }
 //# sourceMappingURL=elevator-container.js.map

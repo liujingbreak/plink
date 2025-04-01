@@ -20,6 +20,7 @@ container.ft.addChild(text).dp();
 container.ft.justifyContent('center').dp();
 container.ft.alignItems('center').dp();
 // container.ft.setBackground('bgAnsi256(25)').dp();
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 if (screenWidth != null) {
   canvas.ft.setSize(Number(screenWidth), Number(screenHeight)).dp();
 } else {

@@ -7,10 +7,8 @@ import type { ForkedRxController as ForkedRxControllerConst } from './forked-con
 import type * as forkPost from './forked-post-control';
 import { SingleActionFactory } from './action-factory';
 export { SingleActionFactory };
-export type ActionFactory = {
-    [k: string]: (...args: any[]) => SingleActionFactory;
-};
-export type ActionInterceptor<I> = (ac: ActionDispenser<I>) => rx.Observable<Action<unknown>>;
+export type ActionFactory = Record<string, (...args: any[]) => SingleActionFactory>;
+export type ActionInterceptor<I> = (ac: ActionDispenser<I>) => rx.Observable<Action>;
 export interface ControllerBaseActions {
     __cancel(origActionType: string): SingleActionFactory;
 }
@@ -29,9 +27,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
     doOperator$: rx.BehaviorSubject<(<A>(dispatchingAction: {
         i: ActionMeta["i"];
     }) => (response$: rx.Observable<A>) => rx.Observable<A>)>;
-    constructor(opts?: CoreOptions<I> & {
-        debugTableAction?: boolean;
-    });
+    constructor(opts?: CoreOptions<I>);
     /**
      * This function return the same message observable of `pt.__cancel.pipe(actionRelatedToAction(actionMeta))`.
      * Regarding "__cancel" message:
@@ -69,11 +65,11 @@ export declare class RxController2<I> extends ControllerCore<I> {
     prependController(): ForkedRxControllerConst<I>;
     forkPostController(): forkPost.ForkedPostRxController<I>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-    groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
+    groupControllerBy<K>(keySelector: (action: Action) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**
      * create a new RxController, pipe actions whose tyoes are specofied in parameter `actionTypes` from this controller to the new controller
      */
-    subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]> & ControllerBaseActions>;
+    subForTypes<KS extends (keyof I)[] | readonly (keyof I & string)[]>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController2<Pick<I, KS[number]> & ControllerBaseActions>;
     /**
      * Create an very simple and naive version Apache Kafka KTable like "observable Map<K, Action>",
      * a table which retains latest action by "key"
@@ -82,7 +78,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
     /**
      * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
      */
-    subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>): RxController2<Omit<I, KS[number]> & ControllerBaseActions>;
+    subForExcludeTypes<KS extends (keyof I)[] | readonly (keyof I)[]>(excludeActionTypes: KS, opts?: CoreOptions<Omit<I, KS[number]>>): RxController2<Omit<I, KS[number]> & ControllerBaseActions>;
     /**
      * Create a variant of calling .ft(...).dp(...)`
      **/
@@ -91,7 +87,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * Create a variant of interface of functions `<I>.ft(...).dp(...)`
      **/
     createDispatchers(...actionMetaRelated: ArrayOrTuple<ActionMeta | undefined>): {
-        [K in keyof I]: (...params: InferPayload<I[K]>) => void;
+        [K in keyof I]: (...params: (I[K] extends (...a: infer P) => void ? P : any)) => void;
     };
 }
 export declare class GroupedRxController2<I, K> extends RxController2<I> {

@@ -52,6 +52,8 @@ class RedBlackTree {
                 x = x.right;
             }
             else {
+                if (value[0])
+                    x.value = value[0];
                 return x; // duplicate key found
             }
         }
@@ -70,7 +72,6 @@ class RedBlackTree {
         let right = this.nil;
         Object.defineProperty(z, 'left', {
             get() {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
                 return left;
             },
             set(v) {
@@ -83,7 +84,6 @@ class RedBlackTree {
         });
         Object.defineProperty(z, 'right', {
             get() {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
                 return right;
             },
             set(v) {
@@ -97,7 +97,6 @@ class RedBlackTree {
         let weight = 0;
         Object.defineProperty(z, 'weight', {
             get() {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
                 return weight;
             },
             set(v) {
@@ -118,16 +117,17 @@ class RedBlackTree {
             y.right = z;
         }
         this.redBlackInsertFixUp(z);
+        if (value.length > 0)
+            z.value = value[0];
         return z;
     }
     /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0
     * and it is baesed on "size" which is accumulated  from "weight" of node ands children's
     */
     atIndex(idx, beginNode = this.root) {
-        var _a;
         let currNode = beginNode;
         while (!this.isNil(currNode)) {
-            const leftSize = (((_a = currNode.left) === null || _a === void 0 ? void 0 : _a.size) || 0);
+            const leftSize = (currNode.left.size || 0);
             if (leftSize === idx)
                 return currNode;
             else if (idx < leftSize) {
@@ -313,7 +313,7 @@ class RedBlackTree {
         return !!(node === null || node === void 0 ? void 0 : node.isRed);
     }
     isBlack(node) {
-        return node == null || !node.isRed;
+        return !(node === null || node === void 0 ? void 0 : node.isRed);
     }
     deleteNode(z) {
         let y = z;
@@ -332,7 +332,6 @@ class RedBlackTree {
             y = this.minimum(z.right);
             origIsRed = this.isRed(y);
             x = y.right;
-            // eslint-disable-next-line eqeqeq
             if (y.p == z) {
                 x.p = y;
             }
@@ -358,24 +357,25 @@ class RedBlackTree {
     /**
      * To be extend and overridden
      */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
     onLeftChildChange(_parent, _child) {
     }
     /**
      * To be extend and overridden
      */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
     onRightChildChange(_parent, _child) {
     }
     updateNodeSize(node) {
-        var _a, _b, _c, _d;
         let z = node;
         while (!this.isNil(z)) {
-            z.size = z.weight + ((_b = (_a = z.left) === null || _a === void 0 ? void 0 : _a.size) !== null && _b !== void 0 ? _b : 0) + ((_d = (_c = z.right) === null || _c === void 0 ? void 0 : _c.size) !== null && _d !== void 0 ? _d : 0);
+            z.size = z.weight + z.left.size + z.right.size;
             z = z.p;
         }
     }
     deleteFixup(x) {
         while (x !== this.root && this.isBlack(x)) {
-            if (x.p && x === x.p.left) {
+            if (x === x.p.left) {
                 let w = x.p.right; // w is x's sibling
                 if (this.isRed(w)) {
                     w.isRed = false;
@@ -403,7 +403,7 @@ class RedBlackTree {
                     x = this.root;
                 }
             }
-            else if (x.p && x === x.p.right) {
+            else if (x === x.p.right) {
                 let w = x.p.left; // w is x's sibling
                 if (this.isRed(w)) {
                     w.isRed = false;
@@ -447,7 +447,6 @@ class RedBlackTree {
         v.p = u.p;
     }
     redBlackInsertFixUp(z) {
-        var _a, _b;
         while (this.isRed(z.p)) {
             if (z.p === z.p.p.left) {
                 const uncle = z.p.p.right;
@@ -466,13 +465,13 @@ class RedBlackTree {
                         this.leftRotate(z);
                     }
                     z.p.isRed = false;
-                    if (((_a = z.p) === null || _a === void 0 ? void 0 : _a.p) && !this.isNil(z.p.p)) {
+                    if (!this.isNil(z.p.p)) {
                         z.p.p.isRed = true;
                         this.rightRotate(z.p.p);
                     }
                 }
             }
-            else if (((_b = z.p) === null || _b === void 0 ? void 0 : _b.p) && z.p === z.p.p.right) {
+            else if (z.p === z.p.p.right) {
                 const uncle = z.p.p.left;
                 if (this.isRed(uncle)) {
                     // mark parent and uncle to black, grandpa to red, continue to go up to grandpa level
@@ -488,12 +487,10 @@ class RedBlackTree {
                         z = z.p;
                         this.rightRotate(z);
                     }
-                    if (z.p) {
-                        z.p.isRed = false;
-                        if (z.p.p && !this.isNil(z.p.p)) {
-                            z.p.p.isRed = true;
-                            this.leftRotate(z.p.p);
-                        }
+                    z.p.isRed = false;
+                    if (!this.isNil(z.p.p)) {
+                        z.p.p.isRed = true;
+                        this.leftRotate(z.p.p);
                     }
                 }
             }

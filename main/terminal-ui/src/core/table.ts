@@ -1,8 +1,7 @@
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
 import {SingleActionFactory, actionRelatedToAction, SimplexReactorOfFac,
-  CoreOptions, CreateOptsInDef} from '@wfh/reactivizer';
+  CoreOptions, CreateOptsOfExtendedFac} from '@wfh/reactivizer';
 import {BaseWidget, createFlexContainer, TerminalContainer,
   TextStyle, BackgroundStyle, Rectangle} from '../index.js';
 import {createRtreeInstance} from './rbush.js';
@@ -40,7 +39,8 @@ export interface TableInput {
   setBorderStyle(style: TextStyle): SingleActionFactory;
   setBorderPadding(paddingX: number, paddingY: number): SingleActionFactory;
   setColumnSpacing(value: number): SingleActionFactory;
-  setCellBackground(renderer: (columnIdx: number, rowIdx: number) => BackgroundStyle | void | null | undefined): SingleActionFactory;
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  setCellBackground(renderer: (columnIdx: number, rowIdx: number) => void | BackgroundStyle | null | undefined): SingleActionFactory;
   alignCell(horizontal: TableHoriAlig, vertical: TableVertAlig): SingleActionFactory;
 }
 interface TableEvents extends TableInput {
@@ -59,15 +59,15 @@ interface TableEvents extends TableInput {
 const tableFor = ['rowById', 'setColumnSpacing', 'onBorderTypeSet', 'setRowSpacing', 'setLazyLoad',
   'setBorderStyle', 'setBorderPadding', 'alignCell', 'didCalcSize', 'setCellBackground', 'rowIds'
 ] as const;
-export type TableCoreOptions = CreateOptsInDef<TableEvents, typeof baseContainerFac>;
-export type TableOptions = {
+export type TableCoreOptions = CreateOptsOfExtendedFac<typeof baseContainerFac, TableEvents>;
+export interface TableOptions {
   default?: CoreOptions;
   core?: TableCoreOptions;
   moreIndicator?: Partial<FlexContainerOpts>;
   lazy?: LazyLoadPlaceHolderOpts;
   optsForCellComponent?: MultiLineTextWidgetOpts;
-};
-export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>({
+}
+export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor, TableOptions>({
   name: 'table',
   tableFor,
   debugExcludeTypes: ['renderChild']
@@ -77,7 +77,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
     ad.pt.findOverlaps
   ).pipe(rx.ignoreElements()),
   ad.ofOtherTypes()
-)).defineReactor((init, opts?: TableOptions) => {
+)).defineReactor(({init, setting: opts}) => {
   const service = init({...opts?.default as any, ...opts?.core});
   const {ft, pt, r, table, s} = service;
   const preContrl = s.forkController();
@@ -120,11 +120,11 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
         if (handler) {
           return rx.merge(
             lazyService.pt.dp_onLoadPage.pipe(
-              rx.mergeMap(([m, pageIdx, _type]) => handler(pageIdx).pipe(
+              rx.mergeMap(([m, pageIdx]) => handler(pageIdx).pipe(
                 rx.takeUntil(lazyService0.pt.dp_onCancelLoad.pipe(
                   rx.filter(([, page]) => page === pageIdx)
                 )),
-                rx.reduce((all, row) => { all.push(row); return all; }, [] as [unknown, (string | BaseWidget)[]][]),
+                rx.reduce((all, row) => {all.push(row); return all;}, [] as [unknown, (string | BaseWidget)[]][]),
                 rx.map(rowWithKeys => {
                   for (const [k, row] of rowWithKeys) {
                     if (rows.has(k)) {
@@ -145,7 +145,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
               ))
             ),
             lazyService.pt.onPagesLoaded.pipe(
-              rx.map(([m, isHead, _pStart, _pEnd, rowKeys]) => {
+              rx.map(([m, isHead, , , rowKeys]) => {
                 for (const key of rowKeys) {
                   ft.onRowAdded(isHead ? 0 : rowIds.length, key, rows.get(key)!).dp(m);
                   ft.addChild(...rows.get(key)!).dp(m);
@@ -180,11 +180,11 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
         return rx.merge(
           // dp_onUnload -> removeRow
           lazyService.pt.dp_onUnload.pipe(
-            rx.map(([m, _pIdx, ids]) => {
+            rx.map(([m, , ids]) => {
               // pageLoaded.delete(pIdx);
               if (ids == null)
                 return;
-              const idSet = new Set(ids ?? []);
+              const idSet = new Set(ids);
               let idx = 0;
               const toDel = [] as number[];
               for (const id of rowIds) {
@@ -232,7 +232,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
                 if (y + h < min[1] + min[3])
                   min[3] = y + h - min[1];
                 return min;
-              }, [0, 0, Number.MAX_VALUE, Number.MAX_VALUE] as const);
+              }, [0, 0, Number.MAX_VALUE, Number.MAX_VALUE]);
               lazyService!.ft.setViewportSize(minRect[2], minRect[3]).dp(m);
             })
           )
@@ -312,14 +312,13 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
       const rowArr = [...rows.values()];
       // service.log('>>> rowArr rows =', rowArr.length);
       return rx.combineLatest([
-        // eslint-disable-next-line multiline-ternary
         rowArr.length === 0 ? rx.of([]) :
-          rx.combineLatest(rowArr.map(
-            cells => rx.combineLatest(cells.map(c => c.table.l.preferredSize)).pipe(
-              rx.take(1),
-              rx.map(colSizes => colSizes.map(([, w, h]) => [w, h] as const))
-            )
-          )),
+            rx.combineLatest(rowArr.map(
+              cells => rx.combineLatest(cells.map(c => c.table.l.preferredSize)).pipe(
+                rx.take(1),
+                rx.map(colSizes => colSizes.map(([, w, h]) => [w, h] as const))
+              )
+            )),
         table.l.setRowSpacing,
         table.l.onBorderTypeSet,
         table.l.setColumnSpacing,
@@ -385,7 +384,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
             service.log('shrinked width of column:', shrinkedColW);
             return rx.combineLatest(rowArr.map(r => rx.combineLatest(
               r.map((cell, col) => cell.ft.querySizeOf(shrinkedColW[col], null)
-                .od(cell.pt.prefHeightFor).pipe( rx.take(1)))
+                .od(cell.pt.prefHeightFor).pipe(rx.take(1)))
             ).pipe(
               rx.map(prefSizes => {
                 const maxHtOfRow = prefSizes.reduce((max, [, , h]) => {
@@ -431,15 +430,15 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
               return max;
             }, 0));
             const extraHeight$ = (beforePlaceHolder && afterPlaceHolder) ?
-              rx.combineLatest([
-                beforePlaceHolder.table.l.preferredSize,
-                afterPlaceHolder.table.l.preferredSize
-              ]).pipe(
-                rx.map(([[, , h1], [, , h2]]) => {
-                  return [h1 + h2, h1, h2] as [number, number, number];
-                })
-              ) :
-              rx.of([0, undefined, undefined] as [number, number | undefined, number | undefined]);
+                rx.combineLatest([
+                  beforePlaceHolder.table.l.preferredSize,
+                  afterPlaceHolder.table.l.preferredSize
+                ]).pipe(
+                  rx.map(([[, , h1], [, , h2]]) => {
+                    return [h1 + h2, h1, h2] as [number, number, number];
+                  })
+                ) :
+                rx.of([0, undefined, undefined] as [number, number | undefined, number | undefined]);
             return extraHeight$.pipe(
               rx.take(1),
               rx.map(([h, beforeH, afterH]) => {
@@ -482,15 +481,13 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
           rows.delete(id);
         else
           throw new Error(`Can't remove row for key ${id as string}`);
-        ft.onRowRemoved(id, row ?? []).dp(m);
+        ft.onRowRemoved(id, row).dp(m);
         return row;
       });
-      for (const cells of rowsToRemove ?? []) {
-        if (cells == null)
-          continue;
+      for (const cells of rowsToRemove) {
         ft.removeChild(...cells).dp(m);
         if (autoDispose)
-          cells.map(cell => cell.dispose());
+          cells.map(cell => {cell.dispose();});
       }
       for (const idx of [...idxes].sort().reverse())
         rowIds.splice(idx, 1);
@@ -536,7 +533,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
     table.l.onChildPreferredSizeChange
   ]);
   r('reflow -> overflow, onChildPositions, child.onSize', pt.reflow.pipe(
-    rx.switchMap(([m, _clips, _masks]) => {
+    rx.switchMap(([m]) => {
       return reflowData.pipe(
         rx.mergeMap(([[, w, h], [, alignCellHori, alignCellVert], [, colSpacing], [, rowSpacing], [, paddingX, paddingY], [, border]]) => {
           return ft.calcSize(w).re(m).od(pt.didCalcSize).pipe(
@@ -555,7 +552,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
           );
         }),
         rx.take(1),
-        rx.mergeMap(([tableW, tableH, alignCellHori, alignCellVert, colSpacing, rowSpacing, paddingX, paddingY, border, moreW, moreH, colWidths, rowHeights, _totalWidth, _totalHeight, beforeH, afterH]) => {
+        rx.mergeMap(([tableW, tableH, alignCellHori, alignCellVert, colSpacing, rowSpacing, paddingX, paddingY, border, moreW, moreH, colWidths, rowHeights, , , beforeH, afterH]) => {
           const childPos = new Map<BaseWidget, [number, number]>();
           let rowTop = border.has(TableBorderType.border) ?
             1 + paddingY :
@@ -616,7 +613,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
                           );
                       } else {
                         cellLeft += alignCellHori === TableHoriAlig.middle ?
-                          (width - cpw) >> 1 :
+                            (width - cpw) >> 1 :
                           alignCellHori === TableHoriAlig.right ?
                             width - cpw :
                             0;
@@ -695,7 +692,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
           let cellsToRender = clips.flatMap(clip => [...cellBoundingTree.searchOverlaps(clip).map(([, c]) => c)]);
           // service.log('>> clips', clips?.join('\n'), 'cellBoundingTree', cellBoundingTree.xIntervalTree.minimum()?.value.size());
           service.log('>>> rows of cellsToRender', cellsToRender.map(([, r]) => r));
-          const excludedCells = new Set(masks ? masks.map(c => cellBoundingTree.searchForCovered(c).map(([col, row]) => col + ',' + row)).flat() : []);
+          const excludedCells = new Set(masks ? masks.map(c => cellBoundingTree.searchForCovered(c).map(([, [col, row]]) => col + ',' + row)).flat() : []);
           cellsToRender = cellsToRender.filter(([col, row]) => !excludedCells.has(col + ',' + row));
           for (const [col, row, rect] of cellsToRender) {
             const pos = [rect[0], rect[1]] as [number, number];
@@ -802,7 +799,7 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
                 vertLineBottom = maxClipBottom;
               for (const colW of colWidths!.slice(0, colWidths!.length - 1)) {
                 const sepX = colW + left + colSpc;
-                if (clips.some(([x, _y, w, _h]) => sepX >= x && sepX < x + w)) {
+                if (clips.some(([x, , w]) => sepX >= x && sepX < x + w)) {
                   // draw column separator line
                   const pos = [sepX, vertLineTop] as vec2;
                   vec2.transformMat4(pos, pos, trans);
@@ -821,7 +818,6 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
                         break;
                       rowIdx++;
                       sepY += rowH + rowSpc;
-                      // eslint-disable-next-line no-loop-func
                       if (clips.some(([, y, , h]) => sepY >= y && sepY < y + h)) {
                         const posCross = [sepX, sepY] as vec2;
                         vec2.transformMat4(posCross, posCross, trans);
@@ -831,14 +827,14 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
                     }
                   }
                   if ((beforePhHeight == null || beforePhHeight === 0) &&
-                      bType.has(TableBorderType.border) && vertLineTop <= 0
+                    bType.has(TableBorderType.border) && vertLineTop <= 0
                   ) {
                     const posTCross = [sepX, 0] as vec2;
                     vec2.transformMat4(posTCross, posTCross, trans);
                     canvas.ft.addString(posTCross[0], posTCross[1], '┬', bStyle).dp(m);
                   }
                   if ((afterPhHeight == null || afterPhHeight === 0) &&
-                      bType.has(TableBorderType.border) && vertLineBottom >= height
+                    bType.has(TableBorderType.border) && vertLineBottom >= height
                   ) {
                     const posTCross = [sepX, height - 1] as vec2;
                     vec2.transformMat4(posTCross, posTCross, trans);
@@ -917,13 +913,13 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
             rx.mergeMap(([, [, chd]]) => chd.table.l.isContainer.pipe(
               rx.take(1),
               rx.mergeMap(([, isContainer]) => isContainer ?
-                (chd as TerminalContainer).ft.findOverlaps(...rect)
-                  .re(m).od((chd as TerminalContainer).pt.didFindOverlaps).pipe(
-                    rx.map(([, chdOfChd]) => chdOfChd),
-                    rx.take(1),
-                    rx.endWith([chd])
-                  ) :
-                rx.of([chd])
+                  (chd as TerminalContainer).ft.findOverlaps(...rect)
+                    .re(m).od((chd as TerminalContainer).pt.didFindOverlaps).pipe(
+                      rx.map(([, chdOfChd]) => chdOfChd),
+                      rx.take(1),
+                      rx.endWith([chd])
+                    ) :
+                  rx.of([chd])
               )
             )),
             rx.reduce((acc, it) => {
@@ -942,14 +938,14 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
       if (width == null && height != null) {
         return ft.calcSize().re(m).od(pt.didCalcSize).pipe(
           rx.take(1),
-          rx.map(([, _colWidths, _rowHeights, width, height]) => {
+          rx.map(([, , , width, height]) => {
             ft.prefWidthFor(width, height).dp(m);
           })
         );
       } else if (height == null && width != null) {
         return ft.calcSize(width).re(m).od(pt.didCalcSize).pipe(
           rx.take(1),
-          rx.map(([, _colWidths, _rowHeights, width, height]) => {
+          rx.map(([, , , width, height]) => {
             ft.prefHeightFor(width, height).dp(m);
           })
         );
@@ -985,32 +981,33 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor>
   ft.alignCell(TableHoriAlig.left, TableVertAlig.middle).dp();
   ft.setBorderPadding(1, 0).dp();
   ft.addChild(moreIndicator).dp();
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   ft.setCellBackground(() => {}).dp();
   ft.isOpaque(true).dp();
   ft.setLazyLoad(false).dp();
-  function createRow(cells: Array<string | BaseWidget>) {
+  function createRow(cells: (string | BaseWidget)[]) {
     return cells.map(cell => {
       const isValueString = typeof cell === 'string';
       const comp = isValueString ?
-        createTextWidget(cell, {
-          name: (opts?.default?.name ?? 'table') + '.cell',
-          ...(opts?.optsForCellComponent ?
-            {
-              debug: opts?.default?.debug, log: opts?.default?.log,
-              ...opts.optsForCellComponent
-            } :
-            {debug: opts?.default?.debug, log: opts?.default?.log})
-        }) :
+          createTextWidget(cell, {
+            name: (opts?.default?.name ?? 'table') + '.cell',
+            ...(opts?.optsForCellComponent ?
+                {
+                  debug: opts.default?.debug, log: opts.default?.log,
+                  ...opts.optsForCellComponent
+                } :
+                {debug: opts?.default?.debug, log: opts?.default?.log})
+          }) :
         cell;
       if (!isValueString && opts?.optsForCellComponent)
-        comp.config(opts?.optsForCellComponent as any);
+        comp.config(opts.optsForCellComponent as any);
       return comp;
     });
   }
 });
 export type Table = SimplexReactorOfFac<typeof tableFac>;
 export function createTable(opts?: TableOptions) {
-  return tableFac.create(opts);
+  return tableFac.setting(opts).create();
 }
 
 function calcCellSpaceSize(hasBorder: boolean, hasSeparator: boolean, cellIndex: number, cellCount: number, borderPadding: number, spacing: number) {

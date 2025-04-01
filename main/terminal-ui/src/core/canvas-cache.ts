@@ -33,16 +33,16 @@ const tableFor = ['cache'] as const;
 export const canvasCacheFac = new BaseReactorFactory<CanvasCacheEvents, typeof tableFor>({
   name: 'canvasCache',
   tableFor
-}).defineReactor((init, opts?: CoreOptions<CanvasCacheInput>) => {
+}).defineReactor(({init}) => {
   let cache = new RedBlackTree<number, CacheLine>();
-  const service = init(opts);
+  const service = init();
   const {r, s} = service;
   r('add', s.pt.add.pipe(
     rx.map(([, x, y, units, style]) => {
       let lineNode = cache.search(y);
       if (lineNode == null) {
-        const newLine = cache.insert(y);
-        newLine.value = new IntervalTree<AddElement | 'clear'>();
+        const newLine = cache.insert(y, new IntervalTree<AddElement | 'clear'>());
+        // newLine.value = new IntervalTree<AddElement | 'clear'>();
         lineNode = newLine;
       }
       const line = lineNode.value;
@@ -124,8 +124,7 @@ export const canvasCacheFac = new BaseReactorFactory<CanvasCacheEvents, typeof t
         rx.map(lineIdx => {
           let lineNode = cache.search(lineIdx);
           if (lineNode == null) {
-            const newLine = cache.insert(y);
-            newLine.value = new IntervalTree<AddElement | 'clear'>();
+            const newLine = cache.insert(y, new IntervalTree<AddElement | 'clear'>());
             lineNode = newLine;
           }
           const line = lineNode.value;
@@ -191,7 +190,7 @@ export const canvasCacheFac = new BaseReactorFactory<CanvasCacheEvents, typeof t
 
   r('fetchLines -> didFetchLines', s.pt.fetchLines.pipe(
     rx.map(([m, noColor, showClearAsChar]) => {
-      function* cachedLines() {
+      function *cachedLines() {
         let col = 0;
         let row = 0;
         for (const [{key: y, value: line}] of cache.allChildNodeInorder()) {
@@ -225,9 +224,6 @@ export const canvasCacheFac = new BaseReactorFactory<CanvasCacheEvents, typeof t
       const rX = rel ? rel[0] : 0;
       const rY = rel ? rel[1] : 0;
       for (const [{key: y, value: line}] of cache.allChildNodeInorder()) {
-        if (line == null) {
-          continue;
-        }
         for (const [l, h, data] of line.allIntervals()) {
           if (data === 'clear')
             s.ft.onClearItem(l + rX, y + rY, h - l + 1).dp(m);

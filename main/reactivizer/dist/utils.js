@@ -38,6 +38,8 @@ exports.str2ArrayBuffer = str2ArrayBuffer;
 exports.arrayBuffer2str = arrayBuffer2str;
 exports.ascii2ArrayBuffer = ascii2ArrayBuffer;
 exports.arrayBuffer2ascii = arrayBuffer2ascii;
+exports.onAllSubscribed = onAllSubscribed;
+/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters */
 const rx = __importStar(require("rxjs"));
 function timeoutLog(millseconds, callbackOnTimeout) {
     return function (up) {
@@ -79,5 +81,23 @@ function ascii2ArrayBuffer(str, isShared = false) {
 }
 function arrayBuffer2ascii(buf, byteOffset, length) {
     return String.fromCharCode.apply(null, (new Uint8Array(buf, byteOffset, length)));
+}
+function onAllSubscribed(inputs, onAllSubscribed, onAllUnsubscribed) {
+    // when all (counted) the returned streams are subscribed, dispatch the new action
+    const onSubscribe$ = new rx.Subject();
+    onSubscribe$.pipe(rx.distinct(), rx.take(inputs.length)).subscribe({
+        complete: onAllSubscribed
+    });
+    const onUnsubscribe$ = new rx.Subject();
+    onUnsubscribe$.pipe(rx.distinct(), rx.take(inputs.length)).subscribe({
+        complete: onAllUnsubscribed
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return inputs.map((input, idx) => rx.merge(input.pipe(rx.finalize(() => {
+        onUnsubscribe$.next(idx);
+    })), new rx.Observable(sink => {
+        onSubscribe$.next(idx);
+        sink.complete();
+    })));
 }
 //# sourceMappingURL=utils.js.map

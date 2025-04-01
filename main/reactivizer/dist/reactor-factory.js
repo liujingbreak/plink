@@ -1,17 +1,50 @@
 "use strict";
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _BaseReactorFactory_id, _BaseReactorFactory_setting, _DerivedReactorFactory_id, _DerivedReactorFactory_setting;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DerivedReactorFactory = exports.BaseReactorFactory = void 0;
+const worker_threads_1 = require("worker_threads");
 const simplex_reactor_1 = require("./simplex-reactor");
 const action_dispenser_1 = require("./action-dispenser");
+let ID_SEQ = 0;
+function increId() {
+    const id = [process.pid, worker_threads_1.threadId, (++ID_SEQ)];
+    return id;
+}
 class BaseReactorFactory {
     constructor(protoOptions) {
         this.protoOptions = protoOptions;
-        this.reactorDefinition = (init, ...p) => { init(...p); };
+        _BaseReactorFactory_id.set(this, void 0);
+        this.reactorDefinition = 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        (ctx, ..._p) => { ctx.init(); };
+        _BaseReactorFactory_setting.set(this, void 0);
+        __classPrivateFieldSet(this, _BaseReactorFactory_id, increId(), "f");
     }
     /** Define message subscription in this method will be able to be inherited by any derived SimplexRectors
      **/
-    defineReactor(fac) {
-        this.reactorDefinition = fac;
+    defineReactor(defCb) {
+        const self = this;
+        self.reactorDefinition = defCb;
+        return self;
+    }
+    /** Mainly for setting debug options for later creating service instance.
+     * Unlike consturctor parameter `protoOptions`:
+     * - this setting options will not be inherited by derived factory
+     * - it does not allow set property `tableFor` which changes the "shape" of the service
+    **/
+    setting(opt) {
+        __classPrivateFieldSet(this, _BaseReactorFactory_setting, opt, "f");
         return this;
     }
     forExtend(newOpts) {
@@ -22,8 +55,8 @@ class BaseReactorFactory {
         return this;
     }
     interceptorByType(inter) {
-        if (this._interceptors == null)
-            this._interceptors = [];
+        var _a;
+        (_a = this._interceptors) !== null && _a !== void 0 ? _a : (this._interceptors = []);
         this._interceptors.push(a$ => {
             const ac = action_dispenser_1.ActionDispenser.ofAction$(a$);
             return inter(ac);
@@ -32,36 +65,56 @@ class BaseReactorFactory {
     }
     /** create SimplexReactor instance */
     create(...params) {
-        return this._create(a => a, params);
-    }
-    /** do not call this method directly, use create() instead */
-    _create(overrideOpts, param) {
+        var _a;
         let service;
-        this.reactorDefinition(instanceOpts => {
-            const mergedOpts = this.protoOptions ? Object.assign(Object.assign({}, this.protoOptions), instanceOpts) :
-                instanceOpts;
-            service = new simplex_reactor_1.SimplexReactor(overrideOpts(mergedOpts));
-            if (this._interceptors)
-                service.s.prependInterceptor(...this._interceptors);
-            return service;
-        }, ...param);
+        this.reactorDefinition({
+            setting: (_a = __classPrivateFieldGet(this, _BaseReactorFactory_setting, "f")) !== null && _a !== void 0 ? _a : null,
+            init: opt => {
+                var _a, _b;
+                var _c;
+                const mergedOpts = Object.assign(Object.assign({}, this.protoOptions), (opt !== null && opt !== void 0 ? opt : __classPrivateFieldGet(this, _BaseReactorFactory_setting, "f")));
+                if (this.protoOptions.tableFor)
+                    mergedOpts.tableFor = ((_a = mergedOpts.tableFor) !== null && _a !== void 0 ? _a : []).concat(this.protoOptions.tableFor);
+                service = new simplex_reactor_1.SimplexReactor(mergedOpts);
+                (_b = (_c = service).factoryIds) !== null && _b !== void 0 ? _b : (_c.factoryIds = []);
+                service.factoryIds.push(...__classPrivateFieldGet(this, _BaseReactorFactory_id, "f"));
+                if (this._interceptors)
+                    service.s.prependInterceptor(...this._interceptors);
+                return service;
+            }
+        }, ...params);
+        if (service == null) {
+            throw new Error(`ReactorFactory ${this.protoOptions.name}, super service constructor must be executed synchronously`);
+        }
         return service;
+    }
+    isFactoryOf(svc) {
+        var _a;
+        const ids = (_a = svc.factoryIds) !== null && _a !== void 0 ? _a : [];
+        for (let i = 0, l = ids.length; i < l; i += 3) {
+            if (ids[i] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[1] && ids[i + 2] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[2]) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 exports.BaseReactorFactory = BaseReactorFactory;
+_BaseReactorFactory_id = new WeakMap(), _BaseReactorFactory_setting = new WeakMap();
 class DerivedReactorFactory {
-    constructor(baseFactory, featOptions) {
+    /** Do not instantiate through constructor, instead, use BaseReactorFactory['forExtend'] */
+    constructor(baseFactory, superConfigUpdate) {
         this.baseFactory = baseFactory;
-        this.reactorDefinition = (init, ...p) => { init(); };
-        this.featTableForList = featOptions === null || featOptions === void 0 ? void 0 : featOptions.tableFor;
-        if (featOptions) {
-            this.featOpts = Object.assign({}, featOptions);
-            delete this.featOpts.tableFor;
-        }
+        this.superConfigUpdate = superConfigUpdate;
+        _DerivedReactorFactory_id.set(this, void 0);
+        this.reactorDefinition = (ctx, ...p) => { ctx.init(null, ...p); };
+        _DerivedReactorFactory_setting.set(this, void 0);
+        __classPrivateFieldSet(this, _DerivedReactorFactory_id, increId(), "f");
     }
-    defineReactor(fac) {
-        this.reactorDefinition = fac;
-        return this;
+    defineReactor(defCb) {
+        const casted = this;
+        casted.reactorDefinition = defCb;
+        return casted;
     }
     /** New interceptors are appended to existing interceptors which is inherited from base factory */
     interceptor(...interc) {
@@ -69,8 +122,8 @@ class DerivedReactorFactory {
         return this;
     }
     interceptorByType(inter) {
-        if (this._interceptors == null)
-            this._interceptors = [];
+        var _a;
+        (_a = this._interceptors) !== null && _a !== void 0 ? _a : (this._interceptors = []);
         this._interceptors.push(a$ => {
             const ac = action_dispenser_1.ActionDispenser.ofAction$(a$);
             return inter(ac);
@@ -82,8 +135,8 @@ class DerivedReactorFactory {
         return this;
     }
     interceptorForBaseByType(interc) {
-        if (this.baseInterceptors == null)
-            this.baseInterceptors = [];
+        var _a;
+        (_a = this.baseInterceptors) !== null && _a !== void 0 ? _a : (this.baseInterceptors = []);
         this.baseInterceptors.push(a$ => {
             const ac = action_dispenser_1.ActionDispenser.ofAction$(a$);
             return interc(ac);
@@ -93,26 +146,56 @@ class DerivedReactorFactory {
     forExtend(newOpts) {
         return new DerivedReactorFactory(this, newOpts);
     }
-    /** do not call this method directly, use create() instead */
-    _create(overrideOpts, params) {
-        let service;
-        this.reactorDefinition((instanceOpts, ...superParam) => {
-            const mixed = Object.assign(Object.assign({}, this.featOpts), instanceOpts);
-            service = this.baseFactory._create(baseOpts => overrideOpts(Object.assign(baseOpts, mixed)), superParam).config({
-                tableFor: this.featTableForList
-            }).forExtend();
-            if (this._interceptors)
-                service.s.prependInterceptor(...this._interceptors);
-            if (this.baseInterceptors)
-                service.s.appendInterceptorToSrc(...this.baseInterceptors);
-            return service;
-        }, ...params);
-        return service;
+    /** Mainly for setting debug options for later creating service instance.
+     * Unlike consturctor parameter `superConfigUpdate`:
+     * - this setting options will not be inherited by derived factory
+     * - it does not allow set property `tableFor` which changes the "shape" of the service
+    **/
+    setting(opt) {
+        __classPrivateFieldSet(this, _DerivedReactorFactory_setting, opt, "f");
+        return this;
     }
     /** create SimplexReactor instance */
     create(...params) {
-        return this._create(a => a, params);
+        var _a;
+        let service;
+        this.reactorDefinition({
+            setting: (_a = __classPrivateFieldGet(this, _DerivedReactorFactory_setting, "f")) !== null && _a !== void 0 ? _a : null,
+            init: (superOpts, ...superParam) => {
+                var _a, _b;
+                var _c;
+                const mergedSuperOpts = Object.assign(Object.assign({}, this.superConfigUpdate), (superOpts !== null && superOpts !== void 0 ? superOpts : __classPrivateFieldGet(this, _DerivedReactorFactory_setting, "f")));
+                if (this.superConfigUpdate.tableFor)
+                    mergedSuperOpts.tableFor = ((_a = mergedSuperOpts.tableFor) !== null && _a !== void 0 ? _a : []).concat(this.superConfigUpdate.tableFor);
+                // delete mergedSuperOpts.tableFor;
+                service = this.baseFactory.setting(mergedSuperOpts)
+                    .create(...superParam)
+                    .toExtend();
+                (_b = (_c = service).factoryIds) !== null && _b !== void 0 ? _b : (_c.factoryIds = []);
+                service.factoryIds.push(...__classPrivateFieldGet(this, _DerivedReactorFactory_id, "f"));
+                if (this._interceptors)
+                    service.s.prependInterceptor(...this._interceptors);
+                if (this.baseInterceptors)
+                    service.s.appendInterceptorToSrc(...this.baseInterceptors);
+                return service;
+            }
+        }, ...params);
+        if (service == null) {
+            throw new Error(`ReactorFactory ${this.superConfigUpdate.name}, super service constructor must be executed synchronously`);
+        }
+        return service;
+    }
+    isFactoryOf(svc) {
+        var _a;
+        const ids = (_a = svc.factoryIds) !== null && _a !== void 0 ? _a : [];
+        for (let i = 0, l = ids.length; i < l; i += 3) {
+            if (ids[i] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[1] && ids[i + 2] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[2]) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 exports.DerivedReactorFactory = DerivedReactorFactory;
+_DerivedReactorFactory_id = new WeakMap(), _DerivedReactorFactory_setting = new WeakMap();
 //# sourceMappingURL=reactor-factory.js.map

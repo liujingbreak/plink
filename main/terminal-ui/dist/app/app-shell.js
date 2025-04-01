@@ -7,7 +7,7 @@ const tableFor = ['onReady'];
 const appServiceFac = new BaseReactorFactory({
     name: 'App',
     tableFor
-}).defineReactor((init, mainComponent, canScroll, opts) => {
+}).defineReactor(({ init, setting: opts }, mainComponent, canScroll) => {
     var _a, _b;
     const appService = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
     const { r, ft, pt } = appService;
@@ -78,7 +78,7 @@ const appServiceFac = new BaseReactorFactory({
         mainContainer.ft.setForeground([`hex(${colors.onSurface})`]).dp(...m);
         mainContainer.ft.setBackground(`bgHex(${colors.surface})`).dp(...m);
     })));
-    const colors = colorThemeFac.create(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.colorTheme));
+    const colors = colorThemeFac.setting(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.colorTheme)).create();
     basePane.ft.provideContext(colorThemeCtxKey, colors).dp();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const elevator = createElevator(keyEventService, Object.assign({ default: opts === null || opts === void 0 ? void 0 : opts.default }, opts === null || opts === void 0 ? void 0 : opts.elevator));
@@ -97,7 +97,7 @@ const appServiceFac = new BaseReactorFactory({
     elevator.ft.addChild(basePane, coverLayer).dp();
 });
 export function createApp(mainComponent, canScroll = true, opts) {
-    return appServiceFac.create(mainComponent, canScroll, opts);
+    return appServiceFac.setting(opts).create(mainComponent, canScroll);
 }
 export function queryAppContext(currComp, m) {
     let fac = currComp.ft.queryContext('__appshell');

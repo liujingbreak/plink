@@ -1,6 +1,5 @@
-/* eslint-disable multiline-ternary */
 import * as rx from 'rxjs';
-import {CoreOptions, SingleActionFactory, SimplexReactorOfFac, CreateOptsOfFac, ActionMeta} from '@wfh/reactivizer';
+import {CoreOptions, SingleActionFactory, SimplexReactorOfFac, CreateOptsOfExtendedFac, ActionMeta} from '@wfh/reactivizer';
 import {BaseWidget, Rectangle, Canvas, CanvasOptions,
   canvasFac, TextStyle} from '../index.js';
 import {DisplayMode} from './base.js';
@@ -17,7 +16,14 @@ interface ElevatorEvents extends ElevatorActions {
   onFocusServieReady(chd: BaseWidget): SingleActionFactory;
   // onChildLayerHidden(chd: BaseWidget): SingleActionFactory;
 }
-export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
+export interface ElevatorOptions {
+  default?: CoreOptions;
+  core?: CreateOptsOfExtendedFac<typeof baseContainerFac, ElevatorEvents>;
+  /** Internal canvas */
+  canvas?: CanvasOptions;
+  focusable?: RootFocusServiceOpts;
+}
+export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents, [], ElevatorOptions>({
   name: 'elevator'
 }).interceptorForBaseByType(ac => rx.merge(
   rx.merge(
@@ -27,8 +33,8 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
     rx.ignoreElements()
   ),
   ac.ofOtherTypes()
-)).defineReactor((init, keyEventSvc: KeyEventServcie, opts?: ElevatorOptions) => {
-  const service = init({...opts?.default as any, ...opts?.core});
+)).defineReactor((ctx, keyEventSvc: KeyEventServcie) => {
+  const service = ctx.init({...ctx.setting?.default as Record<string, unknown>, ...ctx.setting?.core});
   const {ft, pt, s, r, table} = service;
   // let lastBottom: BaseWidget | undefined;
   /** Offline canvas by root component */
@@ -52,20 +58,21 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
   ).pipe(
     rx.mergeMap(([m, chd]) => rx.from(chd).pipe(
       rx.mergeMap(chd => {
-        const cv = canvasFac.create({
-          ...opts?.default as CanvasOptions,
+        const cv = canvasFac.setting({
+          ...ctx.setting?.default as unknown as CanvasOptions,
           name: 'Elevator.canvas',
-          ...opts?.canvas
-        });
+          ...ctx.setting?.canvas
+        }).create();
         canvasMap.set(chd, cv);
         cv.ft.setRootComponent(chd).dp(m);
         let rootFoc: RootFocusService | undefined;
         if (!noEventsLayer.has(chd)) {
-          rootFoc = rootFocusSvcFac.create(cv, {
+          rootFoc = rootFocusSvcFac.setting({
             name: s.logPrefix + '.focus',
-            ...(opts?.default as RootFocusServiceOpts | undefined),
-            ...opts?.focusable
-          });
+            ...(ctx.setting?.default as RootFocusServiceOpts | undefined),
+            ...ctx.setting?.focusable
+          }).create(cv);
+          rootFoc.ft.pauseHandleEvents().dp(m);
           focusSvcMap.set(chd, rootFoc);
           rootFoc.ft.forRootComp(chd).dp(m);
           chd.ft.provideContext(ROOT_FOCUS_SERVICE_CONTEXT, rootFoc).dp(m);
@@ -166,9 +173,9 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
   ));
   r('onChildPreferredSizeChange -> preferredSize', table.l.onChildPreferredSizeChange.pipe(
     rx.map(([m, sizes]) => {
-      const [xw, xh] = sizes.reduce(([maxW, maxH], [w, h]) => {
+      const [xw, xh] = sizes.reduce<[number, number]>(([maxW, maxH], [w, h]) => {
         return [maxW > w ? maxW : w, maxH > h ? maxH : h];
-      }, [0, 0] as [number, number]);
+      }, [0, 0]);
       ft.onContentSizeChange(xw, xh).dp(m);
     })
   ));
@@ -281,23 +288,16 @@ export const elevatorFac = baseContainerFac.forExtend<ElevatorEvents>({
   ft.hasOfflineCanvas(true).dp();
   ft.provideContext('__elevatorContainer', service).dp();
 });
-export interface ElevatorOptions {
-  default?: CoreOptions;
-  core?: CreateOptsOfFac<typeof elevatorFac>;
-  /** Internal canvas */
-  canvas?: CanvasOptions;
-  focusable?: RootFocusServiceOpts;
-}
 export type ElevatorContainer = SimplexReactorOfFac<typeof elevatorFac>;
 export function createElevator(keyEventSvc: KeyEventServcie, opts?: ElevatorOptions) {
-  return elevatorFac.create(keyEventSvc, opts);
+  return elevatorFac.setting(opts).create(keyEventSvc);
 }
 export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]> {
   return rx.combineLatest([
     c.table.l.setDisplay,
     isContainerWithoutOfflineCanvas(c) ?
-      rx.combineLatest([c.table.l.setBackground, c.table.l.isOpaque]) :
-      rx.of([[null, ''], [null, false]] as const)
+        rx.combineLatest([c.table.l.setBackground, c.table.l.isOpaque]) :
+        rx.of([[null, ''], [null, false]] as const)
   ]).pipe(
     rx.switchMap(([[, d], [[, bg], [, isOpaque]]]) => {
       if (d !== DisplayMode.visible)
@@ -319,10 +319,10 @@ export function getBoundingOfCompTree(c: BaseWidget): rx.Observable<Rectangle[]>
           )
         ).pipe(
           rx.mergeMap(([, chrd]) => chrd.length > 0 ?
-            rx.combineLatest(
-              chrd.map(it => getBoundingOfCompTree(it))
-            ) :
-            rx.of([])),
+              rx.combineLatest(
+                chrd.map(it => getBoundingOfCompTree(it))
+              ) :
+              rx.of([])),
           rx.map(chrdArr => chrdArr.flat())
         );
       }
@@ -338,8 +338,7 @@ export function queryElevatorContainer(src: BaseWidget) {
   );
 }
 
-function isContainerWithoutOfflineCanvas(root: any): root is TerminalContainer {
+function isContainerWithoutOfflineCanvas(root: unknown): root is TerminalContainer {
   const container = (root as TerminalContainer).table.getData();
-  return container.allChildren != null &&
-    container.hasOfflineCanvas[0] === false;
+  return container.hasOfflineCanvas[0] === false;
 }

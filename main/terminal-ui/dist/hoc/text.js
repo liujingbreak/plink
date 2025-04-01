@@ -1,4 +1,3 @@
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import { ActionDispenser } from '@wfh/reactivizer';
 import { borderFac } from '../core/border.js';
@@ -7,8 +6,8 @@ export const tableFor = ['setContent', 'setStyle'];
 export const textFac = borderFac.forExtend({
     name: 'complex-text',
     tableFor
-}).defineReactor((init, initialText, opts) => {
-    const oText = textWidgetFac.create(initialText, Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.text' : 'text', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.text));
+}).defineReactor(({ init, setting: opts }, initialText) => {
+    const oText = textWidgetFac.setting(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.text' : 'text', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.text)).create(initialText);
     const service = init(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.text' : 'text.border', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.border), oText);
     const { s, ft } = service;
     const textEvents = new rx.Subject();

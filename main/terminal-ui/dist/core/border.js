@@ -8,8 +8,8 @@ const BORDER_CHARS = ['╭─╮', '╰─╯', '│'];
 export const borderFac = baseContainerFac.forExtend({
     name: 'border',
     tableFor: tableForBorderContainer
-}).interceptorByType(ad => rx.merge(ad.at.setBorderStyle.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, child, opts) => {
-    const service = init(opts);
+}).interceptorByType(ad => rx.merge(ad.at.setBorderStyle.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor(({ init }, child) => {
+    const service = init();
     const { r, latest, ft, pt } = service;
     const childPos = [0, 0];
     const positions = new Map([[child, childPos]]);
@@ -129,7 +129,7 @@ export const borderFac = baseContainerFac.forExtend({
     })));
 });
 export function createBorderContainer(child, opts) {
-    return borderFac.create(child, opts);
+    return (opts ? borderFac.setting(opts) : borderFac).create(child);
 }
 export function renderLineBorder(m, canvas, x, y, w, h, style) {
     canvas.ft.addString(x, y, BORDER_CHARS[0][0] + BORDER_CHARS[0][1].repeat(w - 2) + BORDER_CHARS[0][2], style).dp(m);

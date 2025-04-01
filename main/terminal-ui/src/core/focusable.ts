@@ -1,8 +1,6 @@
-/* eslint-disable multiline-ternary */
-/* eslint-disable array-bracket-newline */
 /**
  * User stories:
- * WHEN user press TAB or left, right,...key, 
+ * WHEN user press TAB or left, right,...key,
  *  and WHEN there is no existing "onFocus" component,
  *    THEN findFocusable on the most left top (corresponding to the pressed key)
  *    focusable component in viewport.
@@ -61,7 +59,11 @@ export type FocusService = SimplexReactor<FocusMessages & CanvasFilterOutput & C
 export type FocusServiceOpts = CoreOptions<FocusMessages & CanvasFilterOutput & CanvasFilterInput> & {
   cache?: CanvasCacheOptions;
 };
-export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput, typeof tableFor>({
+export const focusServiceFac = new BaseReactorFactory<
+  FocusMessages & CanvasFilterOutput & CanvasFilterInput,
+  typeof tableFor,
+  FocusServiceOpts
+>({
   name: 'focusSvc',
   tableFor
 }).interceptorByType(ac => rx.merge(
@@ -72,8 +74,8 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
     rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
   ),
   ac.ofOtherTypes()
-)).defineReactor((init, canvas: Canvas, opts?: FocusServiceOpts) => {
-  const service = init(opts);
+)).defineReactor(({init, setting}, canvas: Canvas) => {
+  const service = init();
   const {ft, pt, r, latest} = service;
   const rectByComponent = new Map<BaseWidget, [cRect: Rectangle, tabIndex: number]>();
   const xTree = new RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>();
@@ -82,20 +84,43 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
   const rightXTree = new RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>();
   const bottomYTree = new RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>();
   const tabIndexTree = new RedBlackTree<number, BaseWidget[]>();
-  const offscreen = canvasCacheFac.create({
+  const offscreen = canvasCacheFac.setting({
     name: service.s.logPrefix + '.cache',
-    debug: opts?.debug, log: opts?.log,
-    ...opts?.cache
-  });
+    debug: setting?.debug,
+    log: setting?.log,
+    ...setting?.cache
+  }).create();
   ft.searchTree(xTree, yTree).dp();
   r('forRootComp -> root.provideFocusService...', pt.forRootComp.pipe(
     rx.switchMap(([m, root]) => {
       root.ft.provideFocusService(service).dp(m);
-      return root.destory$.pipe(
-        rx.map(() => {
-          offscreen.dispose();
-          service.dispose();
-        })
+      // service.log('-- forRootComp !!!', root.getLogName(), 'setParent:', root.table.data.setParent);
+      return rx.merge(
+        root.latest.setParent.pipe(
+          // rx.tap(([, p]) => {
+          //   service.log('-- forRootComp !!!', root.getLogName(), p?.getLogName());
+          // }),
+          rx.switchMap(([, p]) => (p?.latest.focusService ?? rx.EMPTY)),
+          rx.switchMap(([, pFocusSvc]) => pFocusSvc.latest.forRootComp.pipe(
+            rx.map(([, pRoot]) => [pFocusSvc, pRoot] as const)
+          )),
+          rx.switchMap(([pFocusSvc, pRoot]) => {
+            return root.ft.queryAbsBounding(pRoot as TerminalContainer).re(m).od(
+              root.pt.didQueryAbsBounding
+            ).pipe(
+              rx.map(([, r]) => {
+                if (r)
+                  pFocusSvc.ft.onRectChange(r, root).dp(m);
+              })
+            );
+          })
+        ),
+        root.destory$.pipe(
+          rx.map(() => {
+            offscreen.dispose();
+            service.dispose();
+          })
+        )
       );
     })
   ));
@@ -198,13 +223,13 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
       updatePosToTree(c, rect[0], rect[1], ex?.[0], xTree, yTree);
       updatePosToTree(c, rect[0] + rect[2], rect[1] + rect[3], ex?.[0], rightXTree, bottomYTree);
       const tabIndex = rect[1] * canHeight + rect[0];
+      service.log('--- add tabIndex for', c.s.logPrefix, tabIndex);
       const tabNode = tabIndexTree.insert(tabIndex);
-      // service.log('>>> add tabIndex for', c.s.logPrefix, tabIndex);
-      if (tabNode.value) {
+      service.log('--- after add tabIndex for', c.s.logPrefix, tabNode);
+      if (tabNode.value)
         service.log('--- add duplicate tabIndex', tabIndex, tabNode.value.map(it => it.s.logPrefix));
-        tabNode.value.push(c);
-      } else
-        tabNode.value = [c];
+      tabNode.value ??= [];
+      tabNode.value.push(c);
       rectByComponent.set(c, [rect, tabIndex]);
     })
   ));
@@ -296,29 +321,27 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
 
   function getAllParentFocusSvc(curr: FocusService, currComp: BaseWidget, untilRoot: FocusService):
   rx.Observable<(readonly [FocusService, BaseWidget])[]> {
+    service.log('-- getAllParentFocusSvc', curr.getLogName(), currComp.getLogName(), untilRoot.getLogName());
     if (curr === untilRoot) {
-      return curr.latest.forRootComp.pipe(
-        rx.take(1),
-        rx.map(([, root]) => [[curr, currComp]])
-      );
+      return rx.of([[curr, currComp]]);
     }
     return curr.latest.forRootComp.pipe(
-      rx.mergeMap(([, root]) => root.latest.setParent.pipe(
-        rx.map(([, p]) => [root, p] as const)
-      )),
-      rx.take(1),
-      rx.mergeMap(([root, p]) => p ? p.latest.focusService.pipe(
-        rx.switchMap(([, pf]) => getAllParentFocusSvc(pf, root, untilRoot).pipe(
-          rx.map(parentRoots => {
-            parentRoots.push([curr, currComp]);
-            return parentRoots;
-          })
-        )),
+      // rx.mergeMap(([, root]) => root.latest.setParent),
+      // rx.take(1),
+      rx.mergeMap(([, root]) => root.latest.focusService.pipe(
+        rx.switchMap(([, pf]) => pf === curr ?
+            rx.throwError(() => new Error('fuck' + pf.getLogName())) :
+            getAllParentFocusSvc(pf, root, untilRoot).pipe(
+              rx.map(parentRoots => {
+                parentRoots.push([curr, currComp]);
+                return parentRoots;
+              })
+            )),
         rx.take(1),
-      ) : rx.of([[curr, currComp] as const]))
+      ))
     );
   }
-  r('focusOnComponent', pt.focusOnComponent.pipe(
+  r('focusOnComponent -> locateFocusable', pt.focusOnComponent.pipe(
     rx.switchMap(([m, c]) => c.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT)
       .re(m).od(
         c.pt.onContextChange
@@ -345,7 +368,7 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
       if (idx < trace.length) {
         const [, comp] = trace[idx];
         const data = rectByComponent.get(comp);
-        service.log('-- locateFocusable rectByComponent', data);
+        // service.log('-- locateFocusable rectByComponent keys:', [...rectByComponent.keys()].map(c => c.getLogName()).join(','), ', comp: ', comp.getLogName(), data);
         if (data) {
           const [r, tabIdx] = data;
           ft.didFound(r, comp, tabIdx).dp(m);
@@ -419,15 +442,19 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
             } else {
               // If current component is not focusable,
               // delegate handling key events job to the sub focusService
-              return c.latest.focusService.pipe(
+              return c.ft.queryContext('focusSvc').re(m).od(
+                c.pt.onContextChange
+              ).pipe(
+                rx.filter(([, , v]) => v != null),
                 rx.take(1),
-                rx.switchMap(([, focusService]) => {
+                rx.switchMap(([, , v]) => {
+                  const focusService = v as FocusService;
                   ft.stopHandleKeyEvents().dp(m);
                   return focusService.ft.handleKeyEvents(keySvc, dir)
                     .re(m).od(focusService.pt.didNotFound).pipe(
                       rx.map(([m2, origDir]) => {
                         focusService.ft.stopHandleKeyEvents().dp(m2);
-                        ft.handleKeyEvents(keySvc, origDir).dp( m2);
+                        ft.handleKeyEvents(keySvc, origDir).dp(m2);
                       }),
                       rx.take(1)
                     );
@@ -446,7 +473,7 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
       )
     )),
     rx.map(([[m, dir, handleEventAct], [, lastRect, lastComp, tabIdx]]) => {
-      // service.log('-- findFocusable, lastComp', m2, lastComp?.s.logPrefix, lastRect);
+      // service.log('-- findFocusable, lastComp', m, lastComp?.s.logPrefix, lastRect);
       if (dir === SearchDirection.down) {
         if (lastRect == null || lastComp == null || !rectByComponent.has(lastComp)) {
           const nodeY = yTree.minimum();
@@ -640,6 +667,7 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
           ft.didFound(r, nextComp, t).dp(m);
           return;
         }
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       } else if (dir === SearchDirection.tabNext) {
         if (lastRect == null || lastComp == null || !rectByComponent.has(lastComp)) {
           const node = tabIndexTree.minimum();
@@ -708,8 +736,7 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
             rx.map(() => ft.findFocusable(dir, m.i).dp(m, m1))
           );
         }
-        if (evt)
-          service.log('--keyevent', m1.i, KeyEventEnum[evt], count);
+        service.log('--keyevent', m1.i, KeyEventEnum[evt], count);
         switch (evt) {
           case KeyEventEnum.focusUp:
             return rx.range(0, count).pipe(
@@ -856,12 +883,12 @@ export const focusServiceFac = new BaseReactorFactory<FocusMessages & CanvasFilt
 
 export type RootFocusServiceOpts = FocusServiceOpts;
 const tableForRoot = ['switchFocus'] as const;
-export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, typeof tableForRoot>({
+export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, typeof tableForRoot, RootFocusServiceOpts>({
   name: 'rootFocusSvc',
   debugExcludeTypes: ['renderBypassFilter'],
   tableFor: tableForRoot
-}).defineReactor((init, canvas: Canvas, opts?: RootFocusServiceOpts) => {
-  const service = init(opts, canvas, opts);
+}).defineReactor(({init}, canvas: Canvas) => {
+  const service = init(null, canvas);
   const {r, pt, ft} = service;
   r('switchFocus... -> canvas.addRenderFilter...', pt.switchFocus.pipe(
     rx.switchMap(([m, srcFocus, , c]) => {
@@ -899,12 +926,6 @@ export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, 
         let c: BaseWidget | undefined | null = p;
         while (c) {
           c.ft.onEnter(p!).dp(curr[0]);
-          c = c.table.getData().setParent[0];
-        }
-      } else if (curr == null) {
-        let c: BaseWidget | undefined | null = prev[3];
-        while (c) {
-          c.ft.onLeave(prev[3]!).dp(prev[0]);
           c = c.table.getData().setParent[0];
         }
       } else {

@@ -72,7 +72,7 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     depth(componentTreeDepth: number): SingleActionFactory;
     /** Implementation should dispatch this message after calculating size based on child components or content,
      * unlike "onSize" which is set by user/caller or layout calculation logic.
-     * Along with "setPreferredSize" are used to calculate "preferredSize"*/
+     * Along with "setPreferredSize" are used to calculate "preferredSize" */
     onContentSizeChange(width: number, height: number): SingleActionFactory;
     overflow(yes: boolean): SingleActionFactory;
     setParent(p: TerminalContainer | null): SingleActionFactory;
@@ -116,7 +116,10 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
     onEnter(src: BaseWidget): SingleActionFactory;
     onLeave(src: BaseWidget): SingleActionFactory;
     didQueryAbsBounding(rect: Rectangle | null): SingleActionFactory;
-    onContextChange<T>(key: string, value: T | undefined): SingleActionFactory;
+    /**
+     * @param value could be null, you need to explicitly cast type to what you are expecting
+     */
+    onContextChange(key: string, value: unknown | undefined): SingleActionFactory;
     focusService(focusSvc: FocusService): SingleActionFactory;
 }
 export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"];
@@ -128,4 +131,4 @@ export type BaseWidgetRenderData = readonly [
 export type BaseWidget = SimplexReactor<BaseWidgetEvents, typeof tableForBase>;
 export type BaseWidgetOptions = CoreOptions<BaseWidgetEvents>;
 /** Do not prepend controller to returned service, otherwise interceptor won't work */
-export declare const baseComponentFac: BaseReactorFactory<BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], []>;
+export declare const baseComponentFac: BaseReactorFactory<BaseWidgetEvents, readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"], CoreOptions<BaseWidgetEvents>, []>;

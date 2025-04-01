@@ -212,7 +212,6 @@ export function createKeyEventService(opts) {
         })));
     })));
     r('onRawKeyInput -> onKeypress,onMouseEvent', pt.onRawKeyInput.pipe(rx.exhaustMap(([m1, evt]) => {
-        var _a, _b;
         if (evt.sequence) {
             const m = /^\x1B\[(\d+);(\d+)R?/.exec(evt.sequence);
             if (m) {
@@ -245,7 +244,7 @@ export function createKeyEventService(opts) {
                 // keys of SGR extended mouse
                 const m = /^\x1B\[<(.*?)[M]?$/i.exec(evt.sequence);
                 if (m) {
-                    let buf = (_a = m[1]) !== null && _a !== void 0 ? _a : '';
+                    let buf = m[1];
                     if (m[0].endsWith('c')) {
                         service.log('>> mouse code c:', evt, m[1]);
                         return rx.EMPTY;
@@ -254,7 +253,7 @@ export function createKeyEventService(opts) {
                         return pt.onRawKeyInput.pipe(rx.tap(([, evt]) => buf += evt.sequence), rx.takeWhile(([, evt]) => !/[mM]$/.test(evt.sequence)), rx.finalize(() => {
                             const conjSequence = buf.slice(0, -1);
                             const [b, x, y] = conjSequence.split(';').map(it => Number(it));
-                            if (buf.charAt(buf.length - 1) === 'm') {
+                            if (buf.endsWith('m')) {
                                 const evt = parseMouseButton(b, true);
                                 ft.onMouseEvent(evt, x, y, conjSequence).dp(m1);
                             }
@@ -269,11 +268,11 @@ export function createKeyEventService(opts) {
                     let m = /^\x1B\[M(.*)$/i.exec(evt.sequence);
                     if (m) {
                         const rest = m[1];
-                        return rest.length === 0
-                            ? pt.onRawKeyInput.pipe(rx.take(3), rx.map(evt2 => {
+                        return rest.length === 0 ?
+                            pt.onRawKeyInput.pipe(rx.take(3), rx.map(evt2 => {
                                 service.log(' -- mouse code cont', evt2);
-                            }))
-                            : rx.EMPTY;
+                            })) :
+                            rx.EMPTY;
                         // const buttonCode = m[1].charCodeAt(0) - 33;
                         // const x = m[2].charCodeAt(0) - 33;
                         // const y = m[3].charCodeAt(0) - 33;
@@ -282,7 +281,7 @@ export function createKeyEventService(opts) {
                     }
                     m = /^\x1b\[\?(.*?)c?$/i.exec(evt.sequence);
                     if (m) {
-                        let buf = (_b = m[1]) !== null && _b !== void 0 ? _b : '';
+                        let buf = m[1];
                         if (m[0].endsWith('c')) {
                             service.log('Device attributes', m[1]);
                             return rx.EMPTY;

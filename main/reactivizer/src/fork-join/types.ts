@@ -12,7 +12,7 @@ export type Broker<
 > = SimplexReactor<BrokerInput & BrokerEvent<WI>, typeof brokerOutputTableFor>;
 
 export type ForkWorkerInput = {
-  changeConfig<I, LI extends (keyof I)[]>(config: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, I, LI>): SingleActionFactory;
+  changeConfig<I, LI extends readonly (keyof I)[] = []>(config: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, I, LI>): SingleActionFactory;
   exit(): SingleActionFactory;
   onFork(targetAction: Action<any>, port: NodeMessagePort | MessagePort): SingleActionFactory;
   /** set actions which are supposed to be sent to parent main thread by "messagePort.postMessage()",

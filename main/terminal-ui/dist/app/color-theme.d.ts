@@ -16,7 +16,7 @@
  * `npm i @material/material-color-utilities`
  */
 import * as rx from 'rxjs';
-import { BaseReactorFactory, SingleActionFactory, SimplexReactorOfFac, CoreOptions } from '@wfh/reactivizer';
+import { BaseReactorFactory, ActionMeta, SingleActionFactory, SimplexReactorOfFac, CoreOptions } from '@wfh/reactivizer';
 import { BaseWidget } from '../core/base.js';
 /** This structure is the exported JSON structure of https://material-foundation.github.io/material-theme-builder,
 * by click `+` icon button at right top corner of the screen, you can get a "export" panel, then click "export" and
@@ -24,19 +24,19 @@ import { BaseWidget } from '../core/base.js';
 * */
 export interface MaterialThemeColors {
     schemes: {
-        light?: MaterialScheme;
+        'light'?: MaterialScheme;
         'light-medium-contrast'?: MaterialScheme;
         'light-high-contrast'?: MaterialScheme;
-        dark?: MaterialScheme;
+        'dark'?: MaterialScheme;
         'dark-medium-contrast'?: MaterialScheme;
         'dark-high-contrast'?: MaterialScheme;
     };
     palettes: {
         /** key is '0' - '100' at inteval of '5' */
-        primary: Record<string, string>;
-        secondary: Record<string, string>;
-        tertiary: Record<string, string>;
-        neutral: Record<string, string>;
+        'primary': Record<string, string>;
+        'secondary': Record<string, string>;
+        'tertiary': Record<string, string>;
+        'neutral': Record<string, string>;
         'neutral-variant': Record<string, string>;
     };
 }
@@ -96,7 +96,7 @@ interface ThemeInput {
     /** default is "light" */
     setScheme(schemeKey: keyof MaterialThemeColors['schemes']): SingleActionFactory;
 }
-export declare const colorThemeFac: BaseReactorFactory<ThemeInput, readonly ["loadColors", "setScheme"], [opts?: CoreOptions<ThemeInput> | undefined]>;
+export declare const colorThemeFac: BaseReactorFactory<ThemeInput, readonly ["loadColors", "setScheme"], CoreOptions<ThemeInput>, []>;
 export type ColorTheme = SimplexReactorOfFac<typeof colorThemeFac>;
 export type ColorThemeOpts = CoreOptions<ThemeInput>;
 export declare const defaultColorTheme: import("@wfh/reactivizer").SimplexReactor<ThemeInput, readonly ["loadColors", "setScheme"]>;
@@ -107,5 +107,5 @@ export declare const CONTEXT_KEY = "__colorTheme";
 * new changes.
 **/
 export declare function queryThemeForComponent(c: BaseWidget): rx.Observable<import("@wfh/reactivizer").SimplexReactor<ThemeInput, readonly ["loadColors", "setScheme"]>>;
-export declare function querySchemeForComponent(c: BaseWidget): rx.Observable<readonly [MaterialScheme, import("@wfh/reactivizer").ActionMeta, import("@wfh/reactivizer").ActionMeta]>;
+export declare function querySchemeForComponent(c: BaseWidget): rx.Observable<readonly [MaterialScheme, ...ActionMeta[]]>;
 export {};

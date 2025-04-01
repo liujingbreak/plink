@@ -7,6 +7,22 @@ import {ActionTableDataType, PayloadByType} from './inferred-types';
 
 const EMPTY_ARRY = [] as [];
 
+/**
+ * ActionTable stores "latest" action messages, acting like a "BehaviorSubject", you can get the latest messages
+ * by accessing:
+ *
+ * 1) `.actionSnapshot` which is a `Map`, the keys of it is message types, the values are the mapped payload array which
+ *  includes ActionMeta as first element.
+ * 2) `.data` which returns a hash object, the property names of it are message types, the values are the payload array
+ *
+ * You can also observe changes of the messages by accessing:
+ * 1) `.l` or `.latestPayloads` which is a hash object, the property name of it are message types, the values
+ *      are Observable of mapped payload array (which contains ActionMeta)
+ * 2) `.dataChange$` which is Observable of returned hash object of `.getData()`
+ *
+ * Above Observable are all acting like a `ReplaySubject(1)`, which always immediately emits the last stored message when
+ * being subscribed.
+ */
 export class ActionTable<I, IK extends keyof I> {
   actionNames: Set<string>;
   latestPayloads = {} as PayloadByType<{[K in IK]: I[K]}>;
@@ -14,63 +30,114 @@ export class ActionTable<I, IK extends keyof I> {
   l: PayloadByType<{[K in IK]: I[K]}>;
 
   get dataChange$(): rx.Observable<ActionTableDataType<I, IK>> {
-    if (this.#latestPayloadsByName$)
-      return this.#latestPayloadsByName$;
+    if (this.#dataChange$)
+      return this.#dataChange$;
 
-    this.#latestPayloadsByName$ = this.actionNamesAdded$.pipe(
+    this.#dataChange$ = this.#actionNamesAdded$.pipe(
       rx.switchMap(() => rx.from(this.actionNames)),
-      rx.mergeMap(actionName => this.l[actionName as IK]),
+      rx.mergeMap(actionName => this.latestPayloads[actionName as IK]),
       rx.map(() => {
-        this.data = {} as ActionTableDataType<I, IK>;
+        this.#data = {} as ActionTableDataType<I, IK>;
         for (const k of this.actionNames as Set<IK[][number]>) {
           const v = this.actionSnapshot.get(k as string);
-          const old = this.data[k];
+          const old = this.#data[k];
 
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (old === EMPTY_ARRY || old == null)
-            this.data[k] = v ? v.slice(1) as InferPayload<I[keyof I]> : EMPTY_ARRY;
+            this.#data[k] = v ? v.slice(1) as InferPayload<I[keyof I]> : EMPTY_ARRY;
           else {
             if (v) {
-              this.data[k] = v.slice(1) as InferPayload<I[keyof I]>;
+              this.#data[k] = v.slice(1) as InferPayload<I[keyof I]>;
               // old.splice(0);
               // for (let i = 1, l = v.length; i < l; i++)
               //   (old as any[]).push(v[i]);
             } else
-              this.data[k] = EMPTY_ARRY;
+              this.#data[k] = EMPTY_ARRY;
           }
         }
-        return this.data;
+        return this.#data;
       }),
       rx.share()
     );
-    return this.#latestPayloadsByName$;
+    return this.#dataChange$;
   }
 
-  private data: ActionTableDataType<I, IK> = {} as ActionTableDataType<I, IK>;
+  get data(): ActionTableDataType<I, IK> {
+    return this.#data;
+  }
 
-  actionSnapshot = new Map<string, InferMapParam<unknown>>();
+  actionSnapshot: Map<string, InferMapParam<unknown>>;
+  #dataChange$: rx.Observable<ActionTableDataType<I, IK>> | undefined;
+  #actionNamesAdded$: rx.ReplaySubject<any[]>;
+  /** the source of dataChange$ */
+  #data: ActionTableDataType<I, IK>;
 
-  // private
-  #latestPayloadsByName$: rx.Observable<ActionTableDataType<I, IK>> | undefined;
-  // #latestPayloadsSnapshot$: rx.Observable<Map<keyof I, InferMapParam<I, keyof I>>> | undefined;
-  private actionNamesAdded$ = new rx.ReplaySubject<any[]>(1);
-
-  constructor(private streamCtl: RxController<I> | RxController2<I>, actionNames: IK[] | readonly IK[]) {
-    this.actionNames = new Set();
+  constructor(streamCtl: RxController<I> | RxController2<I>, actionNames: readonly IK[]);
+  constructor(streamCtl: RxController<I> | RxController2<I>, baseTable: ActionTable<I, IK>);
+  constructor(private streamCtl: RxController<I> | RxController2<I>, actionsOrTable: readonly IK[] | ActionTable<I, IK>) {
+    const baseTable = Array.isArray(actionsOrTable) ? null : actionsOrTable as ActionTable<I, IK>;
+    if (baseTable == null) {
+      this.actionNames = new Set();
+      this.#actionNamesAdded$ = new rx.ReplaySubject<any[]>(1);
+      this.addActions(...actionsOrTable as IK[]);
+      this.actionSnapshot = new Map<string, InferMapParam<unknown>>();
+      this.#data = {} as ActionTableDataType<I, IK>;
+    } else {
+      this.actionNames = baseTable.actionNames;
+      this.#actionNamesAdded$ = baseTable.#actionNamesAdded$;
+      this.actionSnapshot = baseTable.actionSnapshot;
+      this.#data = baseTable.#data;
+    }
     this.l = this.latestPayloads;
-    this.addActions(...actionNames);
-    this.actionNamesAdded$.pipe(
+
+    // Assign this.#data, this.latestPayloads, this.actionSnapshot
+    this.#actionNamesAdded$.pipe(
       rx.mergeMap(actionNames => {
-        return this.onAddActions(actionNames);
+        return actionNames as (keyof I)[];
+      }),
+      rx.mergeMap(actionName => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (this.#data[actionName as IK] == null)
+          this.#data[actionName as IK] = EMPTY_ARRY;
+        if (has.call(this.latestPayloads, actionName))
+          return rx.EMPTY;
+
+        const a$ = new rx.ReplaySubject<InferMapParam<I[keyof I]>>(1);
+        this.latestPayloads[actionName as IK] = this.streamCtl.opts.debugTableAction ?
+            a$.pipe(this.debugLogLatestActionOperator(actionName)) :
+            a$.asObservable();
+
+        let source = (this.streamCtl as RxController2<I>).at[actionName];
+        if (baseTable) {
+          const baseLatest = baseTable.actionSnapshot.get(actionName as string);
+          if (baseLatest) {
+            source = rx.concat(
+              rx.of({t: actionName, i: baseLatest[0].i, p: baseLatest.slice(1)} as Action<I[keyof I]>),
+              source
+            );
+          }
+        }
+        return source.pipe(
+          rx.map(a => {
+            // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
+            const mapParam = [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I[keyof I]>;
+            this.actionSnapshot.set(actionName as string, mapParam);
+            return mapParam;
+          }),
+          rx.tap(a$)
+        );
       })
     ).subscribe();
-    this.dataChange$.subscribe(); // to make sure this.data will be fulfilled even when there is no any external observer
+    this.dataChange$.subscribe(); // to make sure this.#data will be fulfilled even when there is no any external observer
   }
 
+  /** @deprecated use .data instead */
   getData(): ActionTableDataType<I, IK> {
-    return this.data;
+    return this.#data;
   }
 
-  /** Add actions to be recoreded in table map,
+  /** Add actions to be recoreded in table map, action name which is duplicate to existings
+   * will be ignored,
    * by creating `ReplaySubject(1)` for each action payload stream respectively
    */
   addActions<M extends keyof I>(...actionNames: M[]) {
@@ -78,34 +145,8 @@ export class ActionTable<I, IK extends keyof I> {
     for (const a of uniqueNewActions) {
       this.actionNames.add(a as string);
     }
-    this.actionNamesAdded$.next(uniqueNewActions);
+    this.#actionNamesAdded$.next(uniqueNewActions);
     return this as ActionTable<I, IK | M>;
-  }
-
-  private onAddActions<MI extends keyof I>(actionNames: MI[]) {
-    return rx.from(actionNames).pipe(
-      rx.mergeMap(type => {
-        if (this.data[type as unknown as IK] == null)
-          this.data[type as unknown as IK] = EMPTY_ARRY;
-        if (has.call(this.latestPayloads, type))
-          return rx.EMPTY;
-
-        const a$ = new rx.ReplaySubject<InferMapParam<I[MI]>>(1);
-        (this.streamCtl as RxController2<I>).at[type].pipe(
-          rx.map(a => {
-            // Always use a brand new array to maintain immutability, which serves things like rx.distinctUntilChanged()
-            const mapParam = [{i: a.i, r: a.r}, ...a.p] as InferMapParam<I[MI]>;
-            this.actionSnapshot.set(type as string, mapParam);
-            return mapParam;
-          })
-        ).subscribe(a$);
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        return this.latestPayloads[type as unknown as IK] = (this.streamCtl.opts as any)?.debugTableAction ?
-          a$.pipe(this.debugLogLatestActionOperator(type)) as any :
-          a$.asObservable() as any;
-      })
-    );
   }
 
   getLatestActionOf<K extends IK[][number]>(actionName: K): InferMapParam<I[K]> | undefined {
@@ -113,37 +154,39 @@ export class ActionTable<I, IK extends keyof I> {
   }
 
   protected debugLogLatestActionOperator<K extends keyof I, P extends InferMapParam<I[K]>>(type: K) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const core = (this.streamCtl as RxController<I>).core ?? (this.streamCtl as RxController2<any>);
-    return this.streamCtl.opts?.log ?
-      rx.map<P, P>((action, idx) => {
-        if (idx === 0 && !core.debugExcludeSet.has(type)) {
-          this.streamCtl.opts.log!(core.logPrefix + 'rx:latest', type, actionMetaToStr(action[0]));
-        }
-        return action;
-      }) :
-      (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
-        rx.map<P, P>((p, idx) => {
+    return this.streamCtl.opts.log ?
+        rx.map<P, P>((action, idx) => {
           if (idx === 0 && !core.debugExcludeSet.has(type)) {
-            // eslint-disable-next-line no-console
-            console.log(`%c ${core.logPrefix} latest `, 'color: #f0fe0fe0; background: #8c61dd;', type,
-              actionMetaToStr(p[0]));
+            this.streamCtl.opts.log!(core.logPrefix + 'rx:latest', type, actionMetaToStr(action[0]));
           }
-          return p;
+          return action;
         }) :
-        rx.map<P, P>((p, idx) => {
-          if (idx > 0 && !core.debugExcludeSet.has(type)) {
-            // eslint-disable-next-line no-console
-            console.log(core.logPrefix + ' latest:', type, actionMetaToStr(p[0]));
-          }
-          return p;
-        });
+        (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
+            rx.map<P, P>((p, idx) => {
+              if (idx === 0 && !core.debugExcludeSet.has(type)) {
+                // eslint-disable-next-line no-console
+                console.log(`%c ${core.logPrefix} latest `, 'color: #f0fe0fe0; background: #8c61dd;', type,
+                  actionMetaToStr(p[0]));
+              }
+              return p;
+            }) :
+            rx.map<P, P>((p, idx) => {
+              if (idx > 0 && !core.debugExcludeSet.has(type)) {
+                // eslint-disable-next-line no-console
+                console.log(core.logPrefix + ' latest:', type, actionMetaToStr(p[0]));
+              }
+              return p;
+            });
   }
 }
 
 /** Consider it as Apache Kafka's KTable */
 export class ActionDataTable<I, T extends keyof I, K> {
-  snapshot: Map<K, InferMapParam<I[T]>> = new Map();
+  snapshot = new Map<K, InferMapParam<I[T]>>();
   /** Alias of latestPayload */
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   ofKey = this.getPayloadStreamOfKey;
   private future$: rx.Observable<InferMapParam<I[T]>>;
 

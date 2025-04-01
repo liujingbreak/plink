@@ -1,115 +1,172 @@
+import {threadId} from 'worker_threads';
 import {SimplexReactorOptions, SimplexReactorCfgOpts} from './reactor-base';
 import {CoreOptions, Interceptor} from './stream-core';
 import {ActionInterceptor, RxController2} from './control2';
-import {SimplexReactor, DerivedSimplexReactor} from './simplex-reactor';
+import {SimplexReactor, BaseActions} from './simplex-reactor';
 import {ActionDispenser} from './action-dispenser';
 
+let ID_SEQ = 0;
+function increId() {
+  const id = [process.pid, threadId, (++ID_SEQ)] as [number, number, number];
+  return id;
+}
 export interface ReactorFactory<
-  I = Record<never, never>,
-  LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
-  P extends readonly [...any[]] = [...any[]]
+  I = Record<string, never>,
+  LI extends readonly (keyof I)[] = [],
+  C = CoreOptions<I>,
+  P extends readonly [...unknown[]] = [],
 > {
-  /** create SimplexReactor instance */
+  /** Mainly for setting debug options for later creating service instance.
+   * Unlike consturctor parameter `protoOptions`:
+   * - this setting options will not be inherited by derived factory
+   * - it does not allow set property `tableFor` which changes the "shape" of the service
+  **/
+  setting(options: C): this;
+  /** User side API to create SimplexReactor instance */
   create(...params: P): SimplexReactor<I, LI>;
-  _create(overrideOpts: (currOpts: SimplexReactorOptions<I, LI>) => SimplexReactorOptions<I, LI>, params: P): SimplexReactor<I, LI>;
+  isFactoryOf(svc: SimplexReactor<any, any>): boolean;
+}
+
+export interface DefContext<I, L extends readonly (keyof I)[], C> {
+  setting: C | null;
+  /** construct service instance, including calling "super" service definition callback */
+  init: C extends CoreOptions<any> ?
+      (options?: CoreOptions<I & BaseActions<I>> | null) => SimplexReactor<I, L> :
+      (options: CoreOptions<I & BaseActions<I>>) => SimplexReactor<I, L>;
 }
 
 export class BaseReactorFactory<
   I = Record<never, never>,
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
-  P extends [...any[]] = [...any[]]
-> implements ReactorFactory<I, LI, P> {
-  private reactorDefinition: (createService: (opts?: CoreOptions<I>) => SimplexReactor<I, LI>, ...params: P) => void = (init, ...p) => { init(...p); };
+  C = CoreOptions<I>,
+  P extends [...unknown[]] = []
+> implements ReactorFactory<I, LI, C, P> {
+  #id: [number, number, number];
+  private reactorDefinition: (context: DefContext<I, LI, CoreOptions<I>>, ...rest: P) => void =
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (ctx, ..._p) => {ctx.init();};
+
   private _interceptors: Interceptor[] | undefined;
+  #setting?: C | null;
 
   constructor(public protoOptions: SimplexReactorOptions<I, LI>) {
+    this.#id = increId();
   }
+
   /** Define message subscription in this method will be able to be inherited by any derived SimplexRectors
    **/
-  defineReactor<PA extends P = P>(fac: (init: (overrideOpts?: CoreOptions<I>) => SimplexReactor<I, LI>, ...params: PA) => void) {
-    this.reactorDefinition = fac as typeof this.reactorDefinition;
-    return this as unknown as BaseReactorFactory<I, LI, PA>;
+  defineReactor<PA extends any[]>(defCb: (context: DefContext<I, LI, C>, ...params: PA) => void) {
+    const self = this as unknown as BaseReactorFactory<I, LI, C, PA>;
+    self.reactorDefinition = defCb as typeof self.reactorDefinition;
+    return self;
   }
+
+  /** Mainly for setting debug options for later creating service instance.
+   * Unlike consturctor parameter `protoOptions`:
+   * - this setting options will not be inherited by derived factory
+   * - it does not allow set property `tableFor` which changes the "shape" of the service
+  **/
+  setting(opt: C | null | undefined) {
+    this.#setting = opt;
+    return this;
+  }
+
   forExtend<
     I2 = Record<never, never>,
     LI2 extends readonly(keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [],
-    P2 extends readonly [...any[]] = [...any[]]
-  >(newOpts?: SimplexReactorCfgOpts<I, I2, LI2>) {
-    return new DerivedReactorFactory<I2, LI2, P2, I, LI, P>(this, newOpts);
+    C2 = CoreOptions<I & I2>
+  >(newOpts: SimplexReactorCfgOpts<I, I2, LI2>) {
+    return new DerivedReactorFactory<I & I2, (LI[number] | LI2[number])[], P, C2>(this as any, newOpts as any);
   }
 
   interceptor(...interc: Interceptor[]) {
     this._interceptors = interc;
     return this;
   }
+
   interceptorByType(inter: ActionInterceptor<I>) {
-    if (this._interceptors == null)
-      this._interceptors = [];
+    this._interceptors ??= [];
     this._interceptors.push(a$ => {
       const ac = ActionDispenser.ofAction$<RxController2<I>>(a$);
       return inter(ac);
     });
     return this;
   }
+
   /** create SimplexReactor instance */
   create(...params: P): SimplexReactor<I, LI> {
-    return this._create(a => a, params);
-  }
-  /** do not call this method directly, use create() instead */
-  _create(overrideOpts: (currOpts: SimplexReactorOptions<I, LI>) => SimplexReactorOptions<I, LI>, param: P): SimplexReactor<I, LI> {
     let service: SimplexReactor<I, LI> | undefined;
 
-    this.reactorDefinition(instanceOpts => {
-      const mergedOpts = this.protoOptions ?
-        {...this.protoOptions, ...instanceOpts} :
-        instanceOpts as typeof this.protoOptions;
+    this.reactorDefinition({
+      setting: this.#setting ?? null,
 
-      service = new SimplexReactor<I, LI>(overrideOpts(mergedOpts));
+      init: opt => {
+        const mergedOpts = {...this.protoOptions, ...(opt ?? this.#setting)};
+        if (this.protoOptions.tableFor)
+          mergedOpts.tableFor = (mergedOpts.tableFor ?? []).concat(this.protoOptions.tableFor as any) as unknown as LI;
+        service = new SimplexReactor<I, LI>(mergedOpts);
+        (service as WithFactoryIds).factoryIds ??= [];
+        (service as WithFactoryIds).factoryIds!.push(...this.#id);
 
-      if (this._interceptors)
-        service.s.prependInterceptor(...this._interceptors);
-      return service;
-    }, ...param);
+        if (this._interceptors)
+          service.s.prependInterceptor(...this._interceptors);
+        return service;
+      }
+    }, ...params);
+    if (service == null) {
+      throw new Error(`ReactorFactory ${this.protoOptions.name}, super service constructor must be executed synchronously`);
+    }
+    return service;
+  }
 
-    return service!;
+  isFactoryOf(svc: SimplexReactor<any, any>) {
+    const ids = (svc as unknown as WithFactoryIds).factoryIds ?? [];
+    for (let i = 0, l = ids.length; i < l; i += 3) {
+      if (ids[i] === this.#id[0] && ids[i + 1] === this.#id[1] && ids[i + 2] === this.#id[2]) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
+interface WithFactoryIds {
+  factoryIds?: number[];
+}
+
+export interface DerivedDefContext<I, L extends readonly (keyof I)[], Pb extends readonly [...unknown[]], C> {
+  setting: C | null;
+  /** construct service instance, including calling "super" service definition callback */
+  init: C extends CoreOptions<any> ?
+      (options?: CoreOptions<I & BaseActions<I>> | null, ...superParams: Pb) => SimplexReactor<I, L> :
+      (options: CoreOptions<I & BaseActions<I>>, ...superParams: Pb) => SimplexReactor<I, L>;
+}
 export class DerivedReactorFactory<
   I = Record<never, never>,
-  LI extends readonly (keyof I | keyof Ib)[] | (keyof I | keyof Ib)[] = readonly [],
-  P extends readonly [...any[]] = [...any[]],
-  Ib = Record<never, never>,
-  LIb extends readonly (keyof Ib)[] | (keyof Ib)[] = readonly [],
-  Pb extends readonly [...any[]] = [...any[]]
-> implements ReactorFactory<I & Ib, readonly (LI[number] | LIb[number])[], P> {
-  private reactorDefinition: (
-    getService: (
-      overrideOpts: CoreOptions<I & Ib> | undefined,
-      ...superParam: Pb
-    ) => DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>,
-    ...params: P
-  ) => void = (init, ...p) => { (init as any)(); };
+  LI extends readonly (keyof I)[] = readonly [],
+  Pb extends readonly [...unknown[]] = readonly [],
+  C = CoreOptions<I>,
+  P extends readonly [...unknown[]] = Pb
+> implements ReactorFactory<I, LI, C, P> {
+  #id: [number, number, number];
+  private reactorDefinition: (context: DerivedDefContext<I, LI, Pb, CoreOptions<I>>, ...rest: P) => void =
+    (ctx, ...p) => {ctx.init(null, ...(p as unknown as Pb));};
+
   private _interceptors: Interceptor[] | undefined;
   private baseInterceptors: Interceptor[] | undefined;
-  private featTableForList: LI;
-  private featOpts: CoreOptions<I & Ib> | undefined;
-  constructor(public baseFactory: ReactorFactory<Ib, LIb, Pb>, featOptions?: SimplexReactorCfgOpts<Ib, I, LI>) {
-    this.featTableForList = featOptions?.tableFor as LI;
-    if (featOptions) {
-      this.featOpts = {...featOptions} as CoreOptions<I & Ib>;
-      delete (this.featOpts as typeof featOptions).tableFor;
-    }
+  #setting?: C | null;
+  /** Do not instantiate through constructor, instead, use BaseReactorFactory['forExtend'] */
+  constructor(
+    public baseFactory: ReactorFactory<Record<string, any>, readonly any[], any, Pb>,
+    private superConfigUpdate: SimplexReactorCfgOpts<any, I, LI>
+  ) {
+    this.#id = increId();
   }
-  defineReactor<PA extends P = P>( fac: (
-    createSuper: (
-      createOpts?: CoreOptions<I & Ib> | undefined | null,
-      ...superParam: Pb
-    ) => DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>,
-    ...params: PA
-  ) => void) {
-    this.reactorDefinition = fac as typeof this.reactorDefinition;
-    return this as DerivedReactorFactory<I, LI, PA, Ib, LIb, Pb>;
+
+  defineReactor<CP extends unknown[]>(defCb: (context: DerivedDefContext<I, LI, Pb, C>, ...params: CP) => void) {
+    const casted = this as unknown as DerivedReactorFactory<I, LI, Pb, C, CP>;
+    casted.reactorDefinition = defCb as typeof casted.reactorDefinition;
+    return casted;
   }
 
   /** New interceptors are appended to existing interceptors which is inherited from base factory */
@@ -117,79 +174,106 @@ export class DerivedReactorFactory<
     this._interceptors = interc;
     return this;
   }
-  interceptorByType(inter: ActionInterceptor<I & Ib>) {
-    if (this._interceptors == null)
-      this._interceptors = [];
+
+  interceptorByType(inter: ActionInterceptor<I>) {
+    this._interceptors ??= [];
     this._interceptors.push(a$ => {
-      const ac = ActionDispenser.ofAction$<RxController2<I & Ib>>(a$);
+      const ac = ActionDispenser.ofAction$<RxController2<I>>(a$);
       return inter(ac);
     });
     return this;
   }
+
   interceptorForBase(...interc: Interceptor[]) {
     this.baseInterceptors = interc;
     return this;
   }
-  interceptorForBaseByType(interc: ActionInterceptor<I & Ib>) {
-    if (this.baseInterceptors == null)
-      this.baseInterceptors = [];
+
+  interceptorForBaseByType(interc: ActionInterceptor<I>) {
+    this.baseInterceptors ??= [];
     this.baseInterceptors.push(a$ => {
-      const ac = ActionDispenser.ofAction$<RxController2<I & Ib>>(a$);
+      const ac = ActionDispenser.ofAction$<RxController2<I>>(a$);
       return interc(ac);
     });
     return this;
   }
+
   forExtend<
     I2 = Record<never, never>,
-    LI2 extends readonly(keyof I2)[] | (keyof I2)[] = readonly [],
-    P2 extends readonly [...any[]] = [...any[]]
-  >(newOpts: SimplexReactorCfgOpts<I & Ib, I2, LI2>): DerivedReactorFactory<I2, LI2, P2, I & Ib, readonly (LI[number] | LIb[number])[], P> {
-    return new DerivedReactorFactory<
-    I2, LI2, P2,
-    I & Ib, readonly (LI[number] | LIb[number])[], P
-    >(this, newOpts);
+    LI2 extends readonly(keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [],
+    C2 = CoreOptions<I & I2>
+  >(newOpts: SimplexReactorCfgOpts<I, I2, LI2>) {
+    return new DerivedReactorFactory<I & I2, (LI[number] | LI2[number])[], P, C2>(this as any, newOpts as any);
   }
-  /** do not call this method directly, use create() instead */
-  _create(overrideOpts: (
-    currOpts: SimplexReactorOptions<I & Ib, readonly (LI[number] | LIb[number])[]>
-  ) => SimplexReactorOptions<I & Ib, readonly (LI[number] | LIb[number])[]>,
-  params: P): DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]> {
-    let service: DerivedSimplexReactor<I & Ib, readonly (LI[number] | LIb[number])[]>;
-    this.reactorDefinition((instanceOpts, ...superParam) => {
-      const mixed = {
-        ...this.featOpts,
-        ...instanceOpts
-      };
-      service = this.baseFactory._create(
-        baseOpts => overrideOpts(Object.assign(baseOpts, mixed) as any) as any,
-        superParam
-      ).config<I, LI>({
-        tableFor: this.featTableForList
-      } as any).forExtend();
-      if (this._interceptors)
-        service.s.prependInterceptor(...this._interceptors);
-      if (this.baseInterceptors)
-        service.s.appendInterceptorToSrc(...this.baseInterceptors);
-      return service;
-    }, ...params);
-    return service!;
+
+  /** Mainly for setting debug options for later creating service instance.
+   * Unlike consturctor parameter `superConfigUpdate`:
+   * - this setting options will not be inherited by derived factory
+   * - it does not allow set property `tableFor` which changes the "shape" of the service
+  **/
+  setting(opt: C | null | undefined) {
+    this.#setting = opt;
+    return this;
   }
+
   /** create SimplexReactor instance */
   create(...params: P) {
-    return this._create(a => a, params);
+    let service: SimplexReactor<I, LI> | undefined;
+    this.reactorDefinition({
+      setting: this.#setting ?? null,
+      init: (superOpts, ...superParam) => {
+        const mergedSuperOpts = {
+          ...this.superConfigUpdate,
+          ...(superOpts ?? this.#setting)
+        };
+        if (this.superConfigUpdate.tableFor)
+          mergedSuperOpts.tableFor = (mergedSuperOpts.tableFor ?? []).concat(this.superConfigUpdate.tableFor as any) as unknown as LI;
+        // delete mergedSuperOpts.tableFor;
+        service = this.baseFactory.setting(mergedSuperOpts)
+          .create(...superParam)
+          .toExtend<any, any>();
+        (service as WithFactoryIds).factoryIds ??= [];
+        (service as WithFactoryIds).factoryIds!.push(...this.#id);
+        if (this._interceptors)
+          service.s.prependInterceptor(...this._interceptors);
+        if (this.baseInterceptors)
+          service.s.appendInterceptorToSrc(...this.baseInterceptors);
+        return service;
+      }
+    }, ...params);
+    if (service == null) {
+      throw new Error(`ReactorFactory ${this.superConfigUpdate.name}, super service constructor must be executed synchronously`);
+    }
+    return service;
+  }
+
+  isFactoryOf(svc: SimplexReactor<any, any>) {
+    const ids = (svc as unknown as WithFactoryIds).factoryIds ?? [];
+    for (let i = 0, l = ids.length; i < l; i += 3) {
+      if (ids[i] === this.#id[0] && ids[i + 1] === this.#id[1] && ids[i + 2] === this.#id[2]) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
-/** Used in paramter type definition of ReactorFactory["defineReactor"] to avoid cyclic reference problem `CreateOptsOfFac` */
-export type CreateOptsInDef<I, BaseFactory = never> = BaseFactory extends never ?
-  CoreOptions<I> : CoreOptions<
-  BaseFactory extends ReactorFactory<infer Ib, any, any> ?
-    Ib & I :
-    I
-  >;
-export type CreateOptsOfFac<F> = F extends ReactorFactory<infer I, any, any> ?
-  CoreOptions<I> : unknown;
-export type SimplexReactorOfFac<F> = F extends DerivedReactorFactory<any, any, any, any, any, any> ?
-  ReturnType<F['_create']> :
-  F extends BaseReactorFactory<any, any, any> ? ReturnType<F['_create']> : unknown;
+/** Get type "CoreOptions" from BaseReactorFactory or DerivedReactorFactory */
+export type CreateOptsOfFac<F> = F extends BaseReactorFactory<infer I, any, any, any> ?
+  CoreOptions<I> :
+  F extends DerivedReactorFactory<infer I, any, any, any, any> ?
+    CoreOptions<I> : unknown;
+
+/** Get type "CoreOption" from inherited ReactorFactory and type of extend "Actions" */
+export type CreateOptsOfExtendedFac<F, EI extends Record<string, any> = Record<string, never>> =
+  F extends BaseReactorFactory<infer I, any, any, any> ?
+    CoreOptions<I & EI> :
+    F extends DerivedReactorFactory<infer I, any, any, any, any> ?
+      CoreOptions<I & EI> : never;
+
+/** Get type "SimplexReactor" from BaseReactorFactory or DerivedReactorFactory */
+export type SimplexReactorOfFac<F> = F extends BaseReactorFactory<any, any, any, any> |
+  DerivedReactorFactory<any, any, any, any, any> ?
+  ReturnType<F['create']> :
+  never;
 

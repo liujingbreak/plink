@@ -1,6 +1,6 @@
 import * as rx from 'rxjs';
 import {vec2} from 'gl-matrix';
-import {CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory, ActionMeta, CreateOptsInDef} from '@wfh/reactivizer';
+import {CreateOptsOfFac, SimplexReactorOfFac, SingleActionFactory, ActionMeta} from '@wfh/reactivizer';
 import {querySchemeForComponent} from '../app/color-theme.js';
 import {BaseWidget} from './base.js';
 import {baseContainerFac} from './container.js';
@@ -23,8 +23,8 @@ export const borderFac = baseContainerFac.forExtend<BorderContainerActions, type
     rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
   ),
   ad.ofOtherTypes()
-)).defineReactor((init, child: BaseWidget, opts?: CreateOptsInDef<BorderContainerActions, typeof baseContainerFac>) => {
-  const service = init(opts);
+)).defineReactor(({init}, child: BaseWidget) => {
+  const service = init();
   const {r, latest, ft, pt} = service;
   const childPos = [0, 0] as [number, number];
   const positions = new Map<BaseWidget, [number, number]>([[child, childPos]]);
@@ -181,7 +181,7 @@ export const borderFac = baseContainerFac.forExtend<BorderContainerActions, type
 export type BorderContainerOpts = CreateOptsOfFac<typeof borderFac>;
 export type BorderContainer = SimplexReactorOfFac<typeof borderFac>;
 export function createBorderContainer(child: BaseWidget, opts?: BorderContainerOpts) {
-  return borderFac.create(child, opts);
+  return (opts ? borderFac.setting(opts) : borderFac).create(child);
 }
 
 export function renderLineBorder(m: ActionMeta, canvas: Canvas, x: number, y: number, w: number, h: number, style: TextStyle) {

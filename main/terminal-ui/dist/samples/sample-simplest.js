@@ -12,6 +12,7 @@ const canvas = createTerminalCanvas({
 const text = createTextWidget('hello', { debug: true, log });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 if (screenWidth != null) {
     canvas.ft.setSize(Number(screenWidth), Number(screenHeight)).dp();
 }

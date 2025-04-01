@@ -1,5 +1,3 @@
-/* eslint-disable multiline-ternary */
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import { actionRelatedToAction, BaseReactorFactory } from '@wfh/reactivizer';
 import { createFlexContainer } from './flex-container.js';
@@ -10,11 +8,12 @@ const tableFor = ['setExpandDir', 'setLabel', 'setAveragePageSize',
 export const placeHolderFac = new BaseReactorFactory({
     name: 'LazyPlaceHolder',
     tableFor
-}).interceptorByType(ad => rx.merge(ad.at.onAfterPages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.onBeforePages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((init, before, after, opts) => {
-    const service = init(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.core));
+}).interceptorByType(ad => rx.merge(ad.at.onAfterPages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.at.onBeforePages.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor((ctx, before, after) => {
+    var _a, _b, _c, _d, _e, _f;
+    const service = ctx.init(Object.assign(Object.assign({}, (_a = ctx.setting) === null || _a === void 0 ? void 0 : _a.default), (_b = ctx.setting) === null || _b === void 0 ? void 0 : _b.core));
     const { r, ft, pt, table } = service;
-    const labelBefore = createTextWidget('...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.headLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolderLabel));
-    const labelAfter = createTextWidget('Loading...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.tailLabel' }, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolderLabel));
+    const labelBefore = createTextWidget('...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.headLabel' }, (_c = ctx.setting) === null || _c === void 0 ? void 0 : _c.default), (_d = ctx.setting) === null || _d === void 0 ? void 0 : _d.headPlaceHolderLabel));
+    const labelAfter = createTextWidget('Loading...', Object.assign(Object.assign({ name: 'LazyPlaceHolder.tailLabel' }, (_e = ctx.setting) === null || _e === void 0 ? void 0 : _e.default), (_f = ctx.setting) === null || _f === void 0 ? void 0 : _f.tailPlaceHolderLabel));
     const loadedCompsByPage = new Map();
     const loadingPages = new Map();
     const distinctAveragePageSize$ = pt.setAveragePageSize.pipe(rx.distinctUntilChanged(([, a], [, b]) => a === b), rx.share());
@@ -47,8 +46,9 @@ export const placeHolderFac = new BaseReactorFactory({
                 service.log(`Error: Why loadingPages misses page #${pIdx}`);
                 throw new Error(`Why loadingPages misses page #${pIdx}`);
             }
-        }), rx.takeUntil(pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))), rx.catchError((err) => {
+        }), rx.takeUntil(pt.dp_onLoadError.pipe(rx.filter(([, , page]) => page === pIdx))), rx.catchError(err => {
             loadingPages.delete(pIdx);
+            service.log('requestPage error', err);
             return rx.EMPTY;
         }));
         return rx.concat(load$, rx.defer(() => {
@@ -169,7 +169,7 @@ export const placeHolderFac = new BaseReactorFactory({
         service.log('requestPages >>> loadingPages', ...[...loadingPages.entries()].map(([p, obj]) => `${p}: ${JSON.stringify(obj)}`));
     })));
     r('onBeforePages, before.onRender -> requestPages', pt.onBeforePages.pipe(rx.map(([, pages]) => pages), rx.switchMap(pages => {
-        return pages > 0 ? before.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.beforePageRange, before.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
+        return pages > 0 ? before.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.beforePageRange, before.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , , clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
             const pageSize = (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
             const [pIndex0, pIndex1] = clipRangeToPageIndex(dir, clips, pageSize);
             // service.log('>>> head clipRangeToPageIndex(): pIndex0', pIndex0, 'pIndex1', pIndex1, 'pageSize', pageSize, 'clips', clips.join());
@@ -177,7 +177,7 @@ export const placeHolderFac = new BaseReactorFactory({
         }), rx.distinctUntilChanged(([s1, e1], [s2, e2]) => s1 === s2 && e1 === e2), rx.map(([start, end, m]) => ft.requestPages(true, start, end).dp(m))) : rx.EMPTY;
     })));
     r('onAfterPages, after.onRender -> requestPages', pt.onAfterPages.pipe(rx.switchMap(([, pages]) => {
-        return pages > 0 ? after.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.afterPageRange, after.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , _renderSelf, clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
+        return pages > 0 ? after.pt.onRender.pipe(rx.withLatestFrom(table.l.setExpandDir, table.l.afterPageRange, after.table.l.onSize), rx.filter(([, , [, r0, r1], [, w, h]]) => r1 > r0 && w > 0 && h > 0), rx.concatMap(a => rx.timer(50).pipe(rx.map(() => a))), rx.map(([[m, , , , clips], [, dir], [, pageRangeOpen, pageRangeClose], [, w, h]]) => {
             const sizeForEachPage = (dir === 'col' ? h : w) / (pageRangeClose - pageRangeOpen);
             const [pIndex0, pIndex1] = clipRangeToPageIndex(dir, clips, sizeForEachPage);
             // service.log('>>> tail clipRangeToPageIndex(): pIndex0', pIndex0, 'pIndex1', pIndex1, 'pageSize', sizeForEachPage, 'clips', clips.join());
@@ -207,7 +207,7 @@ export const placeHolderFac = new BaseReactorFactory({
         }
     })));
     r('beforePageRange -> onBeforePages', pt.beforePageRange.pipe(rx.map(([m, start, end]) => ft.onBeforePages(end - start).dp(m))));
-    r('dp_mgrFocusService', pt.dp_mgrFocusService.pipe(rx.switchMap(([m, focusSvc]) => focusSvc.table.l.forRootComp.pipe(rx.switchMap(([, r]) => r.table.l.ofCanvas), rx.filter(([, c]) => c != null), rx.switchMap(([m, canvas]) => rx.merge(pt.dp_onLoadPage.pipe(rx.map(([m]) => focusSvc.ft.pauseHandleEvents().dp(m))), rx.merge(pt.dp_didLoad, pt.dp_onCancelLoad, pt.dp_onLoadError).pipe(rx.exhaustMap(([m2]) => canvas.pt.render.pipe(rx.take(1), rx.switchMap(() => rx.timer(250)), rx.map(() => m2))), rx.map(m2 => {
+    r('dp_mgrFocusService', pt.dp_mgrFocusService.pipe(rx.switchMap(([, focusSvc]) => focusSvc.table.l.forRootComp.pipe(rx.switchMap(([, r]) => r.table.l.ofCanvas), rx.filter(([, c]) => c != null), rx.switchMap(([m, canvas]) => rx.merge(pt.dp_onLoadPage.pipe(rx.map(([m]) => focusSvc.ft.pauseHandleEvents().dp(m))), rx.merge(pt.dp_didLoad, pt.dp_onCancelLoad, pt.dp_onLoadError).pipe(rx.exhaustMap(([m2]) => canvas.pt.render.pipe(rx.take(1), rx.switchMap(() => rx.timer(250)), rx.map(() => m2))), rx.map(m2 => {
         focusSvc.ft.resumeHandleEvents().dp(m, m2);
     }))))))));
     before.ft.justifyContent('center').dp();
@@ -229,9 +229,9 @@ export const placeHolderFac = new BaseReactorFactory({
 });
 export function createPlaceHolder(opts) {
     var _a, _b;
-    const before = createFlexContainer(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.head' : 'LazyPlaceHolder.head' }), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolder));
-    const after = createFlexContainer(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.name) ? (opts === null || opts === void 0 ? void 0 : opts.default.name) + '.tail' : 'LazyPlaceHolder.tail' }), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolder));
-    const service = placeHolderFac.create(before, after, opts);
+    const before = createFlexContainer(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.default) === null || _a === void 0 ? void 0 : _a.name) ? opts.default.name + '.head' : 'LazyPlaceHolder.head' }), opts === null || opts === void 0 ? void 0 : opts.headPlaceHolder));
+    const after = createFlexContainer(Object.assign(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.default) === null || _b === void 0 ? void 0 : _b.name) ? opts.default.name + '.tail' : 'LazyPlaceHolder.tail' }), opts === null || opts === void 0 ? void 0 : opts.tailPlaceHolder));
+    const service = placeHolderFac.setting(opts).create(before, after);
     return { before, after, service };
 }
 function clipRangeToPageIndex(dir, clips, pageSize) {

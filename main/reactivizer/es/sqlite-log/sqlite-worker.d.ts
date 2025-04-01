@@ -4,4 +4,4 @@ export interface SqliteLogActions {
     logAction(controller: number, action: Action): SingleActionFactory;
     didConnect(): SingleActionFactory;
 }
-export declare const sqliteLogFac: BaseReactorFactory<SqliteLogActions, readonly [], []>;
+export declare const sqliteLogFac: BaseReactorFactory<SqliteLogActions, readonly [], import("@wfh/reactivizer").CoreOptions<SqliteLogActions>, []>;

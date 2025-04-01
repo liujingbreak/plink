@@ -14,7 +14,7 @@ import {RxController2} from './control2';
  */
 export class ForkedPostRxController<I> extends RxController2<I> {
   /** Any message being emitted to this subject will not be dispatched to "base" controller */
-  forkedUpStream: rx.Subject<Action<unknown>>;
+  protected forkedUpStream: rx.Subject<Action>;
   constructor(protected src: RxController2<I>) {
     super();
     this.config({...src.opts as any, debug: false});

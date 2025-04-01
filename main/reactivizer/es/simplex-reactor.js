@@ -1,16 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters */
 import * as rx from 'rxjs';
 import { RxController2 } from './control2';
+import { ActionDispenser } from './action-dispenser';
 import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
 import { ForkedPostRxController } from './forked-post-control';
 import { actionRelatedToAction } from './context-operators';
+import { onAllSubscribed } from './utils';
 const baseActionTypeSet = new Set(['__onError', '__onDisposed', '__cancel', '__config']);
-const baseTableFor = ['__onError', '__onDisposed'];
+const internalTableFor = ['__onError', '__onDisposed'];
 let SEQ = new Date().getUTCMilliseconds();
 export class SimplexReactor {
     constructor(opts) {
         var _a, _b;
-        // ft: RxController2<I & BaseActions>['ft'];
         /** Define an reactor (RxJS observable subscription) */
         this.r = (...params) => {
             if (typeof params[0] === 'string')
@@ -26,13 +28,79 @@ export class SimplexReactor {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.opts = opts;
         this.s = new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `@${this.id}` }));
+        this.postBase = this.p = this.s;
+        this.table = new ActionTable(this.s, [...(_b = opts === null || opts === void 0 ? void 0 : opts.tableFor) !== null && _b !== void 0 ? _b : [], ...internalTableFor]);
         this.pt = this.s.pt;
         this.at = this.s.at;
         this.ft = this.s.ft;
+        this.latest = this.table.l;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
-        this.hooks = new Proxy({}, {
-            get(_target, key, _rec) {
-                return (label, define) => self.addPreHook(label, key, define);
+        this.preHooks = new Proxy({}, {
+            get(_target, key) {
+                return (labelOrDefine, define) => {
+                    let label = '';
+                    if (typeof labelOrDefine === 'string') {
+                        label = labelOrDefine;
+                    }
+                    else {
+                        define = labelOrDefine;
+                    }
+                    return self.addPreHook(label, key, define);
+                };
+            },
+            has(_target, key) {
+                return typeof key === 'string';
+            },
+            ownKeys() {
+                return [];
+            }
+        });
+        this.interceptors = new Proxy({}, {
+            get(_target, key) {
+                return new rx.Observable(s => {
+                    console.log('-- intercept', key);
+                    const removeInter$ = new rx.ReplaySubject(1);
+                    const remove = self.prependInterceptor(ad => rx.merge(ad.at[key].pipe(rx.mergeMap(a => {
+                        const next$ = new rx.Subject();
+                        next$.subscribe(p => {
+                            console.log('-- subscribed next$ emits', p);
+                        });
+                        return rx.merge(next$.pipe(rx.take(1), rx.tap(p => {
+                            console.log('-- next$:', p);
+                        }), rx.map(p => (Object.assign(Object.assign({}, a), { p })))), new rx.Observable(s0 => {
+                            s.next([
+                                (payload, ...nextInterceptors) => {
+                                    console.log('-- next called', ...payload);
+                                    if (nextInterceptors.length == 0) {
+                                        next$.next(payload);
+                                        return [];
+                                    }
+                                    return onAllSubscribed(nextInterceptors, () => {
+                                        console.log('-- all subscribed');
+                                        next$.next(payload);
+                                    });
+                                },
+                                { i: a.i }, ...a.p
+                            ]);
+                            s0.complete();
+                        }), 
+                        // remove event must be checked after next$ event, otherwise "remove" might happens earlier
+                        removeInter$.pipe(rx.map(() => {
+                            console.log('-- remove');
+                            remove();
+                        }), rx.ignoreElements())).pipe(rx.catchError(err => {
+                            console.log('-- error', err);
+                            return rx.EMPTY;
+                        }), rx.finalize(() => {
+                            debugger;
+                            console.log('-- final');
+                        }));
+                    })), ad.ofOtherTypes()));
+                    return () => {
+                        removeInter$.next();
+                    };
+                });
             },
             has(_target, key) {
                 return typeof key === 'string';
@@ -45,15 +113,17 @@ export class SimplexReactor {
         const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsgCtl.pt.__onError.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
             throw err;
         })));
-        const hooksByType = new Map();
         this.s.doOperator$.next(doOperator);
-        this.s.appendInterceptor(a$ => {
+        const hooksByType = new Map();
+        this.s.prependInterceptor(a$ => {
             return rx.concat(rx.of(null), // the observable content is not important
             rx.merge(this.preActionHook$, this.removePreActionHook$)).pipe(rx.switchMap(() => a$.pipe(rx.mergeMap(a => {
-                const { t, p } = a;
-                const hooks = hooksByType.get(t);
+                const hooks = hooksByType.get(a.t);
                 if (hooks) {
-                    return rx.concat(...hooks.map(([hook, label]) => hook(a, ...p).pipe(this.handleErrorOp(label, 'stop'), rx.ignoreElements())), rx.of(a));
+                    let payload = a.p;
+                    return rx.concat(rx.from(hooks).pipe(rx.concatMap(([hook, label]) => hook(a, ...payload).pipe(rx.map(retPayload => {
+                        payload = retPayload;
+                    }), this.handleErrorOp(label !== null && label !== void 0 ? label : 'Unlabled prehook', 'stop'))), rx.ignoreElements()), rx.defer(() => rx.of(Object.assign(Object.assign({}, a), { p: payload }))));
                 }
                 else {
                     return rx.of(a);
@@ -95,17 +165,20 @@ export class SimplexReactor {
                 console.error(err);
             return src;
         })).subscribe();
-        this.table = new ActionTable(this.s, [...(_b = opts === null || opts === void 0 ? void 0 : opts.tableFor) !== null && _b !== void 0 ? _b : [], ...baseTableFor]);
-        this.latest = this.table.l;
         const internalTable = this.table;
-        this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), internalTable.l.__onError.pipe(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        rx.map(([, err]) => [err, null]))).pipe(rx.share());
+        this.error$ = rx.merge(this.errorSubject.pipe(rx.map(([label, err]) => [err, label])), internalTable.l.__onError.pipe(rx.map(([, err]) => [err, null]))).pipe(rx.share());
         this.destory$ = internalMsgCtl.pt.__onDisposed;
         this.dispose = () => {
             internalMsgCtl.ft.__onDisposed().dp();
         };
         this.r('__config', internalMsgCtl.pt.__config.pipe(rx.map(([, opts]) => this.config(opts))));
+    }
+    createRxControllers(opts) {
+        var _a;
+        return new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `@${this.id}` }));
+    }
+    getLogName() {
+        return this.s.logPrefix;
     }
     /**
      * This method can be used to change "options" after SimplexReactor instanciation, e.g. `.change({debug: true})` to enable action tracing log for debug.
@@ -113,16 +186,17 @@ export class SimplexReactor {
      * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
      */
     config(opts) {
+        const updatedThis = this;
         if (this.opts) {
             Object.assign(this.opts, opts);
         }
         else {
-            this.opts = opts;
+            updatedThis.opts = opts;
         }
         if (opts.tableFor) {
-            this.table.addActions(...opts.tableFor);
+            updatedThis.table.addActions(...opts.tableFor);
         }
-        this.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
+        updatedThis.s.config(Object.entries(opts).reduce((obj, [p, v]) => {
             if (p !== 'tableFor') {
                 if (p === 'name')
                     obj.name = opts.name + '@' + this.id;
@@ -133,9 +207,10 @@ export class SimplexReactor {
             }
             return obj;
         }, {}));
-        return this;
+        return updatedThis;
     }
-    /** Turn current reactors to extend mode,
+    /** @deprecated use toExtend instead
+     * Turn current reactors to extend mode,
      * fork a stream RxController2 to ForkedRxController, so that we can create new reactors by subscribing to
      * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
      **/
@@ -161,6 +236,7 @@ export class SimplexReactor {
             cachePostBase = new ForkedPostRxController(baseS);
             return cachePostBase;
         }
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (this.postBase == null) {
             Object.defineProperty(this, 'postBase', {
                 get: ensurePostBase,
@@ -173,13 +249,40 @@ export class SimplexReactor {
         }
         return this;
     }
+    toExtend() {
+        const baseS = this.s;
+        this.s = new ForkedRxController(baseS);
+        this.postBase = this.p = new ForkedPostRxController(baseS);
+        this.table = new ActionTable(this.s, this.table);
+        this.pt = this.s.pt;
+        this.at = this.s.at;
+        this.ft = this.s.ft;
+        this.latest = this.table.l;
+        const internalMsgCtl = this.s;
+        const doOperator = (dispatchingAction) => (response$) => rx.merge(response$, internalMsgCtl.pt.__onError.pipe(actionRelatedToAction(dispatchingAction), rx.map(([, err]) => {
+            throw err;
+        })));
+        this.s.doOperator$.next(doOperator);
+        return this;
+    }
     addPreHook(label, type, hook) {
         if (baseActionTypeSet.has(type))
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             return () => { };
         this.preActionHook$.next([type, hook, label]);
         return () => {
             this.removePreActionHook$.next([type, hook]);
         };
+    }
+    /**
+     * prepend action stream interceptor by action type, the interceptors will intercept messages
+     * before they reach all inherited and current SimplexReactor
+     */
+    prependInterceptor(inter) {
+        return this.s.prependInterceptor(a$ => {
+            const ac = ActionDispenser.ofAction$(a$);
+            return inter(ac);
+        });
     }
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
@@ -189,13 +292,13 @@ export class SimplexReactor {
      * `addReaction(label, ...)` uses this op internally.
      */
     labelError(label) {
-        return (upStream) => upStream.pipe(rx.catchError((err) => {
+        return (upStream) => upStream.pipe(rx.catchError(err => {
             this.logError(label, err);
             return rx.throwError(() => err instanceof Error ? err : new Error(err));
         }));
     }
     catchErrorFor(actionMeta, ...actionMetas) {
-        return (upStream) => upStream.pipe(rx.catchError((err) => {
+        return (upStream) => upStream.pipe(rx.catchError(err => {
             this.dispatchErrorFor(err, actionMeta, ...actionMetas);
             return rx.EMPTY;
         }));
@@ -205,7 +308,6 @@ export class SimplexReactor {
     * invokes "catchErrorFor()" or "dispatchErrorFor()"
     */
     actionRelatedToAction(actionOrMeta) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const s = this.s;
         return function (up) {
             return s.doOperator$.pipe(rx.switchMap(operator => up.pipe(operator(actionOrMeta), actionRelatedToAction(actionOrMeta))));
@@ -229,13 +331,13 @@ export class SimplexReactor {
         return this;
     }
     log(...msg) {
-        var _a, _b, _c, _d;
+        var _a;
         if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debug) {
-            if ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.log)
-                this.opts.log(((_c = this.s.logPrefix) !== null && _c !== void 0 ? _c : ''), ...msg);
+            if (this.opts.log)
+                this.opts.log((this.s.logPrefix), ...msg);
             else {
                 // eslint-disable-next-line no-console
-                console.log(((_d = this.s.logPrefix) !== null && _d !== void 0 ? _d : ''), ...msg);
+                console.log((this.s.logPrefix), ...msg);
             }
         }
     }
@@ -267,6 +369,9 @@ export class SimplexReactor {
             }
         })));
         return resolveFuncKey;
+    }
+    toString() {
+        return this.getLogName();
     }
     /** @deprecated no longer needed, always start automatically after being contructed */
     startAll() {

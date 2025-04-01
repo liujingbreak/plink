@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters */
 import * as rx from 'rxjs';
 export function timeoutLog(millseconds, callbackOnTimeout) {
     return function (up) {
@@ -39,5 +40,23 @@ export function ascii2ArrayBuffer(str, isShared = false) {
 }
 export function arrayBuffer2ascii(buf, byteOffset, length) {
     return String.fromCharCode.apply(null, (new Uint8Array(buf, byteOffset, length)));
+}
+export function onAllSubscribed(inputs, onAllSubscribed, onAllUnsubscribed) {
+    // when all (counted) the returned streams are subscribed, dispatch the new action
+    const onSubscribe$ = new rx.Subject();
+    onSubscribe$.pipe(rx.distinct(), rx.take(inputs.length)).subscribe({
+        complete: onAllSubscribed
+    });
+    const onUnsubscribe$ = new rx.Subject();
+    onUnsubscribe$.pipe(rx.distinct(), rx.take(inputs.length)).subscribe({
+        complete: onAllUnsubscribed
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return inputs.map((input, idx) => rx.merge(input.pipe(rx.finalize(() => {
+        onUnsubscribe$.next(idx);
+    })), new rx.Observable(sink => {
+        onSubscribe$.next(idx);
+        sink.complete();
+    })));
 }
 //# sourceMappingURL=utils.js.map

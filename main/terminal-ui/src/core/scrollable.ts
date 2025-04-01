@@ -1,12 +1,11 @@
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4, vec2} from 'gl-matrix';
-import {SimplexReactorOfFac, CreateOptsOfFac, SingleActionFactory, CoreOptions} from '@wfh/reactivizer';
+import {SimplexReactorOfFac, CreateOptsOfFac, SingleActionFactory, CoreOptions, ActionDispenser} from '@wfh/reactivizer';
 import {queryAppContext} from '../app/app-shell.js';
 import {querySchemeForComponent} from '../app/color-theme.js';
 import {BaseWidget} from './base.js';
 import {TerminalContainer, baseContainerFac} from './container.js';
-import {CanvasOptions, canvasFac, TextStyle, rectIntersection} from './canvas.js';
+import {CanvasOptions, canvasFac, TextStyle, rectIntersection, Rectangle} from './canvas.js';
 import {FocusServiceOpts, focusServiceFac} from './focusable.js';
 
 export interface ScrollActions {
@@ -31,10 +30,10 @@ const tableFor = ['onValidScroll', 'setScrollable', 'onOverflow', 'onContent', '
  * when they are scrolled to become visible, and they are firstly rendered to the offline canvas then will be copied
  * to outsider canvas afterward
  */
-export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof tableFor>({
+export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof tableFor, ScrollableOptions>({
   name: 'scrollable',
   tableFor
-}).defineReactor((init, comp: BaseWidget, opts?: ScrollableOptions) => {
+}).defineReactor(({init, setting: opts}, comp: BaseWidget) => {
   const scrollable = init({
     debug: opts?.debug,
     log: opts?.log,
@@ -42,11 +41,32 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
     ...opts?.container
   });
   const {r, ft, pt, latest} = scrollable;
-  const canvas = canvasFac.create({
+  const canvas = canvasFac.setting({
     debug: opts?.debug,
     log: opts?.log,
     name: opts?.name ?? 'scrollable.canvas',
     ...opts?.canvas
+  }).create();
+
+  scrollable.s.prependInterceptor(a$ => {
+    const ad = ActionDispenser.ofAction$<typeof scrollable>(a$);
+    return rx.merge(
+      ad.at.didQueryAbsBounding.pipe(
+        rx.mergeMap(a => {
+          const {p: [rect]} = a;
+          return rect ? latest.onValidScroll.pipe(
+            rx.take(1),
+            rx.map(([, scrLeft, scrTop]) => {
+              const [x, y, w, h] = rect;
+              const res = [x - scrLeft, y - scrTop, w, h] as Rectangle;
+              a.p[0] = res;
+              return a;
+            })
+          ) : rx.of(a);
+        })
+      ),
+      ad.ofOtherTypes()
+    );
   });
   canvas.ft.setRootComponent(comp).dp();
   r('onRender,canvas.clearRect -> outerCanvas.clearRect', pt.onRender.pipe(
@@ -107,8 +127,8 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
 
   r('onRender -> comp.render,...', pt.onRender.pipe(
     rx.withLatestFrom(...renderData, latest.onOverflow, canvas.latest.setBounding, latest.onViewPortSize),
-    rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height],
-      , , [, barWidth, barHeight, barCol, barTrack], [, xOverflow, yOverflow], [, , , cw, ch], [, vpWidth, vpHeight]]) => {
+    rx.mergeMap(([[m, outerCanvas, trans, renderSelf, clips, masks], [, scLeft, scTop], [, width, height],,,
+      [, barWidth, barHeight, barCol, barTrack], [, xOverflow, yOverflow], [, , , cw, ch], [, vpWidth, vpHeight]]) => {
       if (renderSelf) {
         ft.clear(outerCanvas, trans).dp(m);
         ft.renderSelf(outerCanvas, trans, clips, masks ?? []).dp(m);
@@ -142,9 +162,9 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
                 isButton === ButtonPixelType.no ?
                   trackChars :
                   isButton === ButtonPixelType.topHalf ?
-                    '▀'.repeat(barWidth) :
-                    '▄'.repeat(barWidth)
-              , style).dp(m);
+                      '▀'.repeat(barWidth) :
+                      '▄'.repeat(barWidth),
+              style).dp(m);
           }
         }
         if (xOverflow) {
@@ -180,10 +200,10 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
         return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
       }).filter((c): c is NonNullable<typeof c> => c != null);
       const masksOfView = masks ?
-        masks.map(c => {
-          return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
-        }).filter((c): c is NonNullable<typeof c> => c != null) :
-        [];
+          masks.map(c => {
+            return rectIntersection([scLeft, scTop, width, height], [c[0] + scLeft, c[1] + scTop, c[2], c[3]]);
+          }).filter((c): c is NonNullable<typeof c> => c != null) :
+          [];
       // scrollable.log('>>> clipOfView', clipsOfView.join(';'));
       comp.ft.render(canvas, mat4.create(), clipsOfView, masksOfView).dp(m);
       return canvas.ft.copyRect(scLeft, scTop, vpWidth, vpHeight).re(m).od(
@@ -239,11 +259,7 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
     ]).pipe(
       rx.take(1),
       rx.switchMap(([[m1, w, h], [m2, pW, pH], [m3, xScrollable, yScrollable], [, barWidth, barHeight]]) => {
-        let vpWidth = w;
-        let vpHeight = h;
         if (xScrollable && yScrollable) {
-          vpWidth -= barWidth;
-          vpHeight -= barHeight;
           const hasYScrollBar = pH > h;
           const hasXScrollBar = pW > w;
           let compWidth = pW > w ? pW : w;
@@ -342,41 +358,6 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
       canvas.dispose();
     })
   ));
-  // When decsendant is focused, scroll to ensure it is visible in viewport
-  r('focusService,focusService.onFocus...-> scroll', pt.focusService.pipe(
-    rx.switchMap(([m, focusService]) => focusService.pt.onFocus.pipe(
-      rx.filter(([, , c]) => c != null),
-      rx.mergeMap(([m, , c]) => rx.combineLatest([
-        latest.onViewPortSize,
-        c!.ft.queryAbsBounding(scrollable).re(m).od(
-          c!.pt.didQueryAbsBounding
-        ),
-        latest.onValidScroll
-      ]).pipe(
-        rx.take(1)
-      )),
-      rx.filter(([[, sw, sh], [, cb]]) => sw > 2 && sh > 2 && cb != null),
-      rx.map(([[, pw, ph], [, cb], [, scrollX, scrollY]]) => {
-        const [x, y] = cb!;
-        scrollable.log('--- scrollable focus', x, y, 'viewport', pw, ph, 'scroll', scrollX, scrollY);
-        const scrollSideOff = 1;
-        let toX = scrollX;
-        let toY = scrollY;
-        if (x < scrollX + scrollSideOff) {
-          toX = x - scrollSideOff;
-        } else if (x >= scrollX + pw - scrollSideOff) {
-          toX = x - pw + scrollSideOff + 1;
-        }
-        if (y < scrollY + scrollSideOff) {
-          toY = y - scrollSideOff;
-        } else if (y >= scrollY + ph - scrollSideOff) {
-          toY = y - ph + scrollSideOff + 1;
-        }
-        if (toX !== scrollX || toY !== scrollY)
-          ft.scrollTo(toX, toY).dp(m);
-      })
-    ))
-  ));
   r('onEnter -> keyEventService.bindToScrollable', pt.onEnter.pipe(
     rx.switchMap(([m]) => queryAppContext(scrollable, m).pipe(
       rx.take(1),
@@ -412,13 +393,46 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
         );
     })
   ));
-  const focusSvc = focusServiceFac.create(canvas, {
+  const focusSvc = focusServiceFac.setting({
     name: scrollable.s.logPrefix + '.focus',
     debug: opts?.debug,
     log: opts?.log,
     ...opts?.focus
-  });
+  }).create(canvas);
   focusSvc.ft.forRootComp(scrollable).dp();
+  // When decsendant is focused, scroll to ensure it is visible in viewport
+  r('focusService,focusService.onFocus...-> scroll', focusSvc.pt.onFocus.pipe(
+    rx.filter(([, , c]) => c != null),
+    rx.mergeMap(([m, , c]) => rx.combineLatest([
+      latest.onViewPortSize,
+      c!.ft.queryAbsBounding(scrollable).re(m).od(
+        c!.pt.didQueryAbsBounding
+      ),
+      latest.onValidScroll
+    ]).pipe(
+      rx.take(1)
+    )),
+    rx.filter(([[, sw, sh], [, cb]]) => sw > 2 && sh > 2 && cb != null),
+    rx.map(([[, pw, ph], [, cb], [m, scrollX, scrollY]]) => {
+      const [x, y, w] = cb!;
+      scrollable.log('--- scrollable focus', x, y, 'viewport', pw, ph, 'scroll', scrollX, scrollY);
+      const scrollSideOff = 1;
+      let toX = scrollX;
+      let toY = scrollY;
+      if (x < scrollX + scrollSideOff) {
+        toX = x - scrollSideOff;
+      } else if (x + w >= scrollX + pw) {
+        toX = x + w - pw + scrollSideOff;
+      }
+      if (y < scrollY + scrollSideOff) {
+        toY = y - scrollSideOff;
+      } else if (y >= scrollY + ph - scrollSideOff) {
+        toY = y - ph + scrollSideOff + 1;
+      }
+      if (toX !== scrollX || toY !== scrollY)
+        ft.scrollTo(toX, toY).dp(m);
+    })
+  ));
   r('init', new rx.Observable<never>(() => {
     ft.onContentSizeChange(2, 2).dp();
     ft.setPreferredSize(null, null).dp();
@@ -439,7 +453,6 @@ export const scrollableFac = baseContainerFac.forExtend<ScrollSignals, typeof ta
       ft.setScrollbarStyle(1, 1, [`hex(${colors.secondary})`, bg], [bg]).dp(...m);
     })
   ));
-
 }).interceptorForBaseByType(dispenser => {
   return rx.merge(
     rx.merge(
@@ -462,5 +475,5 @@ export interface ScrollableOptions {
 }
 
 export function createScrollable(comp: BaseWidget, opts?: ScrollableOptions) {
-  return scrollableFac.create(comp, opts);
+  return scrollableFac.setting(opts).create(comp);
 }

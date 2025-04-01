@@ -1,5 +1,3 @@
-/* eslint-disable multiline-ternary */
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import {mat4} from 'gl-matrix';
 import {SingleActionFactory, ActionMeta, Action, InferMapParam, CreateOptsOfFac, SimplexReactorOfFac} from '@wfh/reactivizer';
@@ -18,7 +16,7 @@ export interface TerminalContainerInput {
   /** @deprecated use requestReflowOn, requestReflow instead */
   latestReflowData(data$: rx.Observable<InferMapParam<any>>): SingleActionFactory;
   requestReflow(reason?: string): SingleActionFactory;
-  requestReflowOn<P extends [...(rx.Observable<Action<any>> | rx.Observable<InferMapParam<any>>)[]]>(...actionOrPayloads: P): SingleActionFactory;
+  requestReflowOn(...actionOrPayloads: [...(rx.Observable<Action> | rx.Observable<[ActionMeta, ...unknown[]]>)[]]): SingleActionFactory;
 
   /** Respond by didFindOverlaps, coordinate value should be relative to current component's offsetParent (i.e value of onBoundingBox ).
    * Use DFS to lookup all components including all ancestor containers */
@@ -28,9 +26,9 @@ export interface TerminalContainerInput {
 export interface TermainlContainerEvents extends TerminalContainerInput {
   renderSelf(canvas: Canvas, transform: mat4, clips: Rectangle[], masks: Rectangle[]): SingleActionFactory;
   renderChild(index: number, child: BaseWidget, canvas: Canvas, absTransform: mat4, clipArea: Rectangle[], maskArea: Rectangle[]): SingleActionFactory;
-  allChildren(children: Array<BaseWidget>): SingleActionFactory;
+  allChildren(children: BaseWidget[]): SingleActionFactory;
   /** all children whose "setDisplay" is not `none` */
-  allDisplayChildren(children: Array<BaseWidget>): SingleActionFactory;
+  allDisplayChildren(children: BaseWidget[]): SingleActionFactory;
   /** Under context of "relow" action.
    * The coordinate value is relative to container component.
    * @param positions the length of this parameter must equals to "allDisplayChildren"'s length
@@ -42,7 +40,7 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
   /** set to true if expecting "reflow" during next rendering phase */
   setLayoutValid(isValid: boolean): SingleActionFactory;
   /** Implementation container should set proper initial value, for container like "scrollable" whose child
-   * component is actually rendered to another canvas other than the containing one, they must set this 
+   * component is actually rendered to another canvas other than the containing one, they must set this
    * value to `true`, so that consumer knowns whether child components of this type of container has a different
    * rendering coordinate. Also see `BaseWidgetEvents["onBoundingBox"]`
    */
@@ -57,7 +55,7 @@ export interface TermainlContainerEvents extends TerminalContainerInput {
   /** isLayoutDirty represents the actual layout change after "reflow" is handled,
    *
    * Value is changed against the observable of "setLayoutCheck", which
-   * can be used to configure what should considered as "layout changed", default is 
+   * can be used to configure what should considered as "layout changed", default is
    * merged observable of values change of children position, size and current component's
    * size
    */
@@ -83,7 +81,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
     rx.distinctUntilChanged(({p: [a]}, {p: [b]}) => a === b)
   ),
   ad.ofOtherTypes()
-)).defineReactor(init => {
+)).defineReactor(({init}) => {
   const service = init();
   const {r, ft, pt, table} = service;
   const children = [] as BaseWidget[];
@@ -330,9 +328,7 @@ export const baseContainerFac = baseComponentFac.forExtend<TermainlContainerEven
 
   r('init', new rx.Observable<never>(() => {
     ft.requestReflowOn(
-      pt.onSize.pipe(
-        rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)
-      ),
+      pt.onSize,
       pt.onChildPreferredSizeChange
     ).dp();
     ft.isContainer(true).dp();

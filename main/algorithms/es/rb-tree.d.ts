@@ -5,7 +5,7 @@
  *
  * This data structure is meant for being extend, since the majority of 3rd-party red-black tree on npmjs.org is not extensible
  */
-export type RbTreeNode<T, V = unknown> = {
+export interface RbTreeNode<T, V = unknown> {
     key: T;
     value: V;
     p: RbTreeNode<T, V>;
@@ -18,21 +18,21 @@ export type RbTreeNode<T, V = unknown> = {
     size: number;
     /** tree's size() returns sum of all nodes's weight */
     weight: number;
-};
+}
 export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = RbTreeNode<T, V>> {
     protected comparator?: ((a: T, b: T) => number) | undefined;
     nil: RbTreeNode<T, V>;
     root: RbTreeNode<T, V> | ND;
     constructor(comparator?: ((a: T, b: T) => number) | undefined);
-    isNil(node: RbTreeNode<T, V>): boolean;
+    isNil(node: RbTreeNode<T, V> | undefined): boolean;
     /**
      * Should override this function to create new typeof tree node
      * @param key
      * @returns existing tree node if key duplicates or a new empty node
      */
-    insert<Value extends [V] | []>(key: T, ...value: Value): Value['length'] extends 0 ? RbTreeNode<T, V> : Omit<RbTreeNode<T, V>, 'value'> & {
+    insert<Value extends [V] | []>(key: T, ...value: Value): Value['length'] extends 0 ? Omit<RbTreeNode<T, V>, 'value'> & {
         value?: V;
-    };
+    } : RbTreeNode<T, V>;
     /** Retrieve an element with a given rank, unlike <<Introduction to Algorithms 3rd Edition>>, it begins with 0
     * and it is baesed on "size" which is accumulated  from "weight" of node ands children's
     */
@@ -54,10 +54,10 @@ export declare class RedBlackTree<T, V = unknown, ND extends RbTreeNode<T, V> = 
      * @return interator of existing nodes whose key are greater than specific key
      */
     keysSmallerThan(key: T, includeEqual?: boolean): Generator<RbTreeNode<T, V>, void, unknown>;
-    inorderWalk(callback: (node: ND, level: number) => void, node?: RbTreeNode<T, V> | ND, level?: number): void;
-    allChildNodeInorder(node?: RbTreeNode<T, V> | ND, level?: number): Generator<[node: ND, level: number]>;
-    minimum(node?: RbTreeNode<T, V> | ND): ND | null;
-    maximum(node?: RbTreeNode<T, V> | ND): ND | null;
+    inorderWalk(callback: (node: ND, level: number) => void, node?: ND | RbTreeNode<T, V>, level?: number): void;
+    allChildNodeInorder(node?: ND | RbTreeNode<T, V>, level?: number): Generator<[node: ND, level: number]>;
+    minimum(node?: ND | RbTreeNode<T, V>): ND | null;
+    maximum(node?: ND | RbTreeNode<T, V>): ND | null;
     size(): number;
     isRed(node: RbTreeNode<T, V> | null | undefined): boolean;
     isBlack(node: RbTreeNode<T, V> | null | undefined): boolean;

@@ -6,7 +6,7 @@ import * as rx from 'rxjs';
 // import chalk from 'chalk';
 import {BaseReactorFactory, actionRelatedToAction} from '@wfh/reactivizer';
 import {canvasFac, CanvasOptions, debugLineTrees, getTextDisplayUnits,
-  CanvasFilterInput, CanvasFilterOutput} from '../src/index.js';
+  CanvasFilterInput, CanvasFilterOutput} from '../src/index.ts';
 
 describe('TerminalCanvas', () => {
   it.skip('Single line, printing texts', () => {
@@ -117,7 +117,7 @@ describe('TerminalCanvas', () => {
       rx.map(([, x, , text]) => mockFn(x, text))
     ).subscribe();
     // eslint-disable-next-line no-console
-    mockFn.mock.calls.forEach(([, text]) => console.log(text));
+    mockFn.mock.calls.forEach(([, text]) => {console.log(text);});
     expect(mockFn.mock.calls.length).toEqual(1);
     expect(stripAnsi(mockFn.mock.calls[0][1] as string))
       .toEqual('上12345 g');
@@ -145,7 +145,7 @@ describe('TerminalCanvas', () => {
       rx.map(([, x, , text]) => mockFn(x, stripAnsi(text)))
     ).subscribe();
     // eslint-disable-next-line no-console
-    mockFn.mock.calls.forEach(([, text]) => console.log(text));
+    mockFn.mock.calls.forEach(([, text]) => {console.log(text);});
     expect(mockFn.mock.calls.length).toEqual(3);
     expect(mockFn.mock.calls[0]).toEqual([0, 'ab']);
     expect(mockFn.mock.calls[1]).toEqual([8, 'gh']);
@@ -181,7 +181,6 @@ describe('TerminalCanvas', () => {
     s.ft.render().od(s.pt.onPrintText).pipe(
       rx.map(([, x, y, text]) => mockFn(x, y, stripAnsi(text)))
     ).subscribe();
-    // eslint-disable-next-line no-console
     expect(mockFn.mock.calls.length).toEqual(4);
     expect(mockFn.mock.calls[0]).toEqual([2, 0, '  ']);
     expect(mockFn.mock.calls[1]).toEqual([6, 0, '  ']);
@@ -227,7 +226,6 @@ describe('TerminalCanvas', () => {
     s.ft.render().od(s.pt.onPrintText).pipe(
       rx.map(([, x, y, text]) => mockFn(x, y, stripAnsi(text)))
     ).subscribe();
-    // eslint-disable-next-line no-console
     expect(mockFn.mock.calls.length).toEqual(4);
     expect(mockFn.mock.calls[0]).toEqual([1, 0, '覆 ']);
     expect(mockFn.mock.calls[1]).toEqual([6, 0, '  ']);
@@ -263,7 +261,7 @@ describe('TerminalCanvas', () => {
     const [, , uncommited] = table.getData().internalCache;
     console.log('>> uncommited', uncommited?.length);
     s.pt.onPrintText.pipe(
-      rx.map(([, x, y, text]) => console.log('++', x, y, stripAnsi(text)))
+      rx.map(([, x, y, text]) => {console.log('++', x, y, stripAnsi(text));})
     ).subscribe();
     const [, lines] = await rx.firstValueFrom(s.ft.takeSnapshot().od(s.pt.didTakeSnapshot).pipe(
       rx.take(1)
@@ -384,14 +382,14 @@ describe('TerminalCanvas', () => {
   });
 });
 
-const testCanvasFac = canvasFac.forExtend()
+const testCanvasFac = canvasFac.forExtend({})
   .interceptorForBaseByType(dis => rx.merge(
     dis.at.onPrintText.pipe(
-      rx.map(({p: [x, y, text]}) => console.log('onPrintText', x, y, text)),
+      rx.map(({p: [x, y, text]}) => {console.log('onPrintText', x, y, text);}),
       rx.ignoreElements()
     ),
     dis.at.onClearLine.pipe(rx.ignoreElements()),
     dis.ofOtherTypes()
-  )).defineReactor((init, opts?: CanvasOptions) => {
+  )).defineReactor(({init}, opts?: CanvasOptions) => {
     init(opts);
   });

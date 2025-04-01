@@ -18,7 +18,7 @@ export function createWordSplitter(opts) {
         let lastState;
         let lexTokenStart = 0;
         let lexTokenBuf = [];
-        const fallbackableLexToken$ = s.pt.onLexerToken.pipe(actionRelatedToAction(m), rx.takeWhile(([, type]) => type !== 'eof', true), rx.concatMap((tk) => rx.concat(rx.of(tk), table.l.requestToken.pipe(actionRelatedToAction(tk[0]), rx.take(1), rx.mergeMap(([, ...payloads]) => payloads)))), 
+        const fallbackableLexToken$ = s.pt.onLexerToken.pipe(actionRelatedToAction(m), rx.takeWhile(([, type]) => type !== 'eof', true), rx.concatMap(tk => rx.concat(rx.of(tk), table.l.requestToken.pipe(actionRelatedToAction(tk[0]), rx.take(1), rx.mergeMap(([, ...payloads]) => payloads)))), 
         // rx.observeOn(rx.queueScheduler),
         rx.share());
         const wordRecord$ = new rx.ReplaySubject();
@@ -96,23 +96,21 @@ export function createWordSplitter(opts) {
             if (state === lastState) {
                 lexTokenBuf.push(codePoint);
             }
-            else if (lastState) {
+            else {
                 // If state is distinct from previous one, dispatch "onLexerToken"
                 s.ft.onLexerToken(lastState, lexTokenBuf, lexTokenStart).dp(m);
                 lastState = state;
                 lexTokenStart = idx;
                 lexTokenBuf = [codePoint];
             }
-            else {
-                // If lastState is null
-                lexTokenStart = idx;
-                lexTokenBuf = [codePoint];
-                lastState = state;
-            }
+            // else {
+            //   // If lastState is null
+            //   lexTokenStart = idx;
+            //   lexTokenBuf = [codePoint];
+            //   lastState = state;
+            // }
         }), rx.finalize(() => {
-            if (lastState) {
-                s.ft.onLexerToken(lastState, lexTokenBuf, lexTokenStart).dp(m);
-            }
+            s.ft.onLexerToken(lastState, lexTokenBuf, lexTokenStart).dp(m);
             s.ft.onLexerToken('eof', [], -1).dp(m);
         })));
     })));

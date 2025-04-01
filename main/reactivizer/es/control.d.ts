@@ -4,7 +4,7 @@ import { PayloadByType, ActionByType } from './inferred-types';
 export * from './stream-core';
 export type DispatchAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
 export type DispatchForAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
-type Interceptor = (up: rx.Observable<Action<unknown>>) => rx.Observable<Action<unknown>>;
+type Interceptor = (up: rx.Observable<Action>) => rx.Observable<Action>;
 export declare class RxController<I> {
     core: ControllerCore<I>;
     dispatcher: {
@@ -41,20 +41,16 @@ export declare class RxController<I> {
     actionByType: ActionByType<I>;
     /** abbrevation of actionByType */
     at: ActionByType<I>;
-    opts: CoreOptions<unknown> & {
-        debugTableAction?: boolean;
-    };
+    opts: CoreOptions<unknown>;
     interceptorList$: rx.Observable<Interceptor[]>;
-    constructor(opts?: CoreOptions<I> & {
-        debugTableAction?: boolean;
-    });
+    constructor(opts?: CoreOptions<I>);
     /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
     * belongs to
     */
     setName(value: string): void;
     createAction<J = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J[K]>;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
-    groupControllerBy<K>(keySelector: (action: Action<unknown>) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
+    groupControllerBy<K>(keySelector: (action: Action) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
     /**
      * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
      */

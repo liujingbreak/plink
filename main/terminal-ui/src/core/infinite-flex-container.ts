@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {CreateOptsInDef, CoreOptions, SingleActionFactory} from '@wfh/reactivizer';
+import {CreateOptsOfExtendedFac, CoreOptions, SingleActionFactory} from '@wfh/reactivizer';
 import {LazyLoadPlaceHolderOpts, createPlaceHolder} from './lazy-load-placeholder.js';
 import {flexContainerFac} from './flex-container.js';
 import {textWidgetFac, MultiLineTextWidgetOpts} from './text.js';
@@ -9,15 +9,15 @@ export type PageLoader = (pageIndex: number) => rx.Observable<[key: unknown, com
 export interface InfiniteFlexEvents {
   onItemLoaded(index: number, key: unknown, comp: BaseWidget): SingleActionFactory;
 }
-export type InfiniteFlexOpts = {
+export interface InfiniteFlexOpts {
   default?: CoreOptions<any>;
-  core?: CreateOptsInDef<InfiniteFlexEvents, typeof flexContainerFac>;
+  core?: CreateOptsOfExtendedFac<typeof flexContainerFac, InfiniteFlexEvents>;
   lazyLoad?: LazyLoadPlaceHolderOpts;
   textWidget?: MultiLineTextWidgetOpts;
-};
-export const infiniteFlexContainerFac = flexContainerFac.forExtend<InfiniteFlexEvents>({
+}
+export const infiniteFlexContainerFac = flexContainerFac.forExtend<InfiniteFlexEvents, [], InfiniteFlexOpts>({
   name: 'infiniteFlex'
-}).defineReactor((init, handler: PageLoader, opts?: InfiniteFlexOpts) => {
+}).defineReactor(({init, setting: opts}, handler: PageLoader) => {
   const service = init({...opts?.default as any, ...opts?.core});
   const {s, r} = service;
   const {service: lazyService, before: beforePH, after: afterPH} = createPlaceHolder({
@@ -29,7 +29,7 @@ export const infiniteFlexContainerFac = flexContainerFac.forExtend<InfiniteFlexE
   const pageLoaded = new Set<number>();
   const textOptions = {...opts?.default as MultiLineTextWidgetOpts, ...opts?.textWidget};
   r('lazyService.dp_onLoadPage ->', lazyService.s.pt.dp_onLoadPage.pipe(
-    rx.mergeMap(([m, pageIdx, _type]) => handler(pageIdx).pipe(
+    rx.mergeMap(([m, pageIdx]) => handler(pageIdx).pipe(
       rx.takeUntil(lazyService.s.pt.dp_onCancelLoad.pipe(
         rx.filter(([, page]) => page === pageIdx)
       )),
@@ -43,7 +43,7 @@ export const infiniteFlexContainerFac = flexContainerFac.forExtend<InfiniteFlexE
             throw new Error(`Duplicate key is used on different rows, key: "${itemWithKey.map(([key]) => key as string).join()}"`);
           }
           items.set(k, typeof comp === 'string' ?
-            textWidgetFac.create(comp, textOptions) :
+              textWidgetFac.setting(textOptions).create(comp) :
             comp);
         }
         if (itemWithKey.length > 0) {

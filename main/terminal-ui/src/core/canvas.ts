@@ -78,8 +78,8 @@ export type Canvas = SimplexReactor<CanvasEvents, typeof tableFor>;
 export type CanvasOptions = CoreOptions<CanvasEvents>;
 export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
   name: 'canvas', tableFor
-}).defineReactor((init, opts?: CoreOptions<CanvasEvents>) => {
-  const canvas = init(opts);
+}).defineReactor(ctx => {
+  const canvas = ctx.init();
   const {r, ft, pt, table} = canvas;
   // "lines" is an array of IntervalTree, each element of which represents a single line of display text of screen.
   // The intervalTree is a tree containing single or multiple discrete intervals which represents display text

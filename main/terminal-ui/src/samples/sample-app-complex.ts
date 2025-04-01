@@ -50,7 +50,7 @@ table.s.ft.setLazyLoad(true, page => {
   return out$;
 }).dp();
 table.s.pt.onRowAdded.pipe(
-  rx.map(([, _idx, _id, cells]) => {
+  rx.map(([, , , cells]) => {
     cells.map(cell => {
       (cell as MultiLineTextWidget).s.ft.setStyle(['black']).dp();
       cell.s.ft.setFocusable(true).dp();
@@ -82,7 +82,7 @@ rp.s.ft.addChild(rLabel).dp();
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
 const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
 rx.range(0, SAMPLE_ROW_COUNT).pipe(
-  rx.map(i => {
+  rx.map(() => {
     // const hue = hueInterval * i;
   })
 ).subscribe();

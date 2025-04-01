@@ -22,8 +22,8 @@ const tableFor = ['loadColors', 'setScheme'];
 export const colorThemeFac = new BaseReactorFactory({
     name: 'theme',
     tableFor
-}).defineReactor((init, opts) => {
-    const service = init(opts);
+}).defineReactor(ctx => {
+    const service = ctx.init();
     const { ft } = service;
     ft.loadColors(defaultThemeJson).dp();
     ft.setScheme('light').dp();

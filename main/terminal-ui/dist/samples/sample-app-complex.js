@@ -47,7 +47,7 @@ table.s.ft.setLazyLoad(true, page => {
     });
     return out$;
 }).dp();
-table.s.pt.onRowAdded.pipe(rx.map(([, _idx, _id, cells]) => {
+table.s.pt.onRowAdded.pipe(rx.map(([, , , cells]) => {
     cells.map(cell => {
         cell.s.ft.setStyle(['black']).dp();
         cell.s.ft.setFocusable(true).dp();
@@ -75,7 +75,7 @@ rLabel.s.ft.setFocusable(true).dp();
 rp.s.ft.addChild(rLabel).dp();
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
 const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
-rx.range(0, SAMPLE_ROW_COUNT).pipe(rx.map(i => {
+rx.range(0, SAMPLE_ROW_COUNT).pipe(rx.map(() => {
     // const hue = hueInterval * i;
 })).subscribe();
 table.s.ft.setCellBackground((col, row) => {

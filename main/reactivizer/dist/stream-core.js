@@ -37,11 +37,10 @@ exports.ControllerCore = exports.has = void 0;
 exports.nameOfAction = nameOfAction;
 exports.actionMetaToStr = actionMetaToStr;
 exports.assignActionReferParam = assignActionReferParam;
-/* eslint-disable multiline-ternary */
 const rx = __importStar(require("rxjs"));
-const global_config_1 = require("./global-config");
 let SEQ = 0;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
+// eslint-disable-next-line @typescript-eslint/unbound-method
 exports.has = Object.prototype.hasOwnProperty;
 class ControllerCore {
     constructor(opts = {}) {
@@ -55,7 +54,7 @@ class ControllerCore {
         this.interceptorList$ = new rx.BehaviorSubject([]);
         this.dispatcher = {};
         this.dispatcherFor = {};
-        this.setName(opts === null || opts === void 0 ? void 0 : opts.name);
+        this.setName(opts.name);
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
         const upstream = this.actionUpstream;
         // set logger as interceptor
@@ -78,7 +77,7 @@ class ControllerCore {
                     const type = action.t;
                     if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
                         // eslint-disable-next-line no-console
-                        console.log('[' + this.logPrefix, '] ', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                        console.log('[' + this.logPrefix + ']', type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
                     }
                 })) : a$;
         // ForkedRxController will always "append" interceptor to interceptorList$,
@@ -87,22 +86,19 @@ class ControllerCore {
         // by base and forked stream controller in correct order.
         this.interceptorList$.next([logOperator]);
         this.connectableAction$ = rx.connectable(this.configChange.pipe(rx.map((props, i) => {
-            var _a, _b, _c;
+            var _a;
             let switchActionStream = i === 0; // always create action stream at first time
             if (props.has('name')) {
                 this.setName(this.opts.name);
             }
             if (props.has('debugIncludeTypes')) {
-                if (this.debugIncludeSet == null)
-                    this.debugIncludeSet = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debugIncludeTypes) ? new Set(this.opts.debugIncludeTypes) : null;
-                if (this.debugIncludeSet && ((_b = this.opts) === null || _b === void 0 ? void 0 : _b.debugIncludeTypes)) {
+                (_a = this.debugIncludeSet) !== null && _a !== void 0 ? _a : (this.debugIncludeSet = this.opts.debugIncludeTypes ? new Set(this.opts.debugIncludeTypes) : null);
+                if (this.debugIncludeSet && this.opts.debugIncludeTypes) {
                     this.opts.debugIncludeTypes.forEach(item => this.debugIncludeSet.add(item));
                 }
             }
             if (props.has('debugExcludeTypes')) {
-                if (this.debugExcludeSet == null)
-                    this.debugExcludeSet = new Set([]);
-                if ((_c = this.opts) === null || _c === void 0 ? void 0 : _c.debugExcludeTypes) {
+                if (this.opts.debugExcludeTypes) {
                     this.opts.debugExcludeTypes.forEach(item => this.debugExcludeSet.add(item));
                 }
             }
@@ -128,10 +124,10 @@ class ControllerCore {
         })).pipe(rx.finalize(() => {
             actionUnsubDispatcher.next();
         }), rx.share());
-        if ((opts === null || opts === void 0 ? void 0 : opts.autoConnect) == null || (opts === null || opts === void 0 ? void 0 : opts.autoConnect)) {
+        if (opts.autoConnect == null || opts.autoConnect) {
             this.connectableAction$.connect();
         }
-        this.config(Object.assign(Object.assign({}, global_config_1.defaultConfig), opts));
+        this.config(Object.assign({ name: '', debug: false, debugIncludeTypes: null, debugExcludeTypes: [], logStyle: 'full' }, opts));
         this.actionSubscribed$ = actionSubDispatcher.asObservable();
         this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
     }
@@ -139,7 +135,6 @@ class ControllerCore {
         return {
             t: name,
             i: ACTION_SEQ++,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             p: params
         };
     }
@@ -169,23 +164,37 @@ class ControllerCore {
             this.configChange.next(changedProperties);
         }
     }
-    /** Insert action "interceptor" operator function */
+    /** Insert action "interceptor" operator function
+    * @returns a function to remove inserted interceptors
+    **/
     prependInterceptor(...interceptor) {
         const list = this.interceptorList$.getValue();
         list.unshift(...interceptor);
         this.interceptorList$.next(list);
-        return interceptor;
+        return () => {
+            this.removeInterceptor(...interceptor);
+        };
     }
+    /** If you want all the action messages go through this interceptor including those go to `forking` controller's reactors,
+    * you probably should use `prependInterceptor()` instead, read source of `ForkedRxController`
+    * @returns a function to remove inserted interceptors
+    **/
     appendInterceptor(...interceptor) {
         const list = this.interceptorList$.getValue();
         list.push(...interceptor);
         this.interceptorList$.next(list);
-        return interceptor;
+        return () => {
+            this.removeInterceptor(...interceptor);
+        };
     }
     removeInterceptor(...interc) {
         const interSet = new Set(interc);
         const list = this.interceptorList$.getValue();
         this.interceptorList$.next(list.filter(it => !interSet.has(it)));
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    appendInterceptorToSrc(..._interceptors) {
+        // toBe extended by sub class
     }
     /** Obsolete: This method is not meant to be used directly */
     dispatchFactory(type) {
@@ -215,14 +224,12 @@ class ControllerCore {
         return dispatch;
     }
     /** A filter operator function which only allow action with specific types */
-    // eslint-disable-next-line space-before-function-paren
     ofType(...types) {
         return (up) => {
             const matchTypes = types.map(type => type);
             return up.pipe(rx.filter((a) => matchTypes.some(matchType => a.t === matchType)));
         };
     }
-    // eslint-disable-next-line space-before-function-paren
     notOfType(...types) {
         return (up) => {
             const matchTypes = types.map(type => type);
@@ -246,7 +253,7 @@ exports.ControllerCore = ControllerCore;
  * this function returns the `actionName` part
  * @return undefined if current action doesn't have a valid "type" field
  */
-// eslint-disable-next-line space-before-function-paren
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 function nameOfAction(action) {
     // const match = /(?:#\d+\s+)?(\S+)$/.exec(action.t);
     // return (match ? match[1] : action.t) as keyof I;

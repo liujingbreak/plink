@@ -10,8 +10,8 @@ const tableFor = [
 export const flexBoxFac = borderFac.forExtend({
     name: 'complex-flex',
     tableFor
-}).defineReactor((init, opts) => {
-    const flex = flexFac.create(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.flex' : 'flexBox', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.flexContainer));
+}).defineReactor(({ init, setting: opts }) => {
+    const flex = flexFac.setting(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.flex' : 'flexBox', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.flexContainer)).create();
     const flexEvents = new rx.Subject();
     const border = init(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.border' : 'flexBox.border', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.border), flex);
     const { ft } = border;

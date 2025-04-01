@@ -51,7 +51,7 @@ function createPlinkPackageLookupService() {
             s.ft.pkgPathLenToPathMapChanged(true).dp(m);
         }));
     })));
-    r('fromTsconfig -> rootDir, pkgPathLenToPathMapChanged, packageToPathMap', s.pt.fromTsconfig.pipe(rx.map(([m, baseDir, json, _installDir]) => {
+    r('fromTsconfig -> rootDir, pkgPathLenToPathMapChanged, packageToPathMap', s.pt.fromTsconfig.pipe(rx.map(([m, baseDir, json]) => {
         var _a;
         s.ft.rootDir(baseDir).dp(m);
         pkgPathLenToPathMap = new Map();

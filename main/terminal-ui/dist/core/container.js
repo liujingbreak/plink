@@ -1,5 +1,3 @@
-/* eslint-disable multiline-ternary */
-/* eslint-disable array-bracket-newline */
 import * as rx from 'rxjs';
 import { mat4 } from 'gl-matrix';
 import { rectIntersection } from './canvas.js';
@@ -13,7 +11,7 @@ export const baseContainerFac = baseComponentFac.forExtend({
     debugExcludeTypes: ['ofCanvas', '_saveTransform', 'renderChild'
         // 'queryAbsBounding', 'didQueryAbsBounding'
     ]
-}).interceptorByType(ad => rx.merge(ad.at.setLayoutValid.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor(init => {
+}).interceptorByType(ad => rx.merge(ad.at.setLayoutValid.pipe(rx.distinctUntilChanged(({ p: [a] }, { p: [b] }) => a === b)), ad.ofOtherTypes())).defineReactor(({ init }) => {
     const service = init();
     const { r, ft, pt, table } = service;
     const children = [];
@@ -81,7 +79,7 @@ export const baseContainerFac = baseComponentFac.forExtend({
             return table.l.isLayoutDirty.pipe(rx.map(([, dirty]) => dirty), rx.take(1), rx.filter(d => d), rx.map(() => [m, canvas, trans]));
         }
         return rx.EMPTY;
-    }), rx.map(([m, canvas, trans], _idx) => {
+    }), rx.map(([m, canvas, trans]) => {
         ft.clear(canvas, trans).dp(m);
         ft.needRerender(true).dp(m);
     })));
@@ -145,12 +143,14 @@ export const baseContainerFac = baseComponentFac.forExtend({
             }
             return table.l.allDisplayChildren.pipe(rx.take(1), rx.mergeMap(([, chd]) => chd), rx.mergeMap(chr => chr.table.l.onBoundingBox.pipe(rx.take(1), rx.filter(([, bRect]) => {
                 return rectIntersection(rect, bRect) != null;
-            }), rx.map(() => chr))), rx.mergeMap(chr => chr.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(isContainer => {
+            }), rx.map(() => chr))), rx.mergeMap(chr => chr.table.l.isContainer.pipe(rx.take(1), rx.mergeMap(([, isContainer]) => {
                 if (isContainer) {
                     return chr.ft.findOverlaps(...rect)
                         .re(m).od(chr.pt.didFindOverlaps).pipe(rx.take(1), rx.map(([, chdOfChd]) => chdOfChd), rx.endWith([chr]));
                 }
-                return rx.of([chr]);
+                else {
+                    return rx.of([chr]);
+                }
             }))), rx.reduce((acc, it) => {
                 acc.push(...it);
                 return acc;
@@ -162,7 +162,7 @@ export const baseContainerFac = baseComponentFac.forExtend({
         rx.EMPTY :
         table.l.setLayoutCheck.pipe(rx.switchMap(([, target]) => target))), rx.map(([m]) => ft.isLayoutDirty(true).dp(m))));
     r('init', new rx.Observable(() => {
-        ft.requestReflowOn(pt.onSize.pipe(rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2)), pt.onChildPreferredSizeChange).dp();
+        ft.requestReflowOn(pt.onSize, pt.onChildPreferredSizeChange).dp();
         ft.isContainer(true).dp();
         ft.allChildren(children).dp();
         ft.onSize(0, 0).dp();

@@ -25,22 +25,24 @@ export class ActionDispenser<I> {
   static ofRxController<X>(control: RxController2<X>) {
     return new ActionDispenser<X>(control.action$);
   }
+
   /** you need explicitly specify generic type parameter of this function, it won't inference proper type itself
    * X - SimplexReactor or RxController2
    * */
   static ofAction$<X>(action$: rx.Observable<Action<any>>) {
     return new ActionDispenser<InferInterface<X>>(action$ as rx.Observable<Action<InferInterface<X>[keyof InferInterface<X>]>>);
   }
+
   /** Action observable streamby type */
   at: ActionByType<I>;
   /** Abbrevation of payloadByType */
   pt: PayloadByType<I>;
-  private actionByType: Map<string, [dispener: rx.Subject<Action<(...a: any[]) => any>>, outStream: rx.Observable<Action<(...a: any[]) => any>>]> = new Map();
+  private actionByType = new Map<string, [dispener: rx.Subject<Action<(...a: any[]) => any>>, outStream: rx.Observable<Action<(...a: any[]) => any>>]>();
   private countSubscriber = new rx.BehaviorSubject<number>(0);
-  private ofOtherTypesDispenser: rx.Subject<Action<unknown>> | undefined;
-  private ofOtherTypesStream: rx.Observable<Action<unknown>> | undefined;
+  private ofOtherTypesDispenser: rx.Subject<Action> | undefined;
+  private ofOtherTypesStream: rx.Observable<Action> | undefined;
 
-  constructor(source$: rx.Observable<Action<unknown>>) {
+  constructor(source$: rx.Observable<Action>) {
     const disconnectSignal = new rx.Subject<void>();
     const connectSignal = new rx.Subject<void>();
     connectSignal.pipe(
@@ -71,9 +73,9 @@ export class ActionDispenser<I> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     this.at = new Proxy(
-      {} as{[K in keyof I]: rx.Observable<Action<I[K]>>},
+      {} as {[K in keyof I]: rx.Observable<Action<I[K]>>},
       {
-        get(_target, type, _rec) {
+        get(_target, type) {
           return self.ofType(type as keyof I & string);
         },
         has(_target, key) {
@@ -88,7 +90,7 @@ export class ActionDispenser<I> {
     this.pt = new Proxy(
       {} as {[K in keyof I]: rx.Observable<InferMapParam<I[K]>>},
       {
-        get(_target, key, _rec) {
+        get(_target, key) {
           let p$ = payloadsByType.get(key);
           if (p$ == null) {
             const a$ = self.ofType(key as keyof I & string);
@@ -130,7 +132,7 @@ export class ActionDispenser<I> {
     return stream;
   }
 
-  ofOtherTypes(): rx.Observable<Action<unknown>> {
+  ofOtherTypes(): rx.Observable<Action> {
     if (this.ofOtherTypesStream)
       return this.ofOtherTypesStream;
     const dispenser$ = this.ofOtherTypesDispenser = new rx.Subject();

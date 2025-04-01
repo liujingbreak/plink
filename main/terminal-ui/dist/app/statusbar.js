@@ -8,7 +8,7 @@ const tableFor = [
 export const statusbarFac = borderFac.forExtend({
     name: 'statusbar',
     tableFor
-}).defineReactor((init, opts) => {
+}).defineReactor(({ init, setting: opts }) => {
     var _a, _b, _c, _d, _e, _f;
     const container = createFlexContainer(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : 'statusbar') + '.container' }));
     const statusbar = init(Object.assign(Object.assign({}, opts), { name: ((_b = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _b !== void 0 ? _b : 'statusbar') + '.border' }), container);
@@ -16,16 +16,16 @@ export const statusbarFac = borderFac.forExtend({
     statusbar.ft.setBorder('none').dp();
     statusbar.ft.setFlexShrink(0).dp();
     const { r, pt, ft, latest } = statusbar;
-    const labelScrollText = textFac.create('scroll', {
+    const labelScrollText = textFac.setting({
         // ...opts as any,
         name: ((_c = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _c !== void 0 ? _c : 'statusbar') + '.label'
-    });
-    const labelScrollValueR = textFac.create('0%', {
+    }).create('scroll');
+    const labelScrollValueR = textFac.setting({
         name: ((_d = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _d !== void 0 ? _d : 'statusbar') + '.v1'
-    });
-    const labelScrollValueC = textFac.create('0%', {
+    }).create('0%');
+    const labelScrollValueC = textFac.setting({
         name: ((_e = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _e !== void 0 ? _e : 'statusbar') + '.v2'
-    });
+    }).create('0%');
     const HELP_KEY_HINT = 'Press <Enter> for help';
     const labelKeypress = createTextWidget(HELP_KEY_HINT, Object.assign(Object.assign({}, opts), { name: ((_f = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _f !== void 0 ? _f : 'statusbar') + '.key' }));
     const customizedMsg = createTextWidget('', {
@@ -52,7 +52,7 @@ export const statusbarFac = borderFac.forExtend({
         labelScrollText.ft.setDisplay(need ? DisplayMode.visible : DisplayMode.none).dp(m);
     })))));
     r('trackKeypressService, keyEventServcie.onDisplayKeys, keyEventServcie.onInputCompleted -> onKeypressStatus', latest.trackKeypressService.pipe(rx.switchMap(([, keypress]) => {
-        return rx.merge(keypress.latest.onDisplayKeys.pipe(rx.map(([m, text, _isCompleted, isValid]) => {
+        return rx.merge(keypress.latest.onDisplayKeys.pipe(rx.map(([m, text, , isValid]) => {
             ft.onKeypressStatus(text, isValid).dp(m);
         })), keypress.pt.onExit.pipe(rx.map(([m]) => {
             ft.onKeypressStatus('Bye', true).dp(m);
@@ -88,6 +88,6 @@ export const statusbarFac = borderFac.forExtend({
     labelScrollText.ft.setPadding(0, 1, 0, 1).dp();
 });
 export function createStatusbar(opts) {
-    return statusbarFac.create(opts);
+    return statusbarFac.setting(opts).create();
 }
 //# sourceMappingURL=statusbar.js.map

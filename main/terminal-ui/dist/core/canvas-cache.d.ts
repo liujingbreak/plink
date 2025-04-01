@@ -24,6 +24,6 @@ export interface CanvasCacheEvents extends CanvasCacheInput {
     cache(lines: RedBlackTree<number, CacheLine>): SingleActionFactory;
 }
 export type CanvasCacheOptions = CoreOptions<CanvasCacheInput>;
-export declare const canvasCacheFac: BaseReactorFactory<CanvasCacheEvents, readonly ["cache"], [opts?: CoreOptions<CanvasCacheInput> | undefined]>;
+export declare const canvasCacheFac: BaseReactorFactory<CanvasCacheEvents, readonly ["cache"], CoreOptions<CanvasCacheEvents>, []>;
 export type CanvasCache = SimplexReactor<CanvasCacheEvents>;
 export {};

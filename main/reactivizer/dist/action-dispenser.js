@@ -79,7 +79,7 @@ class ActionDispenser {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
         this.at = new Proxy({}, {
-            get(_target, type, _rec) {
+            get(_target, type) {
                 return self.ofType(type);
             },
             has(_target, key) {
@@ -91,7 +91,7 @@ class ActionDispenser {
         });
         const payloadsByType = new Map();
         this.pt = new Proxy({}, {
-            get(_target, key, _rec) {
+            get(_target, key) {
                 let p$ = payloadsByType.get(key);
                 if (p$ == null) {
                     const a$ = self.ofType(key);

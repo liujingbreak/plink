@@ -53,7 +53,7 @@ const rtreeProm = import('rbush').then(({ default: RBush }) => {
 rx.from(rtreeProm).subscribe(MyRTreeConstructor$);
 /** If the calling module is CJS, the import will have to be async */
 export const waitForImport$ = MyRTreeConstructor$.pipe(rx.take(1));
-/** For CJS file to load and create an "rbush"'s r-tree instance*/
+/** For CJS file to load and create an "rbush"'s r-tree instance */
 export function createRtreeInstance() {
     const store = new rx.ReplaySubject(1);
     MyRTreeConstructor$.pipe(rx.map(cls => new cls())).subscribe(store);

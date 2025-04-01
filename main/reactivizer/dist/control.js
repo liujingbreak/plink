@@ -40,6 +40,7 @@ exports.GroupedRxController = exports.RxController = void 0;
 exports.serializeAction = serializeAction;
 exports.deserializeAction = deserializeAction;
 exports.mapActionToPayload = mapActionToPayload;
+/* eslint-disable @typescript-eslint/no-unused-vars */
 const rx = __importStar(require("rxjs"));
 const stream_core_1 = require("./stream-core");
 const context_operators_1 = require("./context-operators");
