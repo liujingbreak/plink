@@ -120,14 +120,15 @@ class SingleActionFactoryImpl {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return (0, utils_1.onAllSubscribed)(responses.map(r => {
                 var _a;
-                return this.control.doOperator$.pipe(rx.take(1), rx.switchMap(operator => r.pipe(operator(this.action), (0, context_operators_1.actionRelatedToAction)(this.action))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, this.opts.slowLog ? () => { this.opts.slowLog(this.action); } : () => {
+                return this.control.doOperator$.pipe(
+                // rx.take(1),
+                rx.switchMap(operator => r.pipe(operator(this.action), (0, context_operators_1.actionRelatedToAction)(this.action))), (0, utils_1.timeoutLog)((_a = this.opts.slowDispatchObservableTime) !== null && _a !== void 0 ? _a : 20000, this.opts.slowLog ? () => { this.opts.slowLog(this.action); } : () => {
                     // eslint-disable-next-line no-console
                     console.log('Slow observable action detected');
                 }));
             }), () => {
                 this.control.actionUpstream.next(this.action);
             }, () => {
-                console.log('-- cancelAction');
                 this.control.cancelAction(this.action);
             });
         }

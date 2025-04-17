@@ -174,7 +174,7 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return onAllSubscribed(
         (responses as readonly rx.Observable<T | TA[number]>[]).map(r => this.control.doOperator$.pipe(
-          rx.take(1),
+          // rx.take(1),
           rx.switchMap(operator => r.pipe(
             operator(this.action),
             actionRelatedToAction(this.action)
@@ -191,7 +191,6 @@ export class SingleActionFactoryImpl<I, K extends keyof I> implements SingleActi
           this.control.actionUpstream.next(this.action);
         },
         () => {
-          console.log('-- cancelAction');
           this.control.cancelAction(this.action);
         }
       ) as any;

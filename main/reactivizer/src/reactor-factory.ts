@@ -36,7 +36,7 @@ export interface DefContext<I, L extends readonly (keyof I)[], C> {
 }
 
 export class BaseReactorFactory<
-  I = Record<never, never>,
+  I = object,
   LI extends readonly (keyof I)[] | (keyof I)[] = readonly [],
   C = CoreOptions<I>,
   P extends [...unknown[]] = []
@@ -72,7 +72,7 @@ export class BaseReactorFactory<
   }
 
   forExtend<
-    I2 = Record<never, never>,
+    I2 = object,
     LI2 extends readonly(keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [],
     C2 = CoreOptions<I & I2>
   >(newOpts: SimplexReactorCfgOpts<I, I2, LI2>) {
@@ -142,7 +142,7 @@ export interface DerivedDefContext<I, L extends readonly (keyof I)[], Pb extends
       (options: CoreOptions<I & BaseActions<I>>, ...superParams: Pb) => SimplexReactor<I, L>;
 }
 export class DerivedReactorFactory<
-  I = Record<never, never>,
+  I = object,
   LI extends readonly (keyof I)[] = readonly [],
   Pb extends readonly [...unknown[]] = readonly [],
   C = CoreOptions<I>,
@@ -199,7 +199,7 @@ export class DerivedReactorFactory<
   }
 
   forExtend<
-    I2 = Record<never, never>,
+    I2 = object,
     LI2 extends readonly(keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [],
     C2 = CoreOptions<I & I2>
   >(newOpts: SimplexReactorCfgOpts<I, I2, LI2>) {

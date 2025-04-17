@@ -34,10 +34,9 @@ export declare function actionOfContext<T extends [ActionMeta, ...any[]] | Actio
  *  when the actions in parameters are dispatched in synchronous mode by producer.
  *  It is better the input parameters are "forked" controllers of producers.
 * */
-export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>): rx.Observable<[T, T2]>;
-export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>, T3 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>, relatedToRelated: rx.Observable<T3>): rx.Observable<[T, T2, T3]>;
-export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>, T3 extends [ActionMeta, ...any[]] | Action<any>, T4 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>, relatedToRelated: rx.Observable<T3>, relatedToRelatedToR: rx.Observable<T4>): rx.Observable<[T, T2, T3, T4]>;
-export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, T2 extends [ActionMeta, ...any[]] | Action<any>, T3 extends [ActionMeta, ...any[]] | Action<any>, T4 extends [ActionMeta, ...any[]] | Action<any>, T5 extends [ActionMeta, ...any[]] | Action<any>>(initial: rx.Observable<T>, related: rx.Observable<T2>, relatedToRelated: rx.Observable<T3>, relatedToRelatedToR: rx.Observable<T4>, relatedToR5: rx.Observable<T5>): rx.Observable<[T, T2, T3, T4, T5]>;
+export declare function combineLastestRelated<T extends [ActionMeta, ...any[]] | Action<any>, TA extends ([ActionMeta, ...any[]] | Action<any>)[]>(initial: rx.Observable<T>, ...related: {
+    [I in keyof TA]: rx.Observable<TA[I]>;
+}): rx.Observable<[T, ...TA]>;
 /**
  * Return an Rx operator function, the upstream Observable is so call "contextAction" stream (observable of initial actions),
  * the parameter `responding$` is observable of any actions which is supposed to be filtered by this operator,

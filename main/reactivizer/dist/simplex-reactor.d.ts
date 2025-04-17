@@ -7,6 +7,7 @@ import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
 import { ForkedPostRxController } from './forked-post-control';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType } from './inferred-types';
+import { SingleActionInterceptor } from './single-action-interceptor';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
     __onError(err: any): SingleActionFactory;
     __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
@@ -17,16 +18,6 @@ export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly
 declare const internalTableFor: readonly ["__onError", "__onDisposed"];
 type LE<LI extends readonly any[]> = LI[number] | (typeof internalTableFor)[number];
 export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<InferPayload<I[K]>>;
-type ObsInterceptorNextFn<I, K extends keyof I> = <N extends readonly ObsInterceptor<I, any>[]>(...params: [changedPayload: InferPayload<I[K]>, ...{
-    [NI in keyof N]: N[NI];
-}]) => {
-    [NI in keyof N]: N[NI];
-};
-export type ObsInterceptor<I, K extends keyof I> = rx.Observable<[
-    next: ObsInterceptorNextFn<I, K>,
-    ActionMeta,
-    ...InferPayload<I[K]>
-]>;
 export declare class SimplexReactor<I = Record<string, never>, LI extends readonly (keyof I)[] = []> {
     /** All catched error goes here, including those from "dispatchErrorFor" */
     error$: rx.Observable<readonly [error: any, label: string | null]>;
@@ -66,10 +57,7 @@ export declare class SimplexReactor<I = Record<string, never>, LI extends readon
      *    });
     **/
     preHooks: {
-        [K in keyof I]: (labelOrPreHook: string | PreActionHook<I, K>, preHook?: PreActionHook<I, K>) => () => void;
-    };
-    interceptors: {
-        [K in keyof I]: ObsInterceptor<I, K>;
+        [K in keyof I & string]: (labelOrPreHook: string | PreActionHook<I, K>, preHook?: PreActionHook<I, K>) => () => void;
     };
     /** shortcut to table.l */
     latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
@@ -100,13 +88,33 @@ export declare class SimplexReactor<I = Record<string, never>, LI extends readon
      * new forked stream controller, and be able to manipulate previously created reactors by "appendInterceptorToSrc()"
      **/
     forExtend(): DerivedSimplexReactor<I, LI>;
-    toExtend<I2 = Record<string, never>, LI2 extends readonly (keyof I2 | keyof I)[] = []>(): SimplexReactor<I & I2, readonly (LI2[number] | LI[number])[]>;
+    /**
+     * A compromise: returned instance has more features like "forkUpStream", "interceptSrcAction", but remains using same
+     * type "SimplexReactor" due to Typescript does not consider an extended SimplexReactor type is assignable to
+     * SimplexReactor<any, any>, mainly because it regards these properties whose type is like `keyof I` is not assignable to
+     * `{[key: string]: any}`. This blocks using another "extends" type to indicates differentiated features.
+    **/
+    toExtend<I2 = object, LI2 extends readonly (keyof I2 | keyof I)[] = []>(): SimplexReactor<I & I2, readonly (LI[number] | LI2[number])[]>;
     private addPreHook;
     /**
      * prepend action stream interceptor by action type, the interceptors will intercept messages
      * before they reach all inherited and current SimplexReactor
      */
     prependInterceptor(inter: ActionInterceptor<I>): () => void;
+    /**
+     * If current instance is an extending SimplexReactor, this method is same as
+     * ` return (this.s as ForkedRxController).interceptSrcAction(...params)`, otherwise
+     * This method is supposed to be invoked when a certain Action message is recieved, at the moment
+     * source forked stream has not recieved the same message yet.
+     * By executing this method, current action message will be prevented from being emitted to any subscribers
+     * of source forked stream.
+     *
+     * @return a function to continue emitting the intercepted message to source forked stream with chance to
+     *    change the payload content of the message.
+     *    the returned emit function has one parameter to allow replacing action payload, or executed with no
+     *    parameter to emit same action message without any change.
+   */
+    interceptBase<K extends keyof I = keyof I>(metaOrId: ActionMeta | ActionMeta['i']): SingleActionInterceptor<I, K>;
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to

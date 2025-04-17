@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {Interceptor, Action} from './stream-core';
+import {Interceptor, Action, ActionMeta, InferPayload} from './stream-core';
 import {RxController2} from './control2';
 
 /**
@@ -13,7 +13,11 @@ import {RxController2} from './control2';
  */
 export class ForkedRxController<I> extends RxController2<I> {
   /** Any message being emitted to this subject will not be dispatched to "base" controller */
-  forkedUpStream: rx.Subject<Action>;
+  forkUpStream: rx.Subject<Action>;
+  /** The forked base upStream, message being emitted to this stream will not go to any subscriber of current stream or controller */
+  srcUpStream: rx.Subject<Action>;
+  protected haltActionId: ActionMeta['i'] | null = null;
+  protected interceptableAction: Action | undefined;
   constructor(protected src: RxController2<I>) {
     super();
     this.config({...src.opts as any, debug: false});
@@ -23,18 +27,61 @@ export class ForkedRxController<I> extends RxController2<I> {
         return c;
       })
     ).subscribe(this.configChange);
-    this.forkedUpStream = this.actionUpstream;
+    this.forkUpStream = this.actionUpstream;
     this.actionUpstream = src.actionUpstream;
+    if (src instanceof ForkedRxController) {
+      console.log('-- fork of fork');
+      this.srcUpStream = src.srcUpStream;
+    } else {
+      this.srcUpStream = new rx.Subject<Action>();
+    }
     src.appendInterceptor(a$ => {
-      return a$.pipe(
-        rx.map(a => {
-          // Ensure forked one recieve earlier than current controller
-          this.forkedUpStream.next(a);
-          // Ensure action emitted later than prependController
-          return a;
-        })
+      return rx.merge(
+        a$.pipe(
+          rx.map(a => {
+            this.interceptableAction = a;
+            // Ensure forked one recieve earlier than current controller
+            this.forkUpStream.next(a);
+            // Ensure action emitted later than prependController
+            return a;
+          }),
+          rx.filter(a => a.i !== this.haltActionId)
+        ),
+        this.srcUpStream
       );
     });
+  }
+
+  /**
+   * This method is supposed to be invoked when a certain Action message is recieved, at the moment
+   * source forked stream has not recieved the same message yet.
+   * By executing this method, current action message will be prevented from being emitted to any subscribers
+   * of source forked stream.
+   *
+   * @return a function to continue emitting the intercepted message to source forked stream with chance to
+   *    change the payload content of the message.
+   *    the returned emit function has one parameter to allow replacing action payload, or executed with no
+   *    parameter to emit same action message without any change.
+  **/
+  interceptSrcAction<K extends keyof I>(metaOrId: ActionMeta | ActionMeta['i']): (...overridePayload: InferPayload<I[K]>) => void {
+    const actionId = typeof metaOrId === 'number' ? metaOrId : metaOrId.i;
+    if (actionId !== this.interceptableAction?.i) {
+      throw new Error(
+        `Current interceptable action is ${this.interceptableAction ? '[id: ' + this.interceptableAction.i + ', type: ' + this.interceptableAction.t + ']' : this.interceptableAction}, ` +
+        'which does not match action ID: ' + actionId
+      );
+    }
+    this.haltActionId = actionId;
+    return (...overridePayload: InferPayload<I[K]>) => {
+      this.srcUpStream.next(
+        overridePayload.length > 0 ?
+            {
+              ...this.interceptableAction!,
+              p: overridePayload
+            } :
+          this.interceptableAction!
+      );
+    };
   }
 
   /** @override */

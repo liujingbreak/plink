@@ -18,7 +18,7 @@ export interface DefContext<I, L extends readonly (keyof I)[], C> {
     /** construct service instance, including calling "super" service definition callback */
     init: C extends CoreOptions<any> ? (options?: CoreOptions<I & BaseActions<I>> | null) => SimplexReactor<I, L> : (options: CoreOptions<I & BaseActions<I>>) => SimplexReactor<I, L>;
 }
-export declare class BaseReactorFactory<I = Record<never, never>, LI extends readonly (keyof I)[] | (keyof I)[] = readonly [], C = CoreOptions<I>, P extends [...unknown[]] = []> implements ReactorFactory<I, LI, C, P> {
+export declare class BaseReactorFactory<I = object, LI extends readonly (keyof I)[] | (keyof I)[] = readonly [], C = CoreOptions<I>, P extends [...unknown[]] = []> implements ReactorFactory<I, LI, C, P> {
     #private;
     protoOptions: SimplexReactorOptions<I, LI>;
     private reactorDefinition;
@@ -33,7 +33,7 @@ export declare class BaseReactorFactory<I = Record<never, never>, LI extends rea
      * - it does not allow set property `tableFor` which changes the "shape" of the service
     **/
     setting(opt: C | null | undefined): this;
-    forExtend<I2 = Record<never, never>, LI2 extends readonly (keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [], C2 = CoreOptions<I & I2>>(newOpts: SimplexReactorCfgOpts<I, I2, LI2>): DerivedReactorFactory<I & I2, (LI[number] | LI2[number])[], P, C2, P>;
+    forExtend<I2 = object, LI2 extends readonly (keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [], C2 = CoreOptions<I & I2>>(newOpts: SimplexReactorCfgOpts<I, I2, LI2>): DerivedReactorFactory<I & I2, (LI[number] | LI2[number])[], P, C2, P>;
     interceptor(...interc: Interceptor[]): this;
     interceptorByType(inter: ActionInterceptor<I>): this;
     /** create SimplexReactor instance */
@@ -45,7 +45,7 @@ export interface DerivedDefContext<I, L extends readonly (keyof I)[], Pb extends
     /** construct service instance, including calling "super" service definition callback */
     init: C extends CoreOptions<any> ? (options?: CoreOptions<I & BaseActions<I>> | null, ...superParams: Pb) => SimplexReactor<I, L> : (options: CoreOptions<I & BaseActions<I>>, ...superParams: Pb) => SimplexReactor<I, L>;
 }
-export declare class DerivedReactorFactory<I = Record<never, never>, LI extends readonly (keyof I)[] = readonly [], Pb extends readonly [...unknown[]] = readonly [], C = CoreOptions<I>, P extends readonly [...unknown[]] = Pb> implements ReactorFactory<I, LI, C, P> {
+export declare class DerivedReactorFactory<I = object, LI extends readonly (keyof I)[] = readonly [], Pb extends readonly [...unknown[]] = readonly [], C = CoreOptions<I>, P extends readonly [...unknown[]] = Pb> implements ReactorFactory<I, LI, C, P> {
     #private;
     baseFactory: ReactorFactory<Record<string, any>, readonly any[], any, Pb>;
     private superConfigUpdate;
@@ -60,7 +60,7 @@ export declare class DerivedReactorFactory<I = Record<never, never>, LI extends 
     interceptorByType(inter: ActionInterceptor<I>): this;
     interceptorForBase(...interc: Interceptor[]): this;
     interceptorForBaseByType(interc: ActionInterceptor<I>): this;
-    forExtend<I2 = Record<never, never>, LI2 extends readonly (keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [], C2 = CoreOptions<I & I2>>(newOpts: SimplexReactorCfgOpts<I, I2, LI2>): DerivedReactorFactory<I & I2, (LI[number] | LI2[number])[], P, C2, P>;
+    forExtend<I2 = object, LI2 extends readonly (keyof I2 | keyof I)[] | (keyof I2 | keyof I)[] = readonly [], C2 = CoreOptions<I & I2>>(newOpts: SimplexReactorCfgOpts<I, I2, LI2>): DerivedReactorFactory<I & I2, (LI[number] | LI2[number])[], P, C2, P>;
     /** Mainly for setting debug options for later creating service instance.
      * Unlike consturctor parameter `superConfigUpdate`:
      * - this setting options will not be inherited by derived factory

@@ -15,8 +15,7 @@ export function actionRelatedToActionRelatives(actionOrMeta) {
     return function (up) {
         let isPayload;
         return up.pipe(rx.filter(a => {
-            if (isPayload == null)
-                isPayload = Array.isArray(a);
+            isPayload !== null && isPayload !== void 0 ? isPayload : (isPayload = Array.isArray(a));
             const m = isPayload ? a[0] : a;
             if (m.r == null || actionOrMeta.r == null)
                 return false;
@@ -45,8 +44,7 @@ export function actionRelatedToActionRelatives(actionOrMeta) {
 function createActRelationshipPredHelper() {
     let isPayload;
     return function (initialAct, related) {
-        if (isPayload == null)
-            isPayload = Array.isArray(related);
+        isPayload !== null && isPayload !== void 0 ? isPayload : (isPayload = Array.isArray(related));
         const m = isPayload ? related[0] : related;
         return (m.r != null && m.r === initialAct.i) || (Array.isArray(m.r) && m.r.some(r => r === initialAct.i));
     };
@@ -59,6 +57,21 @@ export function actionOfContext(actionOrMeta) {
         return rx.merge(actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta)) : rx.EMPTY, up.pipe(actionRelatedToActionRelatives(actionOrMeta)));
     };
 }
+/**
+ * Combine multiple observables of action or mapped payload to create an observable whose values are calculated from
+ * the input observables in form of a tuple like:
+ *
+ * When a, b, c earch one is corresponding value of observable of input parameters,
+ * if c is related to b and b is related to a (latter parameter is under context of preceding parameter presented action observable)
+ * i.e. `a.i` or `a[0].i` equals values of `b.r` or `b[0].r` and
+ *    `b.i` or `b[0].i` equals values of `c.r` or `c[0].r`
+ *    then `[a, b, c]` is in the returned observable
+ *
+ * > Caution
+ *  Be aware of "problem of synchronous observation and the order of subscription",
+ *  when the actions in parameters are dispatched in synchronous mode by producer.
+ *  It is better the input parameters are "forked" controllers of producers.
+* */
 export function combineLastestRelated(initial, ...related) {
     if (related.length === 0) {
         return initial.pipe(rx.map(a => [a]));

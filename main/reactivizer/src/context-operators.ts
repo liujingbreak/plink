@@ -21,8 +21,7 @@ export function actionRelatedToActionRelatives<T extends [ActionMeta, ...any[]] 
     let isPayload: boolean | undefined;
     return up.pipe(
       rx.filter(a => {
-        if (isPayload == null)
-          isPayload = Array.isArray(a);
+        isPayload ??= Array.isArray(a);
         const m = isPayload ? (a as [ActionMeta])[0] : a as Action<any>;
         if (m.r == null || actionOrMeta.r == null)
           return false;
@@ -50,8 +49,7 @@ export function actionRelatedToActionRelatives<T extends [ActionMeta, ...any[]] 
 function createActRelationshipPredHelper() {
   let isPayload: boolean | undefined;
   return function(initialAct: {i: ActionMeta['i']}, related: [ActionMeta, ...any[]] | Action<any>) {
-    if (isPayload == null)
-      isPayload = Array.isArray(related);
+    isPayload ??= Array.isArray(related);
     const m = isPayload ? (related as [ActionMeta])[0] : related as Action<any>;
     return (m.r != null && m.r === initialAct.i) || (
       Array.isArray(m.r) && m.r.some(r => r === initialAct.i));
@@ -62,7 +60,7 @@ function createActRelationshipPredHelper() {
  * Logically, the result stream is a union of actionRelatedToAction() and actionRelatedToActionRelatives()
  */
 export function actionOfContext<T extends [ActionMeta, ...any[]] | Action<any>>(actionOrMeta: {i?: ActionMeta['i']; r?: ActionMeta['r']}) {
-  return function(up : rx.Observable<T>) {
+  return function(up: rx.Observable<T>) {
     return rx.merge(
       actionOrMeta.i ? up.pipe(actionRelatedToAction(actionOrMeta as {i: ActionMeta['i']})) : rx.EMPTY,
       up.pipe(actionRelatedToActionRelatives(actionOrMeta))
@@ -87,50 +85,10 @@ export function actionOfContext<T extends [ActionMeta, ...any[]] | Action<any>>(
 * */
 export function combineLastestRelated<
   T extends [ActionMeta, ...any[]] | Action<any>,
-  T2 extends [ActionMeta, ...any[]] | Action<any>
+  TA extends ([ActionMeta, ...any[]] | Action<any>)[]
 >(
   initial: rx.Observable<T>,
-  related: rx.Observable<T2>
-): rx.Observable<[T, T2]>;
-export function combineLastestRelated<
-  T extends [ActionMeta, ...any[]] | Action<any>,
-  T2 extends [ActionMeta, ...any[]] | Action<any>,
-  T3 extends [ActionMeta, ...any[]] | Action<any>
->(
-  initial: rx.Observable<T>,
-  related: rx.Observable<T2>,
-  relatedToRelated: rx.Observable<T3>
-): rx.Observable<[T, T2, T3]>;
-export function combineLastestRelated<
-  T extends [ActionMeta, ...any[]] | Action<any>,
-  T2 extends [ActionMeta, ...any[]] | Action<any>,
-  T3 extends [ActionMeta, ...any[]] | Action<any>,
-  T4 extends [ActionMeta, ...any[]] | Action<any>
->(
-  initial: rx.Observable<T>,
-  related: rx.Observable<T2>,
-  relatedToRelated: rx.Observable<T3>,
-  relatedToRelatedToR: rx.Observable<T4>
-): rx.Observable<[T, T2, T3, T4]>;
-export function combineLastestRelated<
-  T extends [ActionMeta, ...any[]] | Action<any>,
-  T2 extends [ActionMeta, ...any[]] | Action<any>,
-  T3 extends [ActionMeta, ...any[]] | Action<any>,
-  T4 extends [ActionMeta, ...any[]] | Action<any>,
-  T5 extends [ActionMeta, ...any[]] | Action<any>
->(
-  initial: rx.Observable<T>,
-  related: rx.Observable<T2>,
-  relatedToRelated: rx.Observable<T3>,
-  relatedToRelatedToR: rx.Observable<T4>,
-  relatedToR5: rx.Observable<T5>
-): rx.Observable<[T, T2, T3, T4, T5]>;
-export function combineLastestRelated<
-  T extends [ActionMeta, ...any[]] | Action<any>,
-  TA extends [...([ActionMeta, ...any[]] | Action<any>)[]]
->(
-  initial: rx.Observable<T>,
-  ...related: rx.Observable<TA[number]>[]
+  ...related: {[I in keyof TA]: rx.Observable<TA[I]>}
 ): rx.Observable<[T, ...TA]> {
   if (related.length === 0) {
     return initial.pipe(

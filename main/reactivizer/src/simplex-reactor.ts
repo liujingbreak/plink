@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters */
 import * as rx from 'rxjs';
 import {Action, ActionMeta, ActionFunctions, InferMapParam, InferPayload, CoreOptions} from './stream-core';
 import {RxController2, ControllerBaseActions, ActionInterceptor} from './control2';
@@ -10,7 +9,7 @@ import {ForkedRxController} from './forked-control';
 import {ForkedPostRxController} from './forked-post-control';
 import {actionRelatedToAction} from './context-operators';
 import {InferFuncReturnEvents, ActionFactoryOfPlainType} from './inferred-types';
-import {onAllSubscribed} from './utils';
+import {SingleActionInterceptor} from './single-action-interceptor';
 
 export interface BaseActions<
   I = any,
@@ -29,20 +28,10 @@ type LE<LI extends readonly any[]> = LI[number] | (typeof internalTableFor)[numb
 let SEQ = new Date().getUTCMilliseconds();
 export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<InferPayload<I[K]>>;
 
-type ObsInterceptorNextFn<I, K extends keyof I> = <
-  N extends readonly ObsInterceptor<I, any>[],
->(...params: [changedPayload: InferPayload<I[K]>, ...{[NI in keyof N]: N[NI]}]) =>
-{[NI in keyof N]: N[NI]};
-
-export type ObsInterceptor<I, K extends keyof I> = rx.Observable<[
-  next: ObsInterceptorNextFn<I, K>,
-  ActionMeta,
-  ...InferPayload<I[K]>
-]>;
-
 export class SimplexReactor<
-  I = Record<string, never>,
-  LI extends readonly (keyof I)[] = []
+  I = object,
+  LI extends readonly (keyof I)[] = [],
+  BI = object
 > {
   /** All catched error goes here, including those from "dispatchErrorFor" */
   error$: rx.Observable<readonly [error: any, label: string | null]>;
@@ -81,11 +70,14 @@ export class SimplexReactor<
    *        removeHook();
    *    });
   **/
-  preHooks: {[K in keyof I]: (labelOrPreHook: string | PreActionHook<I, K>, preHook?: PreActionHook<I, K>) => () => void};
-  interceptors: {[K in keyof I]: ObsInterceptor<I, K>};
+  preHooks: {[K in keyof I & string]: (labelOrPreHook: string | PreActionHook<I, K>, preHook?: PreActionHook<I, K>) => () => void};
 
   /** shortcut to table.l */
   latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
+  /** Base stream controller from which current service derived,
+  * message being emitted through this controller will not be recieved by any subscriber/reactor of current service,
+  * only subscribers of extended service can recieve message */
+  base: RxController2<BI>;
   postBase: RxController2<I & BaseActions>;
   /** alias of postBase */
   p: RxController2<I & BaseActions>;
@@ -117,6 +109,7 @@ export class SimplexReactor<
     this.pt = this.s.pt;
     this.at = this.s.at;
     this.ft = this.s.ft;
+    this.base = this.s as typeof this.base;
     this.latest = this.table.l;
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -140,84 +133,6 @@ export class SimplexReactor<
       }
     });
 
-    this.interceptors = new Proxy({} as typeof this.interceptors, {
-      get(_target, key) {
-        return new rx.Observable<[
-          next: ObsInterceptorNextFn<I, keyof I>,
-          ActionMeta,
-          ...InferPayload<I[keyof I]>
-        ]>(s => {
-          console.log('-- intercept', key);
-          const removeInter$ = new rx.ReplaySubject<void>(1);
-          const remove = self.prependInterceptor(ad => rx.merge(
-            ad.at[key as keyof I].pipe(
-              rx.mergeMap(a => {
-                const next$ = new rx.Subject<InferPayload<I[keyof I]>>();
-                next$.subscribe(p => {
-                  console.log('-- subscribed next$ emits', p);
-                });
-                return rx.merge(
-                  next$.pipe(
-                    rx.take(1),
-                    rx.tap(p => {
-                      console.log('-- next$:', p);
-                    }),
-                    rx.map(p => ({...a, p}))
-                  ),
-                  new rx.Observable<never>(s0 => {
-                    s.next([
-                      (payload: InferPayload<I[keyof I]>, ...nextInterceptors: any[]) => {
-                        console.log('-- next called', ...payload);
-                        if (nextInterceptors.length == 0) {
-                          next$.next(payload);
-                          return [];
-                        }
-                        return onAllSubscribed(
-                          nextInterceptors,
-                          () => {
-                            console.log('-- all subscribed');
-                            next$.next(payload);
-                          }
-                        );
-                      },
-                      {i: a.i}, ...a.p
-                    ] as any);
-                    s0.complete();
-                  }),
-                  // remove event must be checked after next$ event, otherwise "remove" might happens earlier
-                  removeInter$.pipe(
-                    rx.map(() => {
-                      console.log('-- remove');
-                      remove();
-                    }),
-                    rx.ignoreElements()
-                  )
-                ).pipe(
-                  rx.catchError(err => {
-                    console.log('-- error', err);
-                    return rx.EMPTY;
-                  }),
-                  rx.finalize(() => {
-                    debugger;
-                    console.log('-- final');
-                  })
-                );
-              })
-            ),
-            ad.ofOtherTypes()
-          ));
-          return () => {
-            removeInter$.next();
-          };
-        });
-      },
-      has(_target, key) {
-        return typeof key === 'string';
-      },
-      ownKeys() {
-        return [];
-      }
-    });
     const internalMsgCtl = this.s as unknown as RxController2<BaseActions>;
     const doOperator = <A>(dispatchingAction: {i: ActionMeta['i']}) => (response$: rx.Observable<A>) => rx.merge(
       response$,
@@ -389,7 +304,7 @@ export class SimplexReactor<
       const latestAct = s.createAction(type as keyof I, p as any);
       latestAct.i = m.i;
       latestAct.r = m.r;
-      s.forkedUpStream.next(latestAct);
+      s.forkUpStream.next(latestAct);
     }
     this.pt = s.pt;
     this.ft = s.ft;
@@ -417,12 +332,23 @@ export class SimplexReactor<
     return this as unknown as DerivedSimplexReactor<I, LI>;
   }
 
+  /**
+   * A compromise: returned instance has more features like "forkUpStream", "interceptSrcAction", but remains using same
+   * type "SimplexReactor" due to Typescript does not consider an extended SimplexReactor type is assignable to
+   * SimplexReactor<any, any>, mainly because it regards these properties whose type is like `keyof I` is not assignable to
+   * `{[key: string]: any}`. This blocks using another "extends" type to indicates differentiated features.
+  **/
   toExtend<
-    I2 = Record<string, never>,
+    I2 = object,
     LI2 extends readonly (keyof I2 | keyof I)[] = []
   >() {
     const baseS = this.s;
-    this.s = new ForkedRxController<I & BaseActions>(baseS);
+    const self = this as unknown as SimplexReactor<I & I2, readonly (LI2[number] | LI[number])[], I>;
+    const fork = new ForkedRxController<I & BaseActions>(baseS);
+    this.s = fork;
+    self.base = new RxController2<I>();
+    self.base.actionUpstream = fork.srcUpStream;
+
     this.postBase = this.p = new ForkedPostRxController<I & BaseActions>(baseS);
     this.table = new ActionTable<I & BaseActions<I>, LE<LI>>(this.s, this.table);
     this.pt = this.s.pt;
@@ -440,7 +366,7 @@ export class SimplexReactor<
       )
     );
     this.s.doOperator$.next(doOperator);
-    return this as unknown as SimplexReactor<I & I2, readonly (LI2[number] | LI[number])[]>;
+    return self;
   }
 
   private addPreHook<K extends keyof I>(label: string, type: K, hook: PreActionHook<I, K>) {
@@ -462,6 +388,23 @@ export class SimplexReactor<
       const ac = ActionDispenser.ofAction$<RxController2<I>>(a$);
       return inter(ac);
     });
+  }
+
+  /**
+   * If current instance is an extending SimplexReactor, this method is same as
+   * ` return (this.s as ForkedRxController).interceptSrcAction(...params)`, otherwise
+   * This method is supposed to be invoked when a certain Action message is recieved, at the moment
+   * source forked stream has not recieved the same message yet.
+   * By executing this method, current action message will be prevented from being emitted to any subscribers
+   * of source forked stream.
+   *
+   * @return a function to continue emitting the intercepted message to source forked stream with chance to
+   *    change the payload content of the message.
+   *    the returned emit function has one parameter to allow replacing action payload, or executed with no
+   *    parameter to emit same action message without any change.
+ */
+  interceptBase<K extends keyof I = keyof I>(metaOrId: ActionMeta | ActionMeta['i']) {
+    return new SingleActionInterceptor<I, K>(this.s, typeof metaOrId === 'number' ? {i: metaOrId} : metaOrId);
   }
 
   /**
@@ -621,3 +564,4 @@ export interface DerivedSimplexReactor<
   /** alias of postBase */
   p: ForkedPostRxController<I & BaseActions>;
 }
+
