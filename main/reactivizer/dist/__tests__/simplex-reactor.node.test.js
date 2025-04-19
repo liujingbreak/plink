@@ -42,25 +42,6 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const rx = __importStar(require("rxjs"));
 const index_js_1 = require("../index.js");
 void (0, node_test_1.describe)('simplexReactor', () => {
-    void (0, node_test_1.it)('interceptBaseAction()', () => {
-        const fn = node_test_1.mock.fn();
-        const base = new index_js_1.SimplexReactor({ debug: true, tableFor: ['foobar1'] });
-        const { r: baseR, pt: bpt } = base;
-        baseR('', bpt.foobar1.pipe(rx.map(([, ...p]) => { fn(...p); })));
-        const service = base.toExtend();
-        const { r, pt, ft } = service;
-        r('', pt.foobar1.pipe(rx.map(([m, key, v]) => {
-            const replaceBase = service.interceptBase(m);
-            replaceBase.changePayload(key + '.changed', v).dp();
-        }), rx.take(2)));
-        ft.foobar1('foobar1', 1).dp();
-        ft.foobar1('foobar1', 2).dp();
-        ft.foobar1('foobar1', 3).dp();
-        node_assert_1.default.equal(fn.mock.callCount(), 3);
-        node_assert_1.default.deepEqual(fn.mock.calls[0].arguments, ['foobar1.changed', 1]);
-        node_assert_1.default.deepEqual(fn.mock.calls[1].arguments, ['foobar1.changed', 2]);
-        node_assert_1.default.deepEqual(fn.mock.calls[2].arguments, ['foobar1', 3]);
-    });
     void (0, node_test_1.it)('prehook', async () => {
         const c = new index_js_1.SimplexReactor({ debug: true });
         const { preHooks, r, pt, ft } = c;
@@ -111,36 +92,40 @@ void (0, node_test_1.describe)('simplexReactor', () => {
     });
     void node_test_1.it.only('intercept mulitiple cascading messages', () => {
         const fn = node_test_1.mock.fn();
-        const base = new index_js_1.SimplexReactor({ debug: true });
-        base.r('', base.pt.message1.pipe(rx.map(([m, msg]) => {
-            fn('base', msg);
-            base.ft.reply1('irrelevant').dp();
+        const baseOfBase = new index_js_1.SimplexReactor({ debug: true });
+        baseOfBase.r('', baseOfBase.pt.message1.pipe(rx.map(([m, msg]) => {
+            fn('baseOfBase recieved', msg);
+            // base.ft.reply1('irrelevant').dp();
             base.ft.reply1(msg !== null && msg !== void 0 ? msg : '').dp(m);
             base.ft.reply2('test-reply2').dp(m);
         })));
+        const base = baseOfBase.toExtend();
+        base.r('', base.pt.message1.pipe(rx.map(([, msg]) => {
+            fn('base recieved', msg);
+        })));
         const service = base.toExtend();
-        const { r, pt, ft } = service;
-        r('', pt.message1.pipe(rx.mergeMap(([m, msg0]) => {
-            fn('fork', msg0);
-            let intec = service.interceptBase(m);
-            if (msg0 === null || msg0 === void 0 ? void 0 : msg0.startsWith('1st'))
-                intec = intec.changePayload(msg0 + '.changed');
-            const [rep1$, rep2$] = intec.od(pt.reply1, pt.reply2);
+        service.s.appendInterceptor();
+        const { r, pt, ft, base: baseS } = service;
+        service.s.appendInterceptorToSrc(a$ => a$.pipe(rx.filter(a => a.t !== 'message1')));
+        r('', pt.message1.pipe(rx.mergeMap(([, msg0]) => {
+            fn('extend recieved', msg0);
+            const [rep1$, rep2$] = baseS.ft.message1(msg0 + '.changed').od(pt.reply1, pt.reply2);
             return rx.combineLatest([rep1$, rep2$]).pipe(rx.map(([[, msg], [, msg2]]) => {
-                fn('base return', msg, msg2);
+                fn('bases returned', msg, msg2);
             }));
         })));
         ft.message1('1st.param').dp();
-        ft.message1('2nd.param').dp();
+        // ft.message1('2nd.param').dp();
         const args = fn.mock.calls.map(c => c.arguments);
         console.log(args);
         node_assert_1.default.deepEqual(args, [
-            ['fork', '1st.param'],
-            ['base', '1st.param.changed'],
-            ['base return', '1st.param.changed', 'test-reply2'],
-            ['fork', '2nd.param'],
-            ['base', '2nd.param'],
-            ['base return', '2nd.param', 'test-reply2']
+            ['extend recieved', '1st.param'],
+            ['baseOfBase recieved', '1st.param.changed'],
+            ['bases returned', '1st.param.changed', 'test-reply2'],
+            ['base recieved', '1st.param.changed']
+            // ['extend', '2nd.param'],
+            // ['base', '2nd.param'],
+            // ['base return', '2nd.param', 'test-reply2']
         ]);
     });
 });

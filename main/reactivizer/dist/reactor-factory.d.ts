@@ -68,7 +68,7 @@ export declare class DerivedReactorFactory<I = object, LI extends readonly (keyo
     **/
     setting(opt: C | null | undefined): this;
     /** create SimplexReactor instance */
-    create(...params: P): SimplexReactor<I, LI>;
+    create(...params: P): SimplexReactor<I, LI, object>;
     isFactoryOf(svc: SimplexReactor<any, any>): boolean;
 }
 /** Get type "CoreOptions" from BaseReactorFactory or DerivedReactorFactory */

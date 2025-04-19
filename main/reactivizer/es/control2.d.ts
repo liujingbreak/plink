@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import { Action, InferPayload, ActionMeta, ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam } from './stream-core';
+import { Action, InferPayload, ActionMeta, Interceptor, ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam } from './stream-core';
 import { PayloadByType, ActionByType } from './inferred-types';
 import { ActionDataTable } from './action-table';
 import { ActionDispenser } from './action-dispenser';
@@ -17,10 +17,7 @@ export declare class RxController2<I> extends ControllerCore<I> {
     pt: PayloadByType<I & ControllerBaseActions>;
     /** Action observable streamby type */
     at: ActionByType<I & ControllerBaseActions>;
-    /** Action factory by type */
-    get ft(): I & ControllerBaseActions;
-    private ftProxy;
-    private factories;
+    ft: I & ControllerBaseActions;
     /**
      * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
      * */
@@ -64,6 +61,13 @@ export declare class RxController2<I> extends ControllerCore<I> {
      * Use forkController() instead */
     prependController(): ForkedRxControllerConst<I>;
     forkPostController(): forkPost.ForkedPostRxController<I>;
+    /**
+     * If current instance is ForkedRxController,
+     * append interceptor to all source controllers, otherwise do nothing.
+     * ForkedRxController overrides this method
+     * @returns a function to remove added interceptors
+    **/
+    appendInterceptorToSrc(..._interceptors: Interceptor[]): () => void;
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy<K>(keySelector: (action: Action) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController2<I, K>, allGroups: Map<K, GroupedRxController2<I, K>>]>;
     /**

@@ -43,15 +43,21 @@ const action_table_1 = require("./action-table");
 const action_dispenser_1 = require("./action-dispenser");
 const action_factory_1 = require("./action-factory");
 class RxController2 extends stream_core_1.ControllerCore {
-    /** Action factory by type */
-    get ft() {
-        if (this.ftProxy)
-            return this.ftProxy;
-        const factories = this.factories;
-        const opts = this.opts;
+    constructor(opts) {
+        super(Object.assign(Object.assign({}, opts), { debugExcludeTypes: (opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) ?
+                ['__cancel', ...opts.debugExcludeTypes] :
+                ['__cancel'] }));
+        /**
+         * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
+         * */
+        this.doOperator$ = new rx.BehaviorSubject(() => input => input);
+        const actionDispenseByType = action_dispenser_1.ActionDispenser.ofRxController(this);
+        this.at = actionDispenseByType.at;
+        this.pt = actionDispenseByType.pt;
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const control = this;
-        this.ftProxy = new Proxy({}, {
+        const factories = new Map();
+        this.ft = new Proxy({}, {
             get(_target, key) {
                 if (factories.has(key)) {
                     return factories.get(key);
@@ -60,7 +66,7 @@ class RxController2 extends stream_core_1.ControllerCore {
                     return new action_factory_1.SingleActionFactoryImpl(key, args, control, {
                         slowLog(a) {
                             const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key} #${a.i}"`;
-                            if (opts.log) {
+                            if (opts === null || opts === void 0 ? void 0 : opts.log) {
                                 opts.log(msg);
                             }
                         }
@@ -76,20 +82,6 @@ class RxController2 extends stream_core_1.ControllerCore {
                 return Object.keys(control.at);
             }
         });
-        return this.ftProxy;
-    }
-    constructor(opts) {
-        super(Object.assign(Object.assign({}, opts), { debugExcludeTypes: (opts === null || opts === void 0 ? void 0 : opts.debugExcludeTypes) ?
-                ['__cancel', ...opts.debugExcludeTypes] :
-                ['__cancel'] }));
-        this.factories = new Map();
-        /**
-         * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
-         * */
-        this.doOperator$ = new rx.BehaviorSubject(() => input => input);
-        const actionDispenseByType = action_dispenser_1.ActionDispenser.ofRxController(this);
-        this.at = actionDispenseByType.at;
-        this.pt = actionDispenseByType.pt;
     }
     /**
      * This function return the same message observable of `pt.__cancel.pipe(actionRelatedToAction(actionMeta))`.
@@ -140,6 +132,17 @@ class RxController2 extends stream_core_1.ControllerCore {
     forkPostController() {
         const { ForkedPostRxController } = require('./forked-post-control');
         return new ForkedPostRxController(this);
+    }
+    /**
+     * If current instance is ForkedRxController,
+     * append interceptor to all source controllers, otherwise do nothing.
+     * ForkedRxController overrides this method
+     * @returns a function to remove added interceptors
+    **/
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    appendInterceptorToSrc(..._interceptors) {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        return () => { };
     }
     /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
     groupControllerBy(keySelector, groupedCtlOptionsFn) {

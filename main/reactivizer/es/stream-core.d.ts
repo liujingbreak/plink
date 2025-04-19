@@ -46,6 +46,7 @@ export declare const has: (v: PropertyKey) => boolean;
 export type Interceptor = (up: rx.Observable<Action>) => rx.Observable<Action>;
 export declare class ControllerCore<I> {
     actionUpstream: rx.Subject<Action<unknown>>;
+    _noFilterUpstream: rx.Subject<Action<unknown>>;
     /** Insert action "interceptor" operator function
      */
     logPrefix: string;

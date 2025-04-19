@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
-import {Action, InferPayload, ActionMeta, assignActionReferParam,
+import {Action, InferPayload, ActionMeta, assignActionReferParam, Interceptor,
   ArrayOrTuple, ControllerCore, CoreOptions, InferMapParam} from './stream-core';
 import {PayloadByType, ActionByType} from './inferred-types';
 import {actionRelatedToAction} from './context-operators';
@@ -24,45 +24,8 @@ export class RxController2<I> extends ControllerCore<I> {
   pt: PayloadByType<I & ControllerBaseActions>;
   /** Action observable streamby type */
   at: ActionByType<I & ControllerBaseActions>;
-  /** Action factory by type */
-  get ft(): I & ControllerBaseActions {
-    if (this.ftProxy)
-      return this.ftProxy;
-    const factories = this.factories;
-    const opts = this.opts;
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const control = this;
-    this.ftProxy = new Proxy({}, {
-      get(_target, key) {
-        if (factories.has(key)) {
-          return factories.get(key);
-        }
-        const fn = (...args: InferPayload<I[keyof I]>): SingleActionFactory => {
-          return new SingleActionFactoryImpl(key as keyof I, args, control, {
-            slowLog(a) {
-              const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key as string} #${a.i}"`;
-              if (opts.log) {
-                opts!.log(msg);
-              }
-            }
-          });
-        };
-        factories.set(key, fn);
-        return fn;
-      },
 
-      has(_target, key) {
-        return Object.prototype.hasOwnProperty.call(control.at, key);
-      },
-      ownKeys() {
-        return Object.keys(control.at);
-      }
-    }) as I & ControllerBaseActions;
-    return this.ftProxy;
-  }
-
-  private ftProxy: I & ControllerBaseActions | undefined;
-  private factories = new Map<string | symbol, (...args: any[]) => any>();
+  ft: I & ControllerBaseActions;
   /**
    * you don't need to use this Subject directly, it is meant to be extended by Reactivizer internally
    * */
@@ -80,6 +43,35 @@ export class RxController2<I> extends ControllerCore<I> {
     const actionDispenseByType = ActionDispenser.ofRxController(this as RxController2<I & ControllerBaseActions>);
     this.at = actionDispenseByType.at;
     this.pt = actionDispenseByType.pt;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const control = this;
+    const factories = new Map<string | symbol, (...args: any[]) => any>();
+    this.ft = new Proxy({} as I & ControllerBaseActions, {
+      get(_target, key) {
+        if (factories.has(key)) {
+          return factories.get(key);
+        }
+        const fn = (...args: InferPayload<I[keyof I]>): SingleActionFactory => {
+          return new SingleActionFactoryImpl(key as keyof I, args, control, {
+            slowLog(a) {
+              const msg = `Detected a slow responding message of dispatched action of "${control.logPrefix} ${key as string} #${a.i}"`;
+              if (opts?.log) {
+                opts.log(msg);
+              }
+            }
+          });
+        };
+        factories.set(key, fn);
+        return fn;
+      },
+
+      has(_target, key) {
+        return Object.prototype.hasOwnProperty.call(control.at, key);
+      },
+      ownKeys() {
+        return Object.keys(control.at);
+      }
+    });
   }
 
   /**
@@ -137,6 +129,18 @@ export class RxController2<I> extends ControllerCore<I> {
   forkPostController() {
     const {ForkedPostRxController} = require('./forked-post-control') as typeof forkPost;
     return new ForkedPostRxController<I>(this);
+  }
+
+  /**
+   * If current instance is ForkedRxController,
+   * append interceptor to all source controllers, otherwise do nothing.
+   * ForkedRxController overrides this method
+   * @returns a function to remove added interceptors
+  **/
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  appendInterceptorToSrc(..._interceptors: Interceptor[]) {
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    return () => {};
   }
 
   /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */

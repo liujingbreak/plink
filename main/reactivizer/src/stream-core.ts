@@ -62,6 +62,7 @@ export type Interceptor = (up: rx.Observable<Action>) => rx.Observable<Action>;
 
 export class ControllerCore<I> {
   actionUpstream = new rx.Subject<Action>();
+  _noFilterUpstream = new rx.Subject<Action>();
   /** Insert action "interceptor" operator function
    */
   logPrefix = '';
@@ -141,9 +142,12 @@ export class ControllerCore<I> {
       rx.switchMap(() => {
         return this.interceptorList$.pipe(
           rx.switchMap(interceptors => {
-            return interceptors.length > 0 ? upstream.pipe(
-              ...(interceptors as [Interceptor]),
-            ) : upstream;
+            return rx.merge(
+              this._noFilterUpstream,
+              interceptors.length > 0 ? upstream.pipe(
+                ...(interceptors as [Interceptor]),
+              ) : upstream
+            );
           })
         );
       }),

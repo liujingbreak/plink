@@ -5,7 +5,6 @@ import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
 import { ForkedPostRxController } from './forked-post-control';
 import { actionRelatedToAction } from './context-operators';
-import { SingleActionInterceptor } from './single-action-interceptor';
 const baseActionTypeSet = new Set(['__onError', '__onDisposed', '__cancel', '__config']);
 const internalTableFor = ['__onError', '__onDisposed'];
 let SEQ = new Date().getUTCMilliseconds();
@@ -32,6 +31,7 @@ export class SimplexReactor {
         this.pt = this.s.pt;
         this.at = this.s.at;
         this.ft = this.s.ft;
+        this.base = this.s;
         this.latest = this.table.l;
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
@@ -196,7 +196,7 @@ export class SimplexReactor {
         return this;
     }
     /**
-     * A compromise: returned instance has more features like "forkUpStream", "interceptSrcAction", but remains using same
+     * A compromise: returned instance has more features like "forkUpStream", but remains using same
      * type "SimplexReactor" due to Typescript does not consider an extended SimplexReactor type is assignable to
      * SimplexReactor<any, any>, mainly because it regards these properties whose type is like `keyof I` is not assignable to
      * `{[key: string]: any}`. This blocks using another "extends" type to indicates differentiated features.
@@ -204,7 +204,12 @@ export class SimplexReactor {
     toExtend() {
         const baseS = this.s;
         const self = this;
-        this.s = new ForkedRxController(baseS);
+        const fork = new ForkedRxController(baseS);
+        this.s = fork;
+        const baseNoFilter = new RxController2();
+        baseNoFilter.doOperator$.next(fork.doOperator$.getValue());
+        baseNoFilter.actionUpstream = fork.srcUpStream;
+        self.base = baseNoFilter;
         this.postBase = this.p = new ForkedPostRxController(baseS);
         this.table = new ActionTable(this.s, this.table);
         this.pt = this.s.pt;
@@ -236,22 +241,6 @@ export class SimplexReactor {
             const ac = ActionDispenser.ofAction$(a$);
             return inter(ac);
         });
-    }
-    /**
-     * If current instance is an extending SimplexReactor, this method is same as
-     * ` return (this.s as ForkedRxController).interceptSrcAction(...params)`, otherwise
-     * This method is supposed to be invoked when a certain Action message is recieved, at the moment
-     * source forked stream has not recieved the same message yet.
-     * By executing this method, current action message will be prevented from being emitted to any subscribers
-     * of source forked stream.
-     *
-     * @return a function to continue emitting the intercepted message to source forked stream with chance to
-     *    change the payload content of the message.
-     *    the returned emit function has one parameter to allow replacing action payload, or executed with no
-     *    parameter to emit same action message without any change.
-   */
-    interceptBase(metaOrId) {
-        return new SingleActionInterceptor(this.s, typeof metaOrId === 'number' ? { i: metaOrId } : metaOrId);
     }
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.

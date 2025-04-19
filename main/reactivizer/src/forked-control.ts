@@ -1,5 +1,5 @@
 import * as rx from 'rxjs';
-import {Interceptor, Action, ActionMeta, InferPayload} from './stream-core';
+import {Interceptor, Action} from './stream-core';
 import {RxController2} from './control2';
 
 /**
@@ -14,10 +14,8 @@ import {RxController2} from './control2';
 export class ForkedRxController<I> extends RxController2<I> {
   /** Any message being emitted to this subject will not be dispatched to "base" controller */
   forkUpStream: rx.Subject<Action>;
-  /** The forked base upStream, message being emitted to this stream will not go to any subscriber of current stream or controller */
+  /** The forked base upStream, message being emitted to this stream will not be revieved by any subscriber of current stream or controller */
   srcUpStream: rx.Subject<Action>;
-  protected haltActionId: ActionMeta['i'] | null = null;
-  protected interceptableAction: Action | undefined;
   constructor(protected src: RxController2<I>) {
     super();
     this.config({...src.opts as any, debug: false});
@@ -30,58 +28,24 @@ export class ForkedRxController<I> extends RxController2<I> {
     this.forkUpStream = this.actionUpstream;
     this.actionUpstream = src.actionUpstream;
     if (src instanceof ForkedRxController) {
-      console.log('-- fork of fork');
-      this.srcUpStream = src.srcUpStream;
-    } else {
       this.srcUpStream = new rx.Subject<Action>();
+      this.srcUpStream.pipe(
+        rx.tap(src.srcUpStream),
+        rx.tap(src._noFilterUpstream)
+      ).subscribe();
+    } else {
+      this.srcUpStream = src._noFilterUpstream;
     }
     src.appendInterceptor(a$ => {
-      return rx.merge(
-        a$.pipe(
-          rx.map(a => {
-            this.interceptableAction = a;
-            // Ensure forked one recieve earlier than current controller
-            this.forkUpStream.next(a);
-            // Ensure action emitted later than prependController
-            return a;
-          }),
-          rx.filter(a => a.i !== this.haltActionId)
-        ),
-        this.srcUpStream
+      return a$.pipe(
+        rx.map(a => {
+          // Ensure forked one recieve earlier than current controller
+          this.forkUpStream.next(a);
+          // Ensure action emitted later than prependController
+          return a;
+        })
       );
     });
-  }
-
-  /**
-   * This method is supposed to be invoked when a certain Action message is recieved, at the moment
-   * source forked stream has not recieved the same message yet.
-   * By executing this method, current action message will be prevented from being emitted to any subscribers
-   * of source forked stream.
-   *
-   * @return a function to continue emitting the intercepted message to source forked stream with chance to
-   *    change the payload content of the message.
-   *    the returned emit function has one parameter to allow replacing action payload, or executed with no
-   *    parameter to emit same action message without any change.
-  **/
-  interceptSrcAction<K extends keyof I>(metaOrId: ActionMeta | ActionMeta['i']): (...overridePayload: InferPayload<I[K]>) => void {
-    const actionId = typeof metaOrId === 'number' ? metaOrId : metaOrId.i;
-    if (actionId !== this.interceptableAction?.i) {
-      throw new Error(
-        `Current interceptable action is ${this.interceptableAction ? '[id: ' + this.interceptableAction.i + ', type: ' + this.interceptableAction.t + ']' : this.interceptableAction}, ` +
-        'which does not match action ID: ' + actionId
-      );
-    }
-    this.haltActionId = actionId;
-    return (...overridePayload: InferPayload<I[K]>) => {
-      this.srcUpStream.next(
-        overridePayload.length > 0 ?
-            {
-              ...this.interceptableAction!,
-              p: overridePayload
-            } :
-          this.interceptableAction!
-      );
-    };
   }
 
   /** @override */
@@ -98,7 +62,7 @@ export class ForkedRxController<I> extends RxController2<I> {
    * @returns a function to remove added interceptors
   **/
   appendInterceptorToSrc(...interceptors: Interceptor[]) {
-    if (isForked(this.src))
+    if (this.src instanceof ForkedRxController)
       this.src.appendInterceptorToSrc(...interceptors);
     this.src.appendInterceptor(...interceptors);
     return () => {
@@ -107,13 +71,9 @@ export class ForkedRxController<I> extends RxController2<I> {
   }
 
   removeInterceptorFromSrc(...interceptors: Interceptor[]) {
-    if (isForked(this.src))
+    if (this.src instanceof ForkedRxController)
       this.src.removeInterceptorFromSrc(...interceptors);
     this.src.removeInterceptor(...interceptors);
   }
 }
 
-export function isForked<I>(t: RxController2<I>): t is ForkedRxController<I> {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return (t as unknown as ForkedRxController<any>).appendInterceptorToSrc != null;
-}

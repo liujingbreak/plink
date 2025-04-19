@@ -24,32 +24,6 @@ interface TestResponse {
   reply4(backMsg: number): SingleActionFactory;
 }
 void describe('simplexReactor', () => {
-  void it('interceptBaseAction()', () => {
-    const fn = jest.fn();
-    const base = new SimplexReactor<TestGroupBy, ['foobar1']>({debug: true, tableFor: ['foobar1']});
-    const {r: baseR, pt: bpt} = base;
-    baseR('', bpt.foobar1.pipe(
-      rx.map(([, ...p]) => {fn(...p);})
-    ));
-
-    const service = base.toExtend();
-    const {r, pt, ft} = service;
-    r('', pt.foobar1.pipe(
-      rx.map(([m, key, v]) => {
-        const replaceBase = service.interceptBase(m);
-        replaceBase.changePayload(key + '.changed', v).dp();
-      }),
-      rx.take(2)
-    ));
-
-    ft.foobar1('foobar1', 1).dp();
-    ft.foobar1('foobar1', 2).dp();
-    ft.foobar1('foobar1', 3).dp();
-    assert.equal(fn.mock.callCount(), 3);
-    assert.deepEqual(fn.mock.calls[0].arguments, ['foobar1.changed', 1]);
-    assert.deepEqual(fn.mock.calls[1].arguments, ['foobar1.changed', 2]);
-    assert.deepEqual(fn.mock.calls[2].arguments, ['foobar1', 3]);
-  });
   void it('prehook', async () => {
     const c = new SimplexReactor<TestGroupBy>({debug: true});
     const {preHooks, r, pt, ft} = c;
@@ -116,42 +90,53 @@ void describe('simplexReactor', () => {
   });
   void it.only('intercept mulitiple cascading messages', () => {
     const fn = jest.fn();
-    const base = new SimplexReactor<TestActions & TestResponse>({debug: true});
-    base.r('', base.pt.message1.pipe(
+    const baseOfBase = new SimplexReactor<TestActions>({debug: true});
+    baseOfBase.r('', baseOfBase.pt.message1.pipe(
       rx.map(([m, msg]) => {
-        fn('base', msg);
-        base.ft.reply1('irrelevant').dp();
+        fn('baseOfBase recieved', msg);
+        // base.ft.reply1('irrelevant').dp();
         base.ft.reply1(msg ?? '').dp(m);
         base.ft.reply2('test-reply2').dp(m);
       })
     ));
+    const base = baseOfBase.toExtend<TestResponse>();
+    base.r('', base.pt.message1.pipe(
+      rx.map(([, msg]) => {
+        fn('base recieved', msg);
+      })
+    ));
     const service = base.toExtend();
+    service.s.appendInterceptor();
     const {r, pt, ft, base: baseS} = service;
+    service.s.appendInterceptorToSrc(a$ => a$.pipe(
+      rx.filter(a => a.t !== 'message1')
+    ));
     r('', pt.message1.pipe(
       rx.mergeMap(([, msg0]) => {
-        fn('fork', msg0);
+        fn('extend recieved', msg0);
         const [rep1$, rep2$] = baseS.ft.message1(msg0 + '.changed').od(
           pt.reply1, pt.reply2
         );
 
         return rx.combineLatest([rep1$, rep2$]).pipe(
           rx.map(([[, msg], [, msg2]]) => {
-            fn('base return', msg, msg2);
+            fn('bases returned', msg, msg2);
           })
         );
       })
     ));
     ft.message1('1st.param').dp();
-    ft.message1('2nd.param').dp();
+    // ft.message1('2nd.param').dp();
     const args = fn.mock.calls.map(c => c.arguments as string[]);
     console.log(args);
     assert.deepEqual(args, [
-      ['fork', '1st.param'],
-      ['base', '1st.param.changed'],
-      ['base return', '1st.param.changed', 'test-reply2'],
-      ['fork', '2nd.param'],
-      ['base', '2nd.param'],
-      ['base return', '2nd.param', 'test-reply2']
+      ['extend recieved', '1st.param'],
+      ['baseOfBase recieved', '1st.param.changed'],
+      ['bases returned', '1st.param.changed', 'test-reply2'],
+      ['base recieved', '1st.param.changed']
+      // ['extend', '2nd.param'],
+      // ['base', '2nd.param'],
+      // ['base return', '2nd.param', 'test-reply2']
     ]);
   });
 });

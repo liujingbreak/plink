@@ -9,7 +9,6 @@ import {ForkedRxController} from './forked-control';
 import {ForkedPostRxController} from './forked-post-control';
 import {actionRelatedToAction} from './context-operators';
 import {InferFuncReturnEvents, ActionFactoryOfPlainType} from './inferred-types';
-import {SingleActionInterceptor} from './single-action-interceptor';
 
 export interface BaseActions<
   I = any,
@@ -76,8 +75,11 @@ export class SimplexReactor<
   latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
   /** Base stream controller from which current service derived,
   * message being emitted through this controller will not be recieved by any subscriber/reactor of current service,
-  * only subscribers of extended service can recieve message */
-  base: RxController2<BI>;
+  * only subscribers of extended service can recieve message.
+  * Be aware:
+  *     this property will change after `this.toExtend()` is called on current instance
+  */
+  base: {ft: BI & ControllerBaseActions};
   postBase: RxController2<I & BaseActions>;
   /** alias of postBase */
   p: RxController2<I & BaseActions>;
@@ -109,7 +111,7 @@ export class SimplexReactor<
     this.pt = this.s.pt;
     this.at = this.s.at;
     this.ft = this.s.ft;
-    this.base = this.s as typeof this.base;
+    this.base = this.s as unknown as typeof this.base;
     this.latest = this.table.l;
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -333,7 +335,7 @@ export class SimplexReactor<
   }
 
   /**
-   * A compromise: returned instance has more features like "forkUpStream", "interceptSrcAction", but remains using same
+   * A compromise: returned instance has more features like "forkUpStream", but remains using same
    * type "SimplexReactor" due to Typescript does not consider an extended SimplexReactor type is assignable to
    * SimplexReactor<any, any>, mainly because it regards these properties whose type is like `keyof I` is not assignable to
    * `{[key: string]: any}`. This blocks using another "extends" type to indicates differentiated features.
@@ -346,8 +348,10 @@ export class SimplexReactor<
     const self = this as unknown as SimplexReactor<I & I2, readonly (LI2[number] | LI[number])[], I>;
     const fork = new ForkedRxController<I & BaseActions>(baseS);
     this.s = fork;
-    self.base = new RxController2<I>();
-    self.base.actionUpstream = fork.srcUpStream;
+    const baseNoFilter = new RxController2<I>();
+    baseNoFilter.doOperator$.next(fork.doOperator$.getValue());
+    baseNoFilter.actionUpstream = fork.srcUpStream;
+    self.base = baseNoFilter;
 
     this.postBase = this.p = new ForkedPostRxController<I & BaseActions>(baseS);
     this.table = new ActionTable<I & BaseActions<I>, LE<LI>>(this.s, this.table);
@@ -388,23 +392,6 @@ export class SimplexReactor<
       const ac = ActionDispenser.ofAction$<RxController2<I>>(a$);
       return inter(ac);
     });
-  }
-
-  /**
-   * If current instance is an extending SimplexReactor, this method is same as
-   * ` return (this.s as ForkedRxController).interceptSrcAction(...params)`, otherwise
-   * This method is supposed to be invoked when a certain Action message is recieved, at the moment
-   * source forked stream has not recieved the same message yet.
-   * By executing this method, current action message will be prevented from being emitted to any subscribers
-   * of source forked stream.
-   *
-   * @return a function to continue emitting the intercepted message to source forked stream with chance to
-   *    change the payload content of the message.
-   *    the returned emit function has one parameter to allow replacing action payload, or executed with no
-   *    parameter to emit same action message without any change.
- */
-  interceptBase<K extends keyof I = keyof I>(metaOrId: ActionMeta | ActionMeta['i']) {
-    return new SingleActionInterceptor<I, K>(this.s, typeof metaOrId === 'number' ? {i: metaOrId} : metaOrId);
   }
 
   /**

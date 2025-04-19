@@ -7,7 +7,6 @@ import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
 import { ForkedPostRxController } from './forked-post-control';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType } from './inferred-types';
-import { SingleActionInterceptor } from './single-action-interceptor';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
     __onError(err: any): SingleActionFactory;
     __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
@@ -18,7 +17,7 @@ export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly
 declare const internalTableFor: readonly ["__onError", "__onDisposed"];
 type LE<LI extends readonly any[]> = LI[number] | (typeof internalTableFor)[number];
 export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<InferPayload<I[K]>>;
-export declare class SimplexReactor<I = Record<string, never>, LI extends readonly (keyof I)[] = []> {
+export declare class SimplexReactor<I = object, LI extends readonly (keyof I)[] = [], BI = object> {
     /** All catched error goes here, including those from "dispatchErrorFor" */
     error$: rx.Observable<readonly [error: any, label: string | null]>;
     /** When "dispose" method is invoked, __onDisposed message will be emitted,
@@ -61,6 +60,15 @@ export declare class SimplexReactor<I = Record<string, never>, LI extends readon
     };
     /** shortcut to table.l */
     latest: ActionTable<I & BaseActions<I>, LE<LI>>['l'];
+    /** Base stream controller from which current service derived,
+    * message being emitted through this controller will not be recieved by any subscriber/reactor of current service,
+    * only subscribers of extended service can recieve message.
+    * Be aware:
+    *     this property will change after `this.toExtend()` is called on current instance
+    */
+    base: {
+        ft: BI & ControllerBaseActions;
+    };
     postBase: RxController2<I & BaseActions>;
     /** alias of postBase */
     p: RxController2<I & BaseActions>;
@@ -81,7 +89,7 @@ export declare class SimplexReactor<I = Record<string, never>, LI extends readon
      * This method can also be useful to "cast" type of one SimplexReactor type to another extended type, in this case generic type parameter `<I2, LI2>` must
      * be explicitly provided to ensure returned type being correctly inferred, a property `tableFor` of parameter `opts` must be provided to correspond with `LI2`
      */
-    config<I2 = Record<string, never>, L2 extends readonly (keyof I2 | keyof I)[] = []>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[]>;
+    config<I2 = Record<string, never>, L2 extends readonly (keyof I2 | keyof I)[] = []>(opts: SimplexReactorCfgOpts<I, I2, L2>): SimplexReactor<I & I2, readonly (LI[number] | L2[number])[], object>;
     /** @deprecated use toExtend instead
      * Turn current reactors to extend mode,
      * fork a stream RxController2 to ForkedRxController, so that we can create new reactors by subscribing to
@@ -89,32 +97,18 @@ export declare class SimplexReactor<I = Record<string, never>, LI extends readon
      **/
     forExtend(): DerivedSimplexReactor<I, LI>;
     /**
-     * A compromise: returned instance has more features like "forkUpStream", "interceptSrcAction", but remains using same
+     * A compromise: returned instance has more features like "forkUpStream", but remains using same
      * type "SimplexReactor" due to Typescript does not consider an extended SimplexReactor type is assignable to
      * SimplexReactor<any, any>, mainly because it regards these properties whose type is like `keyof I` is not assignable to
      * `{[key: string]: any}`. This blocks using another "extends" type to indicates differentiated features.
     **/
-    toExtend<I2 = object, LI2 extends readonly (keyof I2 | keyof I)[] = []>(): SimplexReactor<I & I2, readonly (LI[number] | LI2[number])[]>;
+    toExtend<I2 = object, LI2 extends readonly (keyof I2 | keyof I)[] = []>(): SimplexReactor<I & I2, readonly (LI[number] | LI2[number])[], I>;
     private addPreHook;
     /**
      * prepend action stream interceptor by action type, the interceptors will intercept messages
      * before they reach all inherited and current SimplexReactor
      */
     prependInterceptor(inter: ActionInterceptor<I>): () => void;
-    /**
-     * If current instance is an extending SimplexReactor, this method is same as
-     * ` return (this.s as ForkedRxController).interceptSrcAction(...params)`, otherwise
-     * This method is supposed to be invoked when a certain Action message is recieved, at the moment
-     * source forked stream has not recieved the same message yet.
-     * By executing this method, current action message will be prevented from being emitted to any subscribers
-     * of source forked stream.
-     *
-     * @return a function to continue emitting the intercepted message to source forked stream with chance to
-     *    change the payload content of the message.
-     *    the returned emit function has one parameter to allow replacing action payload, or executed with no
-     *    parameter to emit same action message without any change.
-   */
-    interceptBase<K extends keyof I = keyof I>(metaOrId: ActionMeta | ActionMeta['i']): SingleActionInterceptor<I, K>;
     /**
      * An rx operator tracks down "lobel" information in error log via a 'catchError' inside it, to help to locate errors.
      * This operator will continue to throw any errors from upstream observable, if you want to play any side-effect to

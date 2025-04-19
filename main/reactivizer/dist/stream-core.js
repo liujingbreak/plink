@@ -45,6 +45,7 @@ exports.has = Object.prototype.hasOwnProperty;
 class ControllerCore {
     constructor(opts = {}) {
         this.actionUpstream = new rx.Subject();
+        this._noFilterUpstream = new rx.Subject();
         /** Insert action "interceptor" operator function
          */
         this.logPrefix = '';
@@ -108,7 +109,7 @@ class ControllerCore {
             return switchActionStream;
         }), rx.filter(needSwitch => needSwitch), rx.switchMap(() => {
             return this.interceptorList$.pipe(rx.switchMap(interceptors => {
-                return interceptors.length > 0 ? upstream.pipe(...interceptors) : upstream;
+                return rx.merge(this._noFilterUpstream, interceptors.length > 0 ? upstream.pipe(...interceptors) : upstream);
             }));
         })));
         const actionSubDispatcher = new rx.ReplaySubject();
