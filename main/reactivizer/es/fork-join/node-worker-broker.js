@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/indent */
 import { MessageChannel } from 'worker_threads';
 import * as rx from 'rxjs';
 import { serializeAction } from '../control';
@@ -75,7 +74,7 @@ export function createBroker(workerController, opts) {
             s.ft.onWorkerExit(workerNo, code).dp();
         });
         worker.postMessage({ type: 'ASSIGN_WORKER_NO', workerNo, mainPort: chan.port2 }, [chan.port2]);
-        return wi.action$.pipe(rx.tap(action => chan.port1.postMessage(serializeAction(action))));
+        return wi.action$.pipe(rx.tap(action => { chan.port1.postMessage(serializeAction(action)); }));
     })
     // rx.takeUntil(s.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
@@ -92,7 +91,7 @@ export function createBroker(workerController, opts) {
             }
             else {
                 await rx.firstValueFrom(s.ft.ensureInitWorker(assignedWorkerNo, worker).od(s.pt.workerInited));
-                workerProps.get(assignedWorkerNo).port.postMessage(serializeAction(fa), [port]);
+                workerProps.get(assignedWorkerNo).port.postMessage(fa.toJson(), [port]);
             }
         }
         catch (e) {
@@ -106,7 +105,6 @@ export function createBroker(workerController, opts) {
     })))));
     r('letWorkerExit -> postMessage to thread worker', s.pt.letWorkerExit.pipe(rx.map(([, workerNo]) => {
         const prop = workerProps.get(workerNo);
-        // eslint-disable-next-line @typescript-eslint/ban-types
         prop.port.postMessage(serializeAction(s.createAction('exit', [])));
         prop.state = 'exit';
     })));

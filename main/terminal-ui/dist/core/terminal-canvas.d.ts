@@ -34,5 +34,5 @@ interface TerminalCanvasEvents extends TerminalCanvasInput {
 export type TerminalCanvasOpts = CreateOptsOfExtendedFac<typeof canvasFac, TerminalCanvasEvents>;
 export declare const terminalCanvasFac: import("@wfh/reactivizer").DerivedReactorFactory<import("./canvas.js").CanvasEvents & TerminalCanvasEvents, ("setBounding" | "setRootComponent" | "internalCache" | "onKeyEventService")[], [], import("@wfh/reactivizer").CoreOptions<import("./canvas.js").CanvasEvents & TerminalCanvasEvents>, []>;
 export type TerminalCanvas = SimplexReactorOfFac<typeof terminalCanvasFac>;
-export declare function createTerminalCanvas(opts?: TerminalCanvasOpts): import("@wfh/reactivizer").SimplexReactor<import("./canvas.js").CanvasEvents & TerminalCanvasEvents, ("setBounding" | "setRootComponent" | "internalCache" | "onKeyEventService")[]>;
+export declare function createTerminalCanvas(opts?: TerminalCanvasOpts): import("@wfh/reactivizer").SimplexReactor<import("./canvas.js").CanvasEvents & TerminalCanvasEvents, ("setBounding" | "setRootComponent" | "internalCache" | "onKeyEventService")[], object>;
 export {};

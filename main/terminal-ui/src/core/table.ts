@@ -993,10 +993,10 @@ export const tableFac = baseContainerFac.forExtend<TableEvents, typeof tableFor,
             name: (opts?.default?.name ?? 'table') + '.cell',
             ...(opts?.optsForCellComponent ?
                 {
-                  debug: opts.default?.debug, log: opts.default?.log,
+                  enableLog: opts.default?.enableLog, log: opts.default?.log,
                   ...opts.optsForCellComponent
                 } :
-                {debug: opts?.default?.debug, log: opts?.default?.log})
+                {enableLog: opts?.default?.enableLog, log: opts?.default?.log})
           }) :
         cell;
       if (!isValueString && opts?.optsForCellComponent)

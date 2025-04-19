@@ -34,8 +34,8 @@ class StateFactory {
         // private globalChangeActionCreator = createAction<(draftState: Draft<any>) => void>('__global_change');
         this.debugLog = new rxjs_1.ReplaySubject(15);
         this.sliceStoreMap = new Map();
-        this.errorHandleMiddleware = (api) => {
-            return (next) => {
+        this.errorHandleMiddleware = () => {
+            return next => {
                 return (action) => {
                     try {
                         // console.log('action in errorHandleMiddleware', action.type);
@@ -81,7 +81,7 @@ class StateFactory {
             if (cfgOpt.middleware) {
                 const exitingMid = cfgOpt.middleware;
                 if (typeof exitingMid === 'function') {
-                    cfgOpt.middleware = (getDefault) => {
+                    cfgOpt.middleware = getDefault => {
                         return [...exitingMid(getDefault), ...ourMiddlwares];
                     };
                 }
@@ -90,7 +90,7 @@ class StateFactory {
                 }
             }
             else {
-                cfgOpt.middleware = (getDefault) => {
+                cfgOpt.middleware = getDefault => {
                     return [...getDefault({ serializableCheck: false, immutableCheck: false }), ...ourMiddlwares];
                 };
             }
@@ -129,7 +129,7 @@ class StateFactory {
                 return src;
             }))), (0, operators_1.takeUntil)(action$.pipe((0, redux_observable_1.ofType)('STOP_EPIC'), (0, operators_1.tap)(() => this.debugLog.next(['[redux-toolkit-obs]', 'Stop all epics'])))));
         });
-        this.addEpic((action$) => {
+        this.addEpic(action$ => {
             return this.actionsToDispatch;
         }, 'internalDispatcher');
         return this;

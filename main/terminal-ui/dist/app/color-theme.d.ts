@@ -99,13 +99,13 @@ interface ThemeInput {
 export declare const colorThemeFac: BaseReactorFactory<ThemeInput, readonly ["loadColors", "setScheme"], CoreOptions<ThemeInput>, []>;
 export type ColorTheme = SimplexReactorOfFac<typeof colorThemeFac>;
 export type ColorThemeOpts = CoreOptions<ThemeInput>;
-export declare const defaultColorTheme: import("@wfh/reactivizer").SimplexReactor<ThemeInput, readonly ["loadColors", "setScheme"]>;
+export declare const defaultColorTheme: import("@wfh/reactivizer").SimplexReactor<ThemeInput, readonly ["loadColors", "setScheme"], object>;
 export declare const CONTEXT_KEY = "__colorTheme";
 /**
 * The returned observable contains defaultColorTheme if current component does not have AppContext,
 * if always synchronously emit ColorTheme immediately when it is subscribed, late on it keeps observing
 * new changes.
 **/
-export declare function queryThemeForComponent(c: BaseWidget): rx.Observable<import("@wfh/reactivizer").SimplexReactor<ThemeInput, readonly ["loadColors", "setScheme"]>>;
+export declare function queryThemeForComponent(c: BaseWidget): rx.Observable<import("@wfh/reactivizer").SimplexReactor<ThemeInput, readonly ["loadColors", "setScheme"], object>>;
 export declare function querySchemeForComponent(c: BaseWidget): rx.Observable<readonly [MaterialScheme, ...ActionMeta[]]>;
 export {};

@@ -9,12 +9,13 @@ import {ForkedRxController} from './forked-control';
 import {ForkedPostRxController} from './forked-post-control';
 import {actionRelatedToAction} from './context-operators';
 import {InferFuncReturnEvents, ActionFactoryOfPlainType} from './inferred-types';
+import {initOptions} from './initial-options';
 
 export interface BaseActions<
   I = any,
   LI extends readonly (keyof I)[] = readonly []
 > {
-  // __onInit(): SingleActionFactory;
+  LOG(...msg: any[]): SingleActionFactory;
   __onError(err: any): SingleActionFactory;
   __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
   __onDisposed(): SingleActionFactory;
@@ -25,7 +26,7 @@ const baseActionTypeSet = new Set<keyof BaseActions>(['__onError', '__onDisposed
 const internalTableFor = ['__onError', '__onDisposed'] as const;
 type LE<LI extends readonly any[]> = LI[number] | (typeof internalTableFor)[number];
 let SEQ = new Date().getUTCMilliseconds();
-export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<InferPayload<I[K]>>;
+export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<undefined | null | InferPayload<I[K]>>;
 
 export class SimplexReactor<
   I = object,
@@ -103,9 +104,21 @@ export class SimplexReactor<
   private removePreActionHook$ = new rx.Subject<[type: string, hookFn: PreActionHook<I>]>();
 
   constructor(opts?: SimplexReactorOptions<I, LI>) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    this.opts = opts as any;
-    this.s = new RxController2<I & BaseActions>({...opts, name: (opts?.name ?? '') + `@${this.id}`} as any);
+    this.opts = Object.assign({}, initOptions);
+    if (opts) {
+      for (const [k, v] of Object.entries(opts)) {
+        if (v !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          this.opts[k as keyof typeof this.opts] = v;
+        }
+      }
+    }
+    if (this.opts.debug != null)
+      this.opts.enableLog = this.opts.debug;
+    // if (this.opts.enableLog && this.opts.log == null) {
+    //   throw new Error(`Missing log implementaion for ${this.opts.name}`);
+    // }
+    this.s = new RxController2<I & BaseActions>({...this.opts, name: (this.opts.name ?? '') + `@${this.id}`} as any);
     this.postBase = this.p = this.s;
     this.table = new ActionTable<I & BaseActions<I>, LE<LI>>(this.s, [...opts?.tableFor ?? [], ...internalTableFor] as any);
     this.pt = this.s.pt;
@@ -165,13 +178,14 @@ export class SimplexReactor<
                 rx.from(hooks).pipe(
                   rx.concatMap(([hook, label]) => hook(a, ...payload).pipe(
                     rx.map(retPayload => {
-                      payload = retPayload;
+                      if (retPayload)
+                        payload = retPayload;
                     }),
                     this.handleErrorOp(label ?? 'Unlabled prehook', 'stop')
                   )),
                   rx.ignoreElements()
                 ),
-                rx.defer(() => rx.of({...a, p: payload}))
+                rx.defer(() => rx.of(a.copy({p: payload})))
               );
             } else {
               return rx.of(a);
@@ -455,13 +469,8 @@ export class SimplexReactor<
   }
 
   log(...msg: any[]) {
-    if (this.opts?.debug) {
-      if (this.opts.log)
-        this.opts.log((this.s.logPrefix), ...msg);
-      else {
-      // eslint-disable-next-line no-console
-        console.log((this.s.logPrefix), ...msg);
-      }
+    if (this.opts?.enableLog && this.opts.log) {
+      this.ft.LOG(...msg).dp();
     }
   }
 

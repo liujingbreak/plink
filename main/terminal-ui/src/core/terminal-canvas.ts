@@ -92,7 +92,7 @@ export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents, typeo
   ));
   r('setFullScreen -> setBounding,onKeyEventService', pt.setFullScreenMode.pipe(
     rx.exhaustMap(([m, keyEventService]) => {
-      keyEventService ??= createKeyEventService({debug: opts?.debug, log: opts?.log});
+      keyEventService ??= createKeyEventService({enableLog: opts?.enableLog, log: opts?.log});
       ft.onKeyEventService(keyEventService).dp(m);
       const blankLines = '\n'.repeat(process.stdout.rows - 1);
       return new rx.Observable(sub => {
@@ -118,7 +118,7 @@ export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents, typeo
   ));
   r('setSize -> setBounding,onKeyEventService', pt.setSize.pipe(
     rx.switchMap(([m, w, h, keyEventService]) => {
-      keyEventService ??= createKeyEventService({debug: opts?.debug, log: opts?.log});
+      keyEventService ??= createKeyEventService({enableLog: opts?.enableLog, log: opts?.log});
       ft.onKeyEventService(keyEventService).dp(m);
       const cols = w > process.stdout.columns ? process.stdout.columns : w;
       const rows = h > process.stdout.rows ? process.stdout.rows : h;
@@ -146,7 +146,8 @@ export const terminalCanvasFac = canvasFac.forExtend<TerminalCanvasEvents, typeo
           new rx.Observable(() => {
             const remove = keyEventService.preHooks.onExit('before onExit', m => {
               return ft.printDescentEnd().re(m).od(pt.onPrintDescentEndFlushed).pipe(
-                rx.take(1)
+                rx.take(1),
+                rx.map(() => null)
               );
             });
             return remove;

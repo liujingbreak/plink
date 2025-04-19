@@ -1,5 +1,6 @@
 import * as rx from 'rxjs';
-
+import {CoreOptions} from './base-types';
+export {CoreOptions} from './base-types';
 export type ActionFunctions = Record<string, any>; // instead of A indexed access type, since a "class type" can not be assigned to "Indexed access type with function type property"
 export type EmptyActionFunctions = Record<string, never>;
 
@@ -15,43 +16,50 @@ export interface ActionMeta {
 
 export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
 
-export type Action<F = unknown> = {
-  /** type */
-  t: string;
-  /** payload **/
-  p: InferPayload<F>;
-} & ActionMeta;
+export class Action<F = unknown> implements ActionMeta {
+  static fromJsonObj(obj: ReturnType<Action['toJson']>) {
+    const a = new Action(obj.t, obj.p);
+    a.i = obj.i;
+    a.r = obj.r;
+    return a;
+  }
+
+  /** id */
+  i: number;
+  /** The ActionMeta['i'] of other actions that is referred to by this action */
+  r?: number | number[];
+  /**
+  * use RxController2::createAction() instead,
+  * otherwise don't forget to assign id number to property "i"
+  **/
+  constructor(public t: string, public p: InferPayload<F>) {
+    this.i = -1;
+  }
+
+  toJson() {
+    return {
+      i: this.i,
+      r: this.r,
+      t: this.t,
+      p: this.p
+    };
+  }
+
+  copy(override?: Partial<ReturnType<Action['toJson']>>) {
+    const c = new Action(this.t, this.p);
+    c.i = this.i;
+    c.r = this.r;
+    if (override)
+      Object.assign(this, override);
+    return c;
+  }
+};
 
 // export type PayloadStream<I extends ActionFunctions, K extends keyof I> = rx.Observable<[ActionMeta, ...InferPayload<I[K]>]>;
 
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<F>;
 export type DispatchFor<F> =
   (origActionMeta: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>, ...params: InferPayload<F>) => Action<F>;
-
-export interface CoreOptions<I = Record<string, never>> {
-  name?: string;
-  /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
-  * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
-  * otherwise, any actions that is dispatched to `actionUpstream` will not be observed and emitted by `action$`,
-  * Refer to [https://rxjs.dev/api/index/function/connectable](https://rxjs.dev/api/index/function/connectable)
-  * */
-  autoConnect?: boolean;
-  /** default is `false`, setting `true` will print message in console log */
-  debug?: boolean;
-  /** Log all actions whose type is listed in this property, by default "undefined" means actions of all types will be logged. */
-  debugIncludeTypes?: (keyof I)[] | null;
-  /** Exclude actions of specific types from "debugIncludeTypes" */
-  debugExcludeTypes?: (keyof I)[];
-  /**
-   * "full" - print full message content, including "type" and "payload" tuple
-   * "noParam" - print message type, without payload tuple
-   */
-  logStyle?: 'full' | 'noParam';
-  debugTableAction?: boolean;
-  /** Use a customized log function
-   */
-  log?: null | ((msg: string, ...objs: unknown[]) => unknown);
-}
 
 let SEQ = 0;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
@@ -86,12 +94,16 @@ export class ControllerCore<I> {
     // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
     const upstream = this.actionUpstream;
     // set logger as interceptor
-    const logOperator = (a$: rx.Observable<Action>) => this.opts.debug ? a$.pipe(
+    const logOperator = (a$: rx.Observable<Action>) => this.opts.enableLog ? a$.pipe(
       this.opts.log ?
           rx.tap(action => {
             const type = action.t;
             if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-              this.opts.log!(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+              if (this.opts.logStyle === 'raw') {
+                this.opts.log!(this.logPrefix, action.toJson());
+              } else {
+                this.opts.log!(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+              }
             }
           }) :
           (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
@@ -187,20 +199,10 @@ export class ControllerCore<I> {
     this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
   }
 
-  createAction<J = I, K extends keyof J = keyof J>(name: K, params: InferPayload<J[K]>) {
-    return {
-      t: name as string,
-      i: ACTION_SEQ++,
-      p: params
-    } as Action<J[K]>;
-  }
-
-  /** action id is also copied */
-  copyActionFrom(source: Action) {
-    const copied = this.createAction<any>(source.t, source.p as any);
-    copied.i = source.i;
-    copied.r = source.r;
-    return copied as Action;
+  createAction<J = I, K extends keyof J = keyof J>(type: K, params: InferPayload<J[K]>) {
+    const a = new Action<J[K]>(type as string, params);
+    a.i = ACTION_SEQ++;
+    return a;
   }
 
   /** change a debug convenient "name" as previous specified in CoreOptions of constructor */

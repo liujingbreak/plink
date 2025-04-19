@@ -44,7 +44,7 @@ export function applySharedReactors(isMainWorker, comp, log) {
             mainPort.postMessage({ error: { label, detail: err } });
         }
     })));
-    r('setLiftUpActions -> "postMessage to main thread"', table.l.setLiftUpActions.pipe(rx.mergeMap(([, action$]) => action$), rx.withLatestFrom(table.l.inited), rx.tap(([action, [, , , port]]) => {
+    r('setLiftUpActions -> "postMessage to main thread"', table.l.setLiftUpActions.pipe(rx.mergeMap(([, action$]) => action$), rx.withLatestFrom(table.l.inited), rx.map(([action, [, , , port]]) => {
         if (port) {
             s.ft.log(`pass action ${action.t} to main thread`).dp();
             port.postMessage(serializeAction(action));

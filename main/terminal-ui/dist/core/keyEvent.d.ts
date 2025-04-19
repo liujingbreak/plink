@@ -9,6 +9,10 @@ export interface KeyScrollingMsg {
      */
     setInputStream(stream: NodeJS.ReadableStream, isTTY: boolean): SingleActionFactory;
 }
+export interface KeySetting {
+    /** default 40 */
+    keyInputThrottleTime(msec: number): SingleActionFactory;
+}
 interface KeyEvents {
     onMouseEvent(evt: MouseEventOpts, x: number, y: number, evtSequence: string): SingleActionFactory;
     /** Individual keyboard press event */
@@ -40,7 +44,7 @@ export declare enum KeyEventEnum {
     focusDown = 11,
     focusNext = 12
 }
-export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
+export interface keypressSignals extends KeySetting, KeyScrollingMsg, KeyEvents {
     onRawKeyInput(event: RawKeyEvent): SingleActionFactory;
     onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
     onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
@@ -54,7 +58,7 @@ export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
     doneConsumeDigital(value: number): SingleActionFactory;
     onReportCursor(x: number, y: number): SingleActionFactory;
 }
-declare const tableFor: readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"];
+declare const tableFor: readonly ["keyInputThrottleTime", "setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"];
 interface RawKeyEvent {
     name: string | undefined;
     sequence: string;
@@ -64,7 +68,7 @@ interface RawKeyEvent {
 }
 export type KeyEventServcie = SimplexReactor<keypressSignals, typeof tableFor>;
 export type KeyEventOptions = CoreOptions<keypressSignals>;
-export declare function createKeyEventService(opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"]>;
+export declare function createKeyEventService(opts?: KeyEventOptions): SimplexReactor<keypressSignals, readonly ["keyInputThrottleTime", "setPageSize", "onDisplayKeys", "onInputCompleted", "setInputStream"], object>;
 interface MouseEventOpts {
     type: 'mousemove' | 'mouseup' | 'mousedown' | 'wheel';
     direction?: number;

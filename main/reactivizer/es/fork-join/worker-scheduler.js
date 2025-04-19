@@ -11,7 +11,7 @@ export function applyScheduler(broker, opts) {
         // Inside Plink
         algo = require('../../../algorithms');
     }
-    const s = brokerForSchedule.s.prependController();
+    const s = brokerForSchedule.s.forkController();
     const { RedBlackTree } = algo;
     const workerRankTree = new RedBlackTree();
     /** Indicate how busy each thread is */
@@ -62,7 +62,7 @@ export function applyScheduler(broker, opts) {
         tasks[1]++;
         checkNumOfTasks(m, workerNo, tasks[1]);
     })));
-    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', table.l.allReadyWorkers.pipe(rx.switchMap(([, worker$]) => worker$), rx.mergeMap(([workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => changeWorkerRank(workerNo, 1)), broker.labelError(`worker #${workerNo} stopWaiting -> ...`)), workerOutputCtl.pt.wait.pipe(rx.tap(() => changeWorkerRank(workerNo, -1)), broker.labelError(`worker #${workerNo} wait`)), workerOutputCtl.pt.returned.pipe(rx.tap(([m]) => {
+    r('newWorkerReady, workerOutputCtl.pt.stopWaiting... -> changeWorkerRank()', table.l.allReadyWorkers.pipe(rx.switchMap(([, worker$]) => worker$), rx.mergeMap(([workerNo, workerOutputCtl]) => rx.merge(workerOutputCtl.pt.stopWaiting.pipe(rx.tap(() => { changeWorkerRank(workerNo, 1); }), broker.labelError(`worker #${workerNo} stopWaiting -> ...`)), workerOutputCtl.pt.wait.pipe(rx.tap(() => { changeWorkerRank(workerNo, -1); }), broker.labelError(`worker #${workerNo} wait`)), workerOutputCtl.pt.returned.pipe(rx.tap(([m]) => {
         changeWorkerRank(workerNo, -1);
         const taskCount = tasksByWorkerNo.get(workerNo);
         if (taskCount) {
@@ -97,7 +97,7 @@ export function applyScheduler(broker, opts) {
                 exitCount++;
             }
         }
-        return rx.concat(s.at.onWorkerExit.pipe(rx.take(exitCount)), new rx.Observable((sub) => {
+        return rx.concat(s.at.onWorkerExit.pipe(rx.take(exitCount)), new rx.Observable(sub => {
             s.ft.onAllWorkerExit().dp(a);
             sub.complete();
         }));

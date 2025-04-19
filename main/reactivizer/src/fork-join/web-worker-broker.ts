@@ -54,7 +54,7 @@ export function createBroker<I = Record<never, never>>(
       }
       const chan = new MessageChannel();
       props.port = chan.port1;
-      const wo = new RxController2<ForkWorkerInput & ForkWorkerOutput & I & BaseActions<any>>({
+      const wo = new RxController2<ForkWorkerInput & ForkWorkerOutput & I & BaseActions>({
         name: '#' + workerNo + ' worker output',
         debugExcludeTypes: (opts as SimplexReactorOptions<ForkWorkerOutput> | undefined)?.debugExcludeTypes
       });
@@ -103,7 +103,7 @@ export function createBroker<I = Record<never, never>>(
 
       (worker as Worker).postMessage({type: 'ASSIGN_WORKER_NO', workerNo, mainPort: chan.port2}, [chan.port2]);
       return wi.action$.pipe(
-        rx.tap(action => chan.port1.postMessage(serializeAction(action)))
+        rx.tap(action => {chan.port1.postMessage(serializeAction(action));})
       );
     })
     // rx.takeUntil(s.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
@@ -145,10 +145,10 @@ export function createBroker<I = Record<never, never>>(
   r('letWorkerExit -> postMessage to thread worker', s.pt.letWorkerExit.pipe(
     rx.map(([, workerNo]) => {
       const prop = workerProps.get(workerNo)!;
-      // eslint-disable-next-line @typescript-eslint/ban-types
-      prop.port.postMessage(serializeAction(
-        (s as unknown as RxController2<ForkWorkerInput>).createAction('exit', [])
-      ));
+      prop.port.postMessage(
+        (s as unknown as RxController2<ForkWorkerInput>)
+          .createAction('exit', []).toJson()
+      );
       prop.state = 'exit';
     })
   ));

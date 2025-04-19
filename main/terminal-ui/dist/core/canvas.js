@@ -218,7 +218,7 @@ export const canvasFac = new BaseReactorFactory({
                     // canvas.log('rectTree', [...rectTree.allRectangles()].length);
                     return [m, rtree];
                 }));
-            }), rx.throttleTime(150, rx.queueScheduler, { leading: false, trailing: true }), rx.exhaustMap(([m, rtree]) => new rx.Observable(sub => {
+            }), rx.throttleTime(80, rx.queueScheduler, { leading: false, trailing: true }), rx.exhaustMap(([m, rtree]) => new rx.Observable(sub => {
                 const rects = rtree.all();
                 rtree.clear();
                 const requestRenderMetas0 = requestRenderMetas;

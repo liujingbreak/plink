@@ -1,13 +1,11 @@
-import {threadId} from 'worker_threads';
 import {SimplexReactorOptions, SimplexReactorCfgOpts} from './reactor-base';
 import {CoreOptions, Interceptor} from './stream-core';
 import {ActionInterceptor, RxController2} from './control2';
 import {SimplexReactor, BaseActions} from './simplex-reactor';
 import {ActionDispenser} from './action-dispenser';
 
-let ID_SEQ = 0;
 function increId() {
-  const id = [process.pid, threadId, (++ID_SEQ)] as [number, number, number];
+  const id = [Date.now(), Math.random().toString(36).slice(2)] as [number, string];
   return id;
 }
 export interface ReactorFactory<
@@ -41,7 +39,7 @@ export class BaseReactorFactory<
   C = CoreOptions<I>,
   P extends [...unknown[]] = []
 > implements ReactorFactory<I, LI, C, P> {
-  #id: [number, number, number];
+  #id: [number, string];
   private reactorDefinition: (context: DefContext<I, LI, CoreOptions<I>>, ...rest: P) => void =
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (ctx, ..._p) => {ctx.init();};
@@ -122,7 +120,7 @@ export class BaseReactorFactory<
   isFactoryOf(svc: SimplexReactor<any, any>) {
     const ids = (svc as unknown as WithFactoryIds).factoryIds ?? [];
     for (let i = 0, l = ids.length; i < l; i += 3) {
-      if (ids[i] === this.#id[0] && ids[i + 1] === this.#id[1] && ids[i + 2] === this.#id[2]) {
+      if (ids[i] === this.#id[0] && ids[i + 1] === this.#id[1]) {
         return true;
       }
     }
@@ -131,7 +129,7 @@ export class BaseReactorFactory<
 }
 
 interface WithFactoryIds {
-  factoryIds?: number[];
+  factoryIds?: (number | string)[];
 }
 
 export interface DerivedDefContext<I, L extends readonly (keyof I)[], Pb extends readonly [...unknown[]], C> {
@@ -148,7 +146,7 @@ export class DerivedReactorFactory<
   C = CoreOptions<I>,
   P extends readonly [...unknown[]] = Pb
 > implements ReactorFactory<I, LI, C, P> {
-  #id: [number, number, number];
+  #id: [number, string];
   private reactorDefinition: (context: DerivedDefContext<I, LI, Pb, CoreOptions<I>>, ...rest: P) => void =
     (ctx, ...p) => {ctx.init(null, ...(p as unknown as Pb));};
 
@@ -250,7 +248,7 @@ export class DerivedReactorFactory<
   isFactoryOf(svc: SimplexReactor<any, any>) {
     const ids = (svc as unknown as WithFactoryIds).factoryIds ?? [];
     for (let i = 0, l = ids.length; i < l; i += 3) {
-      if (ids[i] === this.#id[0] && ids[i + 1] === this.#id[1] && ids[i + 2] === this.#id[2]) {
+      if (ids[i] === this.#id[0] && ids[i + 1] === this.#id[1]) {
         return true;
       }
     }

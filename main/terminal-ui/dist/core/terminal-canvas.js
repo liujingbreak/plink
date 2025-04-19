@@ -79,7 +79,7 @@ export const terminalCanvasFac = canvasFac.forExtend({
     r('onKeyEventService,keyEventService.onExit|destory$ -> printDescentEnd,keyEventService.dispose', table.l.onKeyEventService.pipe(rx.switchMap(([, keyEventService]) => {
         return rx.merge(new rx.Observable(() => {
             const remove = keyEventService.preHooks.onExit('before onExit', m => {
-                return ft.printDescentEnd().re(m).od(pt.onPrintDescentEndFlushed).pipe(rx.take(1));
+                return ft.printDescentEnd().re(m).od(pt.onPrintDescentEndFlushed).pipe(rx.take(1), rx.map(() => null));
             });
             return remove;
         }), service.destory$.pipe(

@@ -54,11 +54,11 @@ export declare class RxController<I> {
     /**
      * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
      */
-    subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
+    subForTypes<KS extends (keyof I)[] | readonly (keyof I & string)[]>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
     /**
      * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
      */
-    subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
+    subForExcludeTypes<KS extends (keyof I)[] | readonly (keyof I)[]>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
     /**
      * Delegate to `this.core.action$.connect()`
      * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
@@ -76,9 +76,9 @@ export declare class GroupedRxController<I, K> extends RxController<I> {
 }
 export declare function serializeAction<I = any, K extends keyof I = any>(action: Action<I[K]>): {
     t: string;
-    p: InferPayload<I[K]>;
     i: number;
     r?: number | number[];
+    p: InferPayload<I[K]>;
 };
 /**
  * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,

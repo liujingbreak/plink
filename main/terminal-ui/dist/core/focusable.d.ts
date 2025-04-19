@@ -11,7 +11,6 @@
  */
 import * as rx from 'rxjs';
 import { SimplexReactor, SingleActionFactory, ActionMeta, BaseReactorFactory, CoreOptions, SimplexReactorOfFac } from '@wfh/reactivizer';
-import { RedBlackTree } from '@wfh/algorithms';
 import { BaseWidget } from './base.js';
 import { Rectangle, Canvas } from './canvas.js';
 import { CanvasFilterOutput, CanvasFilterInput } from './canvas-filter.js';
@@ -29,7 +28,7 @@ export interface FocusMessages {
     forRootComp(rootComp: BaseWidget): SingleActionFactory;
     onFocus(compName: string, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
     /** Should only be dispatched on top level FocusService */
-    switchFocus(srcFocusSvc: FocusService | null, compName: string | null, comp: BaseWidget | null): SingleActionFactory;
+    switchFocus(srcFocusSvc?: FocusService | null, compName?: string | null, comp?: BaseWidget | null): SingleActionFactory;
     /** Pointing to the only top level findFocusable service, which stores global states */
     removeFocusable(comp: BaseWidget): SingleActionFactory;
     onRectChange(rect: Rectangle, c: BaseWidget): SingleActionFactory;
@@ -37,9 +36,9 @@ export interface FocusMessages {
     findFocusable(direction: SearchDirection, handleKeyEventsAction: ActionMeta['i']): SingleActionFactory;
     locateFocusable(locateTrace: (readonly [FocusService, BaseWidget])[], index: number): SingleActionFactory;
     focusOnComponent(target: BaseWidget): SingleActionFactory;
-    /** In context of "findFocusable", when next focusable is found */
+    /** In context of "findFocusable" and "locateFocusable", when next focusable is found */
     didFound(resultRect?: Rectangle, component?: BaseWidget, tabIndex?: number): SingleActionFactory;
-    /** In context of "findFocusable" and handleKeyEvents, dispatched when
+    /** In context of "findFocusable", "locateFocusable" and handleKeyEvents, dispatched when
      * there is no next focusable on current direction */
     didNotFound(dir: SearchDirection): SingleActionFactory;
     handleKeyEvents(keyService: KeyEventServcie, currDir?: SearchDirection, currKey?: KeyEventEnum | null): SingleActionFactory;
@@ -48,18 +47,22 @@ export interface FocusMessages {
     resumeHandleEvents(): SingleActionFactory;
     /** default is false, */
     isPaused(paused: boolean): SingleActionFactory;
-    searchTree(xTree: RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>, yTree: RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>): SingleActionFactory;
     renderFor(comp: BaseWidget): SingleActionFactory;
     clearFor(comp: BaseWidget): SingleActionFactory;
+    _emitDidFoundUpToRoot(comp: BaseWidget, rootSvc: FocusService): SingleActionFactory;
+    _didEmitDidFoundUpToRoot(): SingleActionFactory;
 }
-declare const tableFor: readonly ["didFound", "handleKeyEvents", "searchTree", "isPaused", "forRootComp"];
+declare const tableFor: readonly ["didFound", "handleKeyEvents", "isPaused", "forRootComp"];
 export type FocusService = SimplexReactor<FocusMessages & CanvasFilterOutput & CanvasFilterInput, typeof tableFor>;
 export type FocusServiceOpts = CoreOptions<FocusMessages & CanvasFilterOutput & CanvasFilterInput> & {
     cache?: CanvasCacheOptions;
 };
-export declare const focusServiceFac: BaseReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ["didFound", "handleKeyEvents", "searchTree", "isPaused", "forRootComp"], FocusServiceOpts, [canvas: Canvas]>;
+export declare const focusServiceFac: BaseReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput, readonly ["didFound", "handleKeyEvents", "isPaused", "forRootComp"], FocusServiceOpts, [canvas: Canvas]>;
+export interface RootFocusEvents {
+    eventHandlingSvc(svc: FocusService, dir?: SearchDirection): SingleActionFactory;
+}
 export type RootFocusServiceOpts = FocusServiceOpts;
-export declare const rootFocusSvcFac: import("@wfh/reactivizer").DerivedReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput & Record<string, never>, ("didFound" | "handleKeyEvents" | "searchTree" | "isPaused" | "forRootComp" | "switchFocus")[], [canvas: Canvas], FocusServiceOpts, [canvas: Canvas]>;
+export declare const rootFocusSvcFac: import("@wfh/reactivizer").DerivedReactorFactory<FocusMessages & CanvasFilterOutput & CanvasFilterInput & RootFocusEvents, ("didFound" | "handleKeyEvents" | "isPaused" | "forRootComp" | "switchFocus" | "eventHandlingSvc")[], [canvas: Canvas], FocusServiceOpts, [canvas: Canvas]>;
 export type RootFocusService = SimplexReactorOfFac<typeof rootFocusSvcFac>;
-export declare function queryRootFocusService(currComp: BaseWidget, m?: ActionMeta): rx.Observable<SimplexReactor<FocusMessages & CanvasFilterOutput & CanvasFilterInput & Record<string, never>, ("didFound" | "handleKeyEvents" | "searchTree" | "isPaused" | "forRootComp" | "switchFocus")[]>>;
+export declare function queryRootFocusService(currComp: BaseWidget, m?: ActionMeta): rx.Observable<SimplexReactor<FocusMessages & CanvasFilterOutput & CanvasFilterInput & RootFocusEvents, ("didFound" | "handleKeyEvents" | "isPaused" | "forRootComp" | "switchFocus" | "eventHandlingSvc")[], object>>;
 export {};

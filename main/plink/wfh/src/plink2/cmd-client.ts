@@ -159,7 +159,7 @@ function request(m: ActionMeta, cmd = args) {
   });
 
   return rx.merge(
-    rx.fromEventPattern<Error>( h => req.on('error', h), h => req.off('error', h)).pipe(
+    rx.fromEventPattern<Error>(h => req.on('error', h), h => req.off('error', h)).pipe(
       rx.map(err => {
         o.ft.onReqError(err).dp(m);
       }),

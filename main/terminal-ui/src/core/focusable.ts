@@ -19,6 +19,7 @@ import {Rectangle, Canvas} from './canvas.js';
 import {CanvasFilterOutput, CanvasFilterInput} from './canvas-filter.js';
 import {KeyEventServcie, KeyEventEnum} from './keyEvent.js';
 import {canvasCacheFac, CanvasCacheOptions} from './canvas-cache.js';
+import {createRtreeInstance, RTree, BBox} from './rbush.js';
 
 export const ROOT_FOCUS_SERVICE_CONTEXT = '__rootFocus';
 export enum SearchDirection {
@@ -28,7 +29,7 @@ export interface FocusMessages {
   forRootComp(rootComp: BaseWidget): SingleActionFactory;
   onFocus(compName: string, comp: BaseWidget | null, srcService: FocusService | null): SingleActionFactory;
   /** Should only be dispatched on top level FocusService */
-  switchFocus(srcFocusSvc: FocusService | null, compName: string | null, comp: BaseWidget | null): SingleActionFactory;
+  switchFocus(srcFocusSvc?: FocusService | null, compName?: string | null, comp?: BaseWidget | null): SingleActionFactory;
   /** Pointing to the only top level findFocusable service, which stores global states */
   removeFocusable(comp: BaseWidget): SingleActionFactory;
   onRectChange(rect: Rectangle, c: BaseWidget): SingleActionFactory;
@@ -36,9 +37,9 @@ export interface FocusMessages {
   findFocusable(direction: SearchDirection, handleKeyEventsAction: ActionMeta['i']): SingleActionFactory;
   locateFocusable(locateTrace: (readonly [FocusService, BaseWidget])[], index: number): SingleActionFactory;
   focusOnComponent(target: BaseWidget): SingleActionFactory;
-  /** In context of "findFocusable", when next focusable is found */
+  /** In context of "findFocusable" and "locateFocusable", when next focusable is found */
   didFound(resultRect?: Rectangle, component?: BaseWidget, tabIndex?: number): SingleActionFactory;
-  /** In context of "findFocusable" and handleKeyEvents, dispatched when
+  /** In context of "findFocusable", "locateFocusable" and handleKeyEvents, dispatched when
    * there is no next focusable on current direction */
   didNotFound(dir: SearchDirection): SingleActionFactory;
   handleKeyEvents(keyService: KeyEventServcie, currDir?: SearchDirection, currKey?: KeyEventEnum | null): SingleActionFactory;
@@ -47,13 +48,15 @@ export interface FocusMessages {
   resumeHandleEvents(): SingleActionFactory;
   /** default is false, */
   isPaused(paused: boolean): SingleActionFactory;
-  searchTree(xTree: RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>,
-    yTree: RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>): SingleActionFactory;
+  // searchTree(xTree: RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>,
+  //   yTree: RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>): SingleActionFactory;
   renderFor(comp: BaseWidget): SingleActionFactory;
   clearFor(comp: BaseWidget): SingleActionFactory;
+  _emitDidFoundUpToRoot(comp: BaseWidget, rootSvc: FocusService): SingleActionFactory;
+  _didEmitDidFoundUpToRoot(): SingleActionFactory;
 }
 const tableFor = [
-  'didFound', 'handleKeyEvents', 'searchTree', 'isPaused', 'forRootComp'
+  'didFound', 'handleKeyEvents', 'isPaused', 'forRootComp'
 ] as const;
 export type FocusService = SimplexReactor<FocusMessages & CanvasFilterOutput & CanvasFilterInput, typeof tableFor>;
 export type FocusServiceOpts = CoreOptions<FocusMessages & CanvasFilterOutput & CanvasFilterInput> & {
@@ -77,20 +80,16 @@ export const focusServiceFac = new BaseReactorFactory<
 )).defineReactor(({init, setting}, canvas: Canvas) => {
   const service = init();
   const {ft, pt, r, latest} = service;
-  const rectByComponent = new Map<BaseWidget, [cRect: Rectangle, tabIndex: number]>();
-  const xTree = new RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>();
-  const yTree = new RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>();
+  const rectByComponent = new Map<BaseWidget, [bbox: Rectangle, tabIndex: number]>();
 
-  const rightXTree = new RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>();
-  const bottomYTree = new RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>();
   const tabIndexTree = new RedBlackTree<number, BaseWidget[]>();
   const offscreen = canvasCacheFac.setting({
     name: service.s.logPrefix + '.cache',
-    debug: setting?.debug,
+    enableLog: setting?.enableLog,
     log: setting?.log,
     ...setting?.cache
   }).create();
-  ft.searchTree(xTree, yTree).dp();
+  const focusableTree$ = createRtreeInstance<BaseWidget>();
   r('forRootComp -> root.provideFocusService...', pt.forRootComp.pipe(
     rx.switchMap(([m, root]) => {
       root.ft.provideFocusService(service).dp(m);
@@ -125,283 +124,112 @@ export const focusServiceFac = new BaseReactorFactory<
     })
   ));
   r('removeFocusable', pt.removeFocusable.pipe(
-    rx.map(([m, c]) => {
-      const data = rectByComponent.get(c);
-      if (data) {
-        const [rect, tabIdx] = data;
-        // service.log('>>> remove focusable for', c.s.logPrefix, rect);
-        rectByComponent.delete(c);
-        ft.onRectRemoved(rect, c).dp(m);
-        const [oldCol, oldRow, oldWidth, oldHeight] = rect;
-        const oldRight = oldCol + oldWidth;
-        const oldBottom = oldRow + oldHeight;
-        const xNode = xTree.search(oldCol);
-        if (xNode) {
-          const yNode = xNode.value.search(oldRow);
-          if (yNode) {
-            const i = yNode.value.findIndex(it => it === c);
-            if (i >= 0) {
-              yNode.value.splice(i, 1);
-              if (yNode.value.length === 0) {
-                xNode.value.deleteNode(yNode);
-                if (xNode.value.size() === 0) {
-                  // service.log('>>> delete xTree node', xNode.key, 'for', c.s.logPrefix);
-                  xTree.deleteNode(xNode);
-                }
-              }
-            }
+    rx.mergeMap(([m, c]) => focusableTree$.pipe(
+      rx.take(1),
+      rx.map(rtree => {
+        const data = rectByComponent.get(c);
+        if (data) {
+          const [rect, tabIdx] = data;
+          rtree.removeByRect(rect);
+          // service.log('>>> remove focusable for', c.s.logPrefix, rect);
+          rectByComponent.delete(c);
+          ft.onRectRemoved(rect, c).dp(m);
+          const tabIdxNode = tabIndexTree.search(tabIdx);
+          if (tabIdxNode) {
+            const i = tabIdxNode.value.indexOf(c);
+            if (i >= 0 && tabIdxNode.value.length > 1)
+              tabIdxNode.value.splice(i, 1);
+            else
+              tabIndexTree.delete(tabIdx);
           }
+          // service.log('>>> count xTree', xTree.size(), 'yTree', yTree.size());
         }
-        const yNode = yTree.search(oldRow);
-        if (yNode) {
-          const xNode = yNode.value.search(oldCol);
-          if (xNode) {
-            const i = xNode.value.findIndex(it => it === c);
-            if (i >= 0) {
-              xNode.value.splice(i, 1);
-              if (xNode.value.length === 0) {
-                yNode.value.deleteNode(xNode);
-                if (yNode.value.size() === 0) {
-                  // service.log('>>> delete yTree node', yNode.key, 'for', c.s.logPrefix);
-                  yTree.deleteNode(yNode);
-                }
-              }
-            }
-          }
-        }
-        const rightEndNode = rightXTree.search(oldRight);
-        if (rightEndNode) {
-          const yNode = rightEndNode.value.search(oldBottom);
-          if (yNode) {
-            const i = yNode.value.findIndex(it => it === c);
-            if (i >= 0) {
-              yNode.value.splice(i, 1);
-              if (yNode.value.length === 0) {
-                rightEndNode.value.deleteNode(yNode);
-                if (rightEndNode.value.size() === 0) {
-                  // service.log('>>> delete xTree node', xNode.key, 'for', c.s.logPrefix);
-                  rightXTree.deleteNode(rightEndNode);
-                }
-              }
-            }
-          }
-        }
-        const bottomEndNode = bottomYTree.search(oldBottom);
-        if (bottomEndNode) {
-          const xNode = bottomEndNode.value.search(oldRight);
-          if (xNode) {
-            const i = xNode.value.findIndex(it => it === c);
-            if (i >= 0) {
-              xNode.value.splice(i, 1);
-              if (xNode.value.length === 0) {
-                bottomEndNode.value.deleteNode(xNode);
-                if (bottomEndNode.value.size() === 0) {
-                  // service.log('>>> delete yTree node', yNode.key, 'for', c.s.logPrefix);
-                  bottomYTree.deleteNode(bottomEndNode);
-                }
-              }
-            }
-          }
-        }
-        const tabIdxNode = tabIndexTree.search(tabIdx);
-        if (tabIdxNode) {
-          const i = tabIdxNode.value.indexOf(c);
-          if (i >= 0 && tabIdxNode.value.length > 1)
-            tabIdxNode.value.splice(i, 1);
-          else
-            tabIndexTree.delete(tabIdx);
-        }
-        // service.log('>>> count xTree', xTree.size(), 'yTree', yTree.size());
-      }
-    })
+      })
+    ))
   ));
   // maintain tree
   r('onRectChange -> "xTree","yTree","rightXTree","bottomYTree"', pt.onRectChange.pipe(
+    rx.mergeMap(a => focusableTree$.pipe(
+      rx.take(1),
+      rx.map(b => [a, b] as const)
+    )),
     rx.withLatestFrom(canvas.latest.setBounding),
-    rx.map(([[, rect, c], [, , , , canHeight]]) => {
+    rx.map(([[[, rect, c], rtree], [, , , , canHeight]]) => {
       const ex = rectByComponent.get(c);
-      updatePosToTree(c, rect[0], rect[1], ex?.[0], xTree, yTree);
-      updatePosToTree(c, rect[0] + rect[2], rect[1] + rect[3], ex?.[0], rightXTree, bottomYTree);
       const tabIndex = rect[1] * canHeight + rect[0];
-      service.log('--- add tabIndex for', c.s.logPrefix, tabIndex);
+      // service.log('--- add tabIndex for', c.s.logPrefix, tabIndex);
       const tabNode = tabIndexTree.insert(tabIndex);
-      service.log('--- after add tabIndex for', c.s.logPrefix, tabNode);
+      // service.log('--- after add tabIndex for', c.s.logPrefix, tabNode);
       if (tabNode.value)
         service.log('--- add duplicate tabIndex', tabIndex, tabNode.value.map(it => it.s.logPrefix));
       tabNode.value ??= [];
       tabNode.value.push(c);
       rectByComponent.set(c, [rect, tabIndex]);
+      if (ex) {
+        rtree.changeRect(ex[0], rect, c);
+      } else {
+        rtree.insert([rect, c]);
+      }
+      // service.log('-- rbush root:', rtree.getRoot());
     })
   ));
-  function updatePosToTree(
-    c: BaseWidget,
-    x: number, y: number,
-    ex: Rectangle | undefined,
-    xTree: RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>,
-    yTree: RedBlackTree<number, RedBlackTree<number, BaseWidget[]>>
-  ) {
-    let oldCol: number | undefined;
-    let oldRow: number | undefined;
-    if (ex) {
-      if (ex[0] === x && ex[1] === y) {
-        return;
-      }
-      oldCol = ex[0];
-      oldRow = ex[1];
-    }
-    const newCol = x;
-    const newRow = y;
-    // remove old node from xTree and yTree
-    if (oldCol != null && oldRow != null) {
-      // service.log('>>> delete exiting rect for', c.s.logPrefix, oldCol, oldRow);
-      const xNode = xTree.search(oldCol);
-      if (xNode) {
-        const yNode = xNode.value.search(oldRow);
-        if (yNode) {
-          const idx = yNode.value.findIndex(it => it === c);
-          if (idx >= 0)
-            yNode.value.splice(idx, 1);
-          if (yNode.value.length === 0) {
-            xNode.value.deleteNode(yNode);
-            if (xNode.value.size() === 0) {
-              xTree.deleteNode(xNode);
-            }
-          }
-        }
-      }
-      const yNode = yTree.search(oldRow);
-      if (yNode) {
-        const xNode = yNode.value.search(oldCol);
-        if (xNode) {
-          const idx = xNode.value.findIndex(it => it === c);
-          if (idx >= 0)
-            xNode.value.splice(idx, 1);
-          if (xNode.value.length === 0) {
-            yNode.value.deleteNode(xNode);
-            if (yNode.value.size() === 0)
-              yTree.deleteNode(yNode);
-          }
-        }
-      }
-    }
-    // add new node to xTree and yTree
-    // For x-coordinate first tree
-    const newXNode = xTree.search(newCol);
-    if (newXNode) {
-      const newYNode = newXNode.value.search(newRow);
-      if (newYNode) {
-        newYNode.value.push(c);
-      } else {
-        const newYNode = newXNode.value.insert(newRow);
-        newYNode.value = [c];
-      }
-    } else {
-      const newXNode = xTree.insert(newCol);
-      newXNode.value = new RedBlackTree();
-      const newYNode = newXNode.value.insert(newRow);
-      newYNode.value = [c];
-    }
-    // for y-coordinate first tree
-    const newYNode = yTree.search(newRow);
-    if (newYNode) {
-      const newXNode = newYNode.value.search(newCol);
-      if (newXNode) {
-        newXNode.value.push(c);
-      } else {
-        const newXNode = newYNode.value.insert(newCol);
-        newXNode.value = [c];
-      }
-    } else {
-      const newYNode = yTree.insert(newRow);
-      newYNode.value = new RedBlackTree();
-      const newXNode = newYNode.value.insert(newCol);
-      newXNode.value = [c];
-    }
-  }
 
-  function getAllParentFocusSvc(curr: FocusService, currComp: BaseWidget, untilRoot: FocusService):
-  rx.Observable<(readonly [FocusService, BaseWidget])[]> {
-    service.log('-- getAllParentFocusSvc', curr.getLogName(), currComp.getLogName(), untilRoot.getLogName());
-    if (curr === untilRoot) {
-      return rx.of([[curr, currComp]]);
-    }
-    return curr.latest.forRootComp.pipe(
-      // rx.mergeMap(([, root]) => root.latest.setParent),
-      // rx.take(1),
-      rx.mergeMap(([, root]) => root.latest.focusService.pipe(
-        rx.switchMap(([, pf]) => pf === curr ?
-            rx.throwError(() => new Error('fuck' + pf.getLogName())) :
-            getAllParentFocusSvc(pf, root, untilRoot).pipe(
-              rx.map(parentRoots => {
-                parentRoots.push([curr, currComp]);
-                return parentRoots;
-              })
-            )),
-        rx.take(1),
-      ))
-    );
-  }
-  r('focusOnComponent -> locateFocusable', pt.focusOnComponent.pipe(
-    rx.switchMap(([m, c]) => c.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT)
-      .re(m).od(
-        c.pt.onContextChange
+  r('focusOnComponent -> didFound,rootFocus.eventHandlingSvc,rootFocus.switchFocus', pt.focusOnComponent.pipe(
+    rx.switchMap(([m, comp]) => {
+      return comp.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m).od(
+        comp.pt.onContextChange
       ).pipe(
+        rx.take(1),
         rx.mergeMap(([, , rootFocus]) => {
-          return getAllParentFocusSvc(service, c, rootFocus as FocusService).pipe(
-            rx.mergeMap(trace => {
-              service.log('-- focusOnComponent', trace.map(([f, c]) => f.s.logPrefix + ' -> ' + c.s.logPrefix));
-              // must wait for rendered once, so its rectangle is updated to focusService
-              return c.latest.render.pipe(
-                rx.take(1),
-                rx.map(() => {
-                  trace[0][0].ft.locateFocusable(trace, 0).dp(m);
-                })
-              );
+          if (!rectByComponent.has(comp)) {
+            // wait for "onRectChange" being handled
+            return pt.onRectChange.pipe(
+              rx.filter(([, , c]) => c === comp),
+              rx.take(1),
+              rx.map(() => {
+                return rootFocus;
+              })
+            );
+          }
+          return rx.of(rootFocus);
+        }),
+        rx.mergeMap(rootFocus => {
+          return ft._emitDidFoundUpToRoot(
+            comp, rootFocus as RootFocusService
+          ).re(m).od(pt._didEmitDidFoundUpToRoot).pipe(
+            rx.take(1),
+            rx.map(() => {
+              (rootFocus as RootFocusService).ft.eventHandlingSvc(service).dp(m);
+              (rootFocus as RootFocusService).ft.switchFocus(
+                service, comp.getLogName(), comp).dp(m);
             })
           );
         })
-      ))
+      );
+    })
   ));
-  r('locateFocusable -> locateFocusable,didFound,handleKeyEvents...', pt.locateFocusable.pipe(
-    rx.withLatestFrom(latest.handleKeyEvents),
-    rx.switchMap(([[m, trace, idx], [, keyService]]) => {
-      if (idx < trace.length) {
-        const [, comp] = trace[idx];
-        const data = rectByComponent.get(comp);
-        // service.log('-- locateFocusable rectByComponent keys:', [...rectByComponent.keys()].map(c => c.getLogName()).join(','), ', comp: ', comp.getLogName(), data);
-        if (data) {
-          const [r, tabIdx] = data;
-          ft.didFound(r, comp, tabIdx).dp(m);
-          if (idx < trace.length - 1) {
-            const [subFocus] = trace[idx + 1];
-            ft.stopHandleKeyEvents().dp(m);
-            subFocus.ft.handleKeyEvents(keyService).dp(m);
-            return rx.merge(
-              subFocus.ft.locateFocusable(trace, idx + 1).re(m).od(
-                subFocus.pt.didNotFound
-              ).pipe(
-                rx.take(1),
-                rx.map(([, dir]) => {
-                  subFocus.ft.stopHandleKeyEvents().dp(m);
-                  ft.handleKeyEvents(keyService, dir).dp(m);
-                })
-              )
-            );
-          } else {
-            return comp.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m).od(
-              comp.pt.onContextChange
+
+  r('_emitDidFoundUpToRoot -> didFound,_didEmitDidFoundUpToRoot', pt._emitDidFoundUpToRoot.pipe(
+    rx.mergeMap(([m, comp, rootSvc]) => {
+      const [r, tabIdx] = rectByComponent.get(comp)!;
+      ft.didFound(r, comp, tabIdx).dp(m);
+      if (service === rootSvc) {
+        ft._didEmitDidFoundUpToRoot().dp(m);
+        return rx.EMPTY;
+      }
+      return latest.forRootComp.pipe(
+        rx.switchMap(([, rootComp]) => rootComp.latest.focusService.pipe(
+          rx.switchMap(([, pf]) => {
+            return pf.ft._emitDidFoundUpToRoot(rootComp, rootSvc).re(m).od(
+              pf.pt._didEmitDidFoundUpToRoot
             ).pipe(
               rx.take(1),
-              rx.map(([, , rootFocus]) => {
-                (rootFocus as RootFocusService).ft.switchFocus(
-                  service, comp.s.logPrefix, comp).dp(m);
-              })
+              rx.map(() => {ft._didEmitDidFoundUpToRoot().dp(m);})
             );
-          }
-        }
-      }
-      ft.didNotFound(SearchDirection.down).dp(m);
-      return rx.EMPTY;
+          }),
+          rx.take(1)
+        ))
+      );
     })
   ));
   // dispatch onFocus event according to didFound result,
@@ -410,12 +238,24 @@ export const focusServiceFac = new BaseReactorFactory<
   const forked = service.s.forkController();
   r('findFocusable,didFound,didNotFound,handleKeyEvents... -> onFocus,rootFocus.switchFocus',
     pt.findFocusable.pipe(
-      rx.withLatestFrom(latest.handleKeyEvents),
-      rx.switchMap(([[m, dir], [, keySvc]]) => {
+      rx.switchMap(([m, dir]) => {
         return forked.pt.didFound.pipe(
           actionRelatedToAction(m),
           rx.takeUntil(forked.pt.didNotFound.pipe(
-            actionRelatedToAction(m)
+            actionRelatedToAction(m),
+            rx.mergeMap(([m2]) => latest.forRootComp.pipe(
+              rx.mergeMap(([, root]) => rx.combineLatest([
+                root.latest.focusService,
+                root.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m)
+                  .od(root.pt.onContextChange).pipe(
+                    rx.take(1)
+                  )
+              ]).pipe(
+                rx.map(([[, pf], [, , rootFocus]]) => {
+                  (rootFocus as RootFocusService).ft.eventHandlingSvc(pf, dir).dp(m2, m);
+                })
+              ))
+            ))
           )),
           rx.take(1),
           // query whether current component is "focusable"
@@ -429,16 +269,17 @@ export const focusServiceFac = new BaseReactorFactory<
             return rx.EMPTY;
           }),
           rx.switchMap(([c, r]) => {
+            return c.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m)
+              .od(c.pt.onContextChange).pipe(
+                rx.take(1),
+                rx.map(([, , rootFocus]) => [c, r, rootFocus as RootFocusService] as const)
+              );
+          }),
+          rx.switchMap(([c, r, rootFocus]) => {
             if (r) {
               ft.onFocus(c.s.logPrefix, c, service).dp(m);
-              return c.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT).re(m)
-                .od(c.pt.onContextChange)
-                .pipe(
-                  rx.take(1),
-                  rx.map(([, , rootFocus]) => {
-                    (rootFocus as FocusService).ft.switchFocus(service, c.s.logPrefix, c).dp(m);
-                  })
-                );
+              rootFocus.ft.switchFocus(service, c.getLogName(), c).dp(m);
+              return rx.EMPTY;
             } else {
               // If current component is not focusable,
               // delegate handling key events job to the sub focusService
@@ -447,17 +288,9 @@ export const focusServiceFac = new BaseReactorFactory<
               ).pipe(
                 rx.filter(([, , v]) => v != null),
                 rx.take(1),
-                rx.switchMap(([, , v]) => {
+                rx.map(([, , v]) => {
                   const focusService = v as FocusService;
-                  ft.stopHandleKeyEvents().dp(m);
-                  return focusService.ft.handleKeyEvents(keySvc, dir)
-                    .re(m).od(focusService.pt.didNotFound).pipe(
-                      rx.map(([m2, origDir]) => {
-                        focusService.ft.stopHandleKeyEvents().dp(m2);
-                        ft.handleKeyEvents(keySvc, origDir).dp(m2);
-                      }),
-                      rx.take(1)
-                    );
+                  rootFocus.ft.eventHandlingSvc(focusService, dir).dp(m);
                 })
               );
             }
@@ -472,203 +305,13 @@ export const focusServiceFac = new BaseReactorFactory<
         rx.map(([m]) => [m, null, null, null] as const)
       )
     )),
-    rx.map(([[m, dir, handleEventAct], [, lastRect, lastComp, tabIdx]]) => {
-      // service.log('-- findFocusable, lastComp', m, lastComp?.s.logPrefix, lastRect);
-      if (dir === SearchDirection.down) {
-        if (lastRect == null || lastComp == null || !rectByComponent.has(lastComp)) {
-          const nodeY = yTree.minimum();
-          if (nodeY == null) {
-            ft.didNotFound(dir).dp(m, handleEventAct);
-            return;
-          }
-          lastComp = nodeY.value.minimum()!.value[0];
-          const lastData = rectByComponent.get(lastComp);
-          if (lastData == null) {
-            // service.log('All yTree nodes', [...yTree.allChildNodeInorder()].map(([n]) => n.key));
-            service.log('>>> yNode key:', nodeY);
-            throw new Error(`Inconsistent rectByComponent of missing entry for ${lastComp.s.logPrefix}`);
-          }
-          [lastRect, tabIdx] = lastData;
-          ft.didFound(lastRect, lastComp, tabIdx).dp(m, handleEventAct);
-          return;
-        }
-        const [[col, row]] = rectByComponent.get(lastComp)!;
-        // check if there are more component with same rectangle
-        const yNode = yTree.search(row);
-        if (yNode) {
-          const xNode = yNode.value.search(col);
-          if (xNode) {
-            const idx = xNode.value.findIndex(it => it === lastComp);
-            if (idx >= 0 && idx < xNode.value.length - 1) {
-              const c = xNode.value[idx + 1];
-              const [r, tabIdx] = rectByComponent.get(c) ?? [undefined, undefined] as const;
-              ft.didFound(r, c, tabIdx).dp(m);
-              return;
-            }
-          }
-        }
-        // move to next node vertically
-        const nextNode = yTree.smallestNodeGreaterThanOrEqual(row + 1);
-        if (nextNode == null) {
-          ft.didNotFound(dir).dp(m, handleEventAct);
-          return;
-        }
-        const toRight = nextNode.value.smallestNodeGreaterThanOrEqual(col);
-        const toLeft = nextNode.value.greatestNodeSmallerThanOrEqual(col);
-        const choosen = chooseClosestLeftOrRight(col, toLeft, toRight);
-        if (choosen) {
-          const nextComp = choosen.value[0];
-          const [r, t] = rectByComponent.get(nextComp) ?? [undefined, undefined] as const;
-          ft.didFound(r, nextComp, t).dp(m);
-          return;
-        }
-      } else if (dir === SearchDirection.up) {
-        if (lastRect == null || lastComp == null || !rectByComponent.has(lastComp)) {
-          const nodeY = bottomYTree.maximum();
-          if (nodeY == null) {
-            ft.didNotFound(dir).dp(m, handleEventAct);
-            return;
-          }
-          lastComp = nodeY.value.maximum()!.value[0];
-          [lastRect, tabIdx] = rectByComponent.get(lastComp) ?? [undefined, undefined] as const;
-          if (lastRect == null) {
-            service.log('All yTree nodes', [...bottomYTree.allChildNodeInorder()].map(([n]) => n.key));
-            throw new Error(`Inconsistent rectByComponent of missing entry for ${lastComp.s.logPrefix}`);
-          }
-          ft.didFound(lastRect, lastComp, tabIdx).dp(m, handleEventAct);
-          return;
-        }
-        const [[x, y, width, height]] = rectByComponent.get(lastComp)!;
-        const col = x + width;
-        const row = y + height;
-        // check if there are more component with same rectangle
-        const yNode = bottomYTree.search(row);
-        if (yNode) {
-          const xNode = yNode.value.search(col);
-          if (xNode) {
-            const idx = xNode.value.findIndex(it => it === lastComp);
-            if (idx > 0) {
-              const c = xNode.value[idx - 1];
-              const [r, t] = rectByComponent.get(c) ?? [undefined, undefined] as const;
-              ft.didFound(r, c, t).dp(m);
-              return;
-            }
-          }
-        }
-        // move to next node vertically
-        const nextNode = bottomYTree.greatestNodeSmallerThanOrEqual(row - 1);
-        if (nextNode == null) {
-          ft.didNotFound(dir).dp(m, handleEventAct);
-          return;
-        }
-        const toRight = nextNode.value.smallestNodeGreaterThanOrEqual(col);
-        const toLeft = nextNode.value.greatestNodeSmallerThanOrEqual(col);
-        const choosen = chooseClosestLeftOrRight(col, toLeft, toRight);
-        if (choosen) {
-          const nextComp = choosen.value[0];
-          const [r, t] = rectByComponent.get(nextComp) ?? [undefined, undefined] as const;
-          ft.didFound(r, nextComp, t).dp(m);
-          return;
-        }
-      } else if (dir === SearchDirection.left) {
-        if (lastRect == null || lastComp == null || !rectByComponent.has(lastComp)) {
-          const nodeX = rightXTree.maximum();
-          if (nodeX == null) {
-            ft.didNotFound(dir).dp(m, handleEventAct);
-            return;
-          }
-          lastComp = nodeX.value.maximum()!.value[0];
-          [lastRect, tabIdx] = rectByComponent.get(lastComp) ?? [undefined, undefined] as const;
-          if (lastRect == null) {
-            service.log('All rightXTree nodes', [...rightXTree.allChildNodeInorder()].map(([n]) => n.key));
-            throw new Error(`Inconsistent rectByComponent of missing entry for ${lastComp.s.logPrefix}`);
-          }
-          // service.log('-- rightXTree.maximum', nodeX.value.maximum()!.value.map(
-          //   c => c.s.logPrefix
-          // ));
-          ft.didFound(lastRect, lastComp, tabIdx).dp(m, handleEventAct);
-          return;
-        }
-        const [[x, y, width, height]] = rectByComponent.get(lastComp)!;
-        const col = x + width;
-        const row = y + height;
-        // check if there are more component of same rectangle
-        const xNode = rightXTree.search(col);
-        if (xNode) {
-          const yNode = xNode.value.search(row);
-          if (yNode) {
-            const idx = yNode.value.findIndex(it => it === lastComp);
-            if (idx > 0) {
-              const c = yNode.value[idx - 1];
-              const [r, t] = rectByComponent.get(c) ?? [undefined, undefined] as const;
-              ft.didFound(r, c, t).dp(m);
-              return;
-            }
-          }
-        }
-        // move to next node horizontally
-        const nextNode = rightXTree.greatestNodeSmallerThanOrEqual(col - 1);
-        if (nextNode == null) {
-          ft.didNotFound(dir).dp(m, handleEventAct);
-          return;
-        }
-        const end0 = nextNode.value.smallestNodeGreaterThanOrEqual(row);
-        const end1 = nextNode.value.greatestNodeSmallerThanOrEqual(row);
-        const choosen = chooseClosestLeftOrRight(row, end0, end1);
-        if (choosen) {
-          const nextComp = choosen.value[0];
-          const [r, t] = rectByComponent.get(nextComp) ?? [undefined, undefined] as const;
-          ft.didFound(r, nextComp, t).dp(m);
-          return;
-        }
-      } else if (dir === SearchDirection.right) {
-        if (lastRect == null || lastComp == null || !rectByComponent.has(lastComp)) {
-          const nodeX = xTree.minimum();
-          if (nodeX == null) {
-            ft.didNotFound(dir).dp(m, handleEventAct);
-            return;
-          }
-          lastComp = nodeX.value.minimum()!.value[0];
-          [lastRect, tabIdx] = rectByComponent.get(lastComp) ?? [undefined, undefined] as const;
-          if (lastRect == null) {
-            service.log('All xTree nodes', [...xTree.allChildNodeInorder()].map(([n]) => n.key));
-            throw new Error(`Inconsistent rectByComponent of missing entry for ${lastComp.s.logPrefix}`);
-          }
-          ft.didFound(lastRect, lastComp, tabIdx).dp(m, handleEventAct);
-          return;
-        }
-        const [[col, row]] = rectByComponent.get(lastComp)!;
-        // check if there are more component of same rectangle
-        const xNode = xTree.search(col);
-        if (xNode) {
-          const yNode = xNode.value.search(row);
-          if (yNode) {
-            const idx = yNode.value.findIndex(it => it === lastComp);
-            if (idx >= 0 && idx < yNode.value.length - 1) {
-              const c = yNode.value[idx + 1];
-              const [r, t] = rectByComponent.get(c) ?? [undefined, undefined] as const;
-              ft.didFound(r, c, t).dp(m);
-              return;
-            }
-          }
-        }
-        // move to next node horizontally
-        const nextNode = xTree.smallestNodeGreaterThanOrEqual(col + 1);
-        if (nextNode == null) {
-          ft.didNotFound(dir).dp(m, handleEventAct);
-          return;
-        }
-        const end0 = nextNode.value.smallestNodeGreaterThanOrEqual(row);
-        const end1 = nextNode.value.greatestNodeSmallerThanOrEqual(row);
-        const choosen = chooseClosestLeftOrRight(row, end0, end1);
-        if (choosen) {
-          const nextComp = choosen.value[0];
-          const [r, t] = rectByComponent.get(nextComp) ?? [undefined, undefined];
-          ft.didFound(r, nextComp, t).dp(m);
-          return;
-        }
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      } else if (dir === SearchDirection.tabNext) {
+    rx.mergeMap(a => focusableTree$.pipe(
+      rx.take(1),
+      rx.map(b => [...a, b] as const)
+    )),
+    rx.map(([[m, dir, handleEventAct], [, lastRect, lastComp, tabIdx], rtree]) => {
+      service.log('-- findFocusable, lastComp', lastComp?.getLogName());
+      if (dir === SearchDirection.tabNext) {
         if (lastRect == null || lastComp == null || !rectByComponent.has(lastComp)) {
           const node = tabIndexTree.minimum();
           if (node == null) {
@@ -685,6 +328,7 @@ export const focusServiceFac = new BaseReactorFactory<
           return;
         }
         const [, t] = rectByComponent.get(lastComp)!;
+        service.log('-- tabNext', t);
         // check if there are more component of same rectangle
         const node = tabIndexTree.search(t)!;
         const idx = node.value.findIndex(it => it === lastComp);
@@ -703,7 +347,79 @@ export const focusServiceFac = new BaseReactorFactory<
         const nextComp = nextNode.value[0];
         const nextCompPos = rectByComponent.get(nextComp) ?? [undefined, undefined];
         ft.didFound(nextCompPos[0], nextComp, nextCompPos[1]).dp(m);
+        return;
+      } else {
+        const rtreeRoot = rtree.getRoot();
+        if (lastRect == null) {
+          const chosen = findNextComp(rtree, lastRect, dir, rtreeRoot);
+          if (chosen) {
+            const [r, t] = rectByComponent.get(chosen) ?? [undefined, undefined] as const;
+            ft.didFound(r, chosen, t).dp(m);
+            return;
+          }
+        } else {
+          const bigger = [...lastRect] as Rectangle;
+          let min = rtreeRoot.minX;
+          let max = rtreeRoot.maxX;
+          let upBound = lastRect[0] + lastRect[2] - 1;
+          let btmBound = lastRect[0];
+          let grow = 4;
+          let chosen: BaseWidget | undefined;
+          switch (dir) {
+            case SearchDirection.up:
+            case SearchDirection.down:
+              for (;;) {
+                bigger[0] = btmBound;
+                bigger[2] = upBound - btmBound + 1;
+                service.log('-- loop findNextComp', bigger);
+                chosen = findNextComp(rtree, bigger, dir, rtreeRoot);
+                if (chosen) {
+                  break;
+                }
+                if (upBound === max && btmBound === min)
+                  break;
+                grow += grow;
+                upBound += grow;
+                btmBound -= grow;
+                if (upBound > max)
+                  upBound = max;
+                if (btmBound < min)
+                  btmBound = min;
+              }
+              break;
+            default:
+              grow = 2;
+              min = rtreeRoot.minY;
+              max = rtreeRoot.maxY;
+              upBound = lastRect[1] + lastRect[3] - 1;
+              btmBound = lastRect[1];
+              service.log('-- loop findNextComp', bigger);
+              for (;;) {
+                bigger[1] = btmBound;
+                bigger[3] = upBound - btmBound + 1;
+                chosen = findNextComp(rtree, bigger, dir, rtreeRoot);
+                if (chosen) {
+                  break;
+                }
+                if (upBound === max && btmBound === min)
+                  break;
+                grow += grow;
+                upBound += grow;
+                btmBound -= grow;
+                if (upBound > max)
+                  upBound = max;
+                if (btmBound < min)
+                  btmBound = min;
+              }
+          }
+          if (chosen) {
+            const [r, t] = rectByComponent.get(chosen) ?? [undefined, undefined] as const;
+            ft.didFound(r, chosen, t).dp(m);
+            return;
+          }
+        }
       }
+      ft.didNotFound(dir).dp(m, handleEventAct);
     })
   ));
   r('resumeHandleEvents', pt.resumeHandleEvents.pipe(
@@ -736,7 +452,7 @@ export const focusServiceFac = new BaseReactorFactory<
             rx.map(() => ft.findFocusable(dir, m.i).dp(m, m1))
           );
         }
-        service.log('--keyevent', m1.i, KeyEventEnum[evt], count);
+        // service.log('--keyevent', m1.i, KeyEventEnum[evt], count);
         switch (evt) {
           case KeyEventEnum.focusUp:
             return rx.range(0, count).pipe(
@@ -875,21 +591,180 @@ export const focusServiceFac = new BaseReactorFactory<
       })
     );
   }
+
+  function findNextComp(
+    rtree: RTree<BaseWidget>,
+    currRect: Rectangle | undefined | null,
+    dir: SearchDirection, bboxOfAll: BBox
+  ) {
+    if (currRect == null) {
+      switch (dir) {
+        case SearchDirection.up:
+          currRect = [bboxOfAll.minX, bboxOfAll.maxY + 1, bboxOfAll.maxX - bboxOfAll.minX + 1, 0];
+          break;
+        case SearchDirection.down:
+          currRect = [bboxOfAll.minX, bboxOfAll.minY - 1, bboxOfAll.maxX - bboxOfAll.minX + 1, 0];
+          break;
+        case SearchDirection.left:
+          currRect = [bboxOfAll.maxX + 1, bboxOfAll.minY, 0, bboxOfAll.maxY - bboxOfAll.minY + 1];
+          break;
+        default:
+          currRect = [bboxOfAll.minX - 1, bboxOfAll.minY, 0, bboxOfAll.maxY - bboxOfAll.minY + 1];
+      }
+    }
+    const [x, y, w, h] = currRect;
+    service.log('-- findNextComp: currRect=', currRect);
+    const expandLimit = dir === SearchDirection.up ?
+      y - bboxOfAll.minY :
+      dir === SearchDirection.down ?
+        bboxOfAll.maxY - y - h + 1 :
+        dir === SearchDirection.left ?
+          x - bboxOfAll.minX :
+          bboxOfAll.maxX + 1 - x - w;
+    let expandUnits = 3 > expandLimit ? expandLimit : 3;
+    let lowSearchBnd = 0;
+    let highSearchBnd = lowSearchBnd + expandUnits;
+    const searchRect = [...currRect] as Rectangle;
+    let closestComp: BaseWidget | undefined;
+    switch (dir) {
+      case SearchDirection.up:
+        while (lowSearchBnd < expandLimit) {
+          searchRect[1] = y - highSearchBnd;
+          searchRect[3] = highSearchBnd - lowSearchBnd;
+          const found = rtree.searchOverlaps(searchRect);
+          if (found.length > 0) {
+            let bottom = Number.MIN_VALUE;
+            let right = Number.MIN_SAFE_INTEGER;
+            for (const [r, c] of found) {
+              const b = r[1] + r[3];
+              if (b > bottom || (b === bottom && r[0] + r[2] > right)) {
+                closestComp = c;
+                bottom = b;
+                right = r[0] + r[2];
+              }
+            }
+            break;
+          }
+          expandUnits += expandUnits;
+          lowSearchBnd = highSearchBnd;
+          highSearchBnd += expandUnits;
+          if (highSearchBnd > expandLimit)
+            highSearchBnd = expandLimit;
+        }
+        return closestComp;
+      case SearchDirection.down:
+        while (lowSearchBnd < expandLimit) {
+          searchRect[1] = y + h + lowSearchBnd;
+          searchRect[3] = highSearchBnd - lowSearchBnd;
+          const found = rtree.searchOverlaps(searchRect);
+          // service.log('-- search rtree', searchRect, found.map(([r]) => '[' + r.join() + ']'));
+          if (found.length > 0) {
+            let top = Number.MAX_VALUE;
+            let left = Number.MAX_SAFE_INTEGER;
+            for (const [r, c] of found) {
+              const b = r[1];
+              if (b < top || (b === top && r[0] < left)) {
+                closestComp = c;
+                top = b;
+                left = r[0];
+              }
+            }
+            break;
+          }
+
+          expandUnits += expandUnits;
+          lowSearchBnd = highSearchBnd;
+          highSearchBnd += expandUnits;
+          if (highSearchBnd > expandLimit)
+            highSearchBnd = expandLimit;
+        }
+        break;
+      case SearchDirection.left:
+        while (lowSearchBnd < expandLimit) {
+          searchRect[0] = x - highSearchBnd;
+          searchRect[2] = highSearchBnd - lowSearchBnd;
+          const found = rtree.searchOverlaps(searchRect);
+          if (found.length > 0) {
+            let right = Number.MIN_VALUE;
+            let bottom = Number.MIN_VALUE;
+            for (const [r, c] of found) {
+              const b = r[0] + r[2];
+              if (b > right || (b === right && r[1] + r[3] > bottom)) {
+                closestComp = c;
+                right = b;
+                bottom = r[1] + r[3];
+              }
+            }
+            break;
+          }
+
+          expandUnits += expandUnits;
+          lowSearchBnd = highSearchBnd;
+          highSearchBnd += expandUnits;
+          if (highSearchBnd > expandLimit)
+            highSearchBnd = expandLimit;
+        }
+        break;
+      default:
+        while (lowSearchBnd < expandLimit) {
+          searchRect[0] = x + w + lowSearchBnd;
+          searchRect[2] = highSearchBnd - lowSearchBnd;
+          const found = rtree.searchOverlaps(searchRect);
+          if (found.length > 0) {
+            let left = Number.MAX_VALUE;
+            let top = Number.MAX_VALUE;
+            for (const [r, c] of found) {
+              const b = r[0];
+              if (b < left || (b === left && r[1] < top)) {
+                closestComp = c;
+                left = b;
+                top = r[1];
+              }
+            }
+            break;
+          }
+
+          expandUnits += expandUnits;
+          lowSearchBnd = highSearchBnd;
+          highSearchBnd += expandUnits;
+          if (highSearchBnd > expandLimit)
+            highSearchBnd = expandLimit;
+        }
+    }
+    return closestComp;
+  }
   ft.isPaused(false).dp();
   ft.onFocus('', null, null).dp();
   ft.didFound().dp();
   return service;
 });
 
+export interface RootFocusEvents {
+  eventHandlingSvc(svc: FocusService, dir?: SearchDirection): SingleActionFactory;
+}
 export type RootFocusServiceOpts = FocusServiceOpts;
-const tableForRoot = ['switchFocus'] as const;
-export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, typeof tableForRoot, RootFocusServiceOpts>({
+const tableForRoot = ['switchFocus', 'eventHandlingSvc'] as const;
+export const rootFocusSvcFac = focusServiceFac.forExtend<RootFocusEvents, typeof tableForRoot, RootFocusServiceOpts>({
   name: 'rootFocusSvc',
   debugExcludeTypes: ['renderBypassFilter'],
   tableFor: tableForRoot
 }).defineReactor(({init}, canvas: Canvas) => {
   const service = init(null, canvas);
-  const {r, pt, ft} = service;
+  const {r, pt, ft, latest} = service;
+  r('eventHandlingSvc', latest.handleKeyEvents.pipe(
+    rx.take(1),
+    rx.switchMap(([, eventSvc]) => latest.eventHandlingSvc.pipe(
+      rx.distinctUntilChanged(([, a], [, b]) => a === b),
+      rx.scan<
+        InferMapParam<RootFocusEvents['eventHandlingSvc']>
+      >((prev, curr) => {
+        const [m, svc, dir] = curr;
+        prev[1].ft.stopHandleKeyEvents().dp(m);
+        svc.ft.handleKeyEvents(eventSvc, dir).dp(m);
+        return curr;
+      })
+    ))
+  ));
   r('switchFocus... -> canvas.addRenderFilter...', pt.switchFocus.pipe(
     rx.switchMap(([m, srcFocus, , c]) => {
       if (c == null || srcFocus == null)
@@ -920,20 +795,20 @@ export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, 
   ));
   r('switchFocus -> c.onLeave,c.onEnter', pt.switchFocus.pipe(
     rx.distinctUntilChanged(([,,, a], [,,, b]) => a === b),
-    rx.scan((prev, curr) => {
-      if (prev == null) {
+    rx.scan<InferMapParam<FocusMessages['switchFocus']>>((prev, curr) => {
+      if (prev[1] == null && prev[3] == null) {
         const [, , , p] = curr;
         let c: BaseWidget | undefined | null = p;
         while (c) {
           c.ft.onEnter(p!).dp(curr[0]);
-          c = c.table.getData().setParent[0];
+          c = c.table.data.setParent[0];
         }
       } else {
         const blurAncestors = new Set<BaseWidget>();
         let c: BaseWidget | undefined | null = prev[3];
         while (c) {
           blurAncestors.add(c);
-          c = c.table.getData().setParent[0];
+          c = c.table.data.setParent[0];
         }
         // lookup for common ancestor
         c = curr[3];
@@ -944,70 +819,50 @@ export const rootFocusSvcFac = focusServiceFac.forExtend<Record<string, never>, 
             while (leaveComp) {
               // ancestors below the common ancestor should be "onLeave"
               leaveComp.ft.onLeave(prev[3]!).dp(prev[0]);
-              leaveComp = leaveComp.table.getData().setParent[0];
+              leaveComp = leaveComp.table.data.setParent[0];
             }
             break;
           }
           c.ft.onEnter(curr[3]!).dp(curr[0]);
-          c = c.table.getData().setParent[0];
+          c = c.table.data.setParent[0];
         }
       }
 
       return curr;
-    }, null as null | InferMapParam<FocusMessages['switchFocus']>)
+    })
   ));
 
-  r('didNotFound', rx.merge(
-    pt.didNotFound,
-    pt.didFound.pipe(
-      rx.map(() => null)
-    )
-  ).pipe(
-    rx.scan((prev, curr) => {
-      if (prev == null && curr != null) {
-        const [m, dir] = curr;
-        let reverseDir: typeof dir;
-        switch (dir) {
-          case SearchDirection.up:
-            reverseDir = SearchDirection.down;
-            break;
-          case SearchDirection.down:
-            reverseDir = SearchDirection.up;
-            break;
-          case SearchDirection.left:
-            reverseDir = SearchDirection.right;
-            break;
-          case SearchDirection.right:
-            reverseDir = SearchDirection.left;
-            break;
-          default:
-            reverseDir = SearchDirection.tabNext;
-        }
-        service.log('-- top level focus service retry focus for', SearchDirection[reverseDir]);
-        // setTimeout avoid recursive invocation of findFocusable
-        setTimeout(() => {
-          ft.findFocusable(reverseDir, m.i).dp(m);
-        }, 0);
-      }
-      return curr;
-    }, null as InferMapParam<FocusMessages['didNotFound']> | null)
+  r('switchFocus, didNotFound -> comp.focus', pt.switchFocus.pipe(
+    rx.filter(([, , , c]) => c != null),
+    rx.switchMap(([m0, , , c]) => pt.didNotFound.pipe(
+      rx.map(([m]) => {
+        // there is no other focusable, focus the lastest focused component.
+        // Always do "focus()" asynchronously, to avoid recursive "didFound", "didNotFound"
+        // messing up state of base service, let it to finish subscription of current event first.
+        process.nextTick(() => {
+          c!.ft.focus().dp(m, m0);
+        });
+      })
+    ))
   ));
-  // ft.switchFocus(null, null, null, null).dp();
+
+  ft.eventHandlingSvc(service).dp();
+  ft.switchFocus().dp();
   return service;
 });
 
 export type RootFocusService = SimplexReactorOfFac<typeof rootFocusSvcFac>;
 
-function chooseClosestLeftOrRight<N extends {key: number}>(x: number, node1: N | null | undefined, node2: N | null | undefined) {
-  if (node1 != null && node2 == null)
-    return node1;
-  else if (node1 == null && node2 != null)
-    return node2;
-  else if (node1 && node2) {
-    return Math.abs(x - node1.key) > Math.abs(x - node2.key) ? node2 : node1;
-  }
-  return null;
-}
+// function chooseClosestLeftOrRight<N extends {key: number}>(x: number, node1: N | null | undefined, node2: N | null | undefined) {
+//   if (node1 != null && node2 == null)
+//     return node1;
+//   else if (node1 == null && node2 != null)
+//     return node2;
+//   else if (node1 && node2) {
+//     return Math.abs(x - node1.key) > Math.abs(x - node2.key) ? node2 : node1;
+//   }
+//   return null;
+// }
 
 export function queryRootFocusService(currComp: BaseWidget, m?: ActionMeta) {
   let fac = currComp.ft.queryContext(ROOT_FOCUS_SERVICE_CONTEXT);

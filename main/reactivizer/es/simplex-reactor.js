@@ -5,6 +5,7 @@ import { ActionTable } from './action-table';
 import { ForkedRxController } from './forked-control';
 import { ForkedPostRxController } from './forked-post-control';
 import { actionRelatedToAction } from './context-operators';
+import { initOptions } from './initial-options';
 const baseActionTypeSet = new Set(['__onError', '__onDisposed', '__cancel', '__config']);
 const internalTableFor = ['__onError', '__onDisposed'];
 let SEQ = new Date().getUTCMilliseconds();
@@ -23,9 +24,21 @@ export class SimplexReactor {
         this.errorSubject = new rx.ReplaySubject(20);
         this.preActionHook$ = new rx.Subject();
         this.removePreActionHook$ = new rx.Subject();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        this.opts = opts;
-        this.s = new RxController2(Object.assign(Object.assign({}, opts), { name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + `@${this.id}` }));
+        this.opts = Object.assign({}, initOptions);
+        if (opts) {
+            for (const [k, v] of Object.entries(opts)) {
+                if (v !== undefined) {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    this.opts[k] = v;
+                }
+            }
+        }
+        if (this.opts.debug != null)
+            this.opts.enableLog = this.opts.debug;
+        // if (this.opts.enableLog && this.opts.log == null) {
+        //   throw new Error(`Missing log implementaion for ${this.opts.name}`);
+        // }
+        this.s = new RxController2(Object.assign(Object.assign({}, this.opts), { name: ((_a = this.opts.name) !== null && _a !== void 0 ? _a : '') + `@${this.id}` }));
         this.postBase = this.p = this.s;
         this.table = new ActionTable(this.s, [...(_b = opts === null || opts === void 0 ? void 0 : opts.tableFor) !== null && _b !== void 0 ? _b : [], ...internalTableFor]);
         this.pt = this.s.pt;
@@ -68,8 +81,9 @@ export class SimplexReactor {
                 if (hooks) {
                     let payload = a.p;
                     return rx.concat(rx.from(hooks).pipe(rx.concatMap(([hook, label]) => hook(a, ...payload).pipe(rx.map(retPayload => {
-                        payload = retPayload;
-                    }), this.handleErrorOp(label !== null && label !== void 0 ? label : 'Unlabled prehook', 'stop'))), rx.ignoreElements()), rx.defer(() => rx.of(Object.assign(Object.assign({}, a), { p: payload }))));
+                        if (retPayload)
+                            payload = retPayload;
+                    }), this.handleErrorOp(label !== null && label !== void 0 ? label : 'Unlabled prehook', 'stop'))), rx.ignoreElements()), rx.defer(() => rx.of(a.copy({ p: payload }))));
                 }
                 else {
                     return rx.of(a);
@@ -290,13 +304,8 @@ export class SimplexReactor {
     }
     log(...msg) {
         var _a;
-        if ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.debug) {
-            if (this.opts.log)
-                this.opts.log((this.s.logPrefix), ...msg);
-            else {
-                // eslint-disable-next-line no-console
-                console.log((this.s.logPrefix), ...msg);
-            }
+        if (((_a = this.opts) === null || _a === void 0 ? void 0 : _a.enableLog) && this.opts.log) {
+            this.ft.LOG(...msg).dp();
         }
     }
     reactivizeFunction(key, func, funcThisRef) {

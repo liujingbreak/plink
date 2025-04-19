@@ -18,7 +18,8 @@ export function formatToConcise(...messageItems: any[]) {
 export function formatToConciseNoColor(...messageItems: any[]) {
   return messageItems.map(msg => typeof msg === 'string' ? msg : inspect(msg, false, 0, false)).join(' ');
 }
-export function createSimpleIndentLogger(colorful: boolean, timestamp: boolean, out: Writable) {
+export function createSimpleIndentLogger(colorful: boolean, timestamp: boolean, out: Writable):
+(prefix: string, ...msgs: any[]) => void {
   let lastPrefix: string | undefined;
   let lastMsgName: string | undefined;
   const out$ = new rx.Subject<string>();
@@ -55,14 +56,11 @@ export function createSimpleIndentLogger(colorful: boolean, timestamp: boolean, 
           );
       })
     ),
-    new rx.Observable(_sub => {
-      const h = () => stop$.next(false);
+    new rx.Observable(() => {
+      const h = () => {stop$.next(false);};
       out.on('drain', h);
       return () => out.off('drain', h);
     })
-    // out$.pipe(
-    //   rx.map(d => console.log(d))
-    // )
   ).subscribe();
 
   function printTime() {

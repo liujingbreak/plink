@@ -14,6 +14,10 @@ export interface KeyScrollingMsg {
    */
   setInputStream(stream: NodeJS.ReadableStream, isTTY: boolean): SingleActionFactory;
 }
+export interface KeySetting {
+  /** default 40 */
+  keyInputThrottleTime(msec: number): SingleActionFactory;
+}
 interface KeyEvents {
   onMouseEvent(evt: MouseEventOpts, x: number, y: number, evtSequence: string): SingleActionFactory;
   /** Individual keyboard press event */
@@ -36,7 +40,7 @@ export enum KeyEventEnum {
   scrollLeft, scrollRight, scrollUp, scrollDown, scrollTop, scrollBottom, home, end,
   focusLeft, focusRight, focusUp, focusDown, focusNext
 }
-export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
+export interface keypressSignals extends KeySetting, KeyScrollingMsg, KeyEvents {
   onRawKeyInput(event: RawKeyEvent): SingleActionFactory;
   onDisplayKeys(text: string, isCompleted: boolean, isValid: boolean): SingleActionFactory;
   onInputCompleted(completed: boolean, valid: boolean): SingleActionFactory;
@@ -51,7 +55,7 @@ export interface keypressSignals extends KeyScrollingMsg, KeyEvents {
   onReportCursor(x: number, y: number): SingleActionFactory;
 }
 
-const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'] as const;
+const tableFor = ['keyInputThrottleTime', 'setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'] as const;
 interface RawKeyEvent {
   name: string | undefined;
   sequence: string;
@@ -68,6 +72,17 @@ export function createKeyEventService(opts?: KeyEventOptions) {
     tableFor
   });
   const {r, latest, ft, pt} = service;
+  r('keyInputThrottleTime', latest.keyInputThrottleTime.pipe(
+    rx.switchMap(([, ms]) => new rx.Observable(() => {
+      const remove = service.prependInterceptor(ad => rx.merge(
+        ad.at.onRawKeyInput.pipe(
+          rx.throttleTime(ms, undefined, {leading: true, trailing: true})
+        ),
+        ad.ofOtherTypes()
+      ));
+      return remove;
+    }))
+  ));
   r('setInputStream -> onRawKeyInput', pt.setInputStream.pipe(
     rx.switchMap(([m, stdin, tty]) => {
       if (tty) {
@@ -83,10 +98,8 @@ export function createKeyEventService(opts?: KeyEventOptions) {
         //   // service.log('>>> stdin data', chunk);
         // }
         stdin.on('keypress', h);
-        // stdin.on('data', handleData);
         return () => {
           stdin.off('keypress', h);
-          // stdin.off('data', handleData);
           if (tty) {
             (stdin as tty.ReadStream).setRawMode(false);
           }
@@ -426,6 +439,7 @@ export function createKeyEventService(opts?: KeyEventOptions) {
       return rx.EMPTY;
     })
   ));
+  ft.keyInputThrottleTime(40).dp();
 
   // Enable and disable Mouse device
   const reset = () => {

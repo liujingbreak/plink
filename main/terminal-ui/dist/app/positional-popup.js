@@ -100,7 +100,7 @@ export function bindToolTipsTo(c, tooltips, delayShowMs = 800, opts) {
         return rx.timer(delayShowMs).pipe(rx.takeUntil(c.pt.onLeave), rx.map(() => {
             let textComp;
             if (typeof tooltips === 'string') {
-                const bordedText = textFac.setting(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.label' : 'popup.label', debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.textOpts)).create(tooltips);
+                const bordedText = textFac.setting(Object.assign({ name: (opts === null || opts === void 0 ? void 0 : opts.name) ? opts.name + '.label' : 'popup.label', enableLog: opts === null || opts === void 0 ? void 0 : opts.enableLog, log: opts === null || opts === void 0 ? void 0 : opts.log }, opts === null || opts === void 0 ? void 0 : opts.textOpts)).create(tooltips);
                 bordedText.ft.setPadding(0, 1, 0, 1).dp(m);
                 textComp = bordedText;
             }
@@ -110,7 +110,7 @@ export function bindToolTipsTo(c, tooltips, delayShowMs = 800, opts) {
             const popup = showPopupFor(c, textComp, {
                 actionMeta: m,
                 allowUserEvents: false
-            }, Object.assign({ debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: opts === null || opts === void 0 ? void 0 : opts.log, name: opts === null || opts === void 0 ? void 0 : opts.name }, opts === null || opts === void 0 ? void 0 : opts.positionalOpts));
+            }, Object.assign({ enableLog: opts === null || opts === void 0 ? void 0 : opts.enableLog, log: opts === null || opts === void 0 ? void 0 : opts.log, name: opts === null || opts === void 0 ? void 0 : opts.name }, opts === null || opts === void 0 ? void 0 : opts.positionalOpts));
             return [popup, textComp];
         }), rx.mergeMap(([popup, textComp]) => querySchemeForComponent(textComp).pipe(rx.map(([colors]) => {
             textComp.ft.setBackground(`bgHex(${colors.inverseSurface})`).dp();

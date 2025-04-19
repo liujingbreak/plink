@@ -15,8 +15,7 @@ const inspectOptions = { depth: 0, showHidden: false, compact: true, maxStringLe
 export function createWorkerControl(opts) {
     var _a, _b, _c;
     let mainPort; // Broker's message port
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new SimplexReactor(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { tableFor: (opts === null || opts === void 0 ? void 0 : opts.tableFor) ? [...workerActionTableFor, ...opts.tableFor] : workerActionTableFor, name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: isMainThread ?
+    const comp = new SimplexReactor(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { tableFor: (opts === null || opts === void 0 ? void 0 : opts.tableFor) ? [...workerActionTableFor, ...opts.tableFor] : workerActionTableFor, name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')), enableLog: opts === null || opts === void 0 ? void 0 : opts.enableLog, log: isMainThread ?
             opts === null || opts === void 0 ? void 0 : opts.log :
             (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({
                 type: 'log',
@@ -56,7 +55,6 @@ export function createWorkerControl(opts) {
             }
         };
         if (parentPort) {
-            /* eslint-disable no-restricted-globals */
             parentPort.on('message', handler);
         }
         else {
@@ -74,11 +72,11 @@ export function createWorkerControl(opts) {
             chan.port1.close();
         }).pipe(rx.map(event => {
             s.ft.onForkReturn(event).dp();
-        }), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), error$.pipe(rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))), s.pt.onForkReturn.pipe(rx.map(([, retAction]) => retAction), actionRelatedToAction(wrappedAct), rx.tap(retAction => {
+        }), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), error$.pipe(rx.tap(err => { comp.dispatchErrorFor(err, wrappedAct); })), s.pt.onForkReturn.pipe(rx.map(([, retAction]) => retAction), actionRelatedToAction(wrappedAct), rx.tap(retAction => {
             const replyFork = s.createAction(retAction.t, retAction.p);
             replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
             s.actionUpstream.next(replyFork);
-        }), rx.take(1)), new rx.Observable(_sub => {
+        }), rx.take(1)), new rx.Observable(() => {
             if (mainPort) {
                 const forkByBroker = s.createAction('forkByBroker', [wrappedAct, chan.port2]);
                 mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
@@ -90,7 +88,6 @@ export function createWorkerControl(opts) {
     })));
     return comp;
 }
-// eslint-disable-next-line space-before-function-paren
 export function createWorkerControlOfFn(recursiveFuncs, opts) {
     const ctl = createWorkerControl(opts).reactivize(recursiveFuncs);
     return ctl;

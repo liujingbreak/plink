@@ -5,7 +5,7 @@ import {Worker} from 'worker_threads';
 import {performance} from 'node:perf_hooks';
 import os from 'node:os';
 import * as rx from 'rxjs';
-import {expect}  from '@jest/globals';
+import assert from 'node:assert';
 // import {log4File} from '@wfh/plink';
 import {SimplexReactorOptions} from '../index';
 import {formatToConciseNoColor} from '../nodejs-utils';
@@ -43,12 +43,14 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
   });
 
   broker.s.pt.onWorkerError.pipe(
-    rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))
+    rx.tap(([, workerNo, error, type]) => {
+      console.error(type, 'worker #', workerNo, error);
+    })
   ).subscribe();
 
   broker.table.l.allReadyWorkers.pipe(
     rx.switchMap(([, worker$]) => worker$),
-    rx.map(([ , , input]) => input.ft.changeConfig({debug: true}).dp())
+    rx.map(([, , input]) => input.ft.changeConfig({debug: true}).dp())
   ).subscribe();
 
   const {s} = broker;
@@ -117,8 +119,12 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
         rx.ignoreElements()
       ),
       rx.merge(
-        broker.error$.pipe(rx.map(([label, err]) => console.error('Broker', label, 'on error', err))),
-        s.pt.onWorkerError.pipe(rx.map(([, workNo, err, type]) => console.error('Worker', workNo, 'on', type ?? 'error', err)))
+        broker.error$.pipe(rx.map(([label, err]) => {
+          console.error('Broker', label, 'on error', err);
+        })),
+        s.pt.onWorkerError.pipe(rx.map(([, workNo, err, type]) => {
+          console.error('Worker', workNo, 'on', type ?? 'error', err);
+        }))
       ).pipe(
         rx.take(1),
         rx.map(() => {
@@ -132,21 +138,19 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
   }
   sorter.s.ft.log('Initial test array', testArr).dp();
 
-
   performance.mark(threadMode + '/sort start');
   // call main sort function
   await rx.firstValueFrom(sorter.s.ft.sortAllInWorker(
-    testArr.buffer as SharedArrayBuffer, 0, num, Math.round(num / numOfWorkers / 2)
+    testArr.buffer, 0, num, Math.round(num / numOfWorkers / 2)
   ).do(sorter.s.at.sortAllInWorkerResolved));
   performance.measure(`measure ${numOfWorkers}`, threadMode + '/sort start');
   const performanceEntry = performance.getEntriesByName(`measure ${numOfWorkers}`)[0];
-  // eslint-disable-next-line no-console
   console.log('Performance entry #' + performanceEntry.name + ':', performanceEntry.duration, 'ms');
   performance.clearMeasures();
   performance.clearMarks();
 
   if (!['scheduler', 'excludeMainThread'].includes(threadMode)) {
-    expect(workerIsAssigned).toBe(true);
+    assert.equal(workerIsAssigned, true);
   }
   sorter.s.ft.log('-----------------------------\nsorted:', testArr).dp();
 
@@ -155,10 +159,10 @@ export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'sing
     console.log('Ranks of workers:', [...scheduleState!.ranksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
     console.log('Num of tasks of workers:', [...scheduleState!.tasksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
     for (const [, [workerNo, rank]] of scheduleState!.tasksByWorkerNo.entries()) {
-      expect(rank).toBe(workerNo === 'main' ? 1 : 0);
+      assert.equal(rank, workerNo === 'main' ? 1 : 0);
     }
     for (const [, [workerNo, rank]] of scheduleState!.ranksByWorkerNo.entries()) {
-      expect(rank).toBe(workerNo === 'main' ? 1 : 0);
+      assert.equal(rank, workerNo === 'main' ? 1 : 0);
     }
   }
 
@@ -185,12 +189,11 @@ function createSharedArryForTest(from: number, to: number) {
   return testArr;
 }
 
-function shuffleArray(arr: number[], target: {[i: number]: any}) {
+function shuffleArray(arr: number[], target: Record<number, any>) {
   let arrEffectiveLen = arr.length;
   for (let i = 0, l = arr.length; i < l; i++) {
     const pos = Math.floor(Math.random() * arrEffectiveLen--);
     // console.log(`(${pos}, ${arr.length})`, '-', arr[pos]);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     target[i] = arr[pos];
     if (pos !== arr.length - 1)
       arr[pos] = arr.pop()!;

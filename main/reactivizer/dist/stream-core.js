@@ -33,11 +33,46 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ControllerCore = exports.has = void 0;
+exports.ControllerCore = exports.has = exports.Action = void 0;
 exports.nameOfAction = nameOfAction;
 exports.actionMetaToStr = actionMetaToStr;
 exports.assignActionReferParam = assignActionReferParam;
 const rx = __importStar(require("rxjs"));
+class Action {
+    static fromJsonObj(obj) {
+        const a = new Action(obj.t, obj.p);
+        a.i = obj.i;
+        a.r = obj.r;
+        return a;
+    }
+    /**
+    * use RxController2::createAction() instead,
+    * otherwise don't forget to assign id number to property "i"
+    **/
+    constructor(t, p) {
+        this.t = t;
+        this.p = p;
+        this.i = -1;
+    }
+    toJson() {
+        return {
+            i: this.i,
+            r: this.r,
+            t: this.t,
+            p: this.p
+        };
+    }
+    copy(override) {
+        const c = new Action(this.t, this.p);
+        c.i = this.i;
+        c.r = this.r;
+        if (override)
+            Object.assign(this, override);
+        return c;
+    }
+}
+exports.Action = Action;
+;
 let SEQ = 0;
 let ACTION_SEQ = Number((Math.random() + '').slice(2, 10)) + 1;
 // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -59,11 +94,16 @@ class ControllerCore {
         // 1. this.configChange, this.interceptor$, this.actionUpstream => this.connectableAction$
         const upstream = this.actionUpstream;
         // set logger as interceptor
-        const logOperator = (a$) => this.opts.debug ? a$.pipe(this.opts.log ?
+        const logOperator = (a$) => this.opts.enableLog ? a$.pipe(this.opts.log ?
             rx.tap(action => {
                 const type = action.t;
                 if ((this.debugIncludeSet == null || this.debugIncludeSet.has(type)) && !this.debugExcludeSet.has(type)) {
-                    this.opts.log(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                    if (this.opts.logStyle === 'raw') {
+                        this.opts.log(this.logPrefix, action.toJson());
+                    }
+                    else {
+                        this.opts.log(this.logPrefix, type, actionMetaToStr(action), ...(this.opts.logStyle === 'noParam' ? [] : action.p));
+                    }
                 }
             }) :
             (typeof window !== 'undefined') || (typeof Worker !== 'undefined') ?
@@ -132,19 +172,10 @@ class ControllerCore {
         this.actionSubscribed$ = actionSubDispatcher.asObservable();
         this.actionUnsubscribed$ = actionUnsubDispatcher.asObservable();
     }
-    createAction(name, params) {
-        return {
-            t: name,
-            i: ACTION_SEQ++,
-            p: params
-        };
-    }
-    /** action id is also copied */
-    copyActionFrom(source) {
-        const copied = this.createAction(source.t, source.p);
-        copied.i = source.i;
-        copied.r = source.r;
-        return copied;
+    createAction(type, params) {
+        const a = new Action(type, params);
+        a.i = ACTION_SEQ++;
+        return a;
     }
     /** change a debug convenient "name" as previous specified in CoreOptions of constructor */
     setName(name) {

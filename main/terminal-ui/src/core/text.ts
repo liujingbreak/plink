@@ -28,7 +28,7 @@ export const textWidgetFac = baseComponentFac.forExtend<MultiLineTextActions, ty
   ad.ofOtherTypes()
 )).defineReactor(({init, setting: opts}, initialText: string) => {
   const service = init(opts);
-  const spliter = createWordSplitter({debug: false, log: opts?.log});
+  const spliter = createWordSplitter({enableLog: false, log: opts?.log});
   const {r, ft, pt, table, latest} = service;
   r('onRender', pt.onRender.pipe(
     rx.filter(([, , , needRerender]) => needRerender),

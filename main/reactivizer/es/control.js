@@ -69,6 +69,7 @@ export class RxController {
         const actionByTypeProxy = new Proxy({}, {
             get(_target, type, _rec) {
                 let a$ = actionsByType[type];
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 if (a$ == null) {
                     const matchType = type;
                     a$ = actionsByType[type] = core.action$.pipe(rx.filter(({ t }) => t === matchType), rx.share());
@@ -76,6 +77,7 @@ export class RxController {
                 return a$;
             },
             has(_target, key) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                 return Object.prototype.hasOwnProperty.call(actionsByType, key);
             },
             ownKeys() {
@@ -87,6 +89,7 @@ export class RxController {
         this.payloadByType = this.pt = new Proxy({}, {
             get(_target, key, _rec) {
                 let p$ = payloadsByType[key];
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 if (p$ == null) {
                     const a$ = actionByTypeProxy[key];
                     p$ = payloadsByType[key] = a$.pipe(mapActionToPayload(), rx.share());
@@ -94,6 +97,7 @@ export class RxController {
                 return p$;
             },
             has(_target, key) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                 return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);
             },
             ownKeys() {

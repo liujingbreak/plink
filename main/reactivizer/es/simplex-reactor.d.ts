@@ -8,6 +8,7 @@ import { ForkedRxController } from './forked-control';
 import { ForkedPostRxController } from './forked-post-control';
 import { InferFuncReturnEvents, ActionFactoryOfPlainType } from './inferred-types';
 export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly []> {
+    LOG(...msg: any[]): SingleActionFactory;
     __onError(err: any): SingleActionFactory;
     __config(opts: SimplexReactorOptions<I, LI>): SingleActionFactory;
     __onDisposed(): SingleActionFactory;
@@ -16,7 +17,7 @@ export interface BaseActions<I = any, LI extends readonly (keyof I)[] = readonly
 }
 declare const internalTableFor: readonly ["__onError", "__onDisposed"];
 type LE<LI extends readonly any[]> = LI[number] | (typeof internalTableFor)[number];
-export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<InferPayload<I[K]>>;
+export type PreActionHook<I, K extends keyof I = keyof I> = (...payload: InferMapParam<I[K]>) => rx.Observable<undefined | null | InferPayload<I[K]>>;
 export declare class SimplexReactor<I = object, LI extends readonly (keyof I)[] = [], BI = object> {
     /** All catched error goes here, including those from "dispatchErrorFor" */
     error$: rx.Observable<readonly [error: any, label: string | null]>;

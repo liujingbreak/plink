@@ -13,12 +13,10 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 var _BaseReactorFactory_id, _BaseReactorFactory_setting, _DerivedReactorFactory_id, _DerivedReactorFactory_setting;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DerivedReactorFactory = exports.BaseReactorFactory = void 0;
-const worker_threads_1 = require("worker_threads");
 const simplex_reactor_1 = require("./simplex-reactor");
 const action_dispenser_1 = require("./action-dispenser");
-let ID_SEQ = 0;
 function increId() {
-    const id = [process.pid, worker_threads_1.threadId, (++ID_SEQ)];
+    const id = [Date.now(), Math.random().toString(36).slice(2)];
     return id;
 }
 class BaseReactorFactory {
@@ -92,7 +90,7 @@ class BaseReactorFactory {
         var _a;
         const ids = (_a = svc.factoryIds) !== null && _a !== void 0 ? _a : [];
         for (let i = 0, l = ids.length; i < l; i += 3) {
-            if (ids[i] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[1] && ids[i + 2] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[2]) {
+            if (ids[i] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[1]) {
                 return true;
             }
         }
@@ -189,7 +187,7 @@ class DerivedReactorFactory {
         var _a;
         const ids = (_a = svc.factoryIds) !== null && _a !== void 0 ? _a : [];
         for (let i = 0, l = ids.length; i < l; i += 3) {
-            if (ids[i] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[1] && ids[i + 2] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[2]) {
+            if (ids[i] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[1]) {
                 return true;
             }
         }

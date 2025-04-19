@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/indent */
 import {Worker, MessagePort, MessageChannel} from 'worker_threads';
 import * as rx from 'rxjs';
 import {Action, serializeAction, InferPayload} from '../control';
@@ -57,7 +56,7 @@ export function createBroker<
       }
       const chan = new MessageChannel();
       props.port = chan.port1;
-      const wo = new RxController2<ForkWorkerInput & ForkWorkerOutput & I & BaseActions<any>>({
+      const wo = new RxController2<ForkWorkerInput & ForkWorkerOutput & I & BaseActions>({
         name: '#' + workerNo + ' worker output',
         debugExcludeTypes: (opts as SimplexReactorOptions<ForkWorkerOutput> | undefined)?.debugExcludeTypes
       });
@@ -101,7 +100,7 @@ export function createBroker<
 
       (worker as Worker).postMessage({type: 'ASSIGN_WORKER_NO', workerNo, mainPort: chan.port2}, [chan.port2]);
       return wi.action$.pipe(
-        rx.tap(action => chan.port1.postMessage(serializeAction(action)))
+        rx.tap(action => {chan.port1.postMessage(serializeAction(action));})
       );
     })
     // rx.takeUntil(s.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
@@ -123,7 +122,7 @@ export function createBroker<
               deserializeAction2(fa, mainWorkerComp.s);
             } else {
               await rx.firstValueFrom(s.ft.ensureInitWorker(assignedWorkerNo, worker).od(s.pt.workerInited));
-              workerProps.get(assignedWorkerNo)!.port.postMessage(serializeAction(fa), [port as MessagePort]);
+              workerProps.get(assignedWorkerNo)!.port.postMessage(fa.toJson(), [port as MessagePort]);
             }
           } catch (e) {
             if (opts?.log)
@@ -141,7 +140,6 @@ export function createBroker<
   r('letWorkerExit -> postMessage to thread worker', s.pt.letWorkerExit.pipe(
     rx.map(([, workerNo]) => {
       const prop = workerProps.get(workerNo)!;
-      // eslint-disable-next-line @typescript-eslint/ban-types
       prop.port.postMessage(serializeAction(
         (s as unknown as RxController2<ForkWorkerInput>).createAction('exit', [])
       ));
@@ -165,7 +163,7 @@ export function setupForMainWorker<
   I = Record<never, never>
 >(workerController: WorkerControl<I, any>,
   brokerCreationOptions: ScheduleOptions & SimplexReactorOptions<BrokerInput & ForkWorkerInput & BrokerEvent<I> & ForkWorkerOutput & ThreadExpirationEvents>
- ): Broker<I> {
+): Broker<I> {
   const broker = createBroker(workerController, brokerCreationOptions);
   applyScheduler(broker, brokerCreationOptions);
   return broker;

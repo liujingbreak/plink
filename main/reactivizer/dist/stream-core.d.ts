@@ -1,4 +1,6 @@
 import * as rx from 'rxjs';
+import { CoreOptions } from './base-types';
+export { CoreOptions } from './base-types';
 export type ActionFunctions = Record<string, any>;
 export type EmptyActionFunctions = Record<string, never>;
 export type InferPayload<F> = F extends (...a: infer P) => any ? P : unknown[];
@@ -10,38 +12,29 @@ export interface ActionMeta {
     r?: number | number[];
 }
 export type ArrayOrTuple<T> = T[] | readonly T[] | readonly [T, ...T[]];
-export type Action<F = unknown> = {
-    /** type */
+export declare class Action<F = unknown> implements ActionMeta {
     t: string;
-    /** payload **/
     p: InferPayload<F>;
-} & ActionMeta;
+    static fromJsonObj(obj: ReturnType<Action['toJson']>): Action<unknown>;
+    /** id */
+    i: number;
+    /** The ActionMeta['i'] of other actions that is referred to by this action */
+    r?: number | number[];
+    /**
+    * use RxController2::createAction() instead,
+    * otherwise don't forget to assign id number to property "i"
+    **/
+    constructor(t: string, p: InferPayload<F>);
+    toJson(): {
+        i: number;
+        r: number | number[] | undefined;
+        t: string;
+        p: InferPayload<F>;
+    };
+    copy(override?: Partial<ReturnType<Action['toJson']>>): Action<F>;
+}
 export type Dispatch<F> = (...params: InferPayload<F>) => Action<F>;
 export type DispatchFor<F> = (origActionMeta: ActionMeta | ActionMeta['r'] | ArrayOrTuple<ActionMeta | ActionMeta['r']>, ...params: InferPayload<F>) => Action<F>;
-export interface CoreOptions<I = Record<string, never>> {
-    name?: string;
-    /** default is `true`, set to `false` will result in Connectable multicast action observable "action$" not
-    * being automatically connected, you have to manually call `RxController::connect()` or `action$.connect()`,
-    * otherwise, any actions that is dispatched to `actionUpstream` will not be observed and emitted by `action$`,
-    * Refer to [https://rxjs.dev/api/index/function/connectable](https://rxjs.dev/api/index/function/connectable)
-    * */
-    autoConnect?: boolean;
-    /** default is `false`, setting `true` will print message in console log */
-    debug?: boolean;
-    /** Log all actions whose type is listed in this property, by default "undefined" means actions of all types will be logged. */
-    debugIncludeTypes?: (keyof I)[] | null;
-    /** Exclude actions of specific types from "debugIncludeTypes" */
-    debugExcludeTypes?: (keyof I)[];
-    /**
-     * "full" - print full message content, including "type" and "payload" tuple
-     * "noParam" - print message type, without payload tuple
-     */
-    logStyle?: 'full' | 'noParam';
-    debugTableAction?: boolean;
-    /** Use a customized log function
-     */
-    log?: null | ((msg: string, ...objs: unknown[]) => unknown);
-}
 export declare const has: (v: PropertyKey) => boolean;
 export type Interceptor = (up: rx.Observable<Action>) => rx.Observable<Action>;
 export declare class ControllerCore<I> {
@@ -64,9 +57,7 @@ export declare class ControllerCore<I> {
     protected dispatcherFor: { [K in keyof I]: DispatchFor<I[K]>; };
     private connectableAction$;
     constructor(opts?: CoreOptions<I>);
-    createAction<J = I, K extends keyof J = keyof J>(name: K, params: InferPayload<J[K]>): Action<J[K]>;
-    /** action id is also copied */
-    copyActionFrom(source: Action): Action;
+    createAction<J = I, K extends keyof J = keyof J>(type: K, params: InferPayload<J[K]>): Action<J[K]>;
     /** change a debug convenient "name" as previous specified in CoreOptions of constructor */
     setName(name: string | null | undefined): void;
     /** This method is used to change `this.opts` which is initially provided in constructor.

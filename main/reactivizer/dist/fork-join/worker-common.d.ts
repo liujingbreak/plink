@@ -5,7 +5,7 @@ import type { Blob } from 'node:buffer';
 import { SimplexReactor } from '../simplex-reactor';
 import { ForkWorkerInput, ForkWorkerOutput, workerActionTableFor } from './types';
 export declare function applySharedReactors(isMainWorker: boolean, comp: SimplexReactor<ForkWorkerInput & ForkWorkerOutput, typeof workerActionTableFor>, log: (...a: any[]) => any): void;
-export type ForkTransferablePayload<T = unknown> = {
+export interface ForkTransferablePayload<T = unknown> {
     content: T;
     transferList: (ArrayBuffer | MessagePort | fsPromises.FileHandle | X509Certificate | Blob)[];
-};
+}

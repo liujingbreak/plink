@@ -64,8 +64,8 @@ InferSliceType<MyCreateSliceOptionsType>['actions'];
 export class StateFactory {
   /**
    * Why I don't use Epic's state$ parameter:
-   * 
-   * Redux-observable's state$ does not notify state change event when a lazy loaded (replaced) slice initialize state 
+   *
+   * Redux-observable's state$ does not notify state change event when a lazy loaded (replaced) slice initialize state
    */
   realtimeState$: BehaviorSubject<unknown>;
   store$ = new BehaviorSubject<EnhancedStore<any, PayloadAction<any>> | undefined>(undefined);
@@ -107,7 +107,7 @@ export class StateFactory {
 
   // configureStore(middlewares?: Middleware[]): this;
   /**
-   * 
+   *
    * @param opt Be aware, turn off option "serializableCheck" and "immutableCheck" from Redux default middlewares
    */
   configureStore(opt?: {[key in Exclude<'reducer', keyof ConfigureStoreOptions<unknown, PayloadAction<unknown>>>]: ConfigureStoreOptions<unknown, PayloadAction<unknown>>[key]}) {
@@ -124,14 +124,14 @@ export class StateFactory {
       if (cfgOpt.middleware) {
         const exitingMid = cfgOpt.middleware;
         if (typeof exitingMid === 'function') {
-          cfgOpt.middleware = (getDefault) => {
+          cfgOpt.middleware = getDefault => {
             return [...exitingMid(getDefault), ...ourMiddlwares];
           };
         } else {
           cfgOpt.middleware = [...exitingMid, ...ourMiddlwares];
         }
       } else {
-        cfgOpt.middleware = (getDefault) => {
+        cfgOpt.middleware = getDefault => {
           return [...getDefault({serializableCheck: false, immutableCheck: false}), ...ourMiddlwares];
         };
       }
@@ -188,7 +188,7 @@ export class StateFactory {
         ))
       );
     });
-    this.addEpic((action$) => {
+    this.addEpic(action$ => {
       return this.actionsToDispatch;
     }, 'internalDispatcher');
 
@@ -196,7 +196,7 @@ export class StateFactory {
   }
 
   /**
-   * Create our special slice with a default reducer action: 
+   * Create our special slice with a default reducer action:
    * - `change(state: Draft<S>, action: PayloadAction<(draftState: Draft<SS>) => void>)`
    * - initialState is loaded from StateFactory's partial preloadedState
    */
@@ -204,7 +204,6 @@ export class StateFactory {
   newSlice<S extends Record<string, any>, _CaseReducer extends SliceCaseReducers<S>, Name extends string = string>(
     opt: CreateSliceOptions<S, _CaseReducer, Name>):
     Slice<S, _CaseReducer & ExtraSliceReducers<S>, Name> {
-
     const _opt = opt as CreateSliceOptions<S, _CaseReducer & ExtraSliceReducers<S>, Name>;
     const reducers = _opt.reducers as ReducerWithDefaultActions<S, _CaseReducer>;
 
@@ -247,7 +246,7 @@ export class StateFactory {
 
   /**
    * @returns a function to unsubscribe from this epic
-   * @param epic 
+   * @param epic
    * @param epicName a name for debug and logging purpose
    */
   addEpic<SL = Slice<any, any, string>>(
@@ -296,9 +295,7 @@ export class StateFactory {
    * Unlike Redux's bindActionCreators, our store is lazily created, dispatch is not available at beginning.
    * Parameter is a Slice instead of action map
    */
-  bindActionCreators<A extends Record<string, any>>(slice: {actions: A})
-    : A {
-
+  bindActionCreators<A extends Record<string, any>>(slice: {actions: A}): A {
     const actionMap = {} as A;
     for (const [name, actionCreator] of Object.entries(slice.actions)) {
       const doAction = (...param: any[]) => {
@@ -327,8 +324,8 @@ export class StateFactory {
     return this.store$.getValue();
   }
 
-  private errorHandleMiddleware: Middleware = (api) => {
-    return (next) => {
+  private errorHandleMiddleware: Middleware = () => {
+    return next => {
       return (action: PayloadAction) => {
         try {
           // console.log('action in errorHandleMiddleware', action.type);
@@ -385,26 +382,26 @@ export type PayloadCaseReducers<S, R extends SliceCaseReducers<S>> = {
 
 /**
  * Simplify reducers structure required in Slice creation option.
- * 
+ *
  * Normally, to create a slice, you need to provide a slice option paramter like:
  * {name: <name>, initialState: <value>, reducers: {
  *  caseReducer(state, {payload}: PayloadAction<PayloadType>) {
  *    // manipulate state draft with destructored payload data
  *  }
  * }}
- * 
+ *
  * Unconvenient thing is the "PayloadAction<PayloadType>" part which specified as second parameter in every case reducer definition,
  * actually we only care about the Payload type instead of the whole PayloadAction in case reducer.
- * 
- * this function accept a simplified version of "case reducer" in form of: 
+ *
+ * this function accept a simplified version of "case reducer" in form of:
  * {
  *    [caseName]: (Draft<State>, payload: any) => Draft<State> | void;
  * }
- * 
+ *
  * return a regular Case reducers, not longer needs to "destructor" action paramter to get payload data.
- * 
- * @param payloadReducers 
- * @returns 
+ *
+ * @param payloadReducers
+ * @returns
  */
 export function fromPaylodReducer<S, R extends SliceCaseReducers<S>>(payloadReducers: PayloadCaseReducers<S, R>):
 CreateSliceOptions<S, R>['reducers'] {

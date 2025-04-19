@@ -114,7 +114,7 @@ function createBroker(workerController, opts) {
         //   s.dp.onWorkerExit(workerNo, code);
         // });
         worker.postMessage({ type: 'ASSIGN_WORKER_NO', workerNo, mainPort: chan.port2 }, [chan.port2]);
-        return wi.action$.pipe(rx.tap(action => chan.port1.postMessage((0, control_1.serializeAction)(action))));
+        return wi.action$.pipe(rx.tap(action => { chan.port1.postMessage((0, control_1.serializeAction)(action)); }));
     })
     // rx.takeUntil(s.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
@@ -147,8 +147,8 @@ function createBroker(workerController, opts) {
     })))));
     r('letWorkerExit -> postMessage to thread worker', s.pt.letWorkerExit.pipe(rx.map(([, workerNo]) => {
         const prop = workerProps.get(workerNo);
-        // eslint-disable-next-line @typescript-eslint/ban-types
-        prop.port.postMessage((0, control_1.serializeAction)(s.createAction('exit', [])));
+        prop.port.postMessage(s
+            .createAction('exit', []).toJson());
         prop.state = 'exit';
     })));
     r('mainThreadInit', s.pt.mainThreadInit.pipe(rx.tap(() => {

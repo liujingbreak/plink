@@ -1,34 +1,40 @@
-import fs from 'fs';
+// import fs from 'fs';
 import * as rx from 'rxjs';
-import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
+// import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
 import { app, createFlexContainer, createTextWidget, createBorderContainer, bindToolTipsTo } from '../index.js';
-const debug = false;
-const fout = fs.createWriteStream('terminal-canvas-sample.log');
-const log = createSimpleIndentLogger(false, false, fout);
-const panel = createFlexContainer({ name: 'panel', debug, log });
-const border = createBorderContainer(panel, { name: 'contentPanelBorder', debug, log });
-const { ft, pt } = app.createApp(border, true, {
-    default: { debug, log },
-    core: { debug },
+import { useAsInitOption } from '@wfh/reactivizer/dist/sqlite-log';
+const shutdownLog = useAsInitOption('terminal-canvas-sample.log.db');
+const enableLog = false;
+// const fout = fs.createWriteStream('terminal-canvas-sample.log');
+// const log = createSimpleIndentLogger(false, false, fout);
+const panel = createFlexContainer({ name: 'panel', enableLog });
+const border = createBorderContainer(panel, { name: 'contentPanelBorder', enableLog });
+const appService = app.createApp(border, true, {
+    default: { enableLog },
+    core: { enableLog },
     // main: {
-    //   debug: true
+    //   enableLog: true
     // },
     elevator: {
-        core: { debug: true, log },
-        canvas: { debug, log },
-        focusable: { debug: true, cache: { debug } }
+        core: { enableLog },
+        canvas: { enableLog },
+        focusable: { enableLog: true, cache: { enableLog } }
     },
     keyService: {
-        debug: true
+        enableLog: true
     },
-    cover: { debug },
-    canvas: { debug },
-    colorTheme: { debug },
-    statusbar: { debug },
+    cover: { enableLog },
+    canvas: { enableLog },
+    colorTheme: { enableLog },
+    statusbar: { enableLog },
     scrollable: {
-        // container: {debug: true},
-        focus: { debug: true }
+        // container: {enableLog: true},
+        focus: { enableLog: true, cache: { enableLog: false } }
     }
+});
+const { ft, pt } = appService;
+pt.onExit.subscribe(() => {
+    shutdownLog();
 });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
@@ -36,16 +42,11 @@ if (screenWidth && screenHeight)
     ft.setSize(Number(screenWidth), Number(screenHeight)).dp();
 else
     ft.setFullScreenMode().dp();
-pt.onReady.pipe(rx.map(([, { colorTheme }]) => {
-    const scheme = process.env.PLINK_TERM_COLOR;
-    if (scheme)
-        colorTheme.ft.setScheme(scheme).dp();
-})).subscribe();
 rx.combineLatest([
     rx.timer(1000),
     rx.from(import('@material/material-color-utilities'))
 ]).pipe(rx.take(1), rx.map(([, { Hct, hexFromArgb }]) => {
-    log('>>>>>>>>>>>>>>>>>>>>>> load... data');
+    appService.log('>>>>>>>>>>>>>>>>>>>>>> load... data');
     panel.s.ft.removeChild(welcome).dp();
     panel.s.ft.setDirection('col').dp();
     const num = 60;
@@ -59,10 +60,9 @@ rx.combineLatest([
         const color = Hct.from(hueInterval * i, 120, 50);
         const sColor = hexFromArgb(color.toInt());
         const label = createTextWidget('TEST LABEL ~~~~~~~~~~~ ' + sColor, {
-            name: 'LABEL' + i,
-            debug,
+            name: 'LABEL-' + i,
+            enableLog
             // debugIncludeTypes: ['focus', 'onFocus', 'onLeave', 'onEnter', 'onBlur'],
-            log
         });
         if (i === 0) {
             panel.log('-- subscribe panel render');
@@ -75,9 +75,8 @@ rx.combineLatest([
         label.s.ft.setForeground([`hex(${sColor})`]).dp();
         label.s.ft.setFocusable(true).dp();
         bindToolTipsTo(label, 'this is label ' + i, undefined, {
-            debug,
+            enableLog,
             name: 'tipsFor#' + i,
-            log,
             textOpts: { debug: false }
         });
         panel.ft.addChild(label).dp();

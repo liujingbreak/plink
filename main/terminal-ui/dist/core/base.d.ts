@@ -120,6 +120,8 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
      * @param value could be null, you need to explicitly cast type to what you are expecting
      */
     onContextChange(key: string, value: unknown | undefined): SingleActionFactory;
+    /** The focusService which manages focusing interections between current component
+    * and sibling focusable components */
     focusService(focusSvc: FocusService): SingleActionFactory;
 }
 export declare const tableForBase: readonly ["onSize", "onTransform", "onPosition", "overflow", "preferredSize", "prefHeightFor", "prefWidthFor", "setParent", "needRerender", "setPreferredSize", "setFlexGrow", "ofCanvas", "setDisplay", "onBoundingBox", "onDetached", "setFlexShrink", "render", "setFocusStyle", "setBackground", "setForeground", "onFgChangeWithParent", "onBgChangeWithParent", "bgCleared", "setFocusable", "setRenderChanges", "isContainer", "depth", "focusService"];

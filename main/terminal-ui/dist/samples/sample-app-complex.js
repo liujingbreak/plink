@@ -2,7 +2,7 @@
 import fs from 'fs';
 import * as rx from 'rxjs';
 import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
-import { app, createFlexContainer, TableBorderType, createTable, createTextWidget } from '../index.js';
+import { app, createFlexContainer, TableBorderType, createTable, hexColorFrom, createTextWidget } from '../index.js';
 const debug = false;
 const fout = fs.createWriteStream('terminal-table-complex.log');
 const log = createSimpleIndentLogger(false, false, fout);
@@ -74,33 +74,33 @@ const rLabel = createTextWidget('choose one item from the table', {
 rLabel.s.ft.setFocusable(true).dp();
 rp.s.ft.addChild(rLabel).dp();
 const hueInterval = Math.round(360 / SAMPLE_ROW_COUNT);
-const saturation = Math.round(50 / SAMPLE_COLUMN_CNT);
+const chromaDelta = Math.round(110 / SAMPLE_COLUMN_CNT);
 rx.range(0, SAMPLE_ROW_COUNT).pipe(rx.map(() => {
     // const hue = hueInterval * i;
 })).subscribe();
-table.s.ft.setCellBackground((col, row) => {
+table.ft.setCellBackground((col, row) => {
     let hue;
     if (row > SAMPLE_ROW_COUNT)
         hue = hueInterval * (row % SAMPLE_ROW_COUNT);
     else
         hue = hueInterval * row;
-    let sat;
+    let chroma;
     if (SAMPLE_COLUMN_CNT < col)
-        sat = saturation * (col % SAMPLE_COLUMN_CNT);
+        chroma = chromaDelta * (col % SAMPLE_COLUMN_CNT);
     else
-        sat = saturation * col;
-    return `bgHex(${hue},${30 + sat},70)`;
+        chroma = chromaDelta * col;
+    return `bgHex(${hexColorFrom(hue, 10 + chroma, 70)})`;
 }).dp();
 const { ft } = app.createApp(root, true, {
     default: {
         debug, log
     },
     statusbar: {
-        debug: true
+        debug
     },
     elevator: {
         focusable: {
-            debug,
+            debug: true,
             debugExcludeTypes: ['onRectChange', 'removeFocusable']
         }
     },
@@ -115,7 +115,7 @@ const { ft } = app.createApp(root, true, {
             debugExcludeTypes: ['ofCanvas', '_saveTransform', 'needRerender']
         },
         focus: {
-            debug,
+            debug: true,
             debugExcludeTypes: ['removeFocusable']
         },
         canvas: {

@@ -28,7 +28,7 @@ export function applyScheduler(broker: Broker<any>, opts: {
     // Inside Plink
     algo = require('../../../algorithms') as typeof algorithms;
   }
-  const s = brokerForSchedule.s.prependController();
+  const s = brokerForSchedule.s.forkController();
   const {RedBlackTree} = algo;
   const workerRankTree = new RedBlackTree<number, number[]>();
   /** Indicate how busy each thread is */
@@ -42,7 +42,7 @@ export function applyScheduler(broker: Broker<any>, opts: {
       try {
         const minTreeNode = workerRankTree.minimum();
         if (minTreeNode && (minTreeNode.key === 0 ||
-           ranksByWorkerNo.size >= maxNumOfWorker)) {
+          ranksByWorkerNo.size >= maxNumOfWorker)) {
           const workerNo = minTreeNode.value[0];
           if (ranksByWorkerNo.get(workerNo) == null)
             throw new Error('ranksByWorkerNo has null for ' + workerNo);
@@ -89,11 +89,11 @@ export function applyScheduler(broker: Broker<any>, opts: {
       rx.switchMap(([, worker$]) => worker$),
       rx.mergeMap(([workerNo, workerOutputCtl]) => rx.merge(
         workerOutputCtl.pt.stopWaiting.pipe(
-          rx.tap(() => changeWorkerRank(workerNo, 1)),
+          rx.tap(() => {changeWorkerRank(workerNo, 1);}),
           broker.labelError(`worker #${workerNo} stopWaiting -> ...`)
         ),
         workerOutputCtl.pt.wait.pipe(
-          rx.tap(() => changeWorkerRank(workerNo, -1)),
+          rx.tap(() => {changeWorkerRank(workerNo, -1);}),
           broker.labelError(`worker #${workerNo} wait`)
         ),
         workerOutputCtl.pt.returned.pipe(
@@ -145,7 +145,7 @@ export function applyScheduler(broker: Broker<any>, opts: {
         s.at.onWorkerExit.pipe(
           rx.take(exitCount)
         ),
-        new rx.Observable((sub) => {
+        new rx.Observable(sub => {
           s.ft.onAllWorkerExit().dp(a);
           sub.complete();
         })
@@ -172,7 +172,7 @@ export function applyScheduler(broker: Broker<any>, opts: {
   ));
 
   function changeWorkerRank(workerNo: number, changeValue: number) {
-    const entry = ranksByWorkerNo.get(workerNo)!;
+    const entry = ranksByWorkerNo.get(workerNo);
     if (entry == null) // In case of "excludeCurrentThead", `main` thread is not assigned, tasksByWorkerNo does not contain `workerNo` 0
       return;
 

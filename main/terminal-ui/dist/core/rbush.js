@@ -9,8 +9,8 @@ const rtreeProm = import('rbush').then(({ default: RBush }) => {
             return {
                 minX: x,
                 minY: y,
-                maxX: x + w,
-                maxY: y + h
+                maxX: x + w - 1,
+                maxY: y + h - 1
             };
         }
         compareMinX(a, b) {
@@ -23,13 +23,13 @@ const rtreeProm = import('rbush').then(({ default: RBush }) => {
             return this.search({
                 minX: x,
                 minY: y,
-                maxX: x + w,
-                maxY: y + h
+                maxX: x + w - 1,
+                maxY: y + h - 1
             });
         }
         addOrUnionRectOnOverlap(rect, content, merge) {
             const [x, y, w, h] = rect;
-            const results = this.search({ minX: x, minY: y, maxX: x + w, maxY: y + h });
+            const results = this.search({ minX: x, minY: y, maxX: x + w - 1, maxY: y + h - 1 });
             for (const [intersect, c] of results) {
                 this.remove([intersect, null], isEqualRect);
                 rect = rectUnion(intersect, rect);
@@ -40,12 +40,19 @@ const rtreeProm = import('rbush').then(({ default: RBush }) => {
             }
             return results;
         }
-        updateContent(r, content) {
+        changeRect(oldRect, newRect, content) {
+            this.remove([oldRect, content], (a, b) => isEqualRect(a, b) && a[1] === b[1]);
+            this.insert([newRect, content]);
+        }
+        removeByRect(r) {
             this.remove([r, null], isEqualRect);
-            this.insert([r, content]);
         }
         searchForCovered(r) {
             return this.searchOverlaps(r).filter(([[x, y, w, h]]) => r[0] <= x && r[1] <= y && r[0] + r[2] >= x + w && r[1] + r[3] >= y + h);
+        }
+        getRoot() {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            return this.data;
         }
     }
     return RTreeCls;

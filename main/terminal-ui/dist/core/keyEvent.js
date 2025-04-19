@@ -17,10 +17,14 @@ export var KeyEventEnum;
     KeyEventEnum[KeyEventEnum["focusDown"] = 11] = "focusDown";
     KeyEventEnum[KeyEventEnum["focusNext"] = 12] = "focusNext";
 })(KeyEventEnum || (KeyEventEnum = {}));
-const tableFor = ['setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'];
+const tableFor = ['keyInputThrottleTime', 'setPageSize', 'onDisplayKeys', 'onInputCompleted', 'setInputStream'];
 export function createKeyEventService(opts) {
     const service = new SimplexReactor(Object.assign(Object.assign({ name: 'keyEvent' }, opts), { tableFor }));
     const { r, latest, ft, pt } = service;
+    r('keyInputThrottleTime', latest.keyInputThrottleTime.pipe(rx.switchMap(([, ms]) => new rx.Observable(() => {
+        const remove = service.prependInterceptor(ad => rx.merge(ad.at.onRawKeyInput.pipe(rx.throttleTime(ms, undefined, { leading: true, trailing: true })), ad.ofOtherTypes()));
+        return remove;
+    }))));
     r('setInputStream -> onRawKeyInput', pt.setInputStream.pipe(rx.switchMap(([m, stdin, tty]) => {
         if (tty) {
             rl.emitKeypressEvents(stdin);
@@ -35,10 +39,8 @@ export function createKeyEventService(opts) {
             //   // service.log('>>> stdin data', chunk);
             // }
             stdin.on('keypress', h);
-            // stdin.on('data', handleData);
             return () => {
                 stdin.off('keypress', h);
-                // stdin.off('data', handleData);
                 if (tty) {
                     stdin.setRawMode(false);
                 }
@@ -298,6 +300,7 @@ export function createKeyEventService(opts) {
         ft.onKeypress(evt, false).dp(m1);
         return rx.EMPTY;
     })));
+    ft.keyInputThrottleTime(40).dp();
     // Enable and disable Mouse device
     const reset = () => {
         // process.stdout.write('\x1b[?1000;1003l;1005l');

@@ -322,7 +322,7 @@ export const canvasFac = new BaseReactorFactory<CanvasEvents, typeof tableFor>({
                 })
               );
             }),
-            rx.throttleTime(150, rx.queueScheduler, {leading: false, trailing: true}),
+            rx.throttleTime(80, rx.queueScheduler, {leading: false, trailing: true}),
             rx.exhaustMap(([m, rtree]) => new rx.Observable(sub => {
               const rects = rtree.all();
               rtree.clear();

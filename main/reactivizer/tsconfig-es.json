@@ -21,6 +21,7 @@
   "include": ["src/**/*.ts"],
   "exclude": [
     "src/nodejs-utils.ts",
+    "src/sqlite-log/**/*",
     "src/__tests__/**/*",
     "es/**/*.ts",
     "dist/**/*.ts"

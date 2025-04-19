@@ -18,7 +18,7 @@ const table = createTable({
     lazy: {
         // default: {debug},
         core: {
-            debug,
+            debug: true,
             debugIncludeTypes: ['dp_didLoad', 'dp_onLoadPage', 'dp_onCancelLoad']
         },
         // headPlaceHolder: {debug: true},

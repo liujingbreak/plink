@@ -44,7 +44,7 @@ const worker_threads_1 = require("worker_threads");
 const node_perf_hooks_1 = require("node:perf_hooks");
 const node_os_1 = __importDefault(require("node:os"));
 const rx = __importStar(require("rxjs"));
-const globals_1 = require("@jest/globals");
+const node_assert_1 = __importDefault(require("node:assert"));
 const nodejs_utils_1 = require("../nodejs-utils");
 const sorter_1 = require("../res/sorter");
 const node_worker_broker_1 = require("../fork-join/node-worker-broker");
@@ -73,7 +73,9 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         log: stdoutLogger,
         debugExcludeTypes: ['workerAssigned', 'workerInited', 'ensureInitWorker', 'newWorkerReady', 'forkByBroker', 'wait', 'stopWaiting', 'assignWorker', 'clearExpirationTimer']
     });
-    broker.s.pt.onWorkerError.pipe(rx.tap(([, workerNo, error, type]) => console.error(type, 'worker #', workerNo, error))).subscribe();
+    broker.s.pt.onWorkerError.pipe(rx.tap(([, workerNo, error, type]) => {
+        console.error(type, 'worker #', workerNo, error);
+    })).subscribe();
     broker.table.l.allReadyWorkers.pipe(rx.switchMap(([, worker$]) => worker$), rx.map(([, , input]) => input.ft.changeConfig({ debug: true }).dp())).subscribe();
     const { s } = broker;
     const numOfWorkers = workerNum !== null && workerNum !== void 0 ? workerNum : node_os_1.default.availableParallelism();
@@ -142,7 +144,11 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
                     s.ft.workerAssigned(0, 'main').dp(m);
             }
             workerIsAssigned = true;
-        }), rx.ignoreElements()), rx.merge(broker.error$.pipe(rx.map(([label, err]) => console.error('Broker', label, 'on error', err))), s.pt.onWorkerError.pipe(rx.map(([, workNo, err, type]) => console.error('Worker', workNo, 'on', type !== null && type !== void 0 ? type : 'error', err)))).pipe(rx.take(1), rx.map(() => {
+        }), rx.ignoreElements()), rx.merge(broker.error$.pipe(rx.map(([label, err]) => {
+            console.error('Broker', label, 'on error', err);
+        })), s.pt.onWorkerError.pipe(rx.map(([, workNo, err, type]) => {
+            console.error('Worker', workNo, 'on', type !== null && type !== void 0 ? type : 'error', err);
+        }))).pipe(rx.take(1), rx.map(() => {
             sorter.dispose();
             // for (const worker of workers)
             //   s.dp.letWorkerExit(worker);
@@ -155,12 +161,11 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
     await rx.firstValueFrom(sorter.s.ft.sortAllInWorker(testArr.buffer, 0, num, Math.round(num / numOfWorkers / 2)).do(sorter.s.at.sortAllInWorkerResolved));
     node_perf_hooks_1.performance.measure(`measure ${numOfWorkers}`, threadMode + '/sort start');
     const performanceEntry = node_perf_hooks_1.performance.getEntriesByName(`measure ${numOfWorkers}`)[0];
-    // eslint-disable-next-line no-console
     console.log('Performance entry #' + performanceEntry.name + ':', performanceEntry.duration, 'ms');
     node_perf_hooks_1.performance.clearMeasures();
     node_perf_hooks_1.performance.clearMarks();
     if (!['scheduler', 'excludeMainThread'].includes(threadMode)) {
-        (0, globals_1.expect)(workerIsAssigned).toBe(true);
+        node_assert_1.default.equal(workerIsAssigned, true);
     }
     sorter.s.ft.log('-----------------------------\nsorted:', testArr).dp();
     if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
@@ -168,10 +173,10 @@ async function forkMergeSort(threadMode, workerNum, autoExpirated) {
         console.log('Ranks of workers:', [...scheduleState.ranksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
         console.log('Num of tasks of workers:', [...scheduleState.tasksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
         for (const [, [workerNo, rank]] of scheduleState.tasksByWorkerNo.entries()) {
-            (0, globals_1.expect)(rank).toBe(workerNo === 'main' ? 1 : 0);
+            node_assert_1.default.equal(rank, workerNo === 'main' ? 1 : 0);
         }
         for (const [, [workerNo, rank]] of scheduleState.ranksByWorkerNo.entries()) {
-            (0, globals_1.expect)(rank).toBe(workerNo === 'main' ? 1 : 0);
+            node_assert_1.default.equal(rank, workerNo === 'main' ? 1 : 0);
         }
     }
     const latestBrokerEvents = broker.table.addActions('onWorkerExit').l;
@@ -202,7 +207,6 @@ function shuffleArray(arr, target) {
     for (let i = 0, l = arr.length; i < l; i++) {
         const pos = Math.floor(Math.random() * arrEffectiveLen--);
         // console.log(`(${pos}, ${arr.length})`, '-', arr[pos]);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         target[i] = arr[pos];
         if (pos !== arr.length - 1)
             arr[pos] = arr.pop();

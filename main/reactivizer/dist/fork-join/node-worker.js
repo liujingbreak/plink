@@ -54,8 +54,7 @@ const inspectOptions = { depth: 0, showHidden: false, compact: true, maxStringLe
 function createWorkerControl(opts) {
     var _a, _b, _c;
     let mainPort; // Broker's message port
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    const comp = new simplex_reactor_1.SimplexReactor(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { tableFor: (opts === null || opts === void 0 ? void 0 : opts.tableFor) ? [...types_1.workerActionTableFor, ...opts.tableFor] : types_1.workerActionTableFor, name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + ('(W/' + (worker_threads_1.isMainThread ? 'main)' : worker_threads_1.threadId + '?)')), debug: opts === null || opts === void 0 ? void 0 : opts.debug, log: worker_threads_1.isMainThread ?
+    const comp = new simplex_reactor_1.SimplexReactor(Object.assign(Object.assign({}, (opts !== null && opts !== void 0 ? opts : {})), { tableFor: (opts === null || opts === void 0 ? void 0 : opts.tableFor) ? [...types_1.workerActionTableFor, ...opts.tableFor] : types_1.workerActionTableFor, name: ((_a = opts === null || opts === void 0 ? void 0 : opts.name) !== null && _a !== void 0 ? _a : '') + ('(W/' + (worker_threads_1.isMainThread ? 'main)' : worker_threads_1.threadId + '?)')), enableLog: opts === null || opts === void 0 ? void 0 : opts.enableLog, log: worker_threads_1.isMainThread ?
             opts === null || opts === void 0 ? void 0 : opts.log :
             (...args) => mainPort === null || mainPort === void 0 ? void 0 : mainPort.postMessage({
                 type: 'log',
@@ -95,7 +94,6 @@ function createWorkerControl(opts) {
             }
         };
         if (worker_threads_1.parentPort) {
-            /* eslint-disable no-restricted-globals */
             worker_threads_1.parentPort.on('message', handler);
         }
         else {
@@ -113,11 +111,11 @@ function createWorkerControl(opts) {
             chan.port1.close();
         }).pipe(rx.map(event => {
             s.ft.onForkReturn(event).dp();
-        }), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), error$.pipe(rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))), s.pt.onForkReturn.pipe(rx.map(([, retAction]) => retAction), (0, __1.actionRelatedToAction)(wrappedAct), rx.tap(retAction => {
+        }), rx.take(1), rx.takeUntil(rx.merge(error$, close$))), error$.pipe(rx.tap(err => { comp.dispatchErrorFor(err, wrappedAct); })), s.pt.onForkReturn.pipe(rx.map(([, retAction]) => retAction), (0, __1.actionRelatedToAction)(wrappedAct), rx.tap(retAction => {
             const replyFork = s.createAction(retAction.t, retAction.p);
             replyFork.r = m.i; // the original action is related to `wrappedAct`, now it is related to "fork" action
             s.actionUpstream.next(replyFork);
-        }), rx.take(1)), new rx.Observable(_sub => {
+        }), rx.take(1)), new rx.Observable(() => {
             if (mainPort) {
                 const forkByBroker = s.createAction('forkByBroker', [wrappedAct, chan.port2]);
                 mainPort.postMessage((0, control_1.serializeAction)(forkByBroker), [chan.port2]);
@@ -129,7 +127,6 @@ function createWorkerControl(opts) {
     })));
     return comp;
 }
-// eslint-disable-next-line space-before-function-paren
 function createWorkerControlOfFn(recursiveFuncs, opts) {
     const ctl = createWorkerControl(opts).reactivize(recursiveFuncs);
     return ctl;

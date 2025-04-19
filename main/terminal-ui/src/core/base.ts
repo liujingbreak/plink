@@ -127,6 +127,8 @@ export interface BaseWidgetEvents extends BaseWidgetInput {
    */
   // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   onContextChange(key: string, value: unknown | undefined): SingleActionFactory;
+  /** The focusService which manages focusing interections between current component
+  * and sibling focusable components */
   focusService(focusSvc: FocusService): SingleActionFactory;
 }
 export const tableForBase = [
@@ -419,7 +421,7 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
       ) : rx.EMPTY)
     );
   }
-  r('setFocusable', pt.setFocusable.pipe(
+  r('setFocusable... -> focusService.onRectChange', pt.setFocusable.pipe(
     rx.switchMap(([m, focusable]) => focusable ?
         rx.merge(
           disableParentFocusable(service, m),
@@ -610,11 +612,17 @@ export const baseComponentFac = new BaseReactorFactory<BaseWidgetEvents, typeof 
       );
     })
   ));
-  r('focus', pt.focus.pipe(
-    rx.exhaustMap(([m]) => table.l.focusService.pipe(
+  r('focus -> setFocusable,focusService.focusOnComponent', pt.focus.pipe(
+    rx.exhaustMap(([m]) => rx.combineLatest([
+      latest.focusService,
+      latest.setFocusable
+    ]).pipe(
       rx.take(1),
-      rx.map(([, focus]) =>
-        focus.ft.focusOnComponent(service).dp(m))
+      rx.map(([[, focus], [, focusable]]) => {
+        if (focusable === false)
+          ft.setFocusable(true).dp(m);
+        focus.ft.focusOnComponent(service).dp(m);
+      })
     ))
   ));
 

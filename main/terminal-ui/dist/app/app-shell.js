@@ -79,6 +79,9 @@ const appServiceFac = new BaseReactorFactory({
         mainContainer.ft.setBackground(`bgHex(${colors.surface})`).dp(...m);
     })));
     const colors = colorThemeFac.setting(Object.assign(Object.assign({}, opts === null || opts === void 0 ? void 0 : opts.default), opts === null || opts === void 0 ? void 0 : opts.colorTheme)).create();
+    const scheme = process.env.PLINK_TERM_COLOR;
+    if (scheme)
+        colors.ft.setScheme(scheme).dp();
     basePane.ft.provideContext(colorThemeCtxKey, colors).dp();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const elevator = createElevator(keyEventService, Object.assign({ default: opts === null || opts === void 0 ? void 0 : opts.default }, opts === null || opts === void 0 ? void 0 : opts.elevator));

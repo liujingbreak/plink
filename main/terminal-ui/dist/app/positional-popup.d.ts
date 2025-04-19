@@ -20,11 +20,11 @@ export declare function showPopupFor(dockTo: BaseWidget, content: BaseWidget, at
     relativePos?: [number, number] | null;
     actionMeta?: ActionMeta | null;
     allowUserEvents?: boolean;
-}, opts?: PositionalPopupOpts): import("@wfh/reactivizer").SimplexReactor<import("../core/base.js").BaseWidgetEvents & import("../core/container.js").TermainlContainerEvents & PosPopupEvents, ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "setForeground" | "onFgChangeWithParent" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setRelativePos" | "isDocked")[]>;
+}, opts?: PositionalPopupOpts): import("@wfh/reactivizer").SimplexReactor<import("../core/base.js").BaseWidgetEvents & import("../core/container.js").TermainlContainerEvents & PosPopupEvents, ("onSize" | "onTransform" | "onPosition" | "overflow" | "preferredSize" | "prefHeightFor" | "prefWidthFor" | "setParent" | "needRerender" | "setPreferredSize" | "setFlexGrow" | "ofCanvas" | "setDisplay" | "onBoundingBox" | "onDetached" | "setFlexShrink" | "render" | "setFocusStyle" | "setBackground" | "setForeground" | "onFgChangeWithParent" | "onBgChangeWithParent" | "bgCleared" | "setFocusable" | "setRenderChanges" | "isContainer" | "depth" | "focusService" | "allChildren" | "allDisplayChildren" | "setLayoutValid" | "onChildPreferredSizeChange" | "hasOfflineCanvas" | "onChildPositions" | "isOpaque" | "latestReflowData" | "isLayoutDirty" | "setLayoutCheck" | "setRelativePos" | "isDocked")[], object>;
 export interface TooltipsOptions {
     name?: string;
-    debug?: boolean;
     log?: CoreOptions['log'];
+    enableLog?: CoreOptions['enableLog'];
     positionalOpts?: PositionalPopupOpts;
     textOpts?: TextOptions;
 }

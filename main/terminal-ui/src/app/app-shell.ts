@@ -24,7 +24,7 @@ export interface AppSignals extends AppActions {
 }
 const tableFor = ['onReady'] as const;
 export interface AppOptions {
-  default?: Pick<CoreOptions<AppSignals>, 'debug' | 'log'>;
+  default?: Pick<CoreOptions<AppSignals>, 'debug' | 'log' | 'enableLog'>;
   core?: CoreOptions<AppSignals>;
   statusbar?: StatusbarOptions;
   keyService?: KeyEventOptions;
@@ -72,7 +72,7 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor, AppOpt
   if (canScroll) {
     const scrollable = createScrollable(mainComponent, {
       ...opts?.scrollable,
-      debug: opts?.default?.debug,
+      enableLog: opts?.default?.enableLog,
       log: opts?.default?.log,
       name: 'AppScrollable'
     });
@@ -175,6 +175,11 @@ const appServiceFac = new BaseReactorFactory<AppSignals, typeof tableFor, AppOpt
     ...opts?.default,
     ...opts?.colorTheme
   }).create();
+
+  const scheme = process.env.PLINK_TERM_COLOR;
+  if (scheme)
+    colors.ft.setScheme(scheme as any).dp();
+
   basePane.ft.provideContext(colorThemeCtxKey, colors).dp();
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const elevator = createElevator(keyEventService, {default: opts?.default as any, ...opts?.elevator});

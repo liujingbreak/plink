@@ -18,7 +18,7 @@ export interface AppSignals extends AppActions {
     onReady(context: AppContext): SingleActionFactory;
 }
 export interface AppOptions {
-    default?: Pick<CoreOptions<AppSignals>, 'debug' | 'log'>;
+    default?: Pick<CoreOptions<AppSignals>, 'debug' | 'log' | 'enableLog'>;
     core?: CoreOptions<AppSignals>;
     statusbar?: StatusbarOptions;
     keyService?: KeyEventOptions;
@@ -37,5 +37,5 @@ export interface AppContext {
     statusbar: app.Statusbar;
     colorTheme: ColorTheme;
 }
-export declare function createApp(mainComponent: BaseWidget, canScroll?: boolean, opts?: AppOptions): SimplexReactor<app.AppSignals, readonly ["onReady"]>;
+export declare function createApp(mainComponent: BaseWidget, canScroll?: boolean, opts?: AppOptions): SimplexReactor<app.AppSignals, readonly ["onReady"], object>;
 export declare function queryAppContext(currComp: BaseWidget, m?: ActionMeta): rx.Observable<app.AppContext>;

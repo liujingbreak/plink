@@ -102,7 +102,7 @@ export function applySharedReactors(isMainWorker: boolean,
     table.l.setLiftUpActions.pipe(
       rx.mergeMap(([, action$]) => action$),
       rx.withLatestFrom(table.l.inited),
-      rx.tap(([action, [, , , port]]) => {
+      rx.map(([action, [, , , port]]) => {
         if (port) {
           s.ft.log(`pass action ${action.t} to main thread`).dp();
           port.postMessage(serializeAction(action));
@@ -111,10 +111,10 @@ export function applySharedReactors(isMainWorker: boolean,
     ));
 }
 
-export type ForkTransferablePayload<T = unknown> = {
+export interface ForkTransferablePayload<T = unknown> {
   content: T;
   transferList: (ArrayBuffer | MessagePort | fsPromises.FileHandle | X509Certificate | Blob)[];
-};
+}
 
 function hasReturnTransferable(payload: Action<any>['p']): payload is [ForkTransferablePayload, ...unknown[]] {
   return Array.isArray((payload[0] as ForkTransferablePayload | undefined)?.transferList);

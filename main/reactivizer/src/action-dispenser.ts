@@ -37,7 +37,7 @@ export class ActionDispenser<I> {
   at: ActionByType<I>;
   /** Abbrevation of payloadByType */
   pt: PayloadByType<I>;
-  private actionByType = new Map<string, [dispener: rx.Subject<Action<(...a: any[]) => any>>, outStream: rx.Observable<Action<(...a: any[]) => any>>]>();
+  private actionByType = new Map<string, [dispener: rx.Subject<Action>, outStream: rx.Observable<Action>]>();
   private countSubscriber = new rx.BehaviorSubject<number>(0);
   private ofOtherTypesDispenser: rx.Subject<Action> | undefined;
   private ofOtherTypesStream: rx.Observable<Action> | undefined;
@@ -51,7 +51,7 @@ export class ActionDispenser<I> {
           const control = this.actionByType.get(action.t);
           if (control) {
             const [dispenser] = control;
-            dispenser.next(action as Action<I[keyof I]>);
+            dispenser.next(action);
           } else if (this.ofOtherTypesDispenser) {
             this.ofOtherTypesDispenser.next(action);
           }

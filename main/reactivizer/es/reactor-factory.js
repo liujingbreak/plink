@@ -10,12 +10,10 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
 var _BaseReactorFactory_id, _BaseReactorFactory_setting, _DerivedReactorFactory_id, _DerivedReactorFactory_setting;
-import { threadId } from 'worker_threads';
 import { SimplexReactor } from './simplex-reactor';
 import { ActionDispenser } from './action-dispenser';
-let ID_SEQ = 0;
 function increId() {
-    const id = [process.pid, threadId, (++ID_SEQ)];
+    const id = [Date.now(), Math.random().toString(36).slice(2)];
     return id;
 }
 export class BaseReactorFactory {
@@ -89,7 +87,7 @@ export class BaseReactorFactory {
         var _a;
         const ids = (_a = svc.factoryIds) !== null && _a !== void 0 ? _a : [];
         for (let i = 0, l = ids.length; i < l; i += 3) {
-            if (ids[i] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[1] && ids[i + 2] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[2]) {
+            if (ids[i] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _BaseReactorFactory_id, "f")[1]) {
                 return true;
             }
         }
@@ -185,7 +183,7 @@ export class DerivedReactorFactory {
         var _a;
         const ids = (_a = svc.factoryIds) !== null && _a !== void 0 ? _a : [];
         for (let i = 0, l = ids.length; i < l; i += 3) {
-            if (ids[i] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[1] && ids[i + 2] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[2]) {
+            if (ids[i] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[0] && ids[i + 1] === __classPrivateFieldGet(this, _DerivedReactorFactory_id, "f")[1]) {
                 return true;
             }
         }

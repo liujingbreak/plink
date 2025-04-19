@@ -1,15 +1,17 @@
-import fs from 'fs';
+// import fs from 'fs';
 import * as rx from 'rxjs';
-import { createSimpleIndentLogger } from '@wfh/reactivizer/dist/nodejs-utils';
+// import {createSimpleIndentLogger} from '@wfh/reactivizer/dist/nodejs-utils';
+import { useAsInitOption } from '@wfh/reactivizer/dist/sqlite-log';
+const shutdownLog = useAsInitOption('terminal-canvas-sample.log.db');
 import { createTerminalCanvas } from '../core/terminal-canvas.js';
 import { createTextWidget } from '../core/text.js';
-const fout = fs.createWriteStream('terminal-canvas-sample.log');
-const log = createSimpleIndentLogger(false, false, fout);
-log('pid', process.pid);
+// const fout = fs.createWriteStream('terminal-canvas-sample.log');
+// const log = createSimpleIndentLogger(false, false, fout);
+// log('pid', process.pid);
 const canvas = createTerminalCanvas({
-    debug: true, log
+    enableLog: true
 });
-const text = createTextWidget('hello', { debug: true, log });
+const text = createTextWidget('hello', { enableLog: true });
 const screenWidth = process.argv[2];
 const screenHeight = process.argv[3];
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -24,6 +26,7 @@ canvas.ft.setRootComponent(text).dp();
 // canvas.ft.setRenderOnRequest(true).dp();
 rx.concat(canvas.ft.render().odMono(canvas.pt.onWriteFlushed), canvas.ft.printDescentEnd().odMono(canvas.pt.onPrintDescentEndFlushed), rx.defer(() => {
     canvas.dispose();
+    shutdownLog();
     return rx.timer(50);
 }).pipe(rx.map(() => {
     process.exit();

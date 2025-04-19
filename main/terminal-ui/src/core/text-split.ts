@@ -27,7 +27,7 @@ const LETTERS_CODE_POINT = new Set<number>((function* () {
 export function createWordSplitter(opts?: CoreOptions<WordSplitterActions>) {
   const service = new SimplexReactor<WordSplitterActions, typeof tableForWordSplitter>({
     name: 'wordSplitter',
-    debug: false,
+    enableLog: false,
     debugExcludeTypes: ['codePointState'],
     tableFor: tableForWordSplitter,
     ...opts

@@ -117,6 +117,7 @@ export class RxController<I> {
       {
         get(_target, type, _rec) {
           let a$ = actionsByType[type as keyof I];
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (a$ == null) {
             const matchType = type as string;
             a$ = actionsByType[type as keyof I] = (core.action$ as rx.Observable<Action<I[keyof I]>>).pipe(
@@ -127,6 +128,7 @@ export class RxController<I> {
           return a$;
         },
         has(_target, key) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
           return Object.prototype.hasOwnProperty.call(actionsByType, key);
         },
         ownKeys() {
@@ -142,6 +144,7 @@ export class RxController<I> {
       {
         get(_target, key, _rec) {
           let p$ = payloadsByType[key as keyof I];
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (p$ == null) {
             const a$ = actionByTypeProxy[key as keyof I];
             p$ = payloadsByType[key as keyof I] = a$.pipe(
@@ -152,6 +155,7 @@ export class RxController<I> {
           return p$;
         },
         has(_target, key) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
           return Object.prototype.hasOwnProperty.call(actionByTypeProxy, key);
         },
         ownKeys() {
@@ -199,9 +203,9 @@ export class RxController<I> {
         return groupedRxCtl;
       }),
       rx.scan<
-      GroupedRxController<I, K>,
-      [newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>],
-      readonly [null, Map<K, GroupedRxController<I, K>>]
+        GroupedRxController<I, K>,
+        [newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>],
+        readonly [null, Map<K, GroupedRxController<I, K>>]
       >((acc, el) => {
         const ret = acc as unknown as [GroupedRxController<I, K>, Map<K, GroupedRxController<I, K>>];
         ret[0] = el;
@@ -214,7 +218,7 @@ export class RxController<I> {
   /**
    * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
    */
-  subForTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I & string>>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
+  subForTypes<KS extends (keyof I)[] | readonly (keyof I & string)[]>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
     const sub = new RxController<Pick<I, KS[number]>>(opts);
     const typeSet = new Set(actionTypes);
     this.core.action$.pipe(
@@ -229,7 +233,7 @@ export class RxController<I> {
   /**
    * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
    */
-  subForExcludeTypes<KS extends Array<keyof I> | ReadonlyArray<keyof I>>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
+  subForExcludeTypes<KS extends (keyof I)[] | readonly (keyof I)[]>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>) {
     const sub = new RxController<Pick<I, KS[number]>>(opts);
     const typeSet = new Set(excludeActionTypes);
     this.core.action$.pipe(
@@ -240,6 +244,7 @@ export class RxController<I> {
     ).subscribe();
     return sub;
   }
+
   /**
    * Delegate to `this.core.action$.connect()`
    * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.

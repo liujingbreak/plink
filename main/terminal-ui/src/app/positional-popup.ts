@@ -160,8 +160,8 @@ export function showPopupFor(
 
 export interface TooltipsOptions {
   name?: string;
-  debug?: boolean;
   log?: CoreOptions['log'];
+  enableLog?: CoreOptions['enableLog'];
   positionalOpts?: PositionalPopupOpts;
   textOpts?: TextOptions;
 }
@@ -176,7 +176,7 @@ export function bindToolTipsTo(c: BaseWidget, tooltips: string | BaseWidget, del
           if (typeof tooltips === 'string') {
             const bordedText = textFac.setting({
               name: opts?.name ? opts.name + '.label' : 'popup.label',
-              debug: opts?.debug,
+              enableLog: opts?.enableLog,
               log: opts?.log,
               ...opts?.textOpts
             }).create(tooltips);
@@ -190,7 +190,7 @@ export function bindToolTipsTo(c: BaseWidget, tooltips: string | BaseWidget, del
             allowUserEvents: false
           },
           {
-            debug: opts?.debug,
+            enableLog: opts?.enableLog,
             log: opts?.log,
             name: opts?.name,
             ...opts?.positionalOpts

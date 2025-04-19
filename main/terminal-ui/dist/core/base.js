@@ -172,7 +172,7 @@ export const baseComponentFac = new BaseReactorFactory({
                 p.ft.setFocusable(false).dp(m);
         }))) : rx.EMPTY));
     }
-    r('setFocusable', pt.setFocusable.pipe(rx.switchMap(([m, focusable]) => focusable ?
+    r('setFocusable... -> focusService.onRectChange', pt.setFocusable.pipe(rx.switchMap(([m, focusable]) => focusable ?
         rx.merge(disableParentFocusable(service, m), latest.focusService.pipe(rx.switchMap(([, focusSvc]) => focusSvc.latest.forRootComp.pipe(rx.map(([, rootComp]) => [focusSvc, rootComp]))), rx.switchMap(([focusSvc, rootComp]) => ft.queryAbsBounding(rootComp).re(m).od(pt.didQueryAbsBounding).pipe(rx.switchMap(([, r]) => {
             return new rx.Observable(() => {
                 if (r) {
@@ -282,7 +282,14 @@ export const baseComponentFac = new BaseReactorFactory({
             })));
         }));
     })));
-    r('focus', pt.focus.pipe(rx.exhaustMap(([m]) => table.l.focusService.pipe(rx.take(1), rx.map(([, focus]) => focus.ft.focusOnComponent(service).dp(m))))));
+    r('focus -> setFocusable,focusService.focusOnComponent', pt.focus.pipe(rx.exhaustMap(([m]) => rx.combineLatest([
+        latest.focusService,
+        latest.setFocusable
+    ]).pipe(rx.take(1), rx.map(([[, focus], [, focusable]]) => {
+        if (focusable === false)
+            ft.setFocusable(true).dp(m);
+        focus.ft.focusOnComponent(service).dp(m);
+    })))));
     const lastStopFocusPropaAction = new Set();
     r('stopEventPropagation', pt.stopEventPropagation.pipe(rx.map(([m]) => {
         if (Array.isArray(m.r)) {

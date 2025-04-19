@@ -1,4 +1,4 @@
-import { CoreOptions } from './stream-core';
+import { CoreOptions } from './base-types';
 import { DuplexOptions } from './duplex';
 import { InferActionsOfSmplxRctr } from './inferred-types';
 import { SimplexReactor, BaseActions } from './simplex-reactor';

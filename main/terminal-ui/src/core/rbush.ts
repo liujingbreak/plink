@@ -1,14 +1,17 @@
 import * as rx from 'rxjs';
 import type RBushType from 'rbush' with {'resolution-mode': 'import'};
+import type {BBox} from 'rbush' with {'resolution-mode': 'import'};
 import {Rectangle} from './canvas.js';
 
-export {RBushType};
+export {RBushType, BBox};
 const MyRTreeConstructor$ = new rx.ReplaySubject<new () => RBushType<[Rectangle, unknown]>>(1);
 export interface RTree<T> extends RBushType<[Rectangle, T]> {
   searchOverlaps([x, y, w, h]: Rectangle): [Rectangle, T][];
   addOrUnionRectOnOverlap(rect: Rectangle, content: T, merge: (c1: T, c2: T) => T): [Rectangle, T][];
-  updateContent(r: Rectangle, content: T): void;
+  changeRect(oldRect: Rectangle, newRect: Rectangle, content: T): void;
   searchForCovered(r: Rectangle): [Rectangle, T][];
+  removeByRect(r: Rectangle): void;
+  getRoot(): BBox;
 }
 
 const rtreeProm = import('rbush').then(({default: RBush}) => {
@@ -21,8 +24,8 @@ const rtreeProm = import('rbush').then(({default: RBush}) => {
       return {
         minX: x,
         minY: y,
-        maxX: x + w,
-        maxY: y + h
+        maxX: x + w - 1,
+        maxY: y + h - 1
       };
     }
 
@@ -38,14 +41,14 @@ const rtreeProm = import('rbush').then(({default: RBush}) => {
       return this.search({
         minX: x,
         minY: y,
-        maxX: x + w,
-        maxY: y + h
+        maxX: x + w - 1,
+        maxY: y + h - 1
       });
     }
 
     addOrUnionRectOnOverlap(rect: Rectangle, content: T, merge: (c1: T, c2: T) => T) {
       const [x, y, w, h] = rect;
-      const results = this.search({minX: x, minY: y, maxX: x + w, maxY: y + h});
+      const results = this.search({minX: x, minY: y, maxX: x + w - 1, maxY: y + h - 1});
       for (const [intersect, c] of results) {
         this.remove([intersect, null as T], isEqualRect);
         rect = rectUnion(intersect, rect);
@@ -57,14 +60,23 @@ const rtreeProm = import('rbush').then(({default: RBush}) => {
       return results;
     }
 
-    updateContent(r: Rectangle, content: T) {
+    changeRect(oldRect: Rectangle, newRect: Rectangle, content: T) {
+      this.remove([oldRect, content], (a, b) => isEqualRect(a, b) && a[1] === b[1]);
+      this.insert([newRect, content]);
+    }
+
+    removeByRect(r: Rectangle) {
       this.remove([r, null as T], isEqualRect);
-      this.insert([r, content]);
     }
 
     searchForCovered(r: Rectangle) {
       return this.searchOverlaps(r).filter(
         ([[x, y, w, h]]) => r[0] <= x && r[1] <= y && r[0] + r[2] >= x + w && r[1] + r[3] >= y + h);
+    }
+
+    getRoot() {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      return (this as any).data as BBox;
     }
   }
   return RTreeCls;
@@ -74,7 +86,8 @@ rx.from(rtreeProm).subscribe(MyRTreeConstructor$);
 /** If the calling module is CJS, the import will have to be async */
 export const waitForImport$ = MyRTreeConstructor$.pipe(rx.take(1));
 /** For CJS file to load and create an "rbush"'s r-tree instance */
-export function createRtreeInstance<T>() {
+export function createRtreeInstance<T>():
+rx.ReplaySubject<RTree<T>> {
   const store = new rx.ReplaySubject<RTree<T>>(1);
   MyRTreeConstructor$.pipe(
     rx.map(cls => new cls())

@@ -80,15 +80,11 @@ function createSimpleIndentLogger(colorful, timestamp, out) {
             })));
         else
             return out$.pipe(rx.map(d => buf.push(d)));
-    })), new rx.Observable(_sub => {
-        const h = () => stop$.next(false);
+    })), new rx.Observable(() => {
+        const h = () => { stop$.next(false); };
         out.on('drain', h);
         return () => out.off('drain', h);
-    })
-    // out$.pipe(
-    //   rx.map(d => console.log(d))
-    // )
-    ).subscribe();
+    })).subscribe();
     function printTime() {
         const date = new Date();
         out$.next('[');

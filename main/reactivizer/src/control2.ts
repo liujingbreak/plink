@@ -66,6 +66,7 @@ export class RxController2<I> extends ControllerCore<I> {
       },
 
       has(_target, key) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return Object.prototype.hasOwnProperty.call(control.at, key);
       },
       ownKeys() {
@@ -264,6 +265,7 @@ export class RxController2<I> extends ControllerCore<I> {
         return self.createDispatcherFor(key as keyof I, ...actionMetaRelated);
       },
       has(_target, key) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return Object.prototype.hasOwnProperty.call(self.ft, key);
       },
       ownKeys() {
@@ -284,6 +286,6 @@ export class GroupedRxController2<I, K> extends RxController2<I> {
  * @return that dispatched new action object
  */
 export function deserializeAction2<I>(actionObj: any, toController: RxController2<I>) {
-  const act = toController.copyActionFrom(actionObj);
+  const act = Action.fromJsonObj(actionObj);
   toController.actionUpstream.next(act);
 }

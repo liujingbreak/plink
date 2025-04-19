@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import * as rx from 'rxjs';
-import { assignActionReferParam, ControllerCore } from './stream-core';
+import { Action, assignActionReferParam, ControllerCore } from './stream-core';
 import { actionRelatedToAction } from './context-operators';
 import { ActionDataTable } from './action-table';
 import { ActionDispenser } from './action-dispenser';
@@ -39,6 +39,7 @@ export class RxController2 extends ControllerCore {
                 return fn;
             },
             has(_target, key) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                 return Object.prototype.hasOwnProperty.call(control.at, key);
             },
             ownKeys() {
@@ -188,6 +189,7 @@ export class RxController2 extends ControllerCore {
                 return self.createDispatcherFor(key, ...actionMetaRelated);
             },
             has(_target, key) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                 return Object.prototype.hasOwnProperty.call(self.ft, key);
             },
             ownKeys() {
@@ -208,7 +210,7 @@ export class GroupedRxController2 extends RxController2 {
  * @return that dispatched new action object
  */
 export function deserializeAction2(actionObj, toController) {
-    const act = toController.copyActionFrom(actionObj);
+    const act = Action.fromJsonObj(actionObj);
     toController.actionUpstream.next(act);
 }
 //# sourceMappingURL=control2.js.map

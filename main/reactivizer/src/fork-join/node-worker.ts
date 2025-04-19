@@ -22,26 +22,25 @@ const inspectOptions = {depth: 0, showHidden: false, compact: true, maxStringLen
  */
 export function createWorkerControl<
   I = Record<string, never>,
-  LI extends ReadonlyArray<keyof I> = readonly []
+  LI extends readonly (keyof I)[] = readonly []
 >(
   opts?: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, I, LI>
 ) {
   let mainPort: MessagePort | undefined; // Broker's message port
-  // eslint-disable-next-line @typescript-eslint/ban-types
   const comp = new SimplexReactor<ForkWorkerInput & ForkWorkerOutput, typeof workerActionTableFor>({
     ...(opts ?? {}),
     tableFor: opts?.tableFor ? [...workerActionTableFor, ...opts.tableFor] as unknown as typeof workerActionTableFor : workerActionTableFor,
     name: (opts?.name ?? '') + ('(W/' + (isMainThread ? 'main)' : threadId + '?)')),
-    debug: opts?.debug,
+    enableLog: opts?.enableLog,
     log: isMainThread ?
       opts?.log :
-      (...args) => mainPort?.postMessage({
-        type: 'log',
-        p: args.map(arg => {
-          const type = typeof arg;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return type === 'string' ? arg : inspect(arg, inspectOptions);
-        })}),
+        (...args) => mainPort?.postMessage({
+          type: 'log',
+          p: args.map(arg => {
+            const type = typeof arg;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            return type === 'string' ? arg : inspect(arg, inspectOptions);
+          })}),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     debugExcludeTypes: ['log', 'warn', 'wait', 'stopWaiting', ...(opts?.debugExcludeTypes ?? [] as any)],
     debugIncludeTypes: opts?.debugIncludeTypes as any[]
@@ -77,7 +76,6 @@ export function createWorkerControl<
       }
     };
     if (parentPort) {
-      /* eslint-disable no-restricted-globals */
       parentPort.on('message', handler);
     } else {
       s.ft.inited('main', '[main]', null).dp();
@@ -113,7 +111,7 @@ export function createWorkerControl<
           rx.takeUntil(rx.merge(error$, close$))
         ),
         error$.pipe(
-          rx.tap(err => comp.dispatchErrorFor(err, wrappedAct))
+          rx.tap(err => {comp.dispatchErrorFor(err, wrappedAct);})
         ),
         s.pt.onForkReturn.pipe(
           rx.map(([, retAction]) => retAction),
@@ -128,7 +126,7 @@ export function createWorkerControl<
           }),
           rx.take(1)
         ),
-        new rx.Observable<void>(_sub => {
+        new rx.Observable<void>(() => {
           if (mainPort) {
             const forkByBroker = s.createAction('forkByBroker', [wrappedAct, chan.port2]);
             mainPort.postMessage(serializeAction(forkByBroker), [chan.port2]);
@@ -143,12 +141,11 @@ export function createWorkerControl<
   return comp as unknown as WorkerControl<I, LI>;
 }
 
-export type ForkTransferablePayload<T = unknown> = {
+export interface ForkTransferablePayload<T = unknown> {
   content: T;
   transferList: (ArrayBuffer | MessagePort | fsPromises.FileHandle | X509Certificate | Blob)[];
-};
+}
 
-// eslint-disable-next-line space-before-function-paren
 export function createWorkerControlOfFn<F extends ActionFunctions, LI extends (keyof ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>)[]>(
   recursiveFuncs: F,
   opts?: SimplexReactorCfgOpts<ForkWorkerInput & ForkWorkerOutput, ActionFactoryOfPlainType<F> & InferFuncReturnEvents<F>, LI>

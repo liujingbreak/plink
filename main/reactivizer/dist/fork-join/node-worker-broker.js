@@ -38,7 +38,6 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createBroker = createBroker;
 exports.setupForMainWorker = setupForMainWorker;
-/* eslint-disable @typescript-eslint/indent */
 const worker_threads_1 = require("worker_threads");
 const rx = __importStar(require("rxjs"));
 const control_1 = require("../control");
@@ -115,7 +114,7 @@ function createBroker(workerController, opts) {
             s.ft.onWorkerExit(workerNo, code).dp();
         });
         worker.postMessage({ type: 'ASSIGN_WORKER_NO', workerNo, mainPort: chan.port2 }, [chan.port2]);
-        return wi.action$.pipe(rx.tap(action => chan.port1.postMessage((0, control_1.serializeAction)(action))));
+        return wi.action$.pipe(rx.tap(action => { chan.port1.postMessage((0, control_1.serializeAction)(action)); }));
     })
     // rx.takeUntil(s.pt.onWorkerExit.pipe(rx.filter(([id]) => id === )))
     ));
@@ -132,7 +131,7 @@ function createBroker(workerController, opts) {
             }
             else {
                 await rx.firstValueFrom(s.ft.ensureInitWorker(assignedWorkerNo, worker).od(s.pt.workerInited));
-                workerProps.get(assignedWorkerNo).port.postMessage((0, control_1.serializeAction)(fa), [port]);
+                workerProps.get(assignedWorkerNo).port.postMessage(fa.toJson(), [port]);
             }
         }
         catch (e) {
@@ -146,7 +145,6 @@ function createBroker(workerController, opts) {
     })))));
     r('letWorkerExit -> postMessage to thread worker', s.pt.letWorkerExit.pipe(rx.map(([, workerNo]) => {
         const prop = workerProps.get(workerNo);
-        // eslint-disable-next-line @typescript-eslint/ban-types
         prop.port.postMessage((0, control_1.serializeAction)(s.createAction('exit', [])));
         prop.state = 'exit';
     })));

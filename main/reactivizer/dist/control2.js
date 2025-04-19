@@ -76,6 +76,7 @@ class RxController2 extends stream_core_1.ControllerCore {
                 return fn;
             },
             has(_target, key) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                 return Object.prototype.hasOwnProperty.call(control.at, key);
             },
             ownKeys() {
@@ -225,6 +226,7 @@ class RxController2 extends stream_core_1.ControllerCore {
                 return self.createDispatcherFor(key, ...actionMetaRelated);
             },
             has(_target, key) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                 return Object.prototype.hasOwnProperty.call(self.ft, key);
             },
             ownKeys() {
@@ -247,7 +249,7 @@ exports.GroupedRxController2 = GroupedRxController2;
  * @return that dispatched new action object
  */
 function deserializeAction2(actionObj, toController) {
-    const act = toController.copyActionFrom(actionObj);
+    const act = stream_core_1.Action.fromJsonObj(actionObj);
     toController.actionUpstream.next(act);
 }
 //# sourceMappingURL=control2.js.map
