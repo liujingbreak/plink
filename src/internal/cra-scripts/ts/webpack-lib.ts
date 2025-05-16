@@ -7,6 +7,7 @@ import _ from 'lodash';
 import {getCmdOptions} from './utils';
 const log = log4js.getLogger('@wfh/cra-scripts.webpack-lib');
 const MODULE_NAME_PAT = /^((?:@[^\\/]+[\\/])?[^\\/]+)/;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const MiniCssExtractPlugin = require(Path.resolve('node_modules/mini-css-extract-plugin'));
 
 export default function change(packageTarget: PackageInfo, config: Configuration) {
@@ -20,7 +21,7 @@ export default function change(packageTarget: PackageInfo, config: Configuration
   config.output!.filename = 'lib-bundle.js';
   config.output!.libraryTarget = 'umd';
   config.optimization!.runtimeChunk = false;
-  if (config.optimization && config.optimization.splitChunks) {
+  if (config.optimization?.splitChunks) {
     config.optimization.splitChunks = {
       cacheGroups: {default: false}
     };
@@ -133,7 +134,7 @@ function findAndChangeRule(rules: NonNullable<NonNullable<Configuration['module'
   // TODO: check in case CRA will use Rule.use instead of "loader"
   if (!Array.isArray(rules))
     return;
-  checkSet(rules);
+  checkSet(rules as RuleSetUseItem[]);
   for (const rule of rules) {
     if (typeof rule === 'string')
       continue;

@@ -33,6 +33,7 @@ const cliExt: CliExtension = (program) => {
         if (mdCli.opts().out) {
           const target = Path.resolve(mdCli.opts().out);
           mkdirpSync(Path.dirname(target));
+          // eslint-disable-next-line no-eval
           fs.writeFileSync(target, eval(content));
           // eslint-disable-next-line no-console
           console.log('Output HTML to file:', target);
@@ -68,7 +69,6 @@ const cliExt: CliExtension = (program) => {
       (await import('../color.js')).mixColor(color1, color2, Number(weightInterval));
     });
 
-  // TODO: Add more sub command here
 };
 
 export default cliExt;

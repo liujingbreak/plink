@@ -8,7 +8,7 @@ import {SwitchAnim} from '../animation/SwitchAnim';
 import {useAppLayout} from '../components/appLayout.control';
 import {FileInput} from '../components/file-widgets/file-input';
 import {markdownsControl} from './markdownSlice';
-import {createMarkdownViewControl} from './markdownViewComp.control';
+import {createMarkdownViewControl, Actions, SwitchTemplateType} from './markdownViewComp.control';
 import styles from './MarkdownViewComp.module.scss';
 import {TableOfContents} from './toc/TableOfContents';
 
@@ -24,7 +24,7 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   const [, touchState] = React.useState<unknown>(null); // enable React reconcilation/dirty-check
   const viewControl = React.useMemo(() => {
     const control = createMarkdownViewControl(touchState);
-    control.i.dp.setMermaidClassName(styles.mermaidDiagram);
+    control.i.ft.setMermaidClassName(styles.mermaidDiagram).dp();
     return control;
   }, []);
   const {outputTable, i, dispose} = viewControl;
@@ -32,16 +32,16 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
   const router = useRouter();
   React.useEffect(() => {
     if (router)
-      i.dp.setRouter(router);
-  }, [i.dp, router]);
+      i.ft.setRouter(router).dp();
+  }, [i.ft, router]);
 
   const layout = useAppLayout();
   React.useEffect(() => {
     if (layout) {
-      i.dp.setLayoutControl(layout);
-      i.dp.setScrollTopHandler(() => layout.i.dp.scrollTo(0, 0));
+      i.ft.setLayoutControl(layout).dp();
+      i.ft.setScrollTopHandler(() => layout.i.ft.scrollTo(0, 0).dp()).dp();
     }
-  }, [i.dp, layout]);
+  }, [i.ft, layout]);
 
   React.useEffect(() => {
     if (layout) {
@@ -52,55 +52,55 @@ export const MarkdownViewComp = React.memo<MarkdownViewCompProps>(function(props
 
   React.useEffect(() => {
     if (props.mdKey) {
-      i.dp.setMarkdownKey(props.mdKey);
-      markdownsControl.i.dp.getHtml(props.mdKey);
+      i.ft.setMarkdownKey(props.mdKey).dp();
+      markdownsControl.i.ft.getHtml(props.mdKey).dp();
     }
-  }, [i.dp, props.mdKey]);
-
-  // React.useEffect(() => {
-  //   const sub = rx.merge(outputTable.dataChange$, inputTable.dataChange$).pipe(
-  //     rx.tap(data => console.log('------------------touched', data)),
-  //     rx.tap(() => touchState({}))
-  //   ).subscribe();
-
-  //   return () => sub.unsubscribe();
-  // }, [inputTable.dataChange$, outputTable.dataChange$]);
+  }, [i.ft, props.mdKey]);
 
   React.useEffect(() => () => dispose(), [dispose]);
 
-  const switchAnimDataByKey = React.useMemo(() => new Map<string, {mdKey: string; onBodyRef(ref: HTMLDivElement | null): void}>(), []);
-  React.useEffect(() => {
-    if (props.mdKey && !switchAnimDataByKey.has(props.mdKey)) {
-      switchAnimDataByKey.set(props.mdKey, {
-        mdKey: props.mdKey,
-        onBodyRef(ref) {
-          if (ref && props.mdKey)
-            i.dp.setMarkdownBodyRef(ref, props.mdKey);
-        }
-      });
-    }
-  }, [i.dp, props.mdKey, switchAnimDataByKey]);
+  const handleTogglePopup = React.useCallback((...args: Parameters<Actions['handleTogglePopup']>) => {
+    i.ft.handleTogglePopup(...args).dp();
+  }, [i.ft]);
 
-  function templateRenderer({mdKey, onBodyRef}: typeof switchAnimDataByKey extends Map<string, infer V> ? V : unknown) {
+  const deviceSize = layout?.inputTable.getData().setDeviceSize[0];
+  const templateRenderer = React.useCallback(function({mdKey, onBodyRef, hasToc, reactHtmlProp}: SwitchTemplateType) {
     return <>
       <div ref={onBodyRef} className={cln(
-        styles.markdownContent, 'markdown-body', 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-8-desktop',
+        styles.markdownContent, 'markdown-body', 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-9-desktop',
         'mdc-layout-grid__cell--span-6-tablet', 'mdc-layout-grid__cell--span-6'
-      )}></div>
-      {mdKey ? <TableOfContents className={cln(styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-4-desktop', 'mdc-layout-grid__cell--span-2-tablet', {'mdc-layout-grid': layout?.inputTable.getData().setDeviceSize[0] === 'phone'}) } markdownKey={mdKey} markdownViewCtl={viewControl}/> : '...'}
-      <IconButton className={styles.tocPopBtn}
-        onToggle={i.dp.handleTogglePopup}
-        materialIcon="toc"
-        materialIconToggleOn="close"/>
+      )}
+      dangerouslySetInnerHTML={reactHtmlProp}
+      ></div>
+      {
+        mdKey ?
+          <TableOfContents className={cln(
+            styles.toc, 'mdc-layout-grid__cell', 'mdc-layout-grid__cell--span-3-desktop', 'mdc-layout-grid__cell--span-2-tablet', {'mdc-layout-grid': deviceSize === 'phone'}
+          ) }
+          markdownKey={mdKey}
+          markdownViewCtl={viewControl}/> :
+          '...'
+      }
+      {
+        hasToc ?
+          <IconButton className={styles.tocPopBtn}
+            onToggle={handleTogglePopup}
+            materialIcon="toc"
+            materialIconToggleOn="close"/> :
+          null
+      }
     </>;
-  }
+  }, [handleTogglePopup, deviceSize, viewControl]);
 
-  const tempalteData = props.mdKey ? switchAnimDataByKey.get(props.mdKey) : null;
+  const [updatedKey, templateDataMap] = outputTable.getData().setSwitchAnimTemplates;
+
   return <>
     {outputTable.getData().setFileInputVisible[0] ? <div><FileInput>Select markdown file</FileInput></div> : null}
-    {props.mdKey && tempalteData ?
-      <SwitchAnim type="translateY" debug={true} className={cls('switchAnim')} innerClassName={cln(styles.container, 'mdc-layout-grid__inner')}
-        templateData={tempalteData} switchOnDistinct={props.mdKey} templateRenderer={templateRenderer} /> :
+    {updatedKey && templateDataMap ?
+      <SwitchAnim type="translateY" debug={true} className={cls('switchAnim')}
+        superSlow={false}
+        innerClassName={cln(styles.container, 'mdc-layout-grid__inner')}
+        templateData={templateDataMap.get(updatedKey)} switchOnDistinct={updatedKey} templateRenderer={templateRenderer as any} /> :
       null}
   </>;
 });

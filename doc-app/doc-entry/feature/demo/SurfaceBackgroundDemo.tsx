@@ -26,6 +26,11 @@ const SurfaceBackgroundDemo: React.FC<SurfaceBackgroundDemoProps> = function(pro
       <br/><br/>
       (Design style: colors on white surface)
     </Surface>
+    <Surface className={styles.surface} color="#A8F0F0">
+      I am surface component
+      <br/><br/>
+      (Design style: colors on white surface)
+    </Surface>
   </div>;
 };
 

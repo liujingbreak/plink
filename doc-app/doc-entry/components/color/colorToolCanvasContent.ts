@@ -44,7 +44,7 @@ export function createHueCircle(root: Paintable, {animateMgr, canvasController}:
       op.map(m => mat4.mul(mat4.create(), m, mat4.fromScaling(mat4.create(), [scaleRatio, scaleRatio, 1])))
     )
   );
-  dp.setRelativeSize(0.4, 0.4);
+  dp.setRelativeanimateMgr.renderFrame$Size(0.4, 0.4);
   dp.setAuxiliaryEnabled(false);
   dp.attachTo(root);
 
@@ -57,7 +57,7 @@ export function createHueCircle(root: Paintable, {animateMgr, canvasController}:
   ));
 
   // When `transform` is newly changed or objects are changed, transform painting objects
-  r('on shape and transform changes', rx.combineLatest([o.pt.setAbsoluteTransform, shapeChange$]).pipe(
+  r('setAbsoluteTransform, shapeChange$ -> detectables', rx.combineLatest([o.pt.setAbsoluteTransform, shapeChange$]).pipe(
     rx.map(([[, transform], shapes]) => {
       let i = 0;
       for (const [, segs] of shapes) {

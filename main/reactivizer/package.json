@@ -1,0 +1,54 @@
+{
+  "name": "@wfh/reactivizer",
+  "version": "0.2.3",
+  "description": "Aiming for promoting and exhibiting opinionated modeling and abstracting of reactive-programming as alternative counterpart to OOP, remedy demerits and inconvenience in adopting reactive programming paradigm in prevalent languages",
+  "main": "dist/index.js",
+  "module": "es/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "node": "./dist/index.js",
+      "default": "./es/index.js"
+    },
+    "./dist/fork-join/*": {
+      "node": "./dist/fork-join/*.js",
+      "default": "./es/fork-join/*.js"
+    },
+    "./es/fork-join/*": {
+      "node": "./dist/fork-join/*.js",
+      "default": "./es/fork-join/*.js"
+    },
+    "./dist/nodejs-utils": "./dist/nodejs-utils.js",
+    "./dist/sqlite-log": "./dist/sqlite-log/sqlite-api.js"
+  },
+  "files": [
+    "dist", "es", "__tests__"
+  ],
+  "plink": {
+    "tsc": {
+      "src": "src",
+      "dest": "dist"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -b tsconfig-all.json",
+    "watch": "tsc -b -w tsconfig-all.json",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc"
+  },
+  "peerDependencies": {
+    "rxjs": "^7.8.1",
+    "@wfh/algorithms": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liujingbreak/plink.git",
+    "directory": "main/packages/reactivizer"
+  },
+  "keywords": [
+    "rxjs", "reactive", "rx", "forkjoin", "worker thread", "web worker"
+  ],
+  "author": "Liu Jing <liujing.break@gmail.com>",
+  "license": "MIT"
+}

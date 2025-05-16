@@ -61,7 +61,7 @@ const REDIRECT_STATUS = new Map<number, number>([301, 302, 307, 308].map(code =>
 ```
   rx.defer(() => {
     proxy.web(req, res, {timeout: 10000});
-    return observeProxyResponse(proxy$, payload.res);
+    return observeProxyResponse(proxy$, res);
   })
 ```
  */

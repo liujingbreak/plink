@@ -1,0 +1,1 @@
+{"version":3,"file":"cli-analyse-worker-init.js","sourceRoot":"","sources":["../../src/cmd/cli-analyse-worker-init.ts"],"names":[],"mappings":";;AAAA,kEAA4D;AAE5D,IAAA,oCAAgB,GAAE,CAAC","sourcesContent":["import {initWorkerThread} from '../utils/bootstrap-process';\n\ninitWorkerThread();\n\n"]}

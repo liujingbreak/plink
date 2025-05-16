@@ -1,33 +1,33 @@
 import trim from 'lodash/trim';
 import escapeRegExp from 'lodash/escapeRegExp';
 import React from 'react';
-import {ReactorComposite, RxController} from '@wfh/reactivizer';
+import {ReactorComposite2, SingleActionFactory, RxController2} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
 import * as op from 'rxjs/operators';
 
-type RouteActions = {
+export type RouteActions = {
   /** @param relativePath the path relative to "basenameOrParent" */
-  navigateTo(relativePath: string): void;
+  navigateTo(relativePath: string): SingleActionFactory;
   /** @param relativePath the path relative to current "matchedRoute.location.pathname" */
-  navigateToRel(relativePath: string): void;
-  setRoutes(r: RouteObject[]): void;
+  navigateToRel(relativePath: string): SingleActionFactory;
+  setRoutes(r: RouteObject[]): SingleActionFactory;
   /** Redirect another path */
-  replaceUrl(relativePath: string): void;
-  setBasenameOrParent(value: string): void;
+  replaceUrl(relativePath: string): SingleActionFactory;
+  setBasenameOrParent(value: string): SingleActionFactory;
   /** for switch animation */
-  setRootElement(div: HTMLDivElement | null): void;
+  setRootElement(div: HTMLDivElement | null): SingleActionFactory;
 };
 
 const routeInputTableFor = ['setBasenameOrParent', 'setRootElement'] as const;
 const routeOutputTableFor = ['routeCompiled', 'routeMatched'] as const;
 
 type RouteEvents = {
-  onBrowserHistoryPopstate(): void;
-  routeCompiled(routeObjs: CompiledRouteObject[]): void;
+  onBrowserHistoryPopstate(): SingleActionFactory;
+  routeCompiled(routeObjs: CompiledRouteObject[]): SingleActionFactory;
   matchingUrl(pathWithQueryAndHash: {
-    pathname: string; hash: string; search: string; searchParams: URLSearchParams
-  }, isPopState?: boolean): void;
-  routeMatched(r: MatchedRouteObject): void;
+    pathname: string; hash: string; search: string; searchParams: URLSearchParams;
+  }, isPopState?: boolean): SingleActionFactory;
+  routeMatched(r: MatchedRouteObject): SingleActionFactory;
 };
 
 type PathWithQueryAndHash = {pathname: string; hash: string; search: string; searchParams: URLSearchParams};
@@ -41,7 +41,7 @@ export type RouteObject = {
 export type Router = {
   matchedRoute: MatchedRouteObject | null;
   rootElement?: HTMLDivElement;
-  control?: RxController<RouteActions>;
+  control?: RxController2<RouteActions>;
 };
 
 type CompiledRouteObject = RouteObject & {
@@ -61,16 +61,16 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
   const [router, setRouter] = React.useState<Router>({matchedRoute: null});
 
   const composite = React.useMemo(() => {
-    const composite = new ReactorComposite<RouteActions, RouteEvents, typeof routeInputTableFor, typeof routeOutputTableFor>({
+    const composite = new ReactorComposite2<RouteActions, RouteEvents, typeof routeInputTableFor, typeof routeOutputTableFor>({
       name: 'router',
       debug: process.env.NODE_ENV === 'development',
       inputTableFor: routeInputTableFor,
       outputTableFor: routeOutputTableFor
     });
     const {i, o, r, inputTable, outputTable} = composite;
-    i.dp.setBasenameOrParent(basenameOrParent);
+    i.ft.setBasenameOrParent(basenameOrParent).dp();
     function onPopstate(evt: PopStateEvent) {
-      o.dp.onBrowserHistoryPopstate();
+      o.ft.onBrowserHistoryPopstate().dp();
     }
 
     r('Listen to popstate event', new rx.Observable<void>(() => {
@@ -88,7 +88,7 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
         if (typeof window !== 'undefined') {
           window.history.pushState({}, '', resolvePath(basenameOrParent, pathname + search));
         }
-        o.dp.matchingUrl(matchingUrl);
+        o.ft.matchingUrl(matchingUrl).dp();
       })
     ));
 
@@ -99,7 +99,7 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
           window.history.pushState({}, '', resolvePath(basenameOrParent, toPath));
         }
         const tempURL = new URL(toPath, 'http://w.g.c');
-        o.dp.matchingUrl(tempURL);
+        o.ft.matchingUrl(tempURL).dp();
       })
     ));
 
@@ -109,14 +109,14 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
         if (typeof window !== 'undefined') {
           window.history.replaceState({}, '', resolvePath(basenameOrParent, toPath));
         }
-        o.dp.matchingUrl(new URL(toPath, 'http://w.g.c'));
+        o.ft.matchingUrl(new URL(toPath, 'http://w.g.c')).dp();
       })
     ));
 
     r('setRoutes', i.pt.setRoutes.pipe(
       op.map(([, routes]) => {
         if (routes)
-          o.dp.routeCompiled(compileRoutes(routes));
+          o.ft.routeCompiled(compileRoutes(routes)).dp();
       })
     ));
 
@@ -129,7 +129,7 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
           const matched = matchRoute(compiledRoutes, url);
           if (matched) {
             matched.isPopState = !!isPopState;
-            o.dpf.routeMatched(m, matched);
+            o.ft.routeMatched(matched).dp(m);
           }
 
           return matched?.redirect;
@@ -137,7 +137,7 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       )),
       op.filter((r): r is string => r != null),
       op.observeOn(rx.asyncScheduler),
-      op.map(redirect => i.dp.replaceUrl(redirect))
+      op.map(redirect => i.ft.replaceUrl(redirect).dp())
     ));
 
     r('onBrowserHistoryPopstate -> matchingUrl', o.at.onBrowserHistoryPopstate.pipe(
@@ -145,7 +145,7 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
       op.concatMap(([, [, basenameOrParent]]) => rx.timer(16).pipe(op.map(() => basenameOrParent))),
       op.map(basenameOrParent => {
         const temp = new URL((subPathOf(basenameOrParent, window.location.pathname) ?? window.location.pathname) + window.location.search + window.location.hash, window.location.href);
-        o.dp.matchingUrl(temp, true);
+        o.ft.matchingUrl(temp, true).dp();
       })
     ));
 
@@ -164,20 +164,20 @@ export function useRouterProvider(basenameOrParent = '', routes: RouteObject[]) 
         op.filter(url => !!url),
         op.withLatestFrom(inputTable.l.setBasenameOrParent),
         op.map(([pathname, [, basenameOrParent]]) => {
-          o.dp.matchingUrl(new URL((subPathOf(basenameOrParent, pathname) ?? pathname) + window.location.search + window.location.hash, window.location.href));
+          o.ft.matchingUrl(new URL((subPathOf(basenameOrParent, pathname) ?? pathname) + window.location.search + window.location.hash, window.location.href)).dp();
         })
       )
     );
 
 
-    i.dp.setRoutes(routes);
+    i.ft.setRoutes(routes).dp();
     setRouter(s => ({...s, control: composite.i}));
     return composite;
   }, [basenameOrParent, routes]);
 
 
   React.useEffect(() => {
-    return () => {composite.destory(); };
+    return () => {composite.dispose(); };
   }, [composite]);
 
   return router;
@@ -197,8 +197,8 @@ export function useRouter() {
 export function useNavigateHandler<C extends(...args: any[]) => void>(path: string): C {
   const router = useRouter();
   return React.useCallback(() => {
-    router?.control?.dispatcher.navigateTo(path);
-  }, [path, router?.control?.dispatcher]) as C;
+    router?.control?.ft.navigateTo(path).dp();
+  }, [path, router?.control?.ft]) as C;
 }
 
 function resolvePath(...strs: string[]) {
@@ -243,7 +243,7 @@ function matchRoute(routes: CompiledRouteObject[], location: PathWithQueryAndHas
       let i = 1;
       matched.matchedParams = {};
       for (const param of route.paramNames) {
-        matched.matchedParams[param] = res[i++];
+        matched.matchedParams[param] = decodeURIComponent(res[i++]);
       }
       matched.location = location;
       return matched;

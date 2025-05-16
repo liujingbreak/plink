@@ -1,5 +1,5 @@
 declare module '*.md' {
-  import {LoaderRecivedData} from '@wfh/doc-ui-common/isom/md-types';
+  import {LoaderRecivedData} from '@wfh/markdown-base/isom/types';
   const data: LoaderRecivedData;
   export default data;
   global {

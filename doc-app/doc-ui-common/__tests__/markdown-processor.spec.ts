@@ -28,7 +28,7 @@ describe('markdown-processor', () => {
           rx.tap(([m, url, file]) => {
             imgResolver(url, file);
             console.log('resolve image for', workerNo, url, file);
-            workerInput.dpf.imageResolved(m, url);
+            workerInput.ft.imageResolved(url).dp(m);
           })
         ))
       )
@@ -39,19 +39,19 @@ describe('markdown-processor', () => {
           rx.tap(([m, url, file]) => {
             linkResolver(url, file);
             console.log('resolve link for', workerNo, url, file);
-            workerInput.dpf.linkResolved(m, url);
+            workerInput.ft.linkResolved(url).dp(m);
           })
         ))
       )
     );
-    const [, {resultHtml, toc, mermaid}] = await rx.firstValueFrom(i.do.forkProcessFile(o.at.processFileDone, raw, file));
+    const [, {resultHtml, toc, mermaid}] = await rx.firstValueFrom(i.ft.forkProcessFile(raw, file).do(o.at.processFileDone));
     console.log(arrayBuffer2str(resultHtml).toString(), toc);
     expect(mermaid.length).toBeGreaterThan(0);
     const mermaidCode = arrayBuffer2str(mermaid[0]);
     console.log('mermaid', mermaidCode);
     expect(mermaidCode.slice(0, 'flowchart LR'.length)).toEqual('flowchart LR');
     expect(imgResolver.mock.calls.length).toBe(1);
-    broker.i.dp.letAllWorkerExit();
+    broker.i.ft.letAllWorkerExit().dp();
   }, 20000);
 
   it('2 markdown files being processed simultaneously in worker thread', async () => {
@@ -66,7 +66,7 @@ describe('markdown-processor', () => {
           rx.tap(([m, url, file]) => {
             imgResolver(url, file);
             console.log('resolve image for', workerNo, url, file);
-            workerInput.dpf.imageResolved(m, url);
+            workerInput.ft.imageResolved(url).dp(m);
           })
         ))
       )
@@ -77,15 +77,15 @@ describe('markdown-processor', () => {
           rx.tap(([m, url, file]) => {
             linkResolver(url, file);
             console.log('resolve link for', workerNo, url, file);
-            workerInput.dpf.linkResolved(m, url);
+            workerInput.ft.linkResolved(url).dp(m);
           })
         ))
       )
     );
     const [[, a], [, b]] = await rx.lastValueFrom(rx.forkJoin([
-      i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
-      i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
-      i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1))
+      i.ft.forkProcessFile(raw, file).do(o.at.processFileDone).pipe(rx.take(1)),
+      i.ft.forkProcessFile(raw, file).do(o.at.processFileDone).pipe(rx.take(1)),
+      i.ft.forkProcessFile(raw, file).do(o.at.processFileDone).pipe(rx.take(1))
       // i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
       // i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1)),
       // i.do.forkProcessFile(o.at.processFileDone, raw, file).pipe(rx.take(1))
@@ -99,7 +99,7 @@ describe('markdown-processor', () => {
     // broker.i.dp.letAllWorkerExit();
     await rx.firstValueFrom(
       rx.timer(6000).pipe(
-        rx.mergeMap(() => i.do.forkProcessFile(o.at.processFileDone, raw, file))
+        rx.mergeMap(() => i.ft.forkProcessFile(raw, file).do(o.at.processFileDone))
       )
     );
     expect(imgResolver.mock.calls.length).toBe(4);

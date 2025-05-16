@@ -1,3 +1,4 @@
+import {SingleActionFactory} from '@wfh/reactivizer';
 export type ReactiveCanvasConfig = {
   /** default 2 */
   scaleRatio?: number;
@@ -5,21 +6,14 @@ export type ReactiveCanvasConfig = {
 };
 
 export type ReactiveCanvas2State = {
-  // ctx?: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
-  // isOffscreen: boolean;
-  // canvas: HTMLCanvasElement | OffscreenCanvas | null;
-  // width: number;
-  // height: number;
-  // pixelWidth: number;
-  // pixelHeight: number;
   mounted: boolean;
   // _animateCounter:  number;
 } & ReactiveCanvasConfig;
 
 export type ReactiveCanvas2Actions = {
-  _createOffscreen(canvas: OffscreenCanvas): void;
-  // setScaleRatio(value: number): void;
-  resizeViewport(width: number, height: number): void;
+  _createOffscreen(canvas: OffscreenCanvas): SingleActionFactory;
+  // setScaleRatio(value: number): SingleActionFactory;
+  resizeViewport(width: number, height: number): SingleActionFactory;
 };
 
 export type ReactiveCanvasWorkerInput = {

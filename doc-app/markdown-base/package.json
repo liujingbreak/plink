@@ -1,0 +1,27 @@
+{
+  "name": "@wfh/markdown-base",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/server.js",
+  "plink": {
+    "type": "server",
+    "serverEntry": "dist/server.js",
+    "cli": "dist/cli/cli.js#default",
+    "tsc": {
+      "src": "src"
+    },
+    "setting": {
+      "value": "isom/markdown-base-setting.js#defaultSetting",
+      "type": "isom/markdown-base-setting#MarkdownBaseSetting"
+    }
+  },
+  "dependencies": {
+    "markdown-it": "13.0.2",
+    "highlight.js": "11.8.0",
+    "parse5": "^7.1.2",
+    "http-proxy": "^1.18.1"
+  },
+  "scripts": {},
+  "author": "LJ",
+  "license": "MIT"
+}

@@ -1,62 +1,92 @@
+import Path from 'node:path';
 import {LoaderDefinitionFunction} from 'webpack';
 import * as rx from 'rxjs';
-import * as op from 'rxjs/operators';
 import _ from 'lodash';
 import {arrayBuffer2str} from '@wfh/reactivizer';
-// import {markdownToHtml} from './markdown-util';
+import {log4File} from '@wfh/plink';
+import {digestSha1} from './markdown-util';
 import {markdownProcessor, setupBroker} from './markdown-processor-main';
-// require('node:inspector').open(9222, 'localhost', true);
 
+const log = log4File(__filename);
 const broker = setupBroker(false);
+const {s} = markdownProcessor;
 
-const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
-  const cb = this.async();
-  const importCode = [] as string[];
-  let imgIdx = 0;
-  // const logger = this.getLogger('markdown-loader');
-  // debugger;
+type ProcessStateOfFile = {
+  importCode: string[];
+  imgIdx: number;
+  links: [hash: string, url: string][];
+};
 
-  const {i, o} = markdownProcessor;
+const processStateByFile = new Map<string, ProcessStateOfFile>();
 
-  broker.outputTable.l.newWorkerReady.pipe(
+broker.r('newWorkerReady, (imageToBeResolved, linkToBeResolved)',
+  broker.table.l.newWorkerReady.pipe(
     rx.mergeMap(([, _workerNo, workerOutput, workerInput]) => rx.merge(
       workerOutput.pt.imageToBeResolved.pipe(
-        rx.tap(([m, imgSrc, _file]) => {
+        rx.tap(([m, imgSrc, file]) => {
           try {
+            const state = processStateByFile.get(file)!;
+            const {importCode, imgIdx} = state;
             const url = imgSrc.startsWith('.') ? imgSrc : './' + imgSrc;
             importCode.push(`import imgSrc${imgIdx} from '${url}';`);
-            workerInput.dpf.imageResolved(m, 'imgSrc' + (imgIdx++));
+            workerInput.ft.imageResolved('imgSrc' + imgIdx).dp(m);
+            state.imgIdx++;
           } catch (e) {
             markdownProcessor.dispatchErrorFor(e, m);
           }
         })
       ),
       workerOutput.pt.linkToBeResolved.pipe(
-        rx.tap(([m, href, _file]) => {
-          const matched = /([^/]+)\.md$/.exec(href);
-          if (matched?.[1]) {
-            workerInput.dpf.linkResolved(m, JSON.stringify(matched[1]));
-            return;
+        rx.mergeMap(async ([m, href, file]) => {
+          const matched = /^(?:\w+:)?\/\//.exec(href);
+          const state = processStateByFile.get(file)!;
+          if (matched == null) {
+            const mdMatch = /^(.*?)\.md$/.exec(href);
+            if (mdMatch) {
+              const absFile = Path.resolve(Path.dirname(file), href).replace(/\\/g, '/');
+              const hash = await digestSha1(absFile);
+              workerInput.ft.linkResolved(hash).dp(m);
+              state.links.push([hash, absFile]);
+              return;
+            }
           }
-          workerInput.dpf.linkResolved(m, JSON.stringify(href));
+          workerInput.ft.linkResolved().dp(m);
         })
       )
-    )),
-    rx.takeUntil(i.do.forkProcessFile(o.at.processFileDone, source, this.resourcePath).pipe(
-      rx.take(1),
-      rx.tap(([, {resultHtml, toc, mermaid}]) => {
-        cb(null, importCode.join('\n') + '\nconst html = ' + arrayBuffer2str(resultHtml) +
+    ))
+  )
+);
+
+const markdownLoader: LoaderDefinitionFunction = function(source, sourceMap) {
+  const cb = this.async();
+  processStateByFile.set(this.resourcePath, {importCode: [], imgIdx: 0, links: []});
+
+  s.ft.forkProcessFile(source, this.resourcePath).od(s.pt.processFileDone).pipe(
+    rx.take(1),
+    rx.tap(([, {resultHtml, toc, mermaid}]) => {
+      const {importCode, links} = processStateByFile.get(this.resourcePath)!;
+      cb(null, importCode.join('\n') + '\nconst html = ' + arrayBuffer2str(resultHtml) +
           ';\nlet toc = ' + JSON.stringify(toc) +
           ';\nlet mermaids = ' + JSON.stringify(mermaid.map(item => arrayBuffer2str(item))) + ';' +
-          ';\nlet m = {html, toc, mermaids};\nexport default m;\n',
-        sourceMap
-        );
-      }),
-      op.catchError(err => {
-        cb(err, JSON.stringify(err), sourceMap);
-        return rx.EMPTY;
-      })
-    ))
+          ';\nlet links = {' +
+          links.map(([hash, absFile], i) => {
+            let linkPath = Path.relative(this.context, absFile).replace(/\\/g, '/');
+            if (!linkPath.startsWith('.'))
+              linkPath = './' + linkPath;
+            log.info('link:', linkPath);
+            return `${i > 0 ? ',' : ''}\n\r'${hash}': () => import('@wfh/reactivizer/whatever.js!=!@wfh/doc-ui-common/dist/markdown-loader!${linkPath}').then(res => res.default)`;
+          }).join('') + '\n}' +
+          ';\nlet m = {html, toc, mermaids, links};\nexport default m;\n',
+      sourceMap
+      );
+    }),
+    rx.catchError(err => {
+      cb(err, JSON.stringify(err), sourceMap);
+      return rx.EMPTY;
+    }),
+    rx.finalize(() => {
+      processStateByFile.delete(this.resourcePath);
+    })
   ).subscribe();
 };
 

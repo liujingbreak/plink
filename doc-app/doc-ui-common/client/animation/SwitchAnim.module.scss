@@ -1,14 +1,20 @@
 
 $anim-duration: 0.4s;
+$superSlowAnimDuration: 20s;
 
 .scope {
   position: relative;
+  display: flex;
+  align-items: stretch;
   &.full {
     display: flex;
     flex-direction: column;
     .movingBox {
       flex: 1;
     }
+  }
+  .movingBox {
+    align-items: stretch;
   }
   &.animate-opacity {
     .enterStart {
@@ -34,10 +40,16 @@ $anim-duration: 0.4s;
 }
 
 $transition: opacity linear $anim-duration, transform ease-out $anim-duration;
+$super-slow-transition: opacity linear $superSlowAnimDuration, transform ease-out $superSlowAnimDuration;
+
 .enterStart {
   opacity: 0;
   transform: translate3d(0, 100px, 0);
   transition: $transition;
+
+  &.superSlow {
+    transition: $super-slow-transition;
+  }
   // will-change: opacity, transform;
   &.entering {
     // opacity: 0;
@@ -55,4 +67,8 @@ $transition: opacity linear $anim-duration, transform ease-out $anim-duration;
   transition: $transition;
   // overflow: hidden;
   opacity: 0;
+  &.superSlow {
+    transition: $super-slow-transition;
+  }
 }
+

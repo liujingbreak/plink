@@ -1,37 +1,54 @@
-import {ReactorComposite, payloadRelatedToAction} from '@wfh/reactivizer';
+import {SingleActionFactory, ReactorComposite2, actionRelatedToAction} from '@wfh/reactivizer';
 import * as rx from 'rxjs';
+import {LoaderRecivedData} from '@wfh/markdown-base/isom/types';
 import {useAppLayout} from '../components/appLayout.control';
 import {Router} from '../animation/AnimatableRoutes.hooks';
-import {LoaderRecivedData} from '../../isom/md-types';
 import {markdownsControl} from './markdownSlice';
 
-type Actions = {
-  setMarkdownKey(key: string): void;
-  setMermaidClassName(n: string): void;
-  setMarkdownBodyRef(div: HTMLDivElement | null, forMdKey: string): void;
-  setRouter(router: Router): void;
-  setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): void;
-  setScrollTopHandler(cb: () => void): void;
-  handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): void;
-  setFileInputRef(el: HTMLInputElement | null): void;
+export type Actions = {
+  setMarkdownKey(key: string): SingleActionFactory;
+  setMermaidClassName(n: string): SingleActionFactory;
+  setMarkdownBodyRef(div: HTMLDivElement | null, forMdKey: string): SingleActionFactory;
+  setRouter(router: Router): SingleActionFactory;
+  setLayoutControl(layout: NonNullable<ReturnType<typeof useAppLayout>>): SingleActionFactory;
+  setScrollTopHandler(cb: () => void): SingleActionFactory;
+  handleTogglePopup(isOn: boolean, toggleIcon: (isOn: boolean) => void): SingleActionFactory;
+  setFileInputRef(el: HTMLInputElement | null): SingleActionFactory;
+  /** true if there are at least one head item in TOC list data */
+  hasToc(mdKey: string, yes: boolean): SingleActionFactory;
 };
 
 export interface Events {
-  markdownDataLoaded(data: LoaderRecivedData): void;
+  markdownDataLoaded(data: LoaderRecivedData): SingleActionFactory;
   /** mermaide, anchors are all renderred */
-  htmlRenderredFor(key: string): void;
-  scrollToTop(): void;
-  setFileInputVisible(visible: boolean): void;
+  htmlRenderredFor(key: string): SingleActionFactory;
+  scrollToTop(): SingleActionFactory;
+  setFileInputVisible(visible: boolean): SingleActionFactory;
+  setSwitchAnimTemplates(
+    updatedKey: string | null,
+    map: Map<string, SwitchTemplateType>
+  ): SingleActionFactory;
 }
 
+export type SwitchTemplateType = {
+  mdKey: string;
+  onBodyRef(ref: HTMLDivElement | null): void;
+  reactHtmlProp?: {__html: string};
+  hasToc: boolean;
+};
+
 export function createMarkdownViewControl(touchUiState: (s: any) => void) {
-  const inputTableFor = ['setScrollTopHandler', 'setLayoutControl', 'setMarkdownKey',
+  const inputTableFor = [
+    'setScrollTopHandler', 'setLayoutControl', 'setMarkdownKey',
     'setMermaidClassName', 'setRouter', 'setMarkdownBodyRef', 'setFileInputRef'
   ] as const;
 
-  const outputTableFor = ['setFileInputVisible', 'markdownDataLoaded', 'htmlRenderredFor'] as const;
+  const outputTableFor = [
+    'setFileInputVisible', 'markdownDataLoaded', 'htmlRenderredFor',
+    'setSwitchAnimTemplates'
+  ] as const;
 
-  const composite = new ReactorComposite<Actions, Events, typeof inputTableFor, typeof outputTableFor>({
+  const composite = new ReactorComposite2<Actions, Events, typeof inputTableFor, typeof outputTableFor>({
     name: 'MarkdownView',
     outputTableFor,
     inputTableFor,
@@ -40,10 +57,12 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
 
   const {i, r, inputTable, o, outputTable} = composite;
 
+  const markdownRefBykey = new Map<string, HTMLDivElement>();
+
   let mermaidIdSeed = 0;
   r('setMarkdownBodyRef, setMarkdownKey, setMermaidClassName, setRouter, markdownDataLoaded -> htmlRenderredFor',
     rx.combineLatest([
-      i.pt.setMarkdownBodyRef.pipe( rx.filter(([, dom]) => dom != null)),
+      // i.pt.setMarkdownBodyRef.pipe( rx.filter(([, dom]) => dom != null)),
       inputTable.l.setMarkdownKey,
       inputTable.l.setMermaidClassName,
       inputTable.l.setRouter.pipe(
@@ -52,16 +71,38 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
         rx.distinctUntilChanged((a, b) => a.matchedRoute === b.matchedRoute)
       )
     ]).pipe(
-      rx.filter(([[, , key0], [, key], , router]) => router.matchedRoute?.matchedParams.mdKey === key && key0 === key),
-      rx.mergeMap(([[, containerDom], [m2, key], [, mermaidClassName], router]) =>
+      rx.filter(([[, key], , router]) => router.matchedRoute?.matchedParams.mdKey === key),
+      rx.mergeMap(([[m2, key], [, mermaidClassName], router]) =>
         outputTable.l.markdownDataLoaded.pipe(
-          payloadRelatedToAction(m2),
+          actionRelatedToAction(m2),
           rx.take(1),
-          rx.tap(([, {html}]) => {
-            containerDom!.innerHTML = html;
+          rx.mergeMap(action => outputTable.l.setSwitchAnimTemplates.pipe(
+            rx.take(1),
+            rx.map(tempatesAction => [action, tempatesAction] as const)
+          )),
+          rx.map(([action, [, , templates]]) => {
+            const [m, {html}] = action;
+            templates.set(key, {
+              mdKey: key,
+              onBodyRef(ref) {
+                if (ref && key)
+                  i.ft.setMarkdownBodyRef(ref, key).dp();
+              },
+              reactHtmlProp: {__html: html},
+              hasToc: false
+            });
+            o.ft.setSwitchAnimTemplates(key, templates).dp(m);
+            return action;
           }),
           rx.delay(50),
-          rx.mergeMap(([m, {mermaids: mermaidTexts}]) => {
+          rx.mergeMap(loadedAction => {
+            return inputTable.l.setMarkdownBodyRef.pipe(
+              rx.filter(() => markdownRefBykey.has(key)),
+              rx.take(1),
+              rx.map(() => [loadedAction, markdownRefBykey.get(key)] as const)
+            );
+          }),
+          rx.mergeMap(([[m, {links, mermaids: mermaidTexts}], containerDom]) => {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             containerDom!.querySelectorAll('.language-mermaid').forEach(async (el, idx) => {
               el.id = 'mermaid-diagram-' + mermaidIdSeed++;
@@ -74,14 +115,16 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
             });
 
             const removeAnchorListener = [] as Array<() => void>;
+            if (links) {
+              markdownsControl.i.ft.registerFiles(links).dp(m);
+            }
 
             containerDom!.querySelectorAll('a').forEach(el => {
-              const href = el.getAttribute('href');
-              if (href && !/^\/|https?:\/\//.test(href)) {
+              const hash = el.getAttribute('data-md-hash');
+              if (hash) {
                 el.setAttribute('href', '#');
                 const handleAnchor = (event: MouseEvent) => {
-                  router.control!.dp.navigateToRel(href);
-                  // router.control!.dp.navigateTo(router.matchedRoute!.path);
+                  router.control!.ft.navigateToRel(encodeURIComponent(hash)).dp();
                   event.stopPropagation();
                   event.preventDefault();
                 };
@@ -90,9 +133,9 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
               }
             });
             if ((router.matchedRoute!.isPopState !== true && !router.matchedRoute?.location.hash )) {
-              o.dpf.scrollToTop(m2);
+              o.ft.scrollToTop().dp(m2);
             }
-            o.dpf.htmlRenderredFor([m, m2], key);
+            o.ft.htmlRenderredFor(key).dp(m, m2);
             return new rx.Observable(() => {
               return () => {
                 removeAnchorListener.forEach(cb => cb());
@@ -102,6 +145,14 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
         ))
     ));
 
+  r('setMarkdownBodyRef', i.pt.setMarkdownBodyRef.pipe(
+    rx.tap(([, div, key]) => {
+      if (div) {
+        markdownRefBykey.set(key, div);
+      }
+    })
+  ));
+
   r('scrollToTop, setScrollTopHandler ->', o.pt.scrollToTop.pipe(
     rx.switchMap(a => inputTable.l.setScrollTopHandler.pipe(rx.take(1), rx.map(b => [a, b] as const))),
     rx.delay(100),
@@ -109,22 +160,30 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
   ));
 
   r('markdownsControl::htmlByKey -> markdownDataLoaded', inputTable.l.setMarkdownKey.pipe(
-    rx.switchMap(([m1, key]) => markdownsControl.o.pt.htmlByKey.pipe(
+    rx.mergeMap(payload => inputTable.l.setLayoutControl.pipe(
+      rx.take(1),
+      rx.map(([, layout]) => {
+        layout.i.ft.setLoadingVisible(true).dp();
+        return [payload, layout] as const;
+      })
+    )),
+    rx.switchMap(([[m1, key], layout]) => markdownsControl.o.pt.htmlByKey.pipe(
       rx.map(([m2, map]) => [m1, m2, map.get(key)] as const),
       rx.filter((data): data is [typeof data[0], typeof data[1], NonNullable<typeof data[2]>] => data[2] != null),
       rx.tap(([m1, m2, data]) => {
-        o.dpf.markdownDataLoaded([m1, m2], data);
+        o.ft.markdownDataLoaded(data).dp(m1, m2);
+        layout.i.ft.setLoadingVisible(false).dp(m1, m2);
       })
     ))
   ));
 
-  r('markdownDataLoaded -> ', o.pt.markdownDataLoaded.pipe(
+  r('markdownDataLoaded, layout.onTopAppBarRaisedShown -> layout.updateBarTitle', o.pt.markdownDataLoaded.pipe(
     rx.switchMap(map => inputTable.l.setLayoutControl.pipe(
       rx.take(1),
       rx.map(b => [map, b] as const)
     )),
     rx.switchMap(([[m, data], [, layout]]) => layout.outputTable.l.onTopAppBarRaisedShown.pipe(
-      rx.tap(([, raised]) => layout.i.dpf.updateBarTitle(m, raised ? data.toc[0].text : ''))
+      rx.tap(([, raised]) => layout.i.ft.updateBarTitle((raised && data.toc[0]) ? data.toc[0].text : '').dp(m))
     ))
   ));
 
@@ -134,7 +193,7 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
     }),
     rx.distinctUntilChanged(([, a], [, b]) => a === b),
     rx.tap(([m, visible]) => {
-      o.dpf.setFileInputVisible(m, visible);
+      o.ft.setFileInputVisible(visible).dp(m);
     })
   ));
 
@@ -148,7 +207,7 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
         ref.setAttribute('multiple', '');
         ref.webkitdirectory = true;
         return new rx.Observable<HTMLInputElement>(sub => {
-          function listener(event: Event) {
+          function listener(_event: Event) {
             if (ref?.files)
               sub.next(ref);
           }
@@ -157,13 +216,20 @@ export function createMarkdownViewControl(touchUiState: (s: any) => void) {
         });
       }
       return rx.EMPTY;
-    }),
-    rx.tap(ref => {
-      console.log(ref.files);
-      console.log(ref.webkitEntries);
     })
   ));
 
+  r('hasToc -> setSwitchAnimTemplates', i.pt.hasToc.pipe(
+    rx.switchMap(([m, key, yes]) => outputTable.l.setSwitchAnimTemplates.pipe(
+      rx.take(1),
+      rx.tap(([, , templates]) => {
+        const old = templates.get(key)!;
+        templates.set(key, {...old, hasToc: yes});
+        o.ft.setSwitchAnimTemplates(key, templates).dp(m);
+      })
+    ))
+  ));
+  o.ft.setSwitchAnimTemplates(null, new Map()).dp();
   return composite;
 }
 

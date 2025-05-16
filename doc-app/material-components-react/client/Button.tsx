@@ -1,13 +1,13 @@
 import React from 'react';
 
-import classnames from 'classnames/bind';
+// import classnames from 'classnames/bind';
 import cls from 'classnames';
 import styles from './Button.module.scss';
 // import * as rx from 'rxjs';
 // import * as op from 'rxjs/operators';
 import {Ripple, RippleProps} from './Ripple';
 
-const cx = classnames.bind(styles);
+// const cx = classnames.bind(styles);
 
 export type ButtonProps = React.PropsWithChildren<{
   onClick?(evt: any): void;
@@ -80,24 +80,26 @@ const Button: React.FC<ButtonProps> = function(props) {
     }
   }, [props]);
 
-  const className = cx('mdc-button',
-    'mdc-button--' + (props.type == null || props.type === 'text' ? '' : props.type),
-    'mdc-button--touch');
+  const className = cls(styles['mdc-button'],
+    styles['mdc-button--' + (props.type == null || props.type === 'text' ? '' : props.type)],
+    styles['mdc-button--touch']);
 
 
   return (
     <div ref={onOuterRef}
-      className={cls(props.className, cx('mdc-touch-target-wrapper', 'matButton', {'mdc-button--icon-leading': !!props.materialIcon}))}>
+      className={cls(props.className, cls(styles['mdc-touch-target-wrapper'], styles.matButton, {[styles['mdc-button--icon-leading']]: !!props.materialIcon}))}>
       <button ref={onRef} className={className} onClick={clickCb}>
-        {props.materialIcon ? (
-          <i className={classnames('material-icons', styles['mdc-button__icon'], 'md-' + props.materialIcon)} aria-hidden='true'></i>
-        ) : null}
-        <span className={cx('mdc-button__label')}>{props.children}</span>
-        <span className={cx('mdc-button__touch')}></span>
+        {props.materialIcon ?
+          (
+            <i className={cls(styles['material-icons'], styles['mdc-button__icon'], styles['md-' + props.materialIcon])} aria-hidden="true"></i>
+          )
+          : null}
+        <span className={cls(styles['mdc-button__label'])}>{props.children}</span>
+        <span className={cls(styles['mdc-button__touch'])}></span>
         <Ripple className={cls(props.type === 'raised' ? 'raised-btn' : '')} color={props.rippleColor}></Ripple>
       </button>
     </div>
-    );
+  );
 };
 
 

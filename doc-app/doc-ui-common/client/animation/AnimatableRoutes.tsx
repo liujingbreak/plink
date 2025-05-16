@@ -2,7 +2,7 @@ import React from 'react';
 import clsDdp from 'classnames/dedupe';
 // import {useAppLayout} from '../components/appLayout.control';
 import {SwitchAnim} from './SwitchAnim';
-import {RouteObject, RouterContext, useRouterProvider} from './AnimatableRoutes.hooks';
+import {RouteActions, RouteObject, RouterContext, useRouterProvider} from './AnimatableRoutes.hooks';
 import styles from './AnimatableRoutes.module.scss';
 
 export type AnimatableRoutesProps = React.PropsWithChildren<{
@@ -31,7 +31,7 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
       { router.matchedRoute != null ?
         prop.noAnim === true ?
           router.matchedRoute.element :
-          <SwitchAnim logName="RouterSwitchAnim" debug={false} size="full"
+          <SwitchAnim logName="RouterSwitchAnim" debug={true} size="full"
             type="opacity"
             parentDom={router.rootElement}
             switchOnDistinct={router.matchedRoute.element}
@@ -41,8 +41,14 @@ const AnimatableRoutes: React.FC<AnimatableRoutesProps> = function(prop) {
       }
     </RouterContext.Provider>
     : null;
+
+  const setRootElement = React.useCallback((...args: Parameters<RouteActions['setRootElement']>) => {
+    if (router.control)
+      router.control.ft.setRootElement(...args).dp();
+  }, [router.control]);
+
   return router.control ?
-    <div ref={router.control.dp.setRootElement} className={clsDdp(styles.scope, prop.className)}>
+    <div ref={setRootElement} className={clsDdp(styles.scope, prop.className)}>
       {content}
     </div> :
     null;

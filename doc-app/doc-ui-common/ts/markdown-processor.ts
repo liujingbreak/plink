@@ -1,10 +1,10 @@
 import {log4File} from '@wfh/plink';
 import {createWorkerControl} from '@wfh/reactivizer/dist/fork-join/node-worker';
-import {MdInputActions, MdOutputEvents, setupReacting, MarkdownProcessor} from '../isom/markdown-process-common';
+import {MdInputActions, MdOutputEvents, setupReacting, MarkdownProcessor} from '@wfh/markdown-base/isom/markdown-process-common';
 
 const log = log4File(__filename);
 
-export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions, MdOutputEvents>({
+export const markdownProcessor: MarkdownProcessor = createWorkerControl<MdInputActions & MdOutputEvents>({
   name: 'markdownProcessor',
   debug: false,
   debugExcludeTypes: ['wait', 'stopWaiting'],

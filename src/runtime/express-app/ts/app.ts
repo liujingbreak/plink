@@ -100,7 +100,7 @@ function create(app: express.Express, setting: ReturnType<typeof config>) {
   // });
 
   const nodeVer = process.version;
-  app.use((req, res, next) => {
+  app.use((_req, res, next) => {
     res.setHeader('X-Nodejs', nodeVer);
     next();
   });

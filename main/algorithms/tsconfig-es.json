@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig-node.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "es",
+    "strict": true,
+    "inlineSources": true
+  }
+}

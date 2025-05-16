@@ -5,25 +5,34 @@
   "private": true,
   "packages": [
     "src",
-    "main/packages",
+    "main",
     "doc-app",
     "server-tool-space/conf",
     "conf"
   ],
+  "workspaces": [
+    "main/plink",
+    "main/algorithms",
+    "main/plink-cli",
+    "main/plink-test",
+    "main/terminal-ui",
+    "main/reactivizer",
+    "main/eslint-config",
+    "main/redux-toolkit-observable",
+    "main/require-injector",
+    "main/thread-promise-pool"
+  ],
   "plink": {
-    "noModuleSymlink": ["main/packages"]
+    "externalRepo": ["../cvs"],
+    "## noModuleSymlink": ["main/packages"]
   },
   "scripts": {
     "plink": "plink",
     "link-plink": "node main/bin/link.js",
-    "lint-wfh": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/wfh/src",
-    "lint-redux": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/redux-toolkit-observable",
-    "lint-thread": "eslint --no-eslintrc -c main/.eslintrc.js --ext .ts main/packages/thread-promise-pool",
-    "lint-main-file": "eslint --no-eslintrc -c main/.eslintrc.js",
-    "lint-other": "eslint --no-eslintrc -c .eslintrc.js"
-  },
-  "devDependencies": {
-    "@wfh/eslint-config-cra": "./src/tools/eslint-config-cra",
-    "typescript": "^5.1.6"
+    "lint-wfh": "eslint  -c eslint.config.mjs --ext .ts main/plink/wfh/src",
+    "lint-redux": "eslint  -c eslint.config.mjs --ext .ts main/redux-toolkit-observable",
+    "lint-thread": "eslint  -c eslint.config.mjs --ext .ts main/thread-promise-pool",
+    "lint-file-debug": "eslint  -c eslint.config.mjs --debug --print-config",
+    "lint-file": "eslint  -c eslint.config.mjs --debug"
   }
 }

@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "outDir": "dist",
+    "declaration": false,
+    "module":"nodenext",
+    "target":"es2017",
+    "noImplicitAny": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "moduleResolution": "nodenext",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "noUnusedLocals": true,
+    "preserveSymlinks": false,
+    "downlevelIteration": false,
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
+    "diagnostics": false,
+    "skipLibCheck": true,
+    "newLine": "lf",
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "jsx": "preserve",
+    "pretty": true
+  },
+
+  "include": [
+    "ts/**/*.ts"
+  ]
+}

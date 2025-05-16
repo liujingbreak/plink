@@ -7,10 +7,10 @@
     "@testing-library/react": "^13.0.0",
     "@testing-library/user-event": "^13.2.1",
     "@types/jest": "^27.0.1",
-    "@types/node": "^18.16.3",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
-    "typescript": "^5.1.6",
+    "typescript": "^5.7.3",
+    "@types/node": "^22.13.2",
     "web-vitals": "^2.1.0",
 
     "react": "^18.2.0",
@@ -30,30 +30,29 @@
     "workbox-streams": "^5.1.3",
 
     "react-redux": "^8.0.5",
+    "axios": "0.21.1",
     "@wfh/doc-entry": "1.0.0",
     "@wfh/doc-ui-common": "1.0.0",
     "@wfh/http-server": "1.1.4",
     "@wfh/assets-processer": "1.1.67-2",
-    "axios": "0.21.1",
     "@wfh/material-components-react": "1.0.0",
-    "@wfh/reactivizer": "1.0.0",
-    "@wfh/algorithms": "1.0.0"
+    "@wfh/resumes": "1.0.0",
+    "@wfh/markdown-base": "1.0.0",
+
+    "@wfh/webpack-common": "../tarballs/wfh-webpack-common-1.0.7-1.tgz",
+    "@wfh/translate-generator": "1.1.4",
+    "@wfh/express-app": "1.1.8",
+    "@wfh/json-schema-gen": "1.0.18-0",
+    "@wfh/tool-misc": "~1.1.1" 
   },
   "devDependencies": {
-    "@wfh/plink-test": "1.0.0",
-    "@wfh/cra-scripts": "../tarballs/wfh-cra-scripts-1.0.30-0.tgz",
-    "@wfh/webpack-common": "../tarballs/wfh-webpack-common-1.0.7-1.tgz",
-    "@wfh/redux-toolkit-observable": "1.0.5",
-    "@wfh/translate-generator": "1.1.4",
-    "@wfh/thread-promise-pool": "1.0.1-1",
     "@reduxjs/toolkit": "~1.9.3",
     "redux-observable": "~2.0.0",
     "react-app-polyfill": "^2.0.0",
-    "@wfh/express-app": "1.1.8",
-    "@wfh/json-schema-gen": "1.0.18-0",
-    "@wfh/tool-misc": "~1.1.1",
     "sass": "^1.38.1",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typedoc": "0.25.7",
+    "@wfh/cra-scripts": "1.3.5"
   },
   "overrides": {
     "jest": "^29.1.2",
@@ -65,7 +64,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "sme": "sme",
-    "jest": "echo 'You need run environment setup: source set-jest-env.sh' && jest -c node_modules/@wfh/plink-test/dist/jest.config.js --runTestsByPath"
+    "typedoc": "typedoc",
+    "typedoc:reactivizer": "npm run typedoc -- --out ../dist/static/reactivizer/typedoc --tsconfig ../main/packages/reactivizer/tsconfig-node.json ../main/packages/reactivizer/src/index.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -83,5 +83,25 @@
       "android >= 4.0"
     ],
     "development": ["last 3 versions"]
+  },
+  "backup": {
+    "@wfh/doc-entry": "1.0.0",
+    "@wfh/doc-ui-common": "1.0.0",
+    "@wfh/http-server": "1.1.4",
+    "@wfh/assets-processer": "1.1.67-2",
+    "@wfh/material-components-react": "1.0.0",
+    "@wfh/reactivizer": "1.0.0",
+    "@wfh/algorithms": "1.0.0",
+    "@wfh/resumes": "1.0.0",
+    "@wfh/markdown-base": "1.0.0",
+
+    "@wfh/cra-scripts": "../tarballs/wfh-cra-scripts-1.0.30-0.tgz",
+    "@wfh/webpack-common": "../tarballs/wfh-webpack-common-1.0.7-1.tgz",
+    "@wfh/redux-toolkit-observable": "1.0.5",
+    "@wfh/translate-generator": "1.1.4",
+    "@wfh/thread-promise-pool": "1.0.1-1",
+    "@wfh/express-app": "1.1.8",
+    "@wfh/json-schema-gen": "1.0.18-0",
+    "@wfh/tool-misc": "~1.1.1"
   }
 }

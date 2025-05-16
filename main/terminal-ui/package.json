@@ -1,0 +1,43 @@
+{
+  "name": "@wfh/terminal-ui",
+  "version": "0.1.0",
+  "description": "A command line user interface library made in form of components",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "plink": {
+    "tsc": {
+      "src": "src",
+      "dest": "dist"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -b tsconfig-node.json",
+    "watch": "tsc -b -w tsconfig-node.json",
+    "clean": "rm -rf dist/* tsconfig-node.tsbuildinfo",
+    "test": "echo \"Error: test has to be run with @wfh/plink-test\" && exit 1"
+  },
+  "dependencies": {
+    "rbush": "~4.0.1",
+    "@types/rbush": "~4.0.0",
+    "@material/material-color-utilities": "^0.3.0"
+  },
+  "peerDependencies": {
+    "chalk": "^4.1.0",
+    "@wfh/reactivizer": "^0.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liujingbreak/plink.git",
+    "directory": "main/packages/terminal-ui"
+  },
+  "keywords": [
+    "Terminal", "command", "UI", "components"
+  ],
+  "author": "Liu Jing <liujing.break@gmail.com>",
+  "license": "MIT"
+}

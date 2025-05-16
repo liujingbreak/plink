@@ -1,7 +1,7 @@
 import {ReactScriptsHandler} from '@wfh/cra-scripts/dist/types';
 import {default as docUiCommon} from '@wfh/doc-ui-common/dist/webpack-config';
 import {config} from '@wfh/plink';
-import * as op from 'rxjs/operators';
+import * as op from 'rxjs';
 
 const handler: ReactScriptsHandler = {
   changeCraPaths(craPaths, _env, cmdOpt) {

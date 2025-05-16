@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
-///<reference path="./module-declare.d.ts" />
+/// <reference path="./module-declare.d.ts" />
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 const path_1 = tslib_1.__importDefault(require("path"));
 const config_handler_1 = require("@wfh/plink/wfh/dist/config-handler");
@@ -21,10 +21,10 @@ const change_tsconfig_1 = require("./change-tsconfig");
 const termux_issue_webpack_plugin_1 = require("./termux-issue-webpack-plugin");
 // import inspector from 'node:inspector';
 // inspector.open(9222, 'localhost', true);
-const log = plink_1.logger.getLogger('@wfh/cra-scripts.webpack-config');
+const log = (0, plink_1.log4File)(__filename);
 const { nodePath, rootDir } = JSON.parse(process.env.__plink);
 function default_1(webpackEnv) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const { addResolveAlias } = require('./webpack-resolve');
     (0, utils_1.drawPuppy)('Hack create-react-app', `If you want to know how Webpack is configured, check: ${plink_1.config.resolve('destDir', 'cra-scripts.report')}`);
@@ -95,9 +95,9 @@ function default_1(webpackEnv) {
     if (config.watchOptions == null)
         config.watchOptions = {};
     if (cmdOption.usePoll) {
-        config.watchOptions.poll = 1000;
+        config.watchOptions.poll = 1500;
     }
-    config.watchOptions.aggregateTimeout = 900;
+    config.watchOptions.aggregateTimeout = 700;
     config.watchOptions.ignored = /(?:\bnode_modules\b|^(?:\/(?:data(?:\/data)?)?)$)/;
     // config.watchOptions.followSymlinks = false;
     // config.resolve!.plugins.unshift(new PlinkWebpackResolvePlugin());
@@ -134,10 +134,12 @@ function default_1(webpackEnv) {
         })());
         const htmlWebpackPluginConstrutor = getPluginConstructor('html-webpack-plugin'); // require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
         const htmlWebpackPluginInstance = config.plugins.find(plugin => plugin instanceof htmlWebpackPluginConstrutor);
-        htmlWebpackPluginInstance.userOptions.templateParameters = {
-            _config: (0, plink_1.config)(),
-            _dllJsFiles: dllJsFiles.map(p => config.output.publicPath + p)
+        const targetOpts = (_d = htmlWebpackPluginInstance.options) !== null && _d !== void 0 ? _d : htmlWebpackPluginInstance.userOptions;
+        const originTemplFn = typeof targetOpts.templateParameters === 'function' ? targetOpts.templateParameters : () => { };
+        targetOpts.templateParameters = (...args) => {
+            return Object.assign(Object.assign({}, originTemplFn(...args)), { _config: (0, plink_1.config)(), _dllJsFiles: dllJsFiles.map(p => config.output.publicPath + p) });
         };
+        // console.log('----------------------------->>>>>>>>> debug', htmlWebpackPluginInstance);
         (0, splitChunks_1.default)(config, (mod) => {
             var _a;
             const file = (_a = mod.resource) !== null && _a !== void 0 ? _a : null;
@@ -149,10 +151,10 @@ function default_1(webpackEnv) {
     }
     const now = new Date();
     const timeStr = now.getDate() + '_' + now.getHours() + '-' + now.getMinutes() + '-' + now.getSeconds() + '-' + now.getMilliseconds();
-    (_d = config.plugins) === null || _d === void 0 ? void 0 : _d.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin());
+    (_e = config.plugins) === null || _e === void 0 ? void 0 : _e.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin());
     if (cmdOption.cmd === 'cra-build' && !cmdOption.watch) {
         const buildIdentifier = nameFromConfigEntry(config);
-        (_e = config.plugins) === null || _e === void 0 ? void 0 : _e.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin(), new webpack_bundle_analyzer_1.BundleAnalyzerPlugin({
+        (_f = config.plugins) === null || _f === void 0 ? void 0 : _f.push(new termux_issue_webpack_plugin_1.TermuxWebpackPlugin(), new webpack_bundle_analyzer_1.BundleAnalyzerPlugin({
             analyzerMode: 'disabled',
             generateStatsFile: true,
             statsFilename: path_1.default.join(plink_1.plinkEnv.distDir, `webpack-bundle-analyzer.stats.${typeof buildIdentifier === 'string' ? buildIdentifier : timeStr}.json`)
@@ -161,13 +163,14 @@ function default_1(webpackEnv) {
     function getPluginConstructor(pluginPkgName) {
         return require(resolve_1.default.sync(pluginPkgName, { basedir: reactScriptsInstalledDir }));
     }
-    const rules = [...(_g = (_f = config.module) === null || _f === void 0 ? void 0 : _f.rules) !== null && _g !== void 0 ? _g : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
-    for (const rule of rules) {
-        if (typeof rule !== 'string') {
-            if (rule.oneOf) {
+    const rules = [...(_h = (_g = config.module) === null || _g === void 0 ? void 0 : _g.rules) !== null && _h !== void 0 ? _h : []]; // BFS array contains both RuleSetRule and RuleSetUseItem
+    for (const ruleItem of rules) {
+        if (typeof ruleItem !== 'string') {
+            const rule = ruleItem;
+            if ((rule).oneOf) {
                 rules.push(...rule.oneOf);
             }
-            else if (Array.isArray(rule.use)) {
+            else if (Array.isArray((rule).use)) {
                 rules.push(...rule.use); // In factor rule.use is RuleSetUseItem not RuleSetRule
             }
             else if (rule.loader) {

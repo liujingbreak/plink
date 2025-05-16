@@ -1,0 +1,27 @@
+{
+  "extends": "../plink/wfh/tsconfig-base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "target": "ES2017",
+    "outDir": "dist",
+    "declaration": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "composite": true,
+    "paths": {
+      "@wfh/reactivizer": [
+        "../reactivizer/src/index.ts",
+        "../reactivizer/src/index.mts",
+        "../reactivizer/src/index.cts"
+      ]
+    }
+  },
+  "references": [
+    {"path": "../reactivizer/tsconfig-node.json"}
+  ],
+  "include": ["src/**/*.ts", "src/**/*.cts"],
+  "exclude": [
+    "es/**/*.ts",
+    "dist/**/*.ts"
+  ]
+}

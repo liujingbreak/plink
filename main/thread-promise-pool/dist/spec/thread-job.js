@@ -1,0 +1,9 @@
+"use strict";
+/* eslint-disable no-console */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = default_1;
+function default_1(input) {
+    console.log('In thread');
+    return new Promise(resolve => setTimeout(() => resolve(input * 10), 1000));
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGhyZWFkLWpvYi5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3RzL3NwZWMvdGhyZWFkLWpvYi50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEsK0JBQStCOztBQUUvQiw0QkFHQztBQUhELG1CQUF3QixLQUFhO0lBQ25DLE9BQU8sQ0FBQyxHQUFHLENBQUMsV0FBVyxDQUFDLENBQUM7SUFDekIsT0FBTyxJQUFJLE9BQU8sQ0FBQyxPQUFPLENBQUMsRUFBRSxDQUFDLFVBQVUsQ0FBQyxHQUFHLEVBQUUsQ0FBQyxPQUFPLENBQUMsS0FBSyxHQUFHLEVBQUUsQ0FBQyxFQUFFLElBQUksQ0FBQyxDQUFDLENBQUM7QUFDN0UsQ0FBQyIsInNvdXJjZXNDb250ZW50IjpbIi8qIGVzbGludC1kaXNhYmxlIG5vLWNvbnNvbGUgKi9cblxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24oaW5wdXQ6IG51bWJlcikge1xuICBjb25zb2xlLmxvZygnSW4gdGhyZWFkJyk7XG4gIHJldHVybiBuZXcgUHJvbWlzZShyZXNvbHZlID0+IHNldFRpbWVvdXQoKCkgPT4gcmVzb2x2ZShpbnB1dCAqIDEwKSwgMTAwMCkpO1xufVxuIl19

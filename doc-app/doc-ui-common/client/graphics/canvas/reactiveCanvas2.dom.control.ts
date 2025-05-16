@@ -1,19 +1,19 @@
 import * as rx from 'rxjs';
 import * as op from 'rxjs';
-import {ReactorComposite, serializeAction} from '@wfh/reactivizer';
+import {ReactorComposite2, SingleActionFactory, serializeAction} from '@wfh/reactivizer';
 import type {ReactiveCanvasInputAction, ReactiveCanvas2Actions} from './types';
 
 export type CanvasActions = {
-  onDomChange(canvas: HTMLCanvasElement | null): void;
-  setWorker(worker: Worker): void;
+  onDomChange(canvas: HTMLCanvasElement | null): SingleActionFactory;
+  setWorker(worker: Worker): SingleActionFactory;
 };
 
 export type CanvasEvents = {
-  workerReady(worker: Worker): void;
+  workerReady(worker: Worker): SingleActionFactory;
 };
 
 export function createDomControl() {
-  const re = new ReactorComposite<CanvasActions & ReactiveCanvasInputAction, ReactiveCanvas2Actions & CanvasEvents>({
+  const re = new ReactorComposite2<CanvasActions & ReactiveCanvasInputAction, ReactiveCanvas2Actions & CanvasEvents>({
     name: 'canvas-control',
     debug: process.env.NODE_ENV === 'development'
   });
@@ -27,7 +27,7 @@ export function createDomControl() {
       return new rx.Observable<void>(sub => {
         const h = (event: MessageEvent<string>) => {
           if (event.data === 'ready') {
-            o.dp.workerReady(worker);
+            o.ft.workerReady(worker).dp();
             sub.next();
             sub.complete();
           }
@@ -46,12 +46,12 @@ export function createDomControl() {
     })
   ));
 
-  r(i.pt.onDomChange.pipe(
+  r('onDomChange -> _createOffscreen, resizeViewport', i.pt.onDomChange.pipe(
     op.filter((p): p is [typeof p[0], NonNullable<typeof p[1]>] => p[1] != null),
     op.distinctUntilChanged(),
     op.map(([, canvas]) => {
       const offscreen = canvas.transferControlToOffscreen();
-      re.o.dp._createOffscreen(offscreen);
+      o.ft._createOffscreen(offscreen).dp();
       return canvas;
     }),
     op.delay(150), // wait for DOM being rendering
@@ -66,7 +66,7 @@ export function createDomControl() {
         op.map(() => {
           const vw = canvas.parentElement!.clientWidth;
           const vh = canvas.parentElement!.clientHeight;
-          re.o.dp.resizeViewport(vw, vh);
+          o.ft.resizeViewport(vw, vh).dp();
         })
       );
     })
@@ -82,13 +82,14 @@ export function createDomControl() {
   ));
 
   // Pass below actions to worker when worker is ready
-  r(rx.combineLatest([re.o.at._createOffscreen, re.o.pt.workerReady]).pipe(
+  r('_createOffscreen, workerReady -> worker.postMessage', rx.combineLatest([
+    o.at._createOffscreen,
+    o.pt.workerReady
+  ]).pipe(
     rx.map(([action, [, worker]]) => {
       worker.postMessage(serializeAction(action), action.p);
     })
   ));
-
-  re.startAll();
 
   return [
     re.i,

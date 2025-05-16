@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig-node.json",
-  "compilerOptions": {
-    "module": "ESNext",
-    "outDir": "es",
-    "strict": true,
-    "inlineSources": true
-  }
-}

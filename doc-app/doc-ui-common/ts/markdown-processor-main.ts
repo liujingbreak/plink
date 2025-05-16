@@ -20,12 +20,13 @@ export function setupBroker(excludeCurrentThead = true, maxNumOfWorker?: number)
     name: 'broker',
     maxNumOfWorker: maxNumOfWorker ?? os.availableParallelism() - 1,
     threadMaxIdleTime: 4000,
-    debug: false,
+    debug: true,
     excludeCurrentThead,
     log(msg, ...args) {
       log.info(msg, ...args.map(item => isPrimitiveValue(item) ? item : inspect(item, {showHidden: false, depth: 0, compact: true})));
     },
-    debugExcludeTypes: ['workerInited'],
+    debugIncludeTypes: ['workerAssigned', 'letWorkerExit'],
+    // debugExcludeTypes: ['workerInited'],
     workerFactory() {
       return new Worker(Path.resolve(__dirname, '../dist/markdown-processor-worker.js'));
     }

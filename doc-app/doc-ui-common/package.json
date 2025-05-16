@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dr": {
+  "plink": {
     "cli": "dist/cli/cli.js#default",
     "setting": {
       "value": "isom/doc-ui-common-setting.js#defaultSetting",
@@ -35,17 +35,15 @@
     "markdown-it": "13.0.2",
     "highlight.js": "11.8.0",
     "github-markdown-css": "4.0.0",
-    "mermaid": "^10.1.0",
+    "mermaid": "^10.8.0",
     "parse5": "^7.1.2",
     "bezier-easing": "^2.1.0",
     "glur": "^1.1.2",
     "@types/glur": "^1.1.1",
     "transformation-matrix": "2.8.0",
-    "bezier-js": "^4.1.1",
-    "@types/md5": "2.3.2"
+    "bezier-js": "^4.1.1"
   },
   "dependencies": {
-    "md5": "2.3.0",
     "gl-matrix": "3.4.3"
   }
 }

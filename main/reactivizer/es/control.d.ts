@@ -1,0 +1,89 @@
+import * as rx from 'rxjs';
+import { Action, InferPayload, ActionMeta, InferMapParam, ArrayOrTuple, ControllerCore, Dispatch, DispatchFor, CoreOptions } from './stream-core';
+import { PayloadByType, ActionByType } from './inferred-types';
+export * from './stream-core';
+export type DispatchAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
+export type DispatchForAndObserveRes<I, K extends keyof I> = <F>(waitForAction$: rx.Observable<Action<F>>, relateToActionMeta: ActionMeta | ArrayOrTuple<ActionMeta> | null, ...params: InferPayload<I[K]>) => rx.Observable<InferMapParam<F>>;
+type Interceptor = (up: rx.Observable<Action>) => rx.Observable<Action>;
+export declare class RxController<I> {
+    core: ControllerCore<I>;
+    dispatcher: {
+        [K in keyof I]: Dispatch<I[K]>;
+    };
+    dispatcherFor: {
+        [K in keyof I]: DispatchFor<I[K]>;
+    };
+    /** abbrevation of property "dispatcher", exactly same instance of dispatcher */
+    dp: {
+        [K in keyof I]: Dispatch<I[K]>;
+    };
+    /** abbrevation of property "dispatcherFor", exactly same instance of dispatcherFor */
+    dpf: {
+        [K in keyof I]: DispatchFor<I[K]>;
+    };
+    dispatchAndObserveRes: {
+        [K in keyof I]: DispatchAndObserveRes<I, K>;
+    };
+    /** abbrevation of property "dispatchAndObserveRes", exactly same instance of dispatchAndObserveRes */
+    do: {
+        [K in keyof I]: DispatchAndObserveRes<I, K>;
+    };
+    dispatchForAndObserveRes: {
+        [K in keyof I]: DispatchForAndObserveRes<I, K>;
+    };
+    /** abbrevation of dispatchForAndObserveRes */
+    dfo: {
+        [K in keyof I]: DispatchForAndObserveRes<I, K>;
+    };
+    payloadByType: PayloadByType<I>;
+    /** abbrevation of payloadByType */
+    pt: PayloadByType<I>;
+    actionByType: ActionByType<I>;
+    /** abbrevation of actionByType */
+    at: ActionByType<I>;
+    opts: CoreOptions<unknown>;
+    interceptorList$: rx.Observable<Interceptor[]>;
+    constructor(opts?: CoreOptions<I>);
+    /** change CoreOptions's "name" property which is displayed in actions log for developer to identify which stream the action log entry
+    * belongs to
+    */
+    setName(value: string): void;
+    createAction<J = I, K extends keyof J = keyof J>(type: K, ...params: InferPayload<J[K]>): Action<J[K]>;
+    /** This method internally uses [groupBy](https://rxjs.dev/api/index/function/groupBy#groupby) */
+    groupControllerBy<K>(keySelector: (action: Action) => K, groupedCtlOptionsFn?: (key: K) => CoreOptions<I>): rx.Observable<[newGroup: GroupedRxController<I, K>, allGroups: Map<K, GroupedRxController<I, K>>]>;
+    /**
+     * create a new RxController whose action$ is filtered for action types which are included in `actionTypes`
+     */
+    subForTypes<KS extends (keyof I)[] | readonly (keyof I & string)[]>(actionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
+    /**
+     * create a new RxController whose action$ is filtered for action types that is included in `actionTypes`
+     */
+    subForExcludeTypes<KS extends (keyof I)[] | readonly (keyof I)[]>(excludeActionTypes: KS, opts?: CoreOptions<Pick<I, KS[number]>>): RxController<Pick<I, KS[number]>>;
+    /**
+     * Delegate to `this.core.action$.connect()`
+     * "core.action$" is a `connectable` observable, under the hood, it is like `action$ = connectable(actionUpstream)`.
+     *
+     * By default `connect()` will be immediately invoked in constructor function, when "options.autoConnect" is
+     * `undefined` or `true`, in that case you don't need to call this method manually.
+     *
+     * Refer to [connectable](https://rxjs.dev/api/index/function/connectable)
+     */
+    connect(): void;
+}
+export declare class GroupedRxController<I, K> extends RxController<I> {
+    key: K;
+    constructor(key: K, opts?: CoreOptions<I>);
+}
+export declare function serializeAction<I = any, K extends keyof I = any>(action: Action<I[K]>): {
+    t: string;
+    i: number;
+    r?: number | number[];
+    p: InferPayload<I[K]>;
+};
+/**
+ * Create a new Action with same "p", "i" and "r" properties and dispatched to RxController,
+ * but changed "t" property which comfort to target "toRxController"
+ * @return that dispatched new action object
+ */
+export declare function deserializeAction<I>(actionObj: any, toController: RxController<I>): Action<I[keyof I]>;
+export declare function mapActionToPayload<F>(): (up: rx.Observable<Action<F>>) => rx.Observable<[ActionMeta, ...InferPayload<F>]>;

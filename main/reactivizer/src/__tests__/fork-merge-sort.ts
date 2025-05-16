@@ -1,0 +1,203 @@
+/* eslint-disable no-console */
+import Path from 'node:path';
+import fs from 'fs';
+import {Worker} from 'worker_threads';
+import {performance} from 'node:perf_hooks';
+import os from 'node:os';
+import * as rx from 'rxjs';
+import assert from 'node:assert';
+// import {log4File} from '@wfh/plink';
+import {SimplexReactorOptions} from '../index';
+import {formatToConciseNoColor} from '../nodejs-utils';
+import {createSorter} from '../res/sorter';
+import {createBroker} from '../fork-join/node-worker-broker';
+import {applyScheduler} from '../fork-join/worker-scheduler';
+
+const logout = fs.createWriteStream('fork-merge-sort-test.output.log', 'utf8');
+const stdoutLogger: SimplexReactorOptions<any, any>['log'] = (...msgs) => {
+  logout.write(formatToConciseNoColor(...msgs));
+  logout.write('\n');
+  // process.stdout.write(formatToConcise(...msgs));
+  // process.stdout.write('\n');
+};
+
+export async function forkMergeSort(threadMode: 'scheduler' | 'mainOnly' | 'singleWorker' | 'mix' | 'newWorker' | 'excludeMainThread',
+  workerNum?: number, autoExpirated?: number) {
+  const num = 3000;
+  const testArr = createSharedArryForTest(0, num);
+  const sorter = createSorter(null, {
+    name: 'sorter',
+    debug: true,
+    log: stdoutLogger
+  });
+  let workerIsAssigned = false;
+
+  sorter.s.ft.log('worker created').dp();
+  const workers = [] as [Worker, number][];
+
+  const broker = createBroker(sorter, {
+    name: 'broker',
+    debug: true,
+    log: stdoutLogger,
+    debugExcludeTypes: ['workerAssigned', 'workerInited', 'ensureInitWorker', 'newWorkerReady', 'forkByBroker', 'wait', 'stopWaiting', 'assignWorker', 'clearExpirationTimer']
+  });
+
+  broker.s.pt.onWorkerError.pipe(
+    rx.tap(([, workerNo, error, type]) => {
+      console.error(type, 'worker #', workerNo, error);
+    })
+  ).subscribe();
+
+  broker.table.l.allReadyWorkers.pipe(
+    rx.switchMap(([, worker$]) => worker$),
+    rx.map(([, , input]) => input.ft.changeConfig({debug: true}).dp())
+  ).subscribe();
+
+  const {s} = broker;
+  const numOfWorkers = workerNum ?? os.availableParallelism();
+  console.log('numOfWorkers:', numOfWorkers);
+
+  let scheduleState: ReturnType<typeof applyScheduler> | undefined;
+  if (threadMode === 'scheduler') {
+    broker.config({debug: true});
+    // process.env.NODE_ENV = 'development';
+    scheduleState = applyScheduler(broker, {
+      maxNumOfWorker: numOfWorkers,
+      excludeCurrentThead: false,
+      threadMaxIdleTime: autoExpirated,
+      workerFactory() {
+        return new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
+      }
+    });
+  } else if (threadMode === 'excludeMainThread') {
+    scheduleState = applyScheduler(broker, {
+      maxNumOfWorker: numOfWorkers,
+      excludeCurrentThead: true,
+      threadMaxIdleTime: autoExpirated,
+      workerFactory() {
+        return new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
+      }
+    });
+  } else {
+    sorter.r('on assignWorker -> workerAssigned', rx.merge(
+      // Mimic a thread pool's job
+      s.pt.assignWorker.pipe(
+        rx.map(([m], idx) => {
+          if (threadMode === 'mainOnly')
+            s.ft.workerAssigned(0, 'main').dp(m);
+          else if (threadMode === 'singleWorker') {
+            let worker: Worker;
+            let workerNo = 1;
+            if (workers.length > 0) {
+              worker = workers[0][0];
+            } else {
+              worker = new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
+              workerNo = workers.length + 1;
+              workers.push([worker, workerNo]);
+            }
+            s.ft.workerAssigned(workerNo, worker).dp(m);
+          } else if (threadMode === 'newWorker') {
+            const worker = new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
+            workers.push([worker, idx]);
+            s.ft.workerAssigned(idx++, worker).dp(m);
+          } else {
+            let worker: Worker;
+            const workerNo = workers.length + 1;
+            if (Math.random() <= 0.5) {
+              if (workers.length > 0) {
+                worker = workers[0][0];
+              } else {
+                worker = new Worker(Path.resolve(__dirname, '../../dist/res/sort-worker.js'));
+                workers.push([worker, workerNo]);
+              }
+              s.ft.workerAssigned(workerNo, worker).dp(m);
+            } else
+              s.ft.workerAssigned(0, 'main').dp(m);
+          }
+          workerIsAssigned = true;
+        }),
+        rx.ignoreElements()
+      ),
+      rx.merge(
+        broker.error$.pipe(rx.map(([label, err]) => {
+          console.error('Broker', label, 'on error', err);
+        })),
+        s.pt.onWorkerError.pipe(rx.map(([, workNo, err, type]) => {
+          console.error('Worker', workNo, 'on', type ?? 'error', err);
+        }))
+      ).pipe(
+        rx.take(1),
+        rx.map(() => {
+          sorter.dispose();
+          // for (const worker of workers)
+          //   s.dp.letWorkerExit(worker);
+          // workers.splice(0);
+        })
+      )
+    ));
+  }
+  sorter.s.ft.log('Initial test array', testArr).dp();
+
+  performance.mark(threadMode + '/sort start');
+  // call main sort function
+  await rx.firstValueFrom(sorter.s.ft.sortAllInWorker(
+    testArr.buffer, 0, num, Math.round(num / numOfWorkers / 2)
+  ).do(sorter.s.at.sortAllInWorkerResolved));
+  performance.measure(`measure ${numOfWorkers}`, threadMode + '/sort start');
+  const performanceEntry = performance.getEntriesByName(`measure ${numOfWorkers}`)[0];
+  console.log('Performance entry #' + performanceEntry.name + ':', performanceEntry.duration, 'ms');
+  performance.clearMeasures();
+  performance.clearMarks();
+
+  if (!['scheduler', 'excludeMainThread'].includes(threadMode)) {
+    assert.equal(workerIsAssigned, true);
+  }
+  sorter.s.ft.log('-----------------------------\nsorted:', testArr).dp();
+
+  if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
+    await new Promise(r => setTimeout(r, 500));
+    console.log('Ranks of workers:', [...scheduleState!.ranksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
+    console.log('Num of tasks of workers:', [...scheduleState!.tasksByWorkerNo.entries()].map(([workerNo, [worker, rank]]) => `#${worker === 'main' ? worker : workerNo}: ${rank}`));
+    for (const [, [workerNo, rank]] of scheduleState!.tasksByWorkerNo.entries()) {
+      assert.equal(rank, workerNo === 'main' ? 1 : 0);
+    }
+    for (const [, [workerNo, rank]] of scheduleState!.ranksByWorkerNo.entries()) {
+      assert.equal(rank, workerNo === 'main' ? 1 : 0);
+    }
+  }
+
+  const latestBrokerEvents = broker.table.addActions('onWorkerExit').l;
+  if (['scheduler', 'excludeMainThread'].includes(threadMode)) {
+    if (autoExpirated == null)
+      await rx.firstValueFrom(s.ft.letAllWorkerExit().do(s.at.onAllWorkerExit));
+  } else if (threadMode !== 'mainOnly') {
+    for (const [, workerNo] of workers)
+      s.ft.letWorkerExit(workerNo).dp();
+    await rx.lastValueFrom(latestBrokerEvents.onWorkerExit.pipe(rx.take(workers.length)));
+  }
+  logout.close();
+}
+function createSharedArryForTest(from: number, to: number) {
+  const size = to - from;
+  const buf = new SharedArrayBuffer(4 * size);
+  const testArr = new Float32Array(buf, 0, size);
+  const initArr = new Array(size);
+  for (let i = 0; i < size; i++) {
+    initArr[i] = i + from;
+  }
+  shuffleArray(initArr, testArr);
+  return testArr;
+}
+
+function shuffleArray(arr: number[], target: Record<number, any>) {
+  let arrEffectiveLen = arr.length;
+  for (let i = 0, l = arr.length; i < l; i++) {
+    const pos = Math.floor(Math.random() * arrEffectiveLen--);
+    // console.log(`(${pos}, ${arr.length})`, '-', arr[pos]);
+    target[i] = arr[pos];
+    if (pos !== arr.length - 1)
+      arr[pos] = arr.pop()!;
+    else
+      arr.pop();
+  }
+}

@@ -1,14 +1,7 @@
 import React, {useState, useCallback} from 'react';
 import clsBinder from 'classnames/bind';
-// import {TopAppBar} from '@wfh/material-components-react/client/TopAppBar';
-// import {Drawer} from '@wfh/material-components-react/client/Drawer';
-// import {useParams} from 'react-router-dom';
 import {MarkdownViewComp, MarkdownViewCompProps} from '@wfh/doc-ui-common/client/markdown/MarkdownViewComp';
-// import {markdownsControl} from '@wfh/doc-ui-common/client/markdown/markdownSlice';
-// import {DocListComponents} from './DocListComponents';
 import {useRouter} from '@wfh/doc-ui-common/client/animation/AnimatableRoutes.hooks';
-// import * as rx from 'rxjs';
-// import {useAppLayout} from '@wfh/doc-ui-common/client/components/appLayout.control';
 import {renderByMdKey} from './articaleComponents';
 import styles from './ArticalePage.module.scss';
 
@@ -48,7 +41,7 @@ const ArticalePage = React.memo<ArticalePageProps>(function() {
   // mdc-layout-grid provides proper margin or padding space for page element
   return (
     <div className={cls('articale-page', 'mdc-layout-grid')}> {/* CSS class mdc-layout-grid provides proper margin or padding space for page element https://m2.material.io/develop/web/supporting/layout-grid*/}
-      <MarkdownViewComp mdKey={matchedParams?.mdKey} onContent={onContentLoaded} />
+      <MarkdownViewComp mdKey={matchedParams?.mdKey ? matchedParams.mdKey : undefined} onContent={onContentLoaded} />
       {portals}
     </div>
   );

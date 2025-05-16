@@ -1,4 +1,4 @@
-///<reference path="./module-declare.d.ts" />
+/// <reference path="./module-declare.d.ts" />
 /* eslint-disable no-console,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-assignment */
 import Path from 'path';
 import {ConfigHandlerMgr} from '@wfh/plink/wfh/dist/config-handler';
@@ -8,7 +8,7 @@ import StatsPlugin from '@wfh/webpack-common/dist/webpack-stats-plugin';
 import {BundleAnalyzerPlugin} from 'webpack-bundle-analyzer';
 import fs from 'fs-extra';
 import _ from 'lodash';
-import {logger, packageOfFileFactory, plinkEnv, config as plinkConfig/* , webInjector*/} from '@wfh/plink';
+import {log4File, packageOfFileFactory, plinkEnv, config as plinkConfig/* , webInjector*/} from '@wfh/plink';
 import memStats from '@wfh/plink/wfh/dist/utils/mem-stats';
 import {FileCacheOptions, Configuration, RuleSetRule, Compiler, ProgressPlugin} from 'webpack';
 import nodeResolve from 'resolve';
@@ -24,7 +24,7 @@ import {TermuxWebpackPlugin} from './termux-issue-webpack-plugin';
 // import inspector from 'node:inspector';
 // inspector.open(9222, 'localhost', true);
 
-const log = logger.getLogger('@wfh/cra-scripts.webpack-config');
+const log = log4File(__filename);
 const {nodePath, rootDir} = JSON.parse(process.env.__plink!) as PlinkEnv;
 
 export default function(webpackEnv: 'production' | 'development') {
@@ -105,9 +105,9 @@ export default function(webpackEnv: 'production' | 'development') {
   if (config.watchOptions == null)
     config.watchOptions = {};
   if (cmdOption.usePoll) {
-    config.watchOptions.poll = 1000;
+    config.watchOptions.poll = 1500;
   }
-  config.watchOptions.aggregateTimeout = 900;
+  config.watchOptions.aggregateTimeout = 700;
   config.watchOptions.ignored = /(?:\bnode_modules\b|^(?:\/(?:data(?:\/data)?)?)$)/;
   // config.watchOptions.followSymlinks = false;
 
@@ -147,11 +147,21 @@ export default function(webpackEnv: 'production' | 'development') {
     })());
 
     const htmlWebpackPluginConstrutor = getPluginConstructor('html-webpack-plugin'); // require(nodeResolve.sync('html-webpack-plugin', {basedir: reactScriptsInstalledDir}));
-    const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as {userOptions: HtmlWebpackPluginOptions};
-    htmlWebpackPluginInstance.userOptions.templateParameters = {
-      _config: plinkConfig(),
-      _dllJsFiles: dllJsFiles.map(p => config.output!.publicPath + p)
+    const htmlWebpackPluginInstance = config.plugins!.find(plugin => plugin instanceof htmlWebpackPluginConstrutor) as unknown as
+      {
+        userOptions: HtmlWebpackPluginOptions;
+        options?: HtmlWebpackPluginOptions;
+      };
+    const targetOpts = htmlWebpackPluginInstance.options ?? htmlWebpackPluginInstance.userOptions;
+    const originTemplFn = typeof targetOpts.templateParameters === 'function' ? targetOpts.templateParameters : () => {};
+    targetOpts.templateParameters = (...args) => {
+      return {
+        ...originTemplFn(...args),
+        _config: plinkConfig(),
+        _dllJsFiles: dllJsFiles.map(p => config.output!.publicPath + p)
+      };
     };
+    // console.log('----------------------------->>>>>>>>> debug', htmlWebpackPluginInstance);
     setupSplitChunks(config, (mod) => {
       const file = mod.resource ?? null;
       if (file == null)
@@ -182,11 +192,12 @@ export default function(webpackEnv: 'production' | 'development') {
   }
   const rules = [...config.module?.rules ?? []]; // BFS array contains both RuleSetRule and RuleSetUseItem
 
-  for (const rule of rules) {
-    if (typeof rule !== 'string') {
-      if (rule.oneOf) {
-        rules.push(...rule.oneOf);
-      } else if (Array.isArray(rule.use)) {
+  for (const ruleItem of rules) {
+    if (typeof ruleItem !== 'string') {
+      const rule = ruleItem as RuleSetRule;
+      if ((rule ).oneOf) {
+        rules.push(...rule.oneOf as any[]);
+      } else if (Array.isArray((rule ).use)) {
         rules.push(...rule.use as any); // In factor rule.use is RuleSetUseItem not RuleSetRule
       } else if (rule.loader) {
         const appSrc = Path.join(plinkEnv.workDir, 'src');
@@ -385,7 +396,7 @@ function nameFromConfigEntry(config: Configuration) {
       typeof config.entry === 'object' ? Object.values(config.entry)[0] : null;
 
   if (Array.isArray(entryFile))
-    entryFile = entryFile[0]
+    entryFile = entryFile[0];
 
   let buildIdentifier: undefined | string;
   if (typeof entryFile === 'string') {

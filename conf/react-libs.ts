@@ -7,14 +7,14 @@ const handler: ReactScriptsHandler & ConfigHandler = {
     setting['@wfh/cra-scripts'].entries = [
       // Path.resolve(plinkEnv.rootDir, 'doc-app/doc-entry/dll/shell-entry.ts'),
       Path.resolve(plinkEnv.rootDir, 'doc-app/doc-entry/dll/react-vendors.ts'),
-      'react-dom',
+      'react-dom/client',
       'react-redux',
       'immer',
       // '@wfh/doc-ui-common/client/components/appLayout.state',
       Path.resolve('../main/node_modules/@reduxjs/toolkit'),
       Path.resolve('../main/node_modules/redux-observable'),
       'react',
-      '@loadable/component',
+      '@loadable/component'
       // Path.resolve(plinkEnv.rootDir, 'doc-app/doc-ui-common/client/animation/AnimatableRoutes.hooks.tsx')
     ];
   },
@@ -25,4 +25,4 @@ const handler: ReactScriptsHandler & ConfigHandler = {
 };
 
 export default handler;
- 
+

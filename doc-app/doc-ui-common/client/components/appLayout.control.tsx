@@ -1,55 +1,63 @@
 import {MDCTopAppBar, TopAppBarProps} from '@wfh/material-components-react/client/TopAppBar';
 import * as rx from 'rxjs';
 import React from 'react';
-import {ReactorComposite, ActionTableDataType} from '@wfh/reactivizer';
+import {ReactorComposite2, ActionTableDataType, SingleActionFactory} from '@wfh/reactivizer';
 import {Size} from './layout/MediaMatch';
 
-export const Ctx = React.createContext<ReactorComposite<InputActions, OutputEvents, typeof inputTableFor, typeof outputTableFor> | null | undefined>(null);
+export const Ctx = React.createContext<ReactorComposite2<InputActions, OutputEvents, typeof inputTableFor, typeof outputTableFor> | null | undefined>(null);
 export function useAppLayout() {
   const composite = React.useContext(Ctx);
   return composite;
 }
 
 export type InputActions = {
-  updateBarTitle(title: string | null): void;
-  updateFooter(content: React.ReactNode): void;
-  setLoadingVisible(visible: boolean): void;
-  scrollTo(...args: [left: number, top: number] | [ScrollToOptions]): void;
-  setLoadingBarRef(dom: HTMLDivElement | null): void;
-  setTopAppBarRef(mdc: Promise<MDCTopAppBar> | null): void;
-  // setTopEdgeRef(dom: HTMLDivElement | null): void;
-  setTopAppBarDomRef(dom: HTMLHeadElement): void;
-  setFrontLayerRef(div: HTMLDivElement | null): void;
-  setDeviceSize(size: Size): void;
-  setHeaderVisibilityDetectDom(dom: HTMLDivElement | null): void;
-  onScroll(event: React.UIEvent<HTMLDivElement, UIEvent> | null): void;
+  updateBarTitle(title: string | null): SingleActionFactory;
+  updateFooter(content: React.ReactNode): SingleActionFactory;
+  setLoadingVisible(visible: boolean): SingleActionFactory;
+  scrollTo(...args: [left: number, top: number] | [ScrollToOptions]): SingleActionFactory;
+  setLoadingBarRef(dom: HTMLDivElement | null): SingleActionFactory;
+  setTopAppBarRef(mdc: Promise<MDCTopAppBar> | null): SingleActionFactory;
+  // setTopEdgeRef(dom: HTMLDivElement | null): SingleActionFactory;
+  setTopAppBarDomRef(dom: HTMLHeadElement): SingleActionFactory;
+  setFrontLayerRef(div: HTMLDivElement | null): SingleActionFactory;
+  setDeviceSize(size: Size): SingleActionFactory;
+  setHeaderVisibilityDetectDom(dom: HTMLDivElement | null): SingleActionFactory;
+  onScroll(event: React.UIEvent<HTMLDivElement, UIEvent> | null): SingleActionFactory;
 };
 
-export const inputTableFor = ['setFrontLayerRef', 'setLoadingVisible', 'updateBarTitle', 'updateFooter',
-  'setLoadingBarRef', 'setTopAppBarRef', 'setTopAppBarDomRef', 'setDeviceSize', 'setHeaderVisibilityDetectDom'] as const;
+export const inputTableFor = [
+  'setFrontLayerRef', 'setLoadingVisible', 'updateBarTitle', 'updateFooter',
+  'setLoadingBarRef', 'setTopAppBarRef', 'setTopAppBarDomRef', 'setDeviceSize', 'setHeaderVisibilityDetectDom'
+] as const;
 
 export type OutputEvents = {
-  topBarVisible(isVisible: boolean): void;
-  showTopLoadingReqsCount(count: number): void;
-  frontLayerClassName(className: string): void;
-  topLoadingBarRef(dom: HTMLDivElement | null): void;
-  topbarType(type: TopAppBarProps['type']): void;
-  loadingVisible(visible: boolean): void;
+  topBarVisible(isVisible: boolean): SingleActionFactory;
+  showTopLoadingReqsCount(count: number): SingleActionFactory;
+  /** if className is "withShadow", TopAppBar is shown otherwise it is displayed in transparent (invisible) */
+  frontLayerClassName(className: string): SingleActionFactory;
+  topLoadingBarRef(dom: HTMLDivElement | null): SingleActionFactory;
+  topbarType(type: TopAppBarProps['type']): SingleActionFactory;
+  loadingVisible(visible: boolean): SingleActionFactory;
   /** When scrolling, the top bar placeholder area is changed from being visible and invisible */
-  onTopAppBarScrollChange(outOfViewPort: boolean): void;
+  // onTopAppBarScrollChange(outOfViewPort: boolean): SingleActionFactory;
+  onScrollDirectionChange(isDown: boolean): SingleActionFactory;
+  _onScroll(isDown: boolean): SingleActionFactory;
   /** When scrolling up but yet not reaching the top edge of "frontLayer",
   * top bar is shown with "raised (with shawdow)" style */
-  onTopAppBarRaisedShown(raised: boolean): void;
+  onTopAppBarRaisedShown(raised: boolean): SingleActionFactory;
+  _repeatOnTopAppBarRaisedShown(raised: boolean): SingleActionFactory;
 };
 
-export const outputTableFor = ['frontLayerClassName', 'onTopAppBarRaisedShown', 'showTopLoadingReqsCount', 'topLoadingBarRef',
-  'topbarType', 'loadingVisible', 'onTopAppBarScrollChange'] as const;
+export const outputTableFor = [
+  'frontLayerClassName', 'onTopAppBarRaisedShown', 'showTopLoadingReqsCount', 'topLoadingBarRef',
+  'topbarType', 'loadingVisible', 'onScrollDirectionChange'
+] as const;
 
 export function createControl(setUiState: (s: ActionTableDataType<InputActions, typeof inputTableFor> & ActionTableDataType<OutputEvents, typeof outputTableFor>) => void) {
-  const comp = new ReactorComposite<InputActions, OutputEvents, typeof inputTableFor, typeof outputTableFor>({
+  const comp = new ReactorComposite2<InputActions, OutputEvents, typeof inputTableFor, typeof outputTableFor>({
     name: 'AppLayout',
     debug: process.env.NODE_ENV === 'development',
-    debugExcludeTypes: ['onScroll'],
+    debugExcludeTypes: ['onScroll', '_onScroll', '_repeatOnTopAppBarRaisedShown'],
     inputTableFor,
     outputTableFor
   });
@@ -62,37 +70,47 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
         count++;
       else if (!visible && count > 0)
         count--;
-      o.dpf.showTopLoadingReqsCount([m1, m2], count);
+      o.ft.showTopLoadingReqsCount(count).dp(m1, m2);
     })
   ));
 
+  let frontLayerScrollTop = 0;
+
   // TODO: replace with IntersectionObserver
   r('onScroll -> frontLayerClassName, onTopAppBarRaisedShown', i.pt.onScroll.pipe(
-    rx.switchMap(([m]) => rx.combineLatest([
-      inputTable.l.setTopAppBarDomRef,
-      inputTable.l.setFrontLayerRef.pipe(rx.filter(([, dom]) => dom != null)),
-      outputTable.l.onTopAppBarRaisedShown
-    ]).pipe(
+    rx.switchMap(([m]) => inputTable.l.setFrontLayerRef.pipe(rx.filter(([, dom]) => dom != null)
+    ).pipe(
       rx.take(1),
-      rx.tap(([[, topAppBarDomRef], [, frontLayerRef], [, raised]]) => {
-        if (frontLayerRef!.scrollTop + topAppBarDomRef.getBoundingClientRect().top > 1) {
-          if (!raised) {
-            o.dpf.onTopAppBarRaisedShown(m, true);
-            o.dpf.frontLayerClassName(m, 'withShadow');
-          }
-        } else {
-          if (raised) {
-            o.dpf.onTopAppBarRaisedShown(m, false);
-            o.dpf.frontLayerClassName(m, '');
-          }
+      rx.tap(([, frontLayerRef]) => {
+        const currScrollTop = frontLayerRef!.scrollTop;
+        const isScrollDown = currScrollTop > frontLayerScrollTop;
+        o.ft._onScroll(isScrollDown).dp();
+        frontLayerScrollTop = currScrollTop;
+
+        if (currScrollTop === 0) {
+          o.ft.frontLayerClassName('').dp(m);
+          o.ft._repeatOnTopAppBarRaisedShown(false).dp();
+        } else if (!isScrollDown) {
+          o.ft.frontLayerClassName('withShadow').dp(m);
+          o.ft._repeatOnTopAppBarRaisedShown(true).dp();
         }
       })
     ))
   ));
 
+  r('_repeatOnTopAppBarRaisedShown -> onTopAppBarRaisedShown', o.pt._repeatOnTopAppBarRaisedShown.pipe(
+    rx.distinctUntilChanged(([, a], [, b]) => a === b),
+    rx.tap(([, raised]) => o.ft.onTopAppBarRaisedShown(raised).dp())
+  ));
+
+  r('_onScroll -> onScrollDirectionChange', o.pt._onScroll.pipe(
+    rx.distinctUntilChanged(([, a], [, b]) => a === b),
+    rx.tap(([m, isDown]) => o.ft.onScrollDirectionChange(isDown).dp(m))
+  ));
+
   r('setDeviceSize -> topbarType', i.pt.setDeviceSize.pipe(
     rx.tap(([m, size]) => {
-      o.dp.topbarType(size === 'desktop' ? 'standard' : 'dense');
+      o.ft.topbarType(size === 'desktop' ? 'standard' : 'dense').dp(m);
     })
   ));
 
@@ -102,7 +120,7 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
       rx.take(1),
       rx.tap(([, dom]) => {
         dom!.scrollTo(...(opts as [ScrollOptions]));
-        i.dpf.onScroll(m, null);
+        i.ft.onScroll(null).dp(m);
       })
     ))
   ));
@@ -111,9 +129,9 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
     outputTable.l.showTopLoadingReqsCount.pipe(
       rx.tap(([m, count]) => {
         if (count > 0) {
-          o.dpf.loadingVisible(m, true);
+          o.ft.loadingVisible(true).dp(m);
         } else if (count <= 0) {
-          o.dpf.loadingVisible(m, false);
+          o.ft.loadingVisible(false).dp(m);
         }
       })
     ));
@@ -134,7 +152,7 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
       const mdc = await ref!;
       mdc.setScrollTarget(dom!);
       const ob = new IntersectionObserver(entries => {
-        o.dp.topBarVisible(entries[0].isIntersecting);
+        o.ft.topBarVisible(entries[0].isIntersecting).dp();
       }, {threshold: 0});
       ob.observe(mdc.root);
       return () => ob.unobserve(mdc.root);
@@ -142,37 +160,18 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
     rx.switchMap(unsub => new rx.Observable<never>(() => unsub))
   ));
 
-  // r('setTopEdgeRef -> frontLayerClassName', i.pt.setTopEdgeRef.pipe(
-  //   rx.filter(([, el]) => el != null),
-  //   rx.switchMap(a => rx.combineLatest([
-  //     inputTable.l.setTopAppBarDomRef,
-  //     inputTable.l.setFrontLayerRef.pipe(rx.filter(([, dom]) => dom != null))
-  //   ]).pipe(rx.take(1), rx.map(b => [a, ...b] as const))),
-  //   rx.switchMap(([[, el], [, topAppBarDomRef], [, frontLayerRef]]) => {
-  //     const ob = new IntersectionObserver(entities => {
-  //       if (frontLayerRef!.scrollTop + topAppBarDomRef.getBoundingClientRect().top > 1) {
-  //         o.dp.frontLayerClassName('withShadow');
-  //       } else {
-  //         o.dp.frontLayerClassName('');
-  //       }
-  //     }, {threshold: 0});
-  //     ob.observe(el!);
-  //     return new rx.Observable(() => () => ob.unobserve(el!));
-  //   })
+  // r('setTopAppBarDomRef -> onTopAppBarScrollChange', i.pt.setHeaderVisibilityDetectDom.pipe(
+  //   rx.filter(([, dom]) => dom != null),
+  //   rx.switchMap(([, dom]) => new rx.Observable(_sub => {
+  //     const ob = new IntersectionObserver(entries => {
+  //       o.dp.onTopAppBarScrollChange(!entries[0].isIntersecting);
+  //     }, {
+  //       threshold: 0
+  //     });
+  //     ob.observe(dom!);
+  //     return () => ob.unobserve(dom!);
+  //   }))
   // ));
-
-  r('setTopAppBarDomRef -> onTopAppBarScrollChange', i.pt.setHeaderVisibilityDetectDom.pipe(
-    rx.filter(([, dom]) => dom != null),
-    rx.switchMap(([, dom]) => new rx.Observable(_sub => {
-      const ob = new IntersectionObserver(entries => {
-        o.dp.onTopAppBarScrollChange(!entries[0].isIntersecting);
-      }, {
-        threshold: 0
-      });
-      ob.observe(dom!);
-      return () => ob.unobserve(dom!);
-    }))
-  ));
 
   r('Update UI state', rx.combineLatest([inputTable.dataChange$, outputTable.dataChange$]).pipe(
     rx.map(([input, output]) => {
@@ -180,11 +179,11 @@ export function createControl(setUiState: (s: ActionTableDataType<InputActions, 
     })
   ));
 
-  i.dp.setLoadingVisible(false);
-  o.dp.onTopAppBarRaisedShown(false);
-  o.dp.showTopLoadingReqsCount(0);
-  o.dp.frontLayerClassName('');
-  i.dp.setDeviceSize('phone');
+  i.ft.setLoadingVisible(false).dp();
+  o.ft.onTopAppBarRaisedShown(false).dp();
+  o.ft.showTopLoadingReqsCount(0).dp();
+  o.ft.frontLayerClassName('').dp();
+  i.ft.setDeviceSize('phone').dp();
 
   return comp;
 }

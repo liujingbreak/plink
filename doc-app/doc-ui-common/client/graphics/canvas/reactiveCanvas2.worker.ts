@@ -25,10 +25,6 @@ function createEngine(): ReactiveCanvas2Engine {
   const {pt} = i;
   const {dispatcher} = o;
   const lo = comp.outputTable.l;
-  // const li = comp.i.createLatestPayloadsFor('setScaleRatio');
-  // const control = createActionStreamByType<ReactiveCanvas2Actions & ReactiveCanvasInputAction>(
-  //   {debug: process.env.NODE_ENV === 'development' ? 'reativeCanvas2.worker' : false}
-  // );
   const workerClient = createForCanvas();
   const animateMgr = createAnimationManager();
 
@@ -45,7 +41,7 @@ function createEngine(): ReactiveCanvas2Engine {
     }
   };
 
-  r(pt.onClick.pipe(
+  r('onClick', pt.onClick.pipe(
     // rx.withLatestFrom(li.setScaleRatio),
     rx.map(([, x, y]) => {
       const ratioToCanvasPoint = 2;
@@ -54,15 +50,7 @@ function createEngine(): ReactiveCanvas2Engine {
     })
   ));
 
-  // r(workerClient.payloadByType.detectedIntersection.pipe(
-  //   rx.map(([id, segs, originPoint]) => {
-  //     if (id === 'clicked') {
-  //       dispatcher.onSegmentsClicked(segs, originPoint);
-  //     }
-  //   })
-  // ));
-
-  r(pt.resizeViewport.pipe(
+  r('resizeViewport -> setCanvasSize, render', pt.resizeViewport.pipe(
     // rx.withLatestFrom(li.setScaleRatio),
     rx.map(([, vw, vh]) => {
       const ratio = 2;
@@ -75,21 +63,21 @@ function createEngine(): ReactiveCanvas2Engine {
     })
   ));
 
-  r(pt._createOffscreen.pipe(
+  r('_createOffscreen -> setIsOffScreen, setCanvasAndContext', pt._createOffscreen.pipe(
     rx.tap(([, canvas]) => {
       dispatcher.setIsOffScreen(true);
       dispatcher.setCanvasAndContext(canvas, canvas.getContext('2d') as OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D);
     })
   ));
 
-  r('clear canvas', o.pt.renderContent.pipe(
+  r('renderContent -> clear canvas', o.pt.renderContent.pipe(
     rx.withLatestFrom(lo.setCanvasSize),
     rx.map(([[, ctx], [, width, height]]) => {
       ctx.clearRect(0, 0, width, height);
     })
   ));
 
-  r('dispatch renderContent', rx.combineLatest([
+  r('sceneReady, animateMgr.renderFrame$ / render, setCanvasAndContext -> renderContent', rx.combineLatest([
     i.at.sceneReady,
     rx.merge(animateMgr.renderFrame$, o.at.render),
     o.pt.setCanvasAndContext
@@ -99,7 +87,7 @@ function createEngine(): ReactiveCanvas2Engine {
     })
   ));
 
-  r(rx.combineLatest([
+  r('setCanvasSize, setCanvasAndContext', rx.combineLatest([
     lo.setCanvasSize,
     o.pt.setCanvasAndContext
   ]).pipe(
@@ -119,18 +107,13 @@ function createEngine(): ReactiveCanvas2Engine {
     })
   ));
 
-  r(new rx.Observable(() => {
+  r('addEventListener', new rx.Observable(() => {
     postMessage('ready');
     // eslint-disable-next-line no-restricted-globals
     addEventListener('message', workerMsgHandler);
     // eslint-disable-next-line no-restricted-globals
     return () => removeEventListener('message', workerMsgHandler);
   }));
-
-  // r(i.at.onUnmount.pipe(rx.map(() => {
-  //   workerClient.dispatcher.canvasDestroyed();
-  //   comp.destory();
-  // })));
 
   return {
     canvasController: comp,
@@ -150,31 +133,19 @@ export function createRootAndEngine() {
   o.dp.setTreeAttached(true);
   o.dp.setAbsoluteTransform(mat4.create());
 
-  r(engine.canvasController.o.pt.setCanvasSize.pipe(
+  r('engine.setCanvasSize -> onResize', engine.canvasController.o.pt.setCanvasSize.pipe(
     rx.distinctUntilChanged(([, w1, h1], [, w2, h2]) => w1 === w2 && h1 === h2),
     rx.tap(([m, w, h]) => o.dpf.onResize(m, w, h))
   ));
 
-  r(engine.canvasController.o.pt.renderContent.pipe(
+  r('renderContent -> afterRender', engine.canvasController.o.pt.renderContent.pipe(
     rx.map(([m, ctx]) => o.dpf.afterRender(m, ctx))
   ));
 
-  r(engine.canvasController.i.at.onUnmount.pipe(
+  r('onUnmount -> detach', engine.canvasController.i.at.onUnmount.pipe(
     rx.tap(a => i.dpf.detach(a))
   ));
 
-  // rx.merge(
-  //   canvasPayloads.renderContent.pipe(
-  //     rx.map(ctx => {
-  //       rootCtl.dispatcher.afterRender(ctx);
-  //     })
-  //   ),
-  //   canvasPayloads.onUnmount.pipe(
-  //     rx.map(() => {
-  //       rootCtl.dispatcher.detach();
-  //     })
-  //   )
-  // ).subscribe();
   return [root, engine] as const;
 }
 

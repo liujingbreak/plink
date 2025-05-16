@@ -30,12 +30,12 @@ export function createBufferResponse(originRes: Response,
   const origOnce = originRes.once;
   const origOff = originRes.off;
 
-  originRes.write = function(...args: any[]) {
-    return bufStream.write.apply(bufStream, args);
+  originRes.write = function(...args: [any]) {
+    return bufStream.write(...args);
   };
 
-  originRes.end = function(...args: any[]) {
-    return bufStream.end.apply(bufStream, args);
+  originRes.end = function(...args: [...any[]]) {
+    return bufStream.end(...args) as ReturnType<Response['end']>;
   };
 
   originRes.on = function(evt: string, ...args: any[]) {

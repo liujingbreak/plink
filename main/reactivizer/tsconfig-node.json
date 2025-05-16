@@ -1,0 +1,24 @@
+{
+  "extends": "../plink/wfh/tsconfig-base.json",
+  "references": [
+    {"path": "../algorithms/tsconfig-node.json"}
+  ],
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "composite": true,
+    "paths": {
+      "@wfh/algorithms": [
+        "../algorithms/src"
+      ]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "es/**/*.ts",
+    "dist/**/*.ts"
+  ]
+}

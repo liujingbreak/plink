@@ -5,7 +5,7 @@ import * as op from 'rxjs/operators';
 import {Pool} from '@wfh/thread-promise-pool';
 import {log4File} from '@wfh/plink';
 // import type {ChildNode, Element, TextNode} from 'parse5/dist/cjs/tree-adapters/default';
-import {TOC} from '../isom/md-types';
+import {TOC} from '@wfh/markdown-base/isom/types';
 
 const log = log4File(__filename);
 
@@ -18,10 +18,10 @@ let threadPool: Pool;
  */
 export function markdownToHtml(
   source: string,
-  srcFile: string,
+  _srcFile: string,
   resolveImage?: (imgSrc: string) => Promise<string> | rx.Observable<string>,
-  resolveLink?: (link: string) => rx.Observable<string> | string):
-rx.Observable<{toc: TOC[]; content: string}> {
+  _resolveLink?: (link: string) => rx.Observable<string> | string):
+  rx.Observable<{toc: TOC[]; content: string}> {
   if (threadPool == null) {
     threadPool = new Pool(os.cpus().length > 1 ? os.cpus().length - 1 : 3, 1000);
   }
@@ -114,3 +114,7 @@ function tocMarkdown(tocs: TOC[]) {
   return str.slice(0, -1);
 }
 
+const textEncoder = new TextEncoder();
+export async function digestSha1(text: string) {
+  return btoa(String.fromCodePoint(...new Uint8Array(await globalThis.crypto.subtle.digest('SHA-1', textEncoder.encode(text)))));
+}

@@ -1,0 +1,6 @@
+node_modules
+*.bak
+/drcp-types
+/wfh/spec
+/wfh/src
+**/__tests__/**
